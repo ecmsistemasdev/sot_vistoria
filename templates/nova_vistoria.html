@@ -49,6 +49,13 @@
             padding: 0.5rem 1rem;
             margin-left: 1rem;
         }
+        #multi-foto-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
     </style>
 </head>
 <body>
@@ -103,13 +110,22 @@
                 </div>
             </div>
             
+            <div id="multi-foto-container" class="mb-4">
+                <h3>Selecionar Múltiplas Fotos</h3>
+                <div class="mb-3">
+                    <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple>
+                    <div class="form-text">Selecione várias fotos de uma vez para adicionar à vistoria</div>
+                </div>
+                <button type="button" class="btn btn-primary" id="adicionar-multi-fotos">Adicionar Selecionadas</button>
+            </div>
+            
             <h2>Fotos da Vistoria</h2>
             <div id="fotos-container">
                 <!-- Aqui serão adicionados os itens de foto dinamicamente -->
             </div>
             
             <button type="button" class="btn btn-success mb-4" id="addFotoBtn">
-                <i class="bi bi-plus-circle"></i> Adicionar Foto
+                <i class="bi bi-plus-circle"></i> Adicionar Foto Individual
             </button>
             
             <div class="camera-container" id="camera-container">
@@ -148,11 +164,6 @@
                 <textarea class="form-control" name="detalhamentos[]" maxlength="100" rows="2" placeholder="Digite detalhes sobre esta foto..."></textarea>
             </div>
             
-            <div class="camera-buttons foto-buttons" style="display: none;">
-                <button type="button" class="btn btn-success salvar-foto-btn">Salvar Foto</button>
-                <button type="button" class="btn btn-danger descartar-foto-btn">Descartar</button>
-            </div>
-            
             <button type="button" class="btn btn-danger mt-3 remover-foto-btn">Remover esta foto</button>
         </div>
     </template>
@@ -178,6 +189,40 @@
             adicionarNovaFoto();
         });
         
+        // Botão para adicionar múltiplas fotos
+        document.getElementById('adicionar-multi-fotos').addEventListener('click', function() {
+            const multiInput = document.getElementById('multi-foto-input');
+            const files = multiInput.files;
+            
+            if (files.length === 0) {
+                alert('Selecione pelo menos uma foto para adicionar');
+                return;
+            }
+            
+            // Para cada arquivo selecionado, criar um novo item de foto
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fotoItem = adicionarNovaFoto();
+                
+                // Atribuir o arquivo ao input de arquivo
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fotoItem.querySelector('.foto-input').files = dataTransfer.files;
+                
+                // Mostrar preview da imagem
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = fotoItem.querySelector('.preview-image');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+            
+            // Limpar o input de múltiplas fotos
+            multiInput.value = '';
+        });
+        
         // Função para adicionar nova foto
         function adicionarNovaFoto() {
             const fotoItem = document.importNode(fotoTemplate.content, true).firstElementChild;
@@ -194,7 +239,6 @@
                         const preview = fotoItem.querySelector('.preview-image');
                         preview.src = e.target.result;
                         preview.style.display = 'block';
-                        fotoItem.querySelector('.foto-buttons').style.display = 'flex';
                     }
                     reader.readAsDataURL(file);
                 }
@@ -206,18 +250,6 @@
                 usarCamera(fotoItem);
             });
             
-            // Configurar botão de salvar foto
-            const salvarFotoBtn = fotoItem.querySelector('.salvar-foto-btn');
-            salvarFotoBtn.addEventListener('click', function() {
-                salvarFoto(fotoItem);
-            });
-            
-            // Configurar botão de descartar foto
-            const descartarFotoBtn = fotoItem.querySelector('.descartar-foto-btn');
-            descartarFotoBtn.addEventListener('click', function() {
-                descartarFoto(fotoItem);
-            });
-            
             // Configurar botão de remover foto
             const removerFotoBtn = fotoItem.querySelector('.remover-foto-btn');
             removerFotoBtn.addEventListener('click', function() {
@@ -227,6 +259,8 @@
                     alert('Pelo menos uma foto é obrigatória para a vistoria.');
                 }
             });
+            
+            return fotoItem;
         }
         
         // Função para abrir a câmera
@@ -263,8 +297,15 @@
             preview.src = imageData;
             preview.style.display = 'block';
             
-            // Mostrar botões de salvar/descartar
-            currentFotoItem.querySelector('.foto-buttons').style.display = 'flex';
+            // Converter a imagem para um arquivo e atribuir ao input
+            fetch(imageData)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    currentFotoItem.querySelector('.foto-input').files = dataTransfer.files;
+                });
             
             // Fechar câmera
             fecharCamera();
@@ -279,53 +320,6 @@
                 video.style.display = 'none';
                 document.getElementById('main-camera-buttons').style.display = 'none';
             }
-        }
-        
-        // Função para salvar a foto
-        function salvarFoto(fotoItem) {
-            const preview = fotoItem.querySelector('.preview-image');
-            const imageData = preview.src;
-            
-            // Enviar a foto para o servidor
-            fetch('/salvar_foto', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    image_data: imageData
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Criar um arquivo para o input file
-                    const dataTransfer = new DataTransfer();
-                    fetch(imageData)
-                        .then(res => res.blob())
-                        .then(blob => {
-                            const file = new File([blob], data.filename, { type: 'image/jpeg' });
-                            dataTransfer.items.add(file);
-                            fotoItem.querySelector('.foto-input').files = dataTransfer.files;
-                            alert('Foto salva com sucesso!');
-                        });
-                } else {
-                    alert('Erro ao salvar foto: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Erro ao salvar foto.');
-            });
-        }
-        
-        // Função para descartar a foto
-        function descartarFoto(fotoItem) {
-            const preview = fotoItem.querySelector('.preview-image');
-            preview.src = '';
-            preview.style.display = 'none';
-            fotoItem.querySelector('.foto-buttons').style.display = 'none';
-            fotoItem.querySelector('.foto-input').value = '';
         }
         
         // Validação do formulário antes de enviar
