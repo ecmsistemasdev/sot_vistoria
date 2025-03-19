@@ -5,13 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vistorias</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <style>
+        .section-header {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+        .tipo-badge {
+            font-size: 0.8rem;
+            font-weight: normal;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-4">
-        <h1>Vistorias Realizadas</h1>
+        <h1>Vistorias</h1>
         
-        <a href="/" class="btn btn-primary mb-3">Voltar</a>
+        <div class="d-flex justify-content-between mb-4">
+            <a href="/" class="btn btn-secondary">Voltar</a>
+            <a href="/nova_vistoria" class="btn btn-primary">Nova Vistoria de Entrega</a>
+        </div>
         
+        <!-- Vistorias em trânsito -->
+        <h2 class="section-header">Vistorias em Trânsito</h2>
+        {% if vistorias_em_transito %}
         <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
@@ -20,16 +38,64 @@
                         <th>Motorista</th>
                         <th>Veículo</th>
                         <th>Data</th>
+                        <th>Tipo</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for vistoria in vistorias %}
+                    {% for vistoria in vistorias_em_transito %}
                     <tr>
                         <td>{{ vistoria[0] }}</td>
                         <td>{{ vistoria[1] }}</td>
                         <td>{{ vistoria[2] }}</td>
                         <td>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            <span class="badge bg-primary">Entrega</span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="/vistoria/{{ vistoria[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+                                <a href="/nova_vistoria_devolucao/{{ vistoria[0] }}" class="btn btn-sm btn-success">Criar Vistoria de Devolução</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">Não há vistorias em trânsito.</div>
+        {% endif %}
+        
+        <!-- Vistorias finalizadas -->
+        <h2 class="section-header">Vistorias Finalizadas</h2>
+        {% if vistorias_finalizadas %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Motorista</th>
+                        <th>Veículo</th>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vistoria in vistorias_finalizadas %}
+                    <tr>
+                        <td>{{ vistoria[0] }}</td>
+                        <td>{{ vistoria[1] }}</td>
+                        <td>{{ vistoria[2] }}</td>
+                        <td>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {% if vistoria[4] == 'ENTREGA' %}
+                            <span class="badge bg-primary">Entrega</span>
+                            {% else %}
+                            <span class="badge bg-success">Devolução</span>
+                            {% endif %}
+                        </td>
                         <td>
                             <a href="/vistoria/{{ vistoria[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
                         </td>
@@ -38,6 +104,9 @@
                 </tbody>
             </table>
         </div>
+        {% else %}
+        <div class="alert alert-info">Não há vistorias finalizadas.</div>
+        {% endif %}
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
