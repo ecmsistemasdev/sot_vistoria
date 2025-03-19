@@ -1,4 +1,3 @@
-app.py
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import os
 from flask_mysqldb import MySQL
