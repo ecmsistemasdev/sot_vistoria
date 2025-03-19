@@ -44,34 +44,61 @@
             display: flex;
             gap: 10px;
         }
+        .tipo-vistoria-badge {
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            margin-left: 1rem;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
-        <h1>Nova Vistoria</h1>
+        <div class="d-flex align-items-center">
+            <h1>Nova Vistoria</h1>
+            {% if tipo == 'ENTREGA' %}
+            <span class="badge bg-primary tipo-vistoria-badge">Entrega</span>
+            {% else %}
+            <span class="badge bg-success tipo-vistoria-badge">Devolução</span>
+            {% endif %}
+        </div>
         
         <form id="vistoriaForm" action="/salvar_vistoria" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="tipo" value="{{ tipo }}">
+            {% if vistoria_entrega_id %}
+            <input type="hidden" name="vistoria_entrega_id" value="{{ vistoria_entrega_id }}">
+            {% endif %}
+            
             <div class="row mb-4">
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="id_motorista" class="form-label">Motorista</label>
+                        {% if tipo == 'DEVOLUCAO' %}
+                        <input type="hidden" name="id_motorista" value="{{ motorista_id }}">
+                        <input type="text" class="form-control" value="{{ motorista_nome }}" readonly>
+                        {% else %}
                         <select class="form-select" id="id_motorista" name="id_motorista" required>
                             <option value="">Selecione um motorista</option>
                             {% for motorista in motoristas %}
                             <option value="{{ motorista[0] }}">{{ motorista[1] }}</option>
                             {% endfor %}
                         </select>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
                         <label for="id_veiculo" class="form-label">Veículo</label>
+                        {% if tipo == 'DEVOLUCAO' %}
+                        <input type="hidden" name="id_veiculo" value="{{ veiculo_id }}">
+                        <input type="text" class="form-control" value="{{ veiculo_placa }}" readonly>
+                        {% else %}
                         <select class="form-select" id="id_veiculo" name="id_veiculo" required>
                             <option value="">Selecione um veículo</option>
                             {% for veiculo in veiculos %}
                             <option value="{{ veiculo[0] }}">{{ veiculo[1] }}</option>
                             {% endfor %}
                         </select>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -96,7 +123,7 @@
             
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">Salvar Vistoria</button>
-                <a href="/" class="btn btn-secondary">Cancelar</a>
+                <a href="/vistorias" class="btn btn-secondary">Cancelar</a>
             </div>
         </form>
     </div>
