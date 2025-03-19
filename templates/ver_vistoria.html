@@ -8,13 +8,17 @@
     <style>
         .item-foto {
             max-width: 100%;
-            max-height: 300px;
+            height: auto;
             border: 1px solid #ddd;
             border-radius: 4px;
             padding: 5px;
         }
-        .item-card {
-            margin-bottom: 15px;
+        .foto-card {
+            margin-bottom: 20px;
+        }
+        .foto-detalhamento {
+            margin-top: 10px;
+            font-size: 1rem;
         }
     </style>
 </head>
@@ -37,20 +41,14 @@
             </div>
         </div>
         
-        <h2>Itens da Vistoria</h2>
+        <h2>Fotos da Vistoria</h2>
         <div class="row">
             {% for item in itens %}
-            <div class="col-md-6 item-card">
+            <div class="col-md-6 foto-card">
                 <div class="card">
-                    <div class="card-header">
-                        <h5>{{ item[1] }}</h5>
-                    </div>
                     <div class="card-body text-center">
-                        {% if item[2] %}
-                        <img src="{{ url_for('static', filename='uploads/' + item[2]) }}" class="item-foto" alt="{{ item[1] }}">
-                        {% else %}
-                        <p>Sem foto</p>
-                        {% endif %}
+                        <img src="{{ url_for('static', filename='uploads/' + item[0]) }}" class="item-foto" alt="Foto da vistoria">
+                        <p class="foto-detalhamento">{{ item[1] }}</p>
                     </div>
                 </div>
             </div>
