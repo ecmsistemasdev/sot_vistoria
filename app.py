@@ -1,3 +1,4 @@
+app.py
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import os
 from flask_mysqldb import MySQL
@@ -36,7 +37,35 @@ def nova_vistoria():
     veiculos = cur.fetchall()
     cur.close()
     
-    return render_template('nova_vistoria.html', motoristas=motoristas, veiculos=veiculos)
+    return render_template('nova_vistoria.html', motoristas=motoristas, veiculos=veiculos, tipo='ENTREGA')
+
+@app.route('/nova_vistoria_devolucao/<int:vistoria_entrega_id>')
+def nova_vistoria_devolucao(vistoria_entrega_id):
+    # Buscar informações da vistoria de entrega
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NOME, ve.PLACA
+        FROM VISTORIAS v
+        JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+        JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
+        WHERE v.IDVISTORIA = %s AND v.TIPO = 'ENTREGA'
+    """, (vistoria_entrega_id,))
+    vistoria_entrega = cur.fetchone()
+    cur.close()
+    
+    if not vistoria_entrega:
+        flash('Vistoria de entrega não encontrada!', 'danger')
+        return redirect(url_for('vistorias'))
+    
+    return render_template(
+        'nova_vistoria.html', 
+        motorista_id=vistoria_entrega[1],
+        motorista_nome=vistoria_entrega[3],
+        veiculo_id=vistoria_entrega[2],
+        veiculo_placa=vistoria_entrega[4],
+        vistoria_entrega_id=vistoria_entrega_id,
+        tipo='DEVOLUCAO'
+    )
 
 @app.route('/salvar_vistoria', methods=['POST'])
 def salvar_vistoria():
@@ -44,13 +73,29 @@ def salvar_vistoria():
         # Obter dados do formulário
         id_motorista = request.form['id_motorista']
         id_veiculo = request.form['id_veiculo']
+        tipo = request.form['tipo']
+        vistoria_entrega_id = request.form.get('vistoria_entrega_id')
         
         # Criar uma nova vistoria
         cur = mysql.connection.cursor()
-        cur.execute(
-            "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA) VALUES (%s, %s, NOW())",
-            (id_motorista, id_veiculo)
-        )
+        
+        if tipo == 'ENTREGA':
+            cur.execute(
+                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS) VALUES (%s, %s, NOW(), 'ENTREGA', 'EM_TRANSITO')",
+                (id_motorista, id_veiculo)
+            )
+        else:  # DEVOLUCAO
+            # Inserir vistoria de devolução
+            cur.execute(
+                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID) VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s)",
+                (id_motorista, id_veiculo, vistoria_entrega_id)
+            )
+            # Atualizar status da vistoria de entrega para finalizada
+            cur.execute(
+                "UPDATE VISTORIAS SET STATUS = 'FINALIZADA' WHERE IDVISTORIA = %s",
+                (vistoria_entrega_id,)
+            )
+            
         mysql.connection.commit()
         
         # Obter o ID da vistoria criada
@@ -77,7 +122,7 @@ def salvar_vistoria():
         
         cur.close()
         flash('Vistoria salva com sucesso!', 'success')
-        return redirect(url_for('index'))
+        return redirect(url_for('vistorias'))
     
     except Exception as e:
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
@@ -108,17 +153,36 @@ def salvar_foto():
 @app.route('/vistorias')
 def listar_vistorias():
     cur = mysql.connection.cursor()
+    
+    # Buscar vistorias em trânsito (Entregas não finalizadas)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA 
+        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA, v.TIPO, v.STATUS 
         FROM VISTORIAS v
         JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
         JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
+        WHERE v.STATUS = 'EM_TRANSITO'
         ORDER BY v.DATA DESC
     """)
-    vistorias = cur.fetchall()
+    vistorias_em_transito = cur.fetchall()
+    
+    # Buscar vistorias finalizadas (Entregas com devolução ou devoluções)
+    cur.execute("""
+        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA, v.TIPO, v.STATUS 
+        FROM VISTORIAS v
+        JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+        JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
+        WHERE v.STATUS = 'FINALIZADA'
+        ORDER BY v.DATA DESC
+    """)
+    vistorias_finalizadas = cur.fetchall()
+    
     cur.close()
     
-    return render_template('vistorias.html', vistorias=vistorias)
+    return render_template(
+        'vistorias.html', 
+        vistorias_em_transito=vistorias_em_transito,
+        vistorias_finalizadas=vistorias_finalizadas
+    )
 
 @app.route('/vistoria/<int:id>')
 def ver_vistoria(id):
@@ -126,13 +190,38 @@ def ver_vistoria(id):
     
     # Buscar detalhes da vistoria
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA 
+        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA, v.TIPO, v.STATUS,
+               v.VISTORIA_ENTREGA_ID
         FROM VISTORIAS v
         JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
         JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
         WHERE v.IDVISTORIA = %s
     """, (id,))
     vistoria = cur.fetchone()
+    
+    # Se for uma vistoria de devolução, buscar também a vistoria de entrega
+    vistoria_entrega = None
+    if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[6]:
+        cur.execute("""
+            SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA
+            FROM VISTORIAS v
+            JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+            JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
+            WHERE v.IDVISTORIA = %s
+        """, (vistoria[6],))
+        vistoria_entrega = cur.fetchone()
+    
+    # Se for uma vistoria de entrega, buscar se já existe uma vistoria de devolução
+    vistoria_devolucao = None
+    if vistoria and vistoria[4] == 'ENTREGA':
+        cur.execute("""
+            SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA
+            FROM VISTORIAS v
+            JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+            JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
+            WHERE v.VISTORIA_ENTREGA_ID = %s
+        """, (id,))
+        vistoria_devolucao = cur.fetchone()
     
     # Buscar fotos e detalhamentos da vistoria
     cur.execute("""
@@ -143,7 +232,13 @@ def ver_vistoria(id):
     itens = cur.fetchall()
     cur.close()
     
-    return render_template('ver_vistoria.html', vistoria=vistoria, itens=itens)
+    return render_template(
+        'ver_vistoria.html', 
+        vistoria=vistoria, 
+        itens=itens,
+        vistoria_entrega=vistoria_entrega,
+        vistoria_devolucao=vistoria_devolucao
+    )
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
