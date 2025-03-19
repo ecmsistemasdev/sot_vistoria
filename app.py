@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 import os
 from flask_mysqldb import MySQL
 import uuid
 import base64
 from datetime import datetime
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 app = Flask(__name__)
 
@@ -14,13 +16,57 @@ app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 mysql = MySQL(app)
 
-# Configuração para armazenar fotos
-UPLOAD_FOLDER = 'static/uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Configuração do S3
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+S3_REGION = os.getenv('AWS_REGION', 'us-east-1')
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_KEY'),
+    region_name=S3_REGION
+)
+
+# Função para gerar URL do S3
+def get_s3_url(file_name):
+    return f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_name}"
+
+# Configuração para diretório temporário
+TEMP_FOLDER = '/tmp'
 app.secret_key = os.getenv('SECRET_KEY', 'chave_secreta_padrao')
 
-# Certifique-se de que a pasta de uploads existe
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# Função para fazer upload para o S3
+def upload_to_s3(file_path, object_name):
+    try:
+        s3_client.upload_file(file_path, S3_BUCKET, object_name)
+        return get_s3_url(object_name)
+    except NoCredentialsError:
+        return None
+    except Exception as e:
+        print(f"Erro ao fazer upload para S3: {str(e)}")
+        return None
+
+# Função para fazer upload de dados de imagem base64 para o S3
+def upload_base64_to_s3(base64_data, object_name):
+    try:
+        # Remover o prefixo da string base64
+        if ',' in base64_data:
+            base64_data = base64_data.split(',')[1]
+        
+        # Decode base64 para bytes
+        image_bytes = base64.b64decode(base64_data)
+        
+        # Upload para S3
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=object_name,
+            Body=image_bytes,
+            ContentType='image/jpeg'
+        )
+        
+        return get_s3_url(object_name)
+    except Exception as e:
+        print(f"Erro ao fazer upload base64 para S3: {str(e)}")
+        return None
 
 @app.route('/')
 def index():
@@ -106,45 +152,54 @@ def salvar_vistoria():
         
         for i, foto in enumerate(fotos):
             if foto and foto.filename:
+                # Gerar nome de arquivo único
                 filename = f"vistoria_{id_vistoria}_{uuid.uuid4()}.jpg"
-                foto_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                foto.save(foto_path)
+                s3_object_name = f"uploads/{filename}"
+                
+                # Salvar temporariamente o arquivo
+                temp_path = os.path.join(TEMP_FOLDER, filename)
+                foto.save(temp_path)
+                
+                # Fazer upload para o S3
+                s3_url = upload_to_s3(temp_path, s3_object_name)
+                
+                # Remover arquivo temporário
+                os.remove(temp_path)
                 
                 detalhamento = detalhamentos[i] if i < len(detalhamentos) else ""
                 
-                # Inserir na tabela VISTORIA_ITENS
+                # Inserir na tabela VISTORIA_ITENS com a URL do S3
                 cur.execute(
                     "INSERT INTO VISTORIA_ITENS (IDVISTORIA, FOTO, DETALHAMENTO) VALUES (%s, %s, %s)",
-                    (id_vistoria, filename, detalhamento)
+                    (id_vistoria, s3_url, detalhamento)
                 )
                 mysql.connection.commit()
         
         cur.close()
         flash('Vistoria salva com sucesso!', 'success')
-        return redirect(url_for('index'))  # Modificado para redirecionar para index.html
+        return redirect(url_for('vistorias'))
     
     except Exception as e:
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
         return redirect(url_for('nova_vistoria'))
-        
+
 @app.route('/salvar_foto', methods=['POST'])
 def salvar_foto():
     try:
         data = request.json
         image_data = data['image_data']
         
-        # Remover o prefixo da string base64
-        image_data = image_data.split(',')[1]
-        
         # Gerar um nome de arquivo único
         filename = f"temp_{uuid.uuid4()}.jpg"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        s3_object_name = f"uploads/{filename}"
         
-        # Salvar a imagem
-        with open(filepath, "wb") as fh:
-            fh.write(base64.b64decode(image_data))
+        # Fazer upload direto para o S3
+        s3_url = upload_base64_to_s3(image_data, s3_object_name)
         
-        return jsonify({'success': True, 'filename': filename})
+        if s3_url:
+            return jsonify({'success': True, 'filename': filename, 's3_url': s3_url})
+        else:
+            return jsonify({'success': False, 'error': 'Falha ao fazer upload para S3'})
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
