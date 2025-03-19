@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Vistoria</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <style>
+        .preview-container {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .camera-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+        }
+        #video {
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+        #canvas {
+            display: none;
+        }
+        .camera-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .item-card {
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Nova Vistoria</h1>
+        
+        <form id="vistoriaForm" action="/salvar_vistoria" method="post" enctype="multipart/form-data">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="id_motorista" class="form-label">Motorista</label>
+                        <select class="form-select" id="id_motorista" name="id_motorista" required>
+                            <option value="">Selecione um motorista</option>
+                            {% for motorista in motoristas %}
+                            <option value="{{ motorista[0] }}">{{ motorista[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="id_veiculo" class="form-label">Veículo</label>
+                        <select class="form-select" id="id_veiculo" name="id_veiculo" required>
+                            <option value="">Selecione um veículo</option>
+                            {% for veiculo in veiculos %}
+                            <option value="{{ veiculo[0] }}">{{ veiculo[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <h2>Itens da Vistoria</h2>
+            <div class="row" id="itens-container">
+                {% for item in itens %}
+                <div class="col-md-6 item-card">
+                    <div class="mb-3">
+                        <h5>{{ item[1] }}</h5>
+                        <input type="hidden" name="item_{{ item[0] }}" value="{{ item[0] }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Foto</label>
+                            <div class="d-flex">
+                                <input type="file" class="form-control" name="foto_{{ item[0] }}" id="foto_{{ item[0] }}" accept="image/*" capture="camera">
+                                <button type="button" class="btn btn-secondary ms-2" onclick="usarCamera('{{ item[0] }}')">Câmera</button>
+                            </div>
+                        </div>
+                        
+                        <div class="preview-container" id="preview_container_{{ item[0] }}">
+                            <img src="" class="preview-image" id="preview_{{ item[0] }}" style="display: none;">
+                        </div>
+                        
+                        <div class="camera-buttons" id="camera_buttons_{{ item[0] }}" style="display: none;">
+                            <button type="button" class="btn btn-success" onclick="salvarFoto('{{ item[0] }}')">Salvar Foto</button>
+                            <button type="button" class="btn btn-danger" onclick="descartarFoto('{{ item[0] }}')">Descartar</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="camera-container" id="camera-container">
+                <video id="video" autoplay></video>
+                <canvas id="canvas"></canvas>
+                <div class="camera-buttons" id="main-camera-buttons" style="display: none;">
+                    <button type="button" class="btn btn-primary" id="capture">Capturar Foto</button>
+                    <button type="button" class="btn btn-secondary" id="closeCamera">Fechar Câmera</button>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Salvar Vistoria</button>
+                <a href="/" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentItemId = null;
+        let videoStream = null;
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const closeButton = document.getElementById('closeCamera');
+        
+        // Função para mostrar preview da foto selecionada pelo input file
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function(e) {
+                const itemId = this.id.split('_')[1];
+                const file = this.files[0];
+                
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const preview = document.getElementById(`preview_${itemId}`);
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                        document.getElementById(`camera_buttons_${itemId}`).style.display = 'flex';
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+        
+        // Função para abrir a câmera
+        function usarCamera(itemId) {
+            currentItemId = itemId;
+            
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                    .then(function(stream) {
+                        videoStream = stream;
+                        video.srcObject = stream;
+                        video.style.display = 'block';
+                        document.getElementById('main-camera-buttons').style.display = 'flex';
+                    })
+                    .catch(function(error) {
+                        console.error("Não foi possível acessar a câmera: ", error);
+                        alert("Não foi possível acessar a câmera. Verifique as permissões.");
+                    });
+            } else {
+                alert("Seu navegador não suporta acesso à câmera.");
+            }
+        }
+        
+        // Função para capturar foto
+        captureButton.addEventListener('click', function() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = canvas.toDataURL('image/jpeg');
+            
+            // Mostrar preview da foto capturada
+            const preview = document.getElementById(`preview_${currentItemId}`);
+            preview.src = imageData;
+            preview.style.display = 'block';
+            
+            // Mostrar botões de salvar/descartar
+            document.getElementById(`camera_buttons_${currentItemId}`).style.display = 'flex';
+            
+            // Fechar câmera
+            fecharCamera();
+        });
+        
+        // Função para fechar a câmera
+        closeButton.addEventListener('click', fecharCamera);
+        
+        function fecharCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                video.style.display = 'none';
+                document.getElementById('main-camera-buttons').style.display = 'none';
+            }
+        }
+        
+        // Função para salvar a foto
+        function salvarFoto(itemId) {
+            const preview = document.getElementById(`preview_${itemId}`);
+            const imageData = preview.src;
+            
+            // Enviar a foto para o servidor
+            fetch('/salvar_foto', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    image_data: imageData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Criar um arquivo para o input file
+                    const dataTransfer = new DataTransfer();
+                    fetch(imageData)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            const file = new File([blob], data.filename, { type: 'image/jpeg' });
+                            dataTransfer.items.add(file);
+                            document.getElementById(`foto_${itemId}`).files = dataTransfer.files;
+                            alert('Foto salva com sucesso!');
+                        });
+                } else {
+                    alert('Erro ao salvar foto: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao salvar foto.');
+            });
+        }
+        
+        // Função para descartar a foto
+        function descartarFoto(itemId) {
+            const preview = document.getElementById(`preview_${itemId}`);
+            preview.src = '';
+            preview.style.display = 'none';
+            document.getElementById(`camera_buttons_${itemId}`).style.display = 'none';
+            document.getElementById(`foto_${itemId}`).value = '';
+        }
+    </script>
+</body>
+</html>

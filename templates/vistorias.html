@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vistorias</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Vistorias Realizadas</h1>
+        
+        <a href="/" class="btn btn-primary mb-3">Voltar</a>
+        
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Motorista</th>
+                        <th>Veículo</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vistoria in vistorias %}
+                    <tr>
+                        <td>{{ vistoria[0] }}</td>
+                        <td>{{ vistoria[1] }}</td>
+                        <td>{{ vistoria[2] }}</td>
+                        <td>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            <a href="/vistoria/{{ vistoria[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

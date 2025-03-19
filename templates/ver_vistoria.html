@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes da Vistoria</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <style>
+        .item-foto {
+            max-width: 100%;
+            max-height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .item-card {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Detalhes da Vistoria #{{ vistoria[0] }}</h1>
+        
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <h5>Motorista</h5>
+                <p>{{ vistoria[1] }}</p>
+            </div>
+            <div class="col-md-4">
+                <h5>Veículo</h5>
+                <p>{{ vistoria[2] }}</p>
+            </div>
+            <div class="col-md-4">
+                <h5>Data</h5>
+                <p>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</p>
+            </div>
+        </div>
+        
+        <h2>Itens da Vistoria</h2>
+        <div class="row">
+            {% for item in itens %}
+            <div class="col-md-6 item-card">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>{{ item[1] }}</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        {% if item[2] %}
+                        <img src="{{ url_for('static', filename='uploads/' + item[2]) }}" class="item-foto" alt="{{ item[1] }}">
+                        {% else %}
+                        <p>Sem foto</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-4">
+            <a href="/vistorias" class="btn btn-primary">Voltar para Lista</a>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
