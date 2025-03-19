@@ -34,11 +34,9 @@ def nova_vistoria():
     motoristas = cur.fetchall()
     cur.execute("SELECT IDVEICULO, PLACA FROM VEICULOS")
     veiculos = cur.fetchall()
-    cur.execute("SELECT IDITEM, NOME FROM ITENS")
-    itens = cur.fetchall()
     cur.close()
     
-    return render_template('nova_vistoria.html', motoristas=motoristas, veiculos=veiculos, itens=itens)
+    return render_template('nova_vistoria.html', motoristas=motoristas, veiculos=veiculos)
 
 @app.route('/salvar_vistoria', methods=['POST'])
 def salvar_vistoria():
@@ -58,26 +56,24 @@ def salvar_vistoria():
         # Obter o ID da vistoria criada
         id_vistoria = cur.lastrowid
         
-        # Processar os itens da vistoria
-        for key, value in request.form.items():
-            if key.startswith('item_'):
-                id_item = key.split('_')[1]
+        # Processar as fotos da vistoria
+        fotos = request.files.getlist('fotos[]')
+        detalhamentos = request.form.getlist('detalhamentos[]')
+        
+        for i, foto in enumerate(fotos):
+            if foto and foto.filename:
+                filename = f"vistoria_{id_vistoria}_{uuid.uuid4()}.jpg"
+                foto_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                foto.save(foto_path)
                 
-                # Verificar se há uma foto para este item
-                foto_key = f'foto_{id_item}'
-                if foto_key in request.files and request.files[foto_key].filename:
-                    # Processar e salvar a foto
-                    foto = request.files[foto_key]
-                    filename = f"{id_vistoria}_{id_item}_{uuid.uuid4()}.jpg"
-                    foto_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    foto.save(foto_path)
-                    
-                    # Inserir na tabela VISTORIA_ITENS
-                    cur.execute(
-                        "INSERT INTO VISTORIA_ITENS (IDVISTORIA, IDITEM, FOTO) VALUES (%s, %s, %s)",
-                        (id_vistoria, id_item, filename)
-                    )
-                    mysql.connection.commit()
+                detalhamento = detalhamentos[i] if i < len(detalhamentos) else ""
+                
+                # Inserir na tabela VISTORIA_ITENS
+                cur.execute(
+                    "INSERT INTO VISTORIA_ITENS (IDVISTORIA, FOTO, DETALHAMENTO) VALUES (%s, %s, %s)",
+                    (id_vistoria, filename, detalhamento)
+                )
+                mysql.connection.commit()
         
         cur.close()
         flash('Vistoria salva com sucesso!', 'success')
@@ -91,14 +87,13 @@ def salvar_vistoria():
 def salvar_foto():
     try:
         data = request.json
-        item_id = data['item_id']
         image_data = data['image_data']
         
         # Remover o prefixo da string base64
         image_data = image_data.split(',')[1]
         
         # Gerar um nome de arquivo único
-        filename = f"temp_{item_id}_{uuid.uuid4()}.jpg"
+        filename = f"temp_{uuid.uuid4()}.jpg"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         
         # Salvar a imagem
@@ -139,12 +134,11 @@ def ver_vistoria(id):
     """, (id,))
     vistoria = cur.fetchone()
     
-    # Buscar itens da vistoria
+    # Buscar fotos e detalhamentos da vistoria
     cur.execute("""
-        SELECT vi.IDITEM, i.NOME, vi.FOTO
-        FROM VISTORIA_ITENS vi
-        JOIN ITENS i ON vi.IDITEM = i.IDITEM
-        WHERE vi.IDVISTORIA = %s
+        SELECT FOTO, DETALHAMENTO
+        FROM VISTORIA_ITENS
+        WHERE IDVISTORIA = %s
     """, (id,))
     itens = cur.fetchall()
     cur.close()
