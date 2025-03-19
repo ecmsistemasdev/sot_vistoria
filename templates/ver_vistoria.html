@@ -47,10 +47,30 @@
             margin-top: 0;
             font-size: 1.2rem;
         }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-img {
+            height: 150px;
+            width: auto;
+        }
+        .main-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
+        <!-- Logo e título principal -->
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
+        </div>
+        <h2 class="main-title">SOT - Vistoria de Veículo Oficial</h2>
+        
         <div class="vistoria-header">
             <h1>
                 Detalhes da Vistoria #{{ vistoria[0] }}
