@@ -8,7 +8,10 @@
 </head>
 <body>
     <div class="container mt-4">
-        <h1>Sistema de Vistorias</h1>
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
+        </div>
+        <h2 class="main-title">SOT - Vistoria de Veículo Oficial</h2>       
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
