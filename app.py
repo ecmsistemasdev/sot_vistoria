@@ -121,12 +121,12 @@ def salvar_vistoria():
         
         cur.close()
         flash('Vistoria salva com sucesso!', 'success')
-        return redirect(url_for('vistorias'))
+        return redirect(url_for('index'))  # Modificado para redirecionar para index.html
     
     except Exception as e:
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
         return redirect(url_for('nova_vistoria'))
-
+        
 @app.route('/salvar_foto', methods=['POST'])
 def salvar_foto():
     try:
