@@ -20,12 +20,54 @@
             margin-top: 10px;
             font-size: 1rem;
         }
+        .vistoria-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .vistoria-tipo {
+            font-size: 1.2rem;
+            padding: 5px 10px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .vistoria-status {
+            font-size: 1rem;
+            padding: 5px 10px;
+            margin-left: 10px;
+        }
+        .vistoria-relacionada {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .vistoria-relacionada h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
-        <h1>Detalhes da Vistoria #{{ vistoria[0] }}</h1>
-        
+        <div class="vistoria-header">
+            <h1>
+                Detalhes da Vistoria #{{ vistoria[0] }}
+                {% if vistoria[4] == 'ENTREGA' %}
+                <span class="badge bg-primary vistoria-tipo">Entrega</span>
+                {% else %}
+                <span class="badge bg-success vistoria-tipo">Devolução</span>
+                {% endif %}
+                
+                {% if vistoria[5] == 'EM_TRANSITO' %}
+                <span class="badge bg-warning vistoria-status">Em Trânsito</span>
+                {% else %}
+                <span class="badge bg-secondary vistoria-status">Finalizada</span>
+                {% endif %}
+            </h1>
+        </div>
+
         <div class="row mb-4">
             <div class="col-md-4">
                 <h5>Motorista</h5>
@@ -40,6 +82,60 @@
                 <p>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</p>
             </div>
         </div>
+
+        <!-- Informações sobre vistoria relacionada -->
+        {% if vistoria_entrega %}
+        <div class="vistoria-relacionada">
+            <h3>Vistoria de Entrega Relacionada</h3>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>ID:</strong> {{ vistoria_entrega[0] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Motorista:</strong> {{ vistoria_entrega[1] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Veículo:</strong> {{ vistoria_entrega[2] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Data:</strong> {{ vistoria_entrega[3].strftime('%d/%m/%Y %H:%M') }}
+                </div>
+            </div>
+            <div class="mt-2">
+                <a href="/vistoria/{{ vistoria_entrega[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if vistoria_devolucao %}
+        <div class="vistoria-relacionada">
+            <h3>Vistoria de Devolução Relacionada</h3>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>ID:</strong> {{ vistoria_devolucao[0] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Motorista:</strong> {{ vistoria_devolucao[1] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Veículo:</strong> {{ vistoria_devolucao[2] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Data:</strong> {{ vistoria_devolucao[3].strftime('%d/%m/%Y %H:%M') }}
+                </div>
+            </div>
+            <div class="mt-2">
+                <a href="/vistoria/{{ vistoria_devolucao[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Adicionar botão para criar vistoria de devolução se for uma vistoria de entrega em trânsito -->
+        {% if vistoria[4] == 'ENTREGA' and vistoria[5] == 'EM_TRANSITO' and not vistoria_devolucao %}
+        <div class="mb-4">
+            <a href="/nova_vistoria_devolucao/{{ vistoria[0] }}" class="btn btn-success">Criar Vistoria de Devolução</a>
+        </div>
+        {% endif %}
         
         <h2>Fotos da Vistoria</h2>
         <div class="row">
