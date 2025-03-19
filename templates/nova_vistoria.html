@@ -33,16 +33,16 @@
         #canvas {
             display: none;
         }
+        .foto-item {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
         .camera-buttons {
             margin-top: 10px;
             display: flex;
             gap: 10px;
-        }
-        .item-card {
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 15px;
         }
     </style>
 </head>
@@ -76,34 +76,14 @@
                 </div>
             </div>
             
-            <h2>Itens da Vistoria</h2>
-            <div class="row" id="itens-container">
-                {% for item in itens %}
-                <div class="col-md-6 item-card">
-                    <div class="mb-3">
-                        <h5>{{ item[1] }}</h5>
-                        <input type="hidden" name="item_{{ item[0] }}" value="{{ item[0] }}">
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Foto</label>
-                            <div class="d-flex">
-                                <input type="file" class="form-control" name="foto_{{ item[0] }}" id="foto_{{ item[0] }}" accept="image/*" capture="camera">
-                                <button type="button" class="btn btn-secondary ms-2" onclick="usarCamera('{{ item[0] }}')">Câmera</button>
-                            </div>
-                        </div>
-                        
-                        <div class="preview-container" id="preview_container_{{ item[0] }}">
-                            <img src="" class="preview-image" id="preview_{{ item[0] }}" style="display: none;">
-                        </div>
-                        
-                        <div class="camera-buttons" id="camera_buttons_{{ item[0] }}" style="display: none;">
-                            <button type="button" class="btn btn-success" onclick="salvarFoto('{{ item[0] }}')">Salvar Foto</button>
-                            <button type="button" class="btn btn-danger" onclick="descartarFoto('{{ item[0] }}')">Descartar</button>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
+            <h2>Fotos da Vistoria</h2>
+            <div id="fotos-container">
+                <!-- Aqui serão adicionados os itens de foto dinamicamente -->
             </div>
+            
+            <button type="button" class="btn btn-success mb-4" id="addFotoBtn">
+                <i class="bi bi-plus-circle"></i> Adicionar Foto
+            </button>
             
             <div class="camera-container" id="camera-container">
                 <video id="video" autoplay></video>
@@ -121,37 +101,110 @@
         </form>
     </div>
     
+    <!-- Template para novos itens de foto -->
+    <template id="foto-template">
+        <div class="foto-item">
+            <div class="mb-3">
+                <label class="form-label">Foto</label>
+                <div class="d-flex">
+                    <input type="file" class="form-control foto-input" name="fotos[]" accept="image/*" capture="camera">
+                    <button type="button" class="btn btn-secondary ms-2 usar-camera-btn">Câmera</button>
+                </div>
+            </div>
+            
+            <div class="preview-container">
+                <img src="" class="preview-image" style="display: none;">
+            </div>
+            
+            <div class="mb-3 mt-3">
+                <label class="form-label">Detalhamento (máx. 100 caracteres)</label>
+                <textarea class="form-control" name="detalhamentos[]" maxlength="100" rows="2" placeholder="Digite detalhes sobre esta foto..."></textarea>
+            </div>
+            
+            <div class="camera-buttons foto-buttons" style="display: none;">
+                <button type="button" class="btn btn-success salvar-foto-btn">Salvar Foto</button>
+                <button type="button" class="btn btn-danger descartar-foto-btn">Descartar</button>
+            </div>
+            
+            <button type="button" class="btn btn-danger mt-3 remover-foto-btn">Remover esta foto</button>
+        </div>
+    </template>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentItemId = null;
+        let currentFotoItem = null;
         let videoStream = null;
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const captureButton = document.getElementById('capture');
         const closeButton = document.getElementById('closeCamera');
+        const fotosContainer = document.getElementById('fotos-container');
+        const fotoTemplate = document.getElementById('foto-template');
         
-        // Função para mostrar preview da foto selecionada pelo input file
-        document.querySelectorAll('input[type="file"]').forEach(input => {
-            input.addEventListener('change', function(e) {
-                const itemId = this.id.split('_')[1];
+        // Adicionar a primeira foto ao iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            adicionarNovaFoto();
+        });
+        
+        // Botão para adicionar nova foto
+        document.getElementById('addFotoBtn').addEventListener('click', function() {
+            adicionarNovaFoto();
+        });
+        
+        // Função para adicionar nova foto
+        function adicionarNovaFoto() {
+            const fotoItem = document.importNode(fotoTemplate.content, true).firstElementChild;
+            fotosContainer.appendChild(fotoItem);
+            
+            // Configurar evento para preview da foto selecionada pelo input file
+            const fotoInput = fotoItem.querySelector('.foto-input');
+            fotoInput.addEventListener('change', function(e) {
                 const file = this.files[0];
                 
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        const preview = document.getElementById(`preview_${itemId}`);
+                        const preview = fotoItem.querySelector('.preview-image');
                         preview.src = e.target.result;
                         preview.style.display = 'block';
-                        document.getElementById(`camera_buttons_${itemId}`).style.display = 'flex';
+                        fotoItem.querySelector('.foto-buttons').style.display = 'flex';
                     }
                     reader.readAsDataURL(file);
                 }
             });
-        });
+            
+            // Configurar botão de usar câmera
+            const usarCameraBtn = fotoItem.querySelector('.usar-camera-btn');
+            usarCameraBtn.addEventListener('click', function() {
+                usarCamera(fotoItem);
+            });
+            
+            // Configurar botão de salvar foto
+            const salvarFotoBtn = fotoItem.querySelector('.salvar-foto-btn');
+            salvarFotoBtn.addEventListener('click', function() {
+                salvarFoto(fotoItem);
+            });
+            
+            // Configurar botão de descartar foto
+            const descartarFotoBtn = fotoItem.querySelector('.descartar-foto-btn');
+            descartarFotoBtn.addEventListener('click', function() {
+                descartarFoto(fotoItem);
+            });
+            
+            // Configurar botão de remover foto
+            const removerFotoBtn = fotoItem.querySelector('.remover-foto-btn');
+            removerFotoBtn.addEventListener('click', function() {
+                if (fotosContainer.children.length > 1) {
+                    fotoItem.remove();
+                } else {
+                    alert('Pelo menos uma foto é obrigatória para a vistoria.');
+                }
+            });
+        }
         
         // Função para abrir a câmera
-        function usarCamera(itemId) {
-            currentItemId = itemId;
+        function usarCamera(fotoItem) {
+            currentFotoItem = fotoItem;
             
             if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
@@ -179,12 +232,12 @@
             const imageData = canvas.toDataURL('image/jpeg');
             
             // Mostrar preview da foto capturada
-            const preview = document.getElementById(`preview_${currentItemId}`);
+            const preview = currentFotoItem.querySelector('.preview-image');
             preview.src = imageData;
             preview.style.display = 'block';
             
             // Mostrar botões de salvar/descartar
-            document.getElementById(`camera_buttons_${currentItemId}`).style.display = 'flex';
+            currentFotoItem.querySelector('.foto-buttons').style.display = 'flex';
             
             // Fechar câmera
             fecharCamera();
@@ -202,8 +255,8 @@
         }
         
         // Função para salvar a foto
-        function salvarFoto(itemId) {
-            const preview = document.getElementById(`preview_${itemId}`);
+        function salvarFoto(fotoItem) {
+            const preview = fotoItem.querySelector('.preview-image');
             const imageData = preview.src;
             
             // Enviar a foto para o servidor
@@ -213,7 +266,6 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    item_id: itemId,
                     image_data: imageData
                 })
             })
@@ -227,7 +279,7 @@
                         .then(blob => {
                             const file = new File([blob], data.filename, { type: 'image/jpeg' });
                             dataTransfer.items.add(file);
-                            document.getElementById(`foto_${itemId}`).files = dataTransfer.files;
+                            fotoItem.querySelector('.foto-input').files = dataTransfer.files;
                             alert('Foto salva com sucesso!');
                         });
                 } else {
@@ -241,13 +293,30 @@
         }
         
         // Função para descartar a foto
-        function descartarFoto(itemId) {
-            const preview = document.getElementById(`preview_${itemId}`);
+        function descartarFoto(fotoItem) {
+            const preview = fotoItem.querySelector('.preview-image');
             preview.src = '';
             preview.style.display = 'none';
-            document.getElementById(`camera_buttons_${itemId}`).style.display = 'none';
-            document.getElementById(`foto_${itemId}`).value = '';
+            fotoItem.querySelector('.foto-buttons').style.display = 'none';
+            fotoItem.querySelector('.foto-input').value = '';
         }
+        
+        // Validação do formulário antes de enviar
+        document.getElementById('vistoriaForm').addEventListener('submit', function(e) {
+            const fotos = document.querySelectorAll('.foto-input');
+            let temFoto = false;
+            
+            fotos.forEach(function(foto) {
+                if (foto.files.length > 0) {
+                    temFoto = true;
+                }
+            });
+            
+            if (!temFoto) {
+                e.preventDefault();
+                alert('É necessário incluir pelo menos uma foto na vistoria.');
+            }
+        });
     </script>
 </body>
 </html>
