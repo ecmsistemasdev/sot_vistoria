@@ -16,6 +16,20 @@
             font-size: 0.8rem;
             font-weight: normal;
         }
+        /* Adicionar estilos para os botões de ação */
+        .btn-action {
+            margin-bottom: 0.5rem;
+            width: 100%;
+            display: block;
+        }
+        /* Ajuste para dispositivos maiores */
+        @media (min-width: 768px) {
+            .btn-action {
+                width: auto;
+                display: inline-block;
+                margin-right: 0.5rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -53,10 +67,8 @@
                             <span class="badge bg-primary">Entrega</span>
                         </td>
                         <td>
-                            <div class="btn-group">
-                                <a href="/vistoria/{{ vistoria[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
-                                <a href="/nova_vistoria_devolucao/{{ vistoria[0] }}" class="btn btn-sm btn-success">Criar Vistoria de Devolução</a>
-                            </div>
+                            <a href="/vistoria/{{ vistoria[0] }}" class="btn btn-sm btn-info btn-action">Ver Detalhes</a>
+                            <a href="/nova_vistoria_devolucao/{{ vistoria[0] }}" class="btn btn-sm btn-success btn-action">Criar Vistoria de Devolução</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -97,7 +109,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="/vistoria/{{ vistoria[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+                            <a href="/vistoria/{{ vistoria[0] }}" class="btn btn-sm btn-info btn-action">Ver Detalhes</a>
                         </td>
                     </tr>
                     {% endfor %}
