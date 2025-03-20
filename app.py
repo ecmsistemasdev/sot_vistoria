@@ -332,15 +332,23 @@ def get_assinatura(tipo, vistoria_id):
     else:  # tipo == 'motorista'
         cur.execute("SELECT ASS_MOTORISTA FROM VISTORIAS WHERE IDVISTORIA = %s", (vistoria_id,))
     
-    assinatura = cur.fetchone()[0]  # Pegar o primeiro elemento do primeiro registro
+    resultado = cur.fetchone()
     cur.close()
     
-    if not assinatura:
+    if not resultado or not resultado[0]:
         return "Sem assinatura", 404
     
+    assinatura = resultado[0]
+    
+    # Transformar o BLOB em um arquivo legível
+    imagem_io = io.BytesIO(assinatura)
+    
+    # Enviar a imagem como um arquivo
+    imagem_io.seek(0)
     return send_file(
-        io.BytesIO(assinatura),
-        mimetype='image/png'
+        imagem_io,
+        mimetype='image/png',  # Ajustar o tipo MIME conforme necessário
+        as_attachment=False
     )
 
 if __name__ == '__main__':
