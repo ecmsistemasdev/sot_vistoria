@@ -102,8 +102,8 @@
         /* Media query para ajustar o layout em telas maiores */
         @media (min-width: 992px) {
             .info-field {
-                flex: 0 0 25%;
-                max-width: 25%;
+                flex: 0 0 20%;
+                max-width: 20%;
             }
         }
     </style>
@@ -133,32 +133,27 @@
             </h3>
         </div>
 
-        <!-- Campos de informação em uma única linha em telas grandes -->
+        <!-- Todos os campos de informação em uma única linha em telas grandes -->
         <div class="row mb-4">
-            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0 info-field">
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
                 <h5>Motorista</h5>
                 <p>{{ vistoria[1] }}</p>
             </div>
-            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0 info-field">
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
                 <h5>Veículo</h5>
-                <p>{{ vistoria[2] }} - {{ vistoria[7] }}</p>
+                <p>{{ vistoria[2] }}</p>
             </div>
-            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0 info-field">
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
                 <h5>Data</h5>
                 <p>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</p>
             </div>
-            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0 info-field">
-                <h5>Hodômetro (Km)</h5>
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
+                <h5>Hodômetro</h5>
                 <p>{{ vistoria[11] }}</p>
-            </div>            
-        </div>
-        
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <h5>Nível de Combustível
-                    <span class="fuel-value">{{ vistoria[6] }}%</span>
-                </h5>
-                <div style="max-width: 200px;">
+            </div>
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
+                <h5>Combustível {{ vistoria[6] }}%</h5>
+                <div style="max-width: 100%;">
                     <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
                     <div class="fuel-markers">
                         <span>0</span>
@@ -168,7 +163,7 @@
                         <span>1</span>
                     </div>
                 </div>
-            </div>
+            </div>            
         </div>
 
         <!-- Informações sobre vistoria relacionada -->
