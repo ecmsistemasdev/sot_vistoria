@@ -235,7 +235,7 @@
                 <div class="card">
                     <div class="card-body text-center">
                         <p class="assinatura-titulo">Assinatura do Usuário</p>
-                        {% if vistoria[9] %}
+                        {% if vistoria[9] is not none %}
                             <img src="{{ url_for('get_assinatura', tipo='usuario', vistoria_id=vistoria[0]) }}" class="assinatura-img" alt="Assinatura do Usuário">
                         {% else %}
                             <p class="text-muted">Sem assinatura</p>
@@ -249,7 +249,7 @@
                 <div class="card">
                     <div class="card-body text-center">
                         <p class="assinatura-titulo">Assinatura do Motorista</p>
-                        {% if vistoria[10] %}
+                        {% if vistoria[10] is not none %}
                             <img src="{{ url_for('get_assinatura', tipo='motorista', vistoria_id=vistoria[0]) }}" class="assinatura-img" alt="Assinatura do Motorista">
                         {% else %}
                             <p class="text-muted">Sem assinatura</p>
@@ -257,7 +257,6 @@
                     </div>
                 </div>
             </div>
-        </div>
         
         <div class="mt-4">
             <a href="/vistorias" class="btn btn-primary">Voltar para Lista</a>
