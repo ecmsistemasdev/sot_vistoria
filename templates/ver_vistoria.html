@@ -61,41 +61,48 @@
             font-weight: bold;
             margin-bottom: 30px;
         }
-        /* Estilos para o medidor de combustível */
+        /* Estilos para o medidor de combustível modificado */
         .fuel-gauge-container {
             margin: 20px 0;
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 5px;
             border: 1px solid #ddd;
+            max-width: 300px;  /* Reduzir tamanho para computador (1/4 do tamanho original) */
         }
         .fuel-gauge {
             position: relative;
-            height: 30px;
+            height: 20px;
             background-color: #e9ecef;
             border-radius: 4px;
             overflow: hidden;
             margin: 10px 0;
         }
-        .fuel-level {
+        .fuel-marker {
             position: absolute;
             top: 0;
-            left: 0;
             height: 100%;
-            background-color: #28a745;
+            width: 4px;  /* Linha de 4px */
+            background-color: #000;  /* Cor preta */
         }
         .fuel-markers {
             display: flex;
             justify-content: space-between;
             margin-top: 5px;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: #666;
         }
         .fuel-value {
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: bold;
             margin-top: 10px;
+        }
+        /* Responsividade para manter o medidor maior em dispositivos móveis */
+        @media (max-width: 768px) {
+            .fuel-gauge-container {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -131,7 +138,7 @@
             </div>
             <div class="col-md-3">
                 <h5>Veículo</h5>
-                <p>{{ vistoria[2] }}</p>
+                <p>{{ vistoria[2] }} - {{ vistoria[7] }}</p>  <!-- Adicionado o modelo aqui -->
             </div>
             <div class="col-md-3">
                 <h5>Data</h5>
@@ -143,11 +150,12 @@
             </div>
         </div>
 
-        <!-- Medidor de Combustível -->
+        <!-- Medidor de Combustível Modificado -->
         <div class="fuel-gauge-container">
             <h5>Nível de Combustível</h5>
             <div class="fuel-gauge">
-                <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
+                <!-- Substitui a barra verde por uma linha preta -->
+                <div class="fuel-marker" style="left: {{ vistoria[6] }}%;"></div>
             </div>
             <div class="fuel-markers">
                 <span>0</span>
