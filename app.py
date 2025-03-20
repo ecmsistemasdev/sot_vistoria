@@ -109,8 +109,9 @@ def salvar_vistoria():
             
             # Inserir vistoria de devolução
             cur.execute(
-                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL, ASS_USUARIO, ASS_MOTORISTA) 
-                VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s, %s, %s, %s)",
+                """INSERT INTO VISTORIAS 
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL, ASS_USUARIO, ASS_MOTORISTA) 
+                   VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s, %s, %s, %s)""",
                 (id_motorista, id_veiculo, vistoria_entrega_id, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
             )
             # Atualizar status da vistoria de entrega para finalizada
