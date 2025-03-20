@@ -84,6 +84,21 @@
             font-weight: bold;
             margin-left: 5px;
         }
+        /* Estilos para as assinaturas */
+        .assinatura-img {
+            max-width: 100%;
+            max-height: 150px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .assinatura-card {
+            margin-bottom: 20px;
+        }
+        .assinatura-titulo {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -210,6 +225,38 @@
                 </div>
             </div>
             {% endfor %}
+        </div>
+        
+        <!-- Seção de Assinaturas -->
+        <h2 class="mt-4">Assinaturas</h2>
+        <div class="row">
+            <!-- Assinatura do Usuário -->
+            <div class="col-md-6 assinatura-card">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p class="assinatura-titulo">Assinatura do Usuário</p>
+                        {% if vistoria[9] %}
+                            <img src="{{ url_for('get_assinatura', tipo='usuario', vistoria_id=vistoria[0]) }}" class="assinatura-img" alt="Assinatura do Usuário">
+                        {% else %}
+                            <p class="text-muted">Sem assinatura</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Assinatura do Motorista -->
+            <div class="col-md-6 assinatura-card">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p class="assinatura-titulo">Assinatura do Motorista</p>
+                        {% if vistoria[10] %}
+                            <img src="{{ url_for('get_assinatura', tipo='motorista', vistoria_id=vistoria[0]) }}" class="assinatura-img" alt="Assinatura do Motorista">
+                        {% else %}
+                            <p class="text-muted">Sem assinatura</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="mt-4">
