@@ -1,11 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 import os
 from flask_mysqldb import MySQL
 import uuid
 import base64
 from datetime import datetime
-import boto3
-from botocore.exceptions import NoCredentialsError
+from io import BytesIO
 
 app = Flask(__name__)
 
@@ -16,57 +15,8 @@ app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 mysql = MySQL(app)
 
-# Configuração do S3
-S3_BUCKET = os.getenv('S3_BUCKET_NAME')
-S3_REGION = os.getenv('AWS_REGION', 'us-east-1')
-s3_client = boto3.client(
-    's3',
-    aws_access_key_id=os.getenv('AWS_ACCESS_KEY'),
-    aws_secret_access_key=os.getenv('AWS_SECRET_KEY'),
-    region_name=S3_REGION
-)
-
-# Função para gerar URL do S3
-def get_s3_url(file_name):
-    return f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_name}"
-
-# Configuração para diretório temporário
-TEMP_FOLDER = '/tmp'
-app.secret_key = os.getenv('SECRET_KEY', 'chave_secreta_padrao')
-
-# Função para fazer upload para o S3
-def upload_to_s3(file_path, object_name):
-    try:
-        s3_client.upload_file(file_path, S3_BUCKET, object_name)
-        return get_s3_url(object_name)
-    except NoCredentialsError:
-        return None
-    except Exception as e:
-        print(f"Erro ao fazer upload para S3: {str(e)}")
-        return None
-
-# Função para fazer upload de dados de imagem base64 para o S3
-def upload_base64_to_s3(base64_data, object_name):
-    try:
-        # Remover o prefixo da string base64
-        if ',' in base64_data:
-            base64_data = base64_data.split(',')[1]
-        
-        # Decode base64 para bytes
-        image_bytes = base64.b64decode(base64_data)
-        
-        # Upload para S3
-        s3_client.put_object(
-            Bucket=S3_BUCKET,
-            Key=object_name,
-            Body=image_bytes,
-            ContentType='image/jpeg'
-        )
-        
-        return get_s3_url(object_name)
-    except Exception as e:
-        print(f"Erro ao fazer upload base64 para S3: {str(e)}")
-        return None
+# Configuração para segurança
+app.secret_key = os.getenv('SECRET_KEY')
 
 @app.route('/')
 def index():
@@ -125,11 +75,19 @@ def salvar_vistoria():
         cur = mysql.connection.cursor()
         
         if tipo == 'ENTREGA':
+            # Capturar o último ID antes da inserção
+            cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
+            ultimo_id = cur.fetchone()[0] or 0
+            
             cur.execute(
                 "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS) VALUES (%s, %s, NOW(), 'ENTREGA', 'EM_TRANSITO')",
                 (id_motorista, id_veiculo)
             )
         else:  # DEVOLUCAO
+            # Capturar o último ID antes da inserção
+            cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
+            ultimo_id = cur.fetchone()[0] or 0
+            
             # Inserir vistoria de devolução
             cur.execute(
                 "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID) VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s)",
@@ -141,65 +99,88 @@ def salvar_vistoria():
                 (vistoria_entrega_id,)
             )
             
+        # Realizar o commit para garantir que a vistoria foi salva
         mysql.connection.commit()
         
-        # Obter o ID da vistoria criada
-        id_vistoria = cur.lastrowid
+        # Buscar o ID da vistoria recém-inserida procurando o ID maior que o último ID conhecido
+        cur.execute("SELECT IDVISTORIA FROM VISTORIAS WHERE IDVISTORIA > %s ORDER BY IDVISTORIA ASC LIMIT 1", (ultimo_id,))
+        result = cur.fetchone()
         
-        # Processar as fotos da vistoria
+        if not result:
+            raise Exception("Não foi possível recuperar o ID da vistoria criada")
+        
+        id_vistoria = result[0]
+        print(f"ID da vistoria recuperado: {id_vistoria} (último ID antes da inserção: {ultimo_id})")
+        
+        # Debug: Verificar recebimento das fotos
         fotos = request.files.getlist('fotos[]')
         detalhamentos = request.form.getlist('detalhamentos[]')
         
+        print(f"Tipo de vistoria: {tipo}")
+        print(f"Número de fotos recebidas: {len(fotos)}")
+        print(f"Número de detalhamentos recebidos: {len(detalhamentos)}")
+        
+        # Processar todas as fotos de uma vez
         for i, foto in enumerate(fotos):
-            if foto and foto.filename:
-                # Gerar nome de arquivo único
-                filename = f"vistoria_{id_vistoria}_{uuid.uuid4()}.jpg"
-                s3_object_name = f"uploads/{filename}"
-                
-                # Salvar temporariamente o arquivo
-                temp_path = os.path.join(TEMP_FOLDER, filename)
-                foto.save(temp_path)
-                
-                # Fazer upload para o S3
-                s3_url = upload_to_s3(temp_path, s3_object_name)
-                
-                # Remover arquivo temporário
-                os.remove(temp_path)
-                
-                detalhamento = detalhamentos[i] if i < len(detalhamentos) else ""
-                
-                # Inserir na tabela VISTORIA_ITENS com a URL do S3
-                cur.execute(
-                    "INSERT INTO VISTORIA_ITENS (IDVISTORIA, FOTO, DETALHAMENTO) VALUES (%s, %s, %s)",
-                    (id_vistoria, s3_url, detalhamento)
-                )
-                mysql.connection.commit()
+            if foto:  # Apenas verificar se o objeto de arquivo existe
+                try:
+                    # Ler o conteúdo binário da imagem
+                    foto_data = foto.read()
+                    
+                    detalhamento = detalhamentos[i] if i < len(detalhamentos) else ""
+                    
+                    # Inserir explicitamente o conteúdo binário da imagem com o ID da vistoria confirmado
+                    print(f"Inserindo item {i} para vistoria {id_vistoria}")
+                    
+                    # VERIFICAÇÃO EXTRA: Confirmar que a vistoria existe antes de inserir
+                    cur.execute("SELECT 1 FROM VISTORIAS WHERE IDVISTORIA = %s", (id_vistoria,))
+                    if not cur.fetchone():
+                        print(f"ALERTA: Vistoria com ID {id_vistoria} não encontrada!")
+                        continue
+                    
+                    cur.execute(
+                        "INSERT INTO VISTORIA_ITENS (IDVISTORIA, FOTO, DETALHAMENTO) VALUES (%s, %s, %s)",
+                        (id_vistoria, foto_data, detalhamento)
+                    )
+                    mysql.connection.commit()
+                    
+                    # VERIFICAÇÃO FINAL: Confirmar que o item foi inserido corretamente
+                    cur.execute("SELECT IDVISTORIA FROM VISTORIA_ITENS WHERE ID = LAST_INSERT_ID()")
+                    item_result = cur.fetchone()
+                    if item_result and item_result[0] != id_vistoria:
+                        print(f"ALERTA: Item inserido com IDVISTORIA incorreto: {item_result[0]} != {id_vistoria}")
+                        
+                except Exception as e:
+                    print(f"Erro ao processar foto {i}: {str(e)}")
         
         cur.close()
         flash('Vistoria salva com sucesso!', 'success')
-        return redirect(url_for('vistorias'))
+        return redirect(url_for('index'))
     
     except Exception as e:
+        print(f"ERRO CRÍTICO: {str(e)}")
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
         return redirect(url_for('nova_vistoria'))
-
+        
+        
 @app.route('/salvar_foto', methods=['POST'])
 def salvar_foto():
     try:
         data = request.json
         image_data = data['image_data']
         
-        # Gerar um nome de arquivo único
-        filename = f"temp_{uuid.uuid4()}.jpg"
-        s3_object_name = f"uploads/{filename}"
+        # Remover o prefixo da string base64
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
         
-        # Fazer upload direto para o S3
-        s3_url = upload_base64_to_s3(image_data, s3_object_name)
+        # Decodificar a imagem base64 para binário
+        image_binary = base64.b64decode(image_data)
         
-        if s3_url:
-            return jsonify({'success': True, 'filename': filename, 's3_url': s3_url})
-        else:
-            return jsonify({'success': False, 'error': 'Falha ao fazer upload para S3'})
+        # Gerar um ID temporário para a imagem
+        temp_id = str(uuid.uuid4())
+        
+        # Armazenar temporariamente na sessão ou devolver para o cliente
+        return jsonify({'success': True, 'temp_id': temp_id, 'image_data': image_data})
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -279,11 +260,20 @@ def ver_vistoria(id):
     
     # Buscar fotos e detalhamentos da vistoria
     cur.execute("""
-        SELECT FOTO, DETALHAMENTO
+        SELECT ID, DETALHAMENTO
         FROM VISTORIA_ITENS
         WHERE IDVISTORIA = %s
     """, (id,))
-    itens = cur.fetchall()
+    itens_raw = cur.fetchall()
+    
+    # Converter para dicionários para uso no template
+    itens = []
+    for item in itens_raw:
+        itens.append({
+            'id': item[0],
+            'detalhamento': item[1]
+        })
+    
     cur.close()
     
     return render_template(
@@ -293,6 +283,24 @@ def ver_vistoria(id):
         vistoria_entrega=vistoria_entrega,
         vistoria_devolucao=vistoria_devolucao
     )
+
+
+@app.route('/get_foto/<int:item_id>')
+def get_foto(item_id):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT FOTO FROM VISTORIA_ITENS WHERE ID = %s", (item_id,))
+    foto = cur.fetchone()
+    cur.close()
+    
+    if foto and foto[0]:
+        return send_file(
+            BytesIO(foto[0]),
+            mimetype='image/jpeg',
+            as_attachment=False,
+            download_name=f'foto_{item_id}.jpg'
+        )
+    
+    return 'Imagem não encontrada', 404
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
