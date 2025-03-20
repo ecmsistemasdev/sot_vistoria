@@ -39,7 +39,7 @@ def nova_vistoria_devolucao(vistoria_entrega_id):
     # Buscar informações da vistoria de entrega
     cur = mysql.connection.cursor()
     cur.execute("""
-        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NOME, ve.PLACA
+        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NOME, ve.PLACA, v.COMBUSTIVEL
         FROM VISTORIAS v
         JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
         JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
@@ -70,6 +70,7 @@ def salvar_vistoria():
         id_veiculo = request.form['id_veiculo']
         tipo = request.form['tipo']
         vistoria_entrega_id = request.form.get('vistoria_entrega_id')
+        combustivel = request.form['combustivel']
         
         # Criar uma nova vistoria
         cur = mysql.connection.cursor()
@@ -80,8 +81,8 @@ def salvar_vistoria():
             ultimo_id = cur.fetchone()[0] or 0
             
             cur.execute(
-                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS) VALUES (%s, %s, NOW(), 'ENTREGA', 'EM_TRANSITO')",
-                (id_motorista, id_veiculo)
+                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL) VALUES (%s, %s, NOW(), 'ENTREGA', 'EM_TRANSITO', %s)",
+                (id_motorista, id_veiculo, combustivel)
             )
         else:  # DEVOLUCAO
             # Capturar o último ID antes da inserção
@@ -90,8 +91,8 @@ def salvar_vistoria():
             
             # Inserir vistoria de devolução
             cur.execute(
-                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID) VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s)",
-                (id_motorista, id_veiculo, vistoria_entrega_id)
+                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL) VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s, %s)",
+                (id_motorista, id_veiculo, vistoria_entrega_id, combustivel)
             )
             # Atualizar status da vistoria de entrega para finalizada
             cur.execute(
