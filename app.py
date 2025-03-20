@@ -26,7 +26,7 @@ def index():
 def nova_vistoria():
     # Busca motoristas e veículos do banco de dados
     cur = mysql.connection.cursor()
-    cur.execute("SELECT IDMOTORISTA, NOME FROM MOTORISTAS")
+    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
     cur.execute("SELECT ID_VEICULO, CONCAT(NU_PLACA,' - ',DS_MODELO) AS VEICULO FROM ecmdb.TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
@@ -39,9 +39,9 @@ def nova_vistoria_devolucao(vistoria_entrega_id):
     # Buscar informações da vistoria de entrega
     cur = mysql.connection.cursor()
     cur.execute("""
-        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NOME, ve.NU_PLACA, v.COMBUSTIVEL
+        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NM_MOTORISTA, ve.NU_PLACA, v.COMBUSTIVEL
         FROM VISTORIAS v
-        JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.IDVISTORIA = %s AND v.TIPO = 'ENTREGA'
     """, (vistoria_entrega_id,))
@@ -192,9 +192,9 @@ def listar_vistorias():
     
     # Buscar vistorias em trânsito (Entregas não finalizadas)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS 
         FROM VISTORIAS v
-        JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.STATUS = 'EM_TRANSITO'
         ORDER BY v.DATA DESC
@@ -203,9 +203,9 @@ def listar_vistorias():
     
     # Buscar vistorias finalizadas (Entregas com devolução ou devoluções)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS 
         FROM VISTORIAS v
-        JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.STATUS = 'FINALIZADA'
         ORDER BY v.DATA DESC
@@ -226,10 +226,10 @@ def ver_vistoria(id):
     
     # Buscar detalhes da vistoria
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                v.VISTORIA_ENTREGA_ID
         FROM VISTORIAS v
-        JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.IDVISTORIA = %s
     """, (id,))
@@ -239,9 +239,9 @@ def ver_vistoria(id):
     vistoria_entrega = None
     if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[6]:
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.NU_PLACA, v.DATA, v.COMBUSTIVEL, ve.DS_MODELO
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.COMBUSTIVEL, ve.DS_MODELO
             FROM VISTORIAS v
-            JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+            JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
             WHERE v.IDVISTORIA = %s
         """, (vistoria[6],))
@@ -251,9 +251,9 @@ def ver_vistoria(id):
     vistoria_devolucao = None
     if vistoria and vistoria[4] == 'ENTREGA':
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.NU_PLACA, v.DATA, v.COMBUSTIVEL, ve.DS_MODELO
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.COMBUSTIVEL, ve.DS_MODELO
             FROM VISTORIAS v
-            JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
+            JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
             WHERE v.VISTORIA_ENTREGA_ID = %s
         """, (id,))
