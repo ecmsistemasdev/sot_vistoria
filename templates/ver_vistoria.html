@@ -61,6 +61,42 @@
             font-weight: bold;
             margin-bottom: 30px;
         }
+        /* Estilos para o medidor de combustível */
+        .fuel-gauge-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .fuel-gauge {
+            position: relative;
+            height: 30px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .fuel-level {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #28a745;
+        }
+        .fuel-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .fuel-value {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -89,17 +125,39 @@
         </div>
 
         <div class="row mb-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <h5>Motorista</h5>
                 <p>{{ vistoria[1] }}</p>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <h5>Veículo</h5>
                 <p>{{ vistoria[2] }}</p>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <h5>Data</h5>
                 <p>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</p>
+            </div>
+            <div class="col-md-3">
+                <h5>Status</h5>
+                <p>{{ vistoria[5].replace('_', ' ').title() }}</p>
+            </div>
+        </div>
+
+        <!-- Medidor de Combustível -->
+        <div class="fuel-gauge-container">
+            <h5>Nível de Combustível</h5>
+            <div class="fuel-gauge">
+                <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
+            </div>
+            <div class="fuel-markers">
+                <span>0</span>
+                <span>1/4</span>
+                <span>1/2</span>
+                <span>3/4</span>
+                <span>1</span>
+            </div>
+            <div class="fuel-value">
+                {{ vistoria[6] }}%
             </div>
         </div>
 
