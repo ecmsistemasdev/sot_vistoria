@@ -58,42 +58,65 @@
         }
         /* Estilos para o controle deslizante de combustível */
         .fuel-slider-container {
-            margin: 10px 0;
-            padding: 10px;
+            margin: 20px 0;
+            padding: 15px;
             background-color: #f9f9f9;
             border-radius: 5px;
             border: 1px solid #ddd;
         }
         .fuel-slider {
             width: 100%;
-            margin: 5px 0;
-        }
-        .fuel-label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 0;
+            margin-top: 10px;
         }
         .fuel-markers {
             display: flex;
             justify-content: space-between;
-            margin-top: 2px;
-            font-size: 0.7rem;
+            margin-top: 5px;
+            font-size: 0.8rem;
             color: #666;
         }
-        
-        /* Media query para telas maiores (computadores) */
-        @media (min-width: 768px) {
-            .fuel-row {
-                display: flex;
-                align-items: center;
-            }
-            .vehicle-col {
-                flex: 1;
-            }
-            .fuel-col {
-                flex: 1;
-                margin-left: 15px;
-            }
+        .fuel-level-display {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        /* Estilos para as áreas de assinatura */
+        .signature-container {
+            margin-top: 30px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        .signature-pad-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            border-radius: 4px;
+        }
+        .signature-pad {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .signature-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .signature-preview {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+            display: none;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
@@ -114,8 +137,8 @@
             <input type="hidden" name="vistoria_entrega_id" value="{{ vistoria_entrega_id }}">
             {% endif %}
             
-            <div class="fuel-row mb-4">
-                <div class="vehicle-col">
+            <div class="row mb-4">
+                <div class="col-md-6">
                     <div class="mb-3">
                         <label for="id_motorista" class="form-label">Motorista</label>
                         {% if tipo == 'DEVOLUCAO' %}
@@ -130,7 +153,8 @@
                         </select>
                         {% endif %}
                     </div>
-                
+                </div>
+                <div class="col-md-6">
                     <div class="mb-3">
                         <label for="id_veiculo" class="form-label">Veículo</label>
                         {% if tipo == 'DEVOLUCAO' %}
@@ -146,23 +170,21 @@
                         {% endif %}
                     </div>
                 </div>
-                
-                <div class="fuel-col">
-                    <!-- Controle deslizante para o nível de combustível -->
-                    <div class="fuel-slider-container">
-                        <div class="d-flex align-items-center mb-1">
-                            <span class="fuel-label">Combustível:</span>
-                            <span id="combustivel-valor" class="ms-2">100%</span>
-                        </div>
-                        <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="100" step="1">
-                        <div class="fuel-markers">
-                            <span>0</span>
-                            <span>1/4</span>
-                            <span>1/2</span>
-                            <span>3/4</span>
-                            <span>1</span>
-                        </div>
-                    </div>
+            </div>
+            
+            <!-- Controle deslizante para o nível de combustível -->
+            <div class="fuel-slider-container">
+                <h4>Nível de Combustível</h4>
+                <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="50" step="1">
+                <div class="fuel-markers">
+                    <span>0%</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                    <span>75%</span>
+                    <span>100%</span>
+                </div>
+                <div class="fuel-level-display">
+                    <span id="combustivel-valor">50%</span>
                 </div>
             </div>
             
@@ -172,6 +194,7 @@
                     <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple>
                     <div class="form-text">Selecione várias fotos de uma vez para adicionar à vistoria</div>
                 </div>
+                <button type="button" class="btn btn-primary" id="adicionar-multi-fotos">Adicionar Selecionadas</button>
             </div>
             
             <h2>Fotos da Vistoria</h2>
@@ -179,12 +202,56 @@
                 <!-- Aqui serão adicionados os itens de foto dinamicamente -->
             </div>
             
+            <button type="button" class="btn btn-success mb-4" id="addFotoBtn">
+                <i class="bi bi-plus-circle"></i> Adicionar Foto Individual
+            </button>
+            
             <div class="camera-container" id="camera-container">
                 <video id="video" autoplay></video>
                 <canvas id="canvas"></canvas>
                 <div class="camera-buttons" id="main-camera-buttons" style="display: none;">
                     <button type="button" class="btn btn-primary" id="capture">Capturar Foto</button>
                     <button type="button" class="btn btn-secondary" id="closeCamera">Fechar Câmera</button>
+                </div>
+            </div>
+            
+            <!-- Área de assinatura do usuário -->
+            <div class="signature-container">
+                <h4>Assinatura do Usuário</h4>
+                <p class="text-muted">Assine usando o dedo ou uma caneta stylus na área abaixo:</p>
+                
+                <div class="signature-pad-container">
+                    <canvas id="signature-pad-usuario" class="signature-pad"></canvas>
+                </div>
+                
+                <input type="hidden" name="assinatura_usuario" id="assinatura-usuario-input">
+                
+                <div class="signature-buttons">
+                    <button type="button" class="btn btn-secondary" id="limpar-assinatura-usuario">Limpar</button>
+                </div>
+                
+                <div class="preview-container">
+                    <img id="assinatura-usuario-preview" class="signature-preview">
+                </div>
+            </div>
+            
+            <!-- Área de assinatura do motorista -->
+            <div class="signature-container">
+                <h4>Assinatura do Motorista</h4>
+                <p class="text-muted">Peça ao motorista para assinar usando o dedo ou uma caneta stylus na área abaixo:</p>
+                
+                <div class="signature-pad-container">
+                    <canvas id="signature-pad-motorista" class="signature-pad"></canvas>
+                </div>
+                
+                <input type="hidden" name="assinatura_motorista" id="assinatura-motorista-input">
+                
+                <div class="signature-buttons">
+                    <button type="button" class="btn btn-secondary" id="limpar-assinatura-motorista">Limpar</button>
+                </div>
+                
+                <div class="preview-container">
+                    <img id="assinatura-motorista-preview" class="signature-preview">
                 </div>
             </div>
             
@@ -220,6 +287,7 @@
     </template>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
     <script>
         let currentFotoItem = null;
         let videoStream = null;
@@ -230,6 +298,30 @@
         const fotosContainer = document.getElementById('fotos-container');
         const fotoTemplate = document.getElementById('foto-template');
         
+        // Inicializar as áreas de assinatura
+        const signaturePadUsuario = new SignaturePad(document.getElementById('signature-pad-usuario'), {
+            backgroundColor: 'rgb(255, 255, 255)',
+            penColor: 'rgb(0, 0, 0)'
+        });
+        
+        const signaturePadMotorista = new SignaturePad(document.getElementById('signature-pad-motorista'), {
+            backgroundColor: 'rgb(255, 255, 255)',
+            penColor: 'rgb(0, 0, 0)'
+        });
+        
+        // Botões para limpar assinaturas
+        document.getElementById('limpar-assinatura-usuario').addEventListener('click', function() {
+            signaturePadUsuario.clear();
+            document.getElementById('assinatura-usuario-preview').style.display = 'none';
+            document.getElementById('assinatura-usuario-input').value = '';
+        });
+        
+        document.getElementById('limpar-assinatura-motorista').addEventListener('click', function() {
+            signaturePadMotorista.clear();
+            document.getElementById('assinatura-motorista-preview').style.display = 'none';
+            document.getElementById('assinatura-motorista-input').value = '';
+        });
+        
         // Configurar o controle deslizante de combustível
         const combustivelSlider = document.getElementById('combustivel');
         const combustivelValor = document.getElementById('combustivel-valor');
@@ -238,11 +330,60 @@
             combustivelValor.textContent = this.value + '%';
         });
         
-        // Monitorar o input multi-foto e processar automaticamente
-        document.getElementById('multi-foto-input').addEventListener('change', function() {
-            const files = this.files;
+        // Adicionar a primeira foto ao iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            adicionarNovaFoto();
+            
+            // Ajustar tamanho dos pads de assinatura para dispositivos móveis
+            window.addEventListener('resize', resizeSignaturePads);
+            resizeSignaturePads();
+        });
+        
+        function resizeSignaturePads() {
+            // Ajusta a altura do canvas para manter a proporção
+            const containerWidth = document.querySelector('.signature-pad-container').offsetWidth;
+            const ratio = Math.max(0.5, Math.min(1, containerWidth / 500)); // Mantém uma proporção razoável
+            
+            const height = 200 * ratio;
+            
+            // Ajusta o tamanho do canvas
+            const signaturePads = document.querySelectorAll('.signature-pad');
+            signaturePads.forEach(pad => {
+                // Salva o conteúdo atual antes de redimensionar
+                const currentPad = pad.id === 'signature-pad-usuario' ? signaturePadUsuario : signaturePadMotorista;
+                const data = currentPad.toDataURL();
+                
+                // Ajusta o tamanho do container e do canvas
+                pad.parentElement.style.height = `${height}px`;
+                
+                // Redefine o canvas (isso limpa o conteúdo)
+                pad.width = pad.offsetWidth;
+                pad.height = pad.offsetHeight;
+                
+                // Restaura o conteúdo se houver
+                if (!currentPad.isEmpty()) {
+                    // Restaura a assinatura após um redimensionamento
+                    const img = new Image();
+                    img.onload = function() {
+                        pad.getContext('2d').drawImage(img, 0, 0, pad.width, pad.height);
+                    };
+                    img.src = data;
+                }
+            });
+        }
+        
+        // Botão para adicionar nova foto
+        document.getElementById('addFotoBtn').addEventListener('click', function() {
+            adicionarNovaFoto();
+        });
+        
+        // Botão para adicionar múltiplas fotos
+        document.getElementById('adicionar-multi-fotos').addEventListener('click', function() {
+            const multiInput = document.getElementById('multi-foto-input');
+            const files = multiInput.files;
             
             if (files.length === 0) {
+                alert('Selecione pelo menos uma foto para adicionar');
                 return;
             }
             
@@ -265,6 +406,9 @@
                 }
                 reader.readAsDataURL(file);
             }
+            
+            // Limpar o input de múltiplas fotos
+            multiInput.value = '';
         });
         
         // Função para adicionar nova foto
@@ -368,6 +512,9 @@
         
         // Validação do formulário antes de enviar
         document.getElementById('vistoriaForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Impede o envio padrão do formulário
+            
+            // Verifica se há fotos
             const fotos = document.querySelectorAll('.foto-input');
             let temFoto = false;
             
@@ -378,14 +525,40 @@
             });
             
             if (!temFoto) {
-                e.preventDefault();
                 alert('É necessário incluir pelo menos uma foto na vistoria.');
+                return;
             }
-        });
-        
-        // Adicionar a primeira foto ao iniciar (opcional, pode ser removido se não quiser que inicie com um item vazio)
-        document.addEventListener('DOMContentLoaded', function() {
-            // Nada a fazer aqui, já que as fotos serão adicionadas ao selecionar no input multi-foto
+            
+            // Verificar as assinaturas
+            if (signaturePadUsuario.isEmpty()) {
+                alert('É necessário incluir a assinatura do usuário.');
+                return;
+            }
+            
+            if (signaturePadMotorista.isEmpty()) {
+                alert('É necessário incluir a assinatura do motorista.');
+                return;
+            }
+            
+            // Capturar as assinaturas como imagens base64
+            const assinaturaUsuarioData = signaturePadUsuario.toDataURL('image/png');
+            const assinaturaMotoristaData = signaturePadMotorista.toDataURL('image/png');
+            
+            // Armazenar nos campos hidden
+            document.getElementById('assinatura-usuario-input').value = assinaturaUsuarioData;
+            document.getElementById('assinatura-motorista-input').value = assinaturaMotoristaData;
+            
+            // Mostrar as previews das assinaturas (opcional)
+            const previewUsuario = document.getElementById('assinatura-usuario-preview');
+            previewUsuario.src = assinaturaUsuarioData;
+            previewUsuario.style.display = 'block';
+            
+            const previewMotorista = document.getElementById('assinatura-motorista-preview');
+            previewMotorista.src = assinaturaMotoristaData;
+            previewMotorista.style.display = 'block';
+            
+            // Enviar o formulário
+            this.submit();
         });
     </script>
 </body>
