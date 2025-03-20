@@ -56,6 +56,31 @@
             border-radius: 5px;
             background-color: #f9f9f9;
         }
+        /* Estilos para o controle deslizante de combustível */
+        .fuel-slider-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .fuel-slider {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .fuel-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .fuel-level-display {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -107,6 +132,22 @@
                         </select>
                         {% endif %}
                     </div>
+                </div>
+            </div>
+            
+            <!-- Controle deslizante para o nível de combustível -->
+            <div class="fuel-slider-container">
+                <h4>Nível de Combustível</h4>
+                <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="50" step="1">
+                <div class="fuel-markers">
+                    <span>0%</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                    <span>75%</span>
+                    <span>100%</span>
+                </div>
+                <div class="fuel-level-display">
+                    <span id="combustivel-valor">50%</span>
                 </div>
             </div>
             
@@ -178,6 +219,14 @@
         const closeButton = document.getElementById('closeCamera');
         const fotosContainer = document.getElementById('fotos-container');
         const fotoTemplate = document.getElementById('foto-template');
+        
+        // Configurar o controle deslizante de combustível
+        const combustivelSlider = document.getElementById('combustivel');
+        const combustivelValor = document.getElementById('combustivel-valor');
+        
+        combustivelSlider.addEventListener('input', function() {
+            combustivelValor.textContent = this.value + '%';
+        });
         
         // Adicionar a primeira foto ao iniciar
         document.addEventListener('DOMContentLoaded', function() {
