@@ -72,7 +72,7 @@
         <h2 class="main-title">SOT - Vistoria de Veículo Oficial</h2>
         
         <div class="vistoria-header">
-            <h1>
+            <h3>
                 Detalhes da Vistoria #{{ vistoria[0] }}
                 {% if vistoria[4] == 'ENTREGA' %}
                 <span class="badge bg-primary vistoria-tipo">Entrega</span>
@@ -85,7 +85,7 @@
                 {% else %}
                 <span class="badge bg-secondary vistoria-status">Finalizada</span>
                 {% endif %}
-            </h1>
+            </h3>
         </div>
 
         <div class="row mb-4">
@@ -163,8 +163,8 @@
             <div class="col-md-6 foto-card">
                 <div class="card">
                     <div class="card-body text-center">
-                        <img src="{{ url_for('static', filename='uploads/' + item[0]) }}" class="item-foto" alt="Foto da vistoria">
-                        <p class="foto-detalhamento">{{ item[1] }}</p>
+                        <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria">
+                        <p class="foto-detalhamento">{{ item.detalhamento }}</p>
                     </div>
                 </div>
             </div>
