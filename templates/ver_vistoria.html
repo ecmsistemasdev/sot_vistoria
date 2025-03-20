@@ -26,8 +26,12 @@
             border-radius: 5px;
             margin-bottom: 20px;
         }
+        .vistoria-header h3 {
+            font-size: 1rem; /* Reduzido para o mesmo tamanho dos captions */
+            font-weight: bold;
+        }
         .vistoria-tipo {
-            font-size: 1.2rem;
+            font-size: 1rem;
             padding: 5px 10px;
             margin-left: 10px;
             vertical-align: middle;
@@ -62,47 +66,23 @@
             margin-bottom: 30px;
         }
         /* Estilos para o medidor de combustível modificado */
-        .fuel-gauge-container {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            max-width: 300px;  /* Reduzir tamanho para computador (1/4 do tamanho original) */
-        }
-        .fuel-gauge {
-            position: relative;
-            height: 20px;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        .fuel-marker {
-            position: absolute;
-            top: 0;
-            height: 100%;
-            width: 4px;  /* Linha de 4px */
-            background-color: #000;  /* Cor preta */
+        .fuel-level {
+            height: 3px; /* Linha fina de 3px */
+            background-color: #000; /* Cor preta */
+            margin-top: 2px;
+            margin-bottom: 2px;
         }
         .fuel-markers {
             display: flex;
             justify-content: space-between;
-            margin-top: 5px;
+            margin-top: 2px; /* Espaçamento reduzido */
             font-size: 0.8rem;
             color: #666;
         }
         .fuel-value {
-            text-align: center;
-            font-size: 1.1rem;
+            display: inline-block;
             font-weight: bold;
-            margin-top: 10px;
-        }
-        /* Responsividade para manter o medidor maior em dispositivos móveis */
-        @media (max-width: 768px) {
-            .fuel-gauge-container {
-                max-width: 100%;
-            }
+            margin-left: 5px;
         }
     </style>
 </head>
@@ -132,40 +112,35 @@
         </div>
 
         <div class="row mb-4">
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <h5>Motorista</h5>
                 <p>{{ vistoria[1] }}</p>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <h5>Veículo</h5>
-                <p>{{ vistoria[2] }} - {{ vistoria[7] }}</p>  <!-- Adicionado o modelo aqui -->
+                <p>{{ vistoria[2] }} - {{ vistoria[7] }}</p>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <h5>Data</h5>
                 <p>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</p>
             </div>
-            <div class="col-md-3">
-                <h5>Status</h5>
-                <p>{{ vistoria[5].replace('_', ' ').title() }}</p>
-            </div>
         </div>
-
-        <!-- Medidor de Combustível Modificado -->
-        <div class="fuel-gauge-container">
-            <h5>Nível de Combustível</h5>
-            <div class="fuel-gauge">
-                <!-- Substitui a barra verde por uma linha preta -->
-                <div class="fuel-marker" style="left: {{ vistoria[6] }}%;"></div>
-            </div>
-            <div class="fuel-markers">
-                <span>0</span>
-                <span>1/4</span>
-                <span>1/2</span>
-                <span>3/4</span>
-                <span>1</span>
-            </div>
-            <div class="fuel-value">
-                {{ vistoria[6] }}%
+        
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <h5>Nível de Combustível
+                    <span class="fuel-value">{{ vistoria[6] }}%</span>
+                </h5>
+                <div style="max-width: 200px;">
+                    <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
+                    <div class="fuel-markers">
+                        <span>0</span>
+                        <span>1/4</span>
+                        <span>1/2</span>
+                        <span>3/4</span>
+                        <span>1</span>
+                    </div>
+                </div>
             </div>
         </div>
 
