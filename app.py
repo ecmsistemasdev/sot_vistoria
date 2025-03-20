@@ -91,28 +91,25 @@ def salvar_vistoria():
         # Criar uma nova vistoria
         cur = mysql.connection.cursor()
         
+        # Capturar o último ID antes da inserção
+        cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
+        ultimo_id = cur.fetchone()[0] or 0
+        
         if tipo == 'ENTREGA':
-            # Capturar o último ID antes da inserção
-            cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
-            ultimo_id = cur.fetchone()[0] or 0
-            
+            # Para vistorias de ENTREGA, definir status como EM_TRANSITO
             cur.execute(
                 """INSERT INTO VISTORIAS 
                    (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, ASS_USUARIO, ASS_MOTORISTA) 
-                   VALUES (%s, %s, NOW(), 'ENTREGA', 'EM_TRANSITO', %s, %s, %s)""",
-                (id_motorista, id_veiculo, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
+                   VALUES (%s, %s, NOW(), %s, 'EM_TRANSITO', %s, %s, %s)""",
+                (id_motorista, id_veiculo, tipo, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
             )
         else:  # DEVOLUCAO
-            # Capturar o último ID antes da inserção
-            cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
-            ultimo_id = cur.fetchone()[0] or 0
-            
-            # Inserir vistoria de devolução
+            # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
             cur.execute(
                 """INSERT INTO VISTORIAS 
                    (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL, ASS_USUARIO, ASS_MOTORISTA) 
-                   VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, vistoria_entrega_id, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
+                   VALUES (%s, %s, NOW(), %s, 'FINALIZADA', %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, tipo, vistoria_entrega_id, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
             )
             # Atualizar status da vistoria de entrega para finalizada
             cur.execute(
