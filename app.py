@@ -225,7 +225,7 @@ def ver_vistoria(id):
     
     # Buscar detalhes da vistoria
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA, v.TIPO, v.STATUS,
+        SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL,
                v.VISTORIA_ENTREGA_ID
         FROM VISTORIAS v
         JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
@@ -238,7 +238,7 @@ def ver_vistoria(id):
     vistoria_entrega = None
     if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[6]:
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA
+            SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA, v.COMBUSTIVEL
             FROM VISTORIAS v
             JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
             JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
@@ -250,7 +250,7 @@ def ver_vistoria(id):
     vistoria_devolucao = None
     if vistoria and vistoria[4] == 'ENTREGA':
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA
+            SELECT v.IDVISTORIA, m.NOME as MOTORISTA, ve.PLACA, v.DATA, v.COMBUSTIVEL
             FROM VISTORIAS v
             JOIN MOTORISTAS m ON v.IDMOTORISTA = m.IDMOTORISTA
             JOIN VEICULOS ve ON v.IDVEICULO = ve.IDVEICULO
