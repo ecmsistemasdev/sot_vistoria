@@ -247,7 +247,7 @@ def ver_vistoria(id):
     # Buscar detalhes da vistoria
     cur.execute("""
         SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-               v.VISTORIA_ENTREGA_ID
+               v.VISTORIA_ENTREGA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -257,14 +257,14 @@ def ver_vistoria(id):
     
     # Se for uma vistoria de devolução, buscar também a vistoria de entrega
     vistoria_entrega = None
-    if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[6]:
+    if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
         cur.execute("""
             SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.COMBUSTIVEL, ve.DS_MODELO
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
             WHERE v.IDVISTORIA = %s
-        """, (vistoria[6],))
+        """, (vistoria[8],))
         vistoria_entrega = cur.fetchone()
     
     # Se for uma vistoria de entrega, buscar se já existe uma vistoria de devolução
@@ -322,6 +322,26 @@ def get_foto(item_id):
         )
     
     return 'Imagem não encontrada', 404
+
+@app.route('/get_assinatura/<tipo>/<int:vistoria_id>')
+def get_assinatura(tipo, vistoria_id):
+    cur = mysql.connection.cursor()
+    
+    if tipo == 'usuario':
+        cur.execute("SELECT ASS_USUARIO FROM VISTORIAS WHERE IDVISTORIA = %s", (vistoria_id,))
+    else:  # tipo == 'motorista'
+        cur.execute("SELECT ASS_MOTORISTA FROM VISTORIAS WHERE IDVISTORIA = %s", (vistoria_id,))
+    
+    assinatura = cur.fetchone()[0]  # Pegar o primeiro elemento do primeiro registro
+    cur.close()
+    
+    if not assinatura:
+        return "Sem assinatura", 404
+    
+    return send_file(
+        io.BytesIO(assinatura),
+        mimetype='image/png'
+    )
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
