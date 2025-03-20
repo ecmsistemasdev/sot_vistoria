@@ -20,6 +20,12 @@
             font-weight: bold;
             margin-bottom: 30px;
         }
+        /* Adicionando espaço entre os cards em visualização mobile */
+        @media (max-width: 767.98px) {
+            .card-spacing {
+                margin-bottom: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -40,7 +46,7 @@
         {% endwith %}
         
         <div class="row mt-4">
-            <div class="col-md-6">
+            <div class="col-md-6 card-spacing">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Nova Vistoria</h5>
@@ -52,7 +58,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Vistorias Anteriores</h5>
+                        <h5 class="card-title">Listar Vistorias</h5>
                         <p class="card-text">Consultar vistorias já realizadas.</p>
                         <a href="/vistorias" class="btn btn-secondary">Ver Vistorias</a>
                     </div>
