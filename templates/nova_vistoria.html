@@ -130,7 +130,7 @@
             border: 1px solid #ddd;
         }
         
-        /* Responsividade para o layout de 3 colunas */
+        /* Responsividade para o layout de 4 colunas */
         @media (min-width: 992px) {
             .flex-fields-container {
                 display: flex;
@@ -174,7 +174,7 @@
             <input type="hidden" name="vistoria_entrega_id" value="{{ vistoria_entrega_id }}">
             {% endif %}
             
-            <!-- Layout modificado com 3 colunas em telas maiores -->
+            <!-- Layout modificado com 4 colunas em telas maiores -->
             <div class="flex-fields-container">
                 <div class="flex-field">
                     <label for="id_motorista" class="form-label">Motorista</label>
@@ -204,6 +204,12 @@
                         {% endfor %}
                     </select>
                     {% endif %}
+                </div>
+                
+                <!-- Novo campo de Hodômetro -->
+                <div class="flex-field">
+                    <label for="hodometro" class="form-label">Hodômetro (Km)</label>
+                    <input type="number" class="form-control" id="hodometro" name="hodometro" min="0" required>
                 </div>
                 
                 <!-- Controle deslizante para o nível de combustível -->
