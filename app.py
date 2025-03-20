@@ -71,6 +71,7 @@ def salvar_vistoria():
         tipo = request.form['tipo']
         vistoria_entrega_id = request.form.get('vistoria_entrega_id')
         combustivel = request.form['combustivel']
+        hodometro = request.form['hodometro']
 
         # Obter as assinaturas
         assinatura_usuario_data = request.form.get('assinatura_usuario')
@@ -99,17 +100,17 @@ def salvar_vistoria():
             # Para vistorias de ENTREGA, definir status como EM_TRANSITO
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, ASS_USUARIO, ASS_MOTORISTA) 
-                   VALUES (%s, %s, NOW(), %s, 'EM_TRANSITO', %s, %s, %s)""",
-                (id_motorista, id_veiculo, tipo, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA) 
+                   VALUES (%s, %s, NOW(), %s, 'EM_TRANSITO', %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, tipo, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin)
             )
         else:  # DEVOLUCAO
             # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL, ASS_USUARIO, ASS_MOTORISTA) 
-                   VALUES (%s, %s, NOW(), %s, 'FINALIZADA', %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, tipo, vistoria_entrega_id, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA) 
+                   VALUES (%s, %s, NOW(), %s, 'FINALIZADA', %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, tipo, vistoria_entrega_id, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin)
             )
             # Atualizar status da vistoria de entrega para finalizada
             cur.execute(
@@ -244,7 +245,7 @@ def ver_vistoria(id):
     # Buscar detalhes da vistoria
     cur.execute("""
         SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-               v.VISTORIA_ENTREGA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA
+               v.VISTORIA_ENTREGA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -256,7 +257,8 @@ def ver_vistoria(id):
     vistoria_entrega = None
     if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.COMBUSTIVEL, ve.DS_MODELO
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+                   v.VISTORIA_ENTREGA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -268,7 +270,8 @@ def ver_vistoria(id):
     vistoria_devolucao = None
     if vistoria and vistoria[4] == 'ENTREGA':
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.COMBUSTIVEL, ve.DS_MODELO
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+                   v.VISTORIA_ENTREGA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
