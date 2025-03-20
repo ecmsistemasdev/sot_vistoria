@@ -58,28 +58,37 @@
         }
         /* Estilos para o controle deslizante de combustível */
         .fuel-slider-container {
-            margin: 20px 0;
-            padding: 15px;
+            margin: 10px 0;
+            padding: 10px;
             background-color: #f9f9f9;
             border-radius: 5px;
             border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+        }
+        .fuel-slider-label {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .fuel-slider-value {
+            margin-left: 5px;
+            font-weight: normal;
+        }
+        .fuel-slider-content {
+            flex: 1;
         }
         .fuel-slider {
             width: 100%;
-            margin-top: 10px;
+            margin: 5px 0;
         }
         .fuel-markers {
             display: flex;
             justify-content: space-between;
-            margin-top: 5px;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: #666;
-        }
-        .fuel-level-display {
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 10px;
         }
         /* Estilos para as áreas de assinatura */
         .signature-container {
@@ -117,6 +126,13 @@
             margin-top: 10px;
             display: none;
             border: 1px solid #ddd;
+        }
+        
+        @media (min-width: 768px) {
+            .fuel-slider-container {
+                display: flex;
+                align-items: center;
+            }
         }
     </style>
 </head>
@@ -174,17 +190,18 @@
             
             <!-- Controle deslizante para o nível de combustível -->
             <div class="fuel-slider-container">
-                <h4>Nível de Combustível</h4>
-                <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="50" step="1">
-                <div class="fuel-markers">
-                    <span>0%</span>
-                    <span>25%</span>
-                    <span>50%</span>
-                    <span>75%</span>
-                    <span>100%</span>
+                <div class="fuel-slider-label">
+                    Combustível: <span class="fuel-slider-value" id="combustivel-valor">100%</span>
                 </div>
-                <div class="fuel-level-display">
-                    <span id="combustivel-valor">50%</span>
+                <div class="fuel-slider-content">
+                    <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="100" step="1">
+                    <div class="fuel-markers">
+                        <span>0</span>
+                        <span>1/4</span>
+                        <span>1/2</span>
+                        <span>3/4</span>
+                        <span>1</span>
+                    </div>
                 </div>
             </div>
             
@@ -194,17 +211,12 @@
                     <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple>
                     <div class="form-text">Selecione várias fotos de uma vez para adicionar à vistoria</div>
                 </div>
-                <button type="button" class="btn btn-primary" id="adicionar-multi-fotos">Adicionar Selecionadas</button>
             </div>
             
             <h2>Fotos da Vistoria</h2>
             <div id="fotos-container">
                 <!-- Aqui serão adicionados os itens de foto dinamicamente -->
             </div>
-            
-            <button type="button" class="btn btn-success mb-4" id="addFotoBtn">
-                <i class="bi bi-plus-circle"></i> Adicionar Foto Individual
-            </button>
             
             <div class="camera-container" id="camera-container">
                 <video id="video" autoplay></video>
@@ -372,45 +384,6 @@
             });
         }
         
-        // Botão para adicionar nova foto
-        document.getElementById('addFotoBtn').addEventListener('click', function() {
-            adicionarNovaFoto();
-        });
-        
-        // Botão para adicionar múltiplas fotos
-        document.getElementById('adicionar-multi-fotos').addEventListener('click', function() {
-            const multiInput = document.getElementById('multi-foto-input');
-            const files = multiInput.files;
-            
-            if (files.length === 0) {
-                alert('Selecione pelo menos uma foto para adicionar');
-                return;
-            }
-            
-            // Para cada arquivo selecionado, criar um novo item de foto
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const fotoItem = adicionarNovaFoto();
-                
-                // Atribuir o arquivo ao input de arquivo
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                fotoItem.querySelector('.foto-input').files = dataTransfer.files;
-                
-                // Mostrar preview da imagem
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = fotoItem.querySelector('.preview-image');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            }
-            
-            // Limpar o input de múltiplas fotos
-            multiInput.value = '';
-        });
-        
         // Função para adicionar nova foto
         function adicionarNovaFoto() {
             const fotoItem = document.importNode(fotoTemplate.content, true).firstElementChild;
@@ -450,6 +423,43 @@
             
             return fotoItem;
         }
+        
+        // Processar automaticamente fotos adicionadas pelo input múltiplo
+        document.getElementById('multi-foto-input').addEventListener('change', function(e) {
+            const files = this.files;
+            
+            if (files.length === 0) {
+                return;
+            }
+            
+            // Se temos apenas um item vazio, vamos remover antes de adicionar os novos
+            if (fotosContainer.children.length === 1) {
+                const primeiroInput = fotosContainer.querySelector('.foto-input');
+                if (!primeiroInput.files || primeiroInput.files.length === 0) {
+                    fotosContainer.innerHTML = '';
+                }
+            }
+            
+            // Para cada arquivo selecionado, criar um novo item de foto
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fotoItem = adicionarNovaFoto();
+                
+                // Atribuir o arquivo ao input de arquivo
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fotoItem.querySelector('.foto-input').files = dataTransfer.files;
+                
+                // Mostrar preview da imagem
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = fotoItem.querySelector('.preview-image');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
         
         // Função para abrir a câmera
         function usarCamera(fotoItem) {
