@@ -341,15 +341,22 @@ def get_assinatura(tipo, vistoria_id):
     assinatura = resultado[0]
     
     # Transformar o BLOB em um arquivo legível
-    imagem_io = io.BytesIO(assinatura)
+    #imagem_io = io.BytesIO(assinatura)
+
+    return send_file(
+        BytesIO(assinatura),
+        mimetype='image/png',  # ou 'image/jpeg' dependendo do formato da assinatura
+        as_attachment=False,
+        download_name=f'assinatura_{tipo}_{vistoria_id}.png'  # nome do arquivo ao baixar
+    )
     
     # Enviar a imagem como um arquivo
-    imagem_io.seek(0)
-    return send_file(
-        imagem_io,
-        mimetype='image/png',  # Ajustar o tipo MIME conforme necessário
-        as_attachment=False
-    )
+    #imagem_io.seek(0)
+    #return send_file(
+    #    imagem_io,
+    #    mimetype='image/png',  # Ajustar o tipo MIME conforme necessário
+    #    as_attachment=False
+    #)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
