@@ -71,6 +71,22 @@ def salvar_vistoria():
         tipo = request.form['tipo']
         vistoria_entrega_id = request.form.get('vistoria_entrega_id')
         combustivel = request.form['combustivel']
+
+        # Obter as assinaturas
+        assinatura_usuario_data = request.form.get('assinatura_usuario')
+        assinatura_motorista_data = request.form.get('assinatura_motorista')
+        
+        # Processar as assinaturas de base64 para binário, se existirem
+        assinatura_usuario_bin = None
+        assinatura_motorista_bin = None
+        
+        if assinatura_usuario_data and ',' in assinatura_usuario_data:
+            assinatura_usuario_data = assinatura_usuario_data.split(',')[1]
+            assinatura_usuario_bin = base64.b64decode(assinatura_usuario_data)
+        
+        if assinatura_motorista_data and ',' in assinatura_motorista_data:
+            assinatura_motorista_data = assinatura_motorista_data.split(',')[1]
+            assinatura_motorista_bin = base64.b64decode(assinatura_motorista_data)
         
         # Criar uma nova vistoria
         cur = mysql.connection.cursor()
@@ -81,8 +97,10 @@ def salvar_vistoria():
             ultimo_id = cur.fetchone()[0] or 0
             
             cur.execute(
-                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL) VALUES (%s, %s, NOW(), 'ENTREGA', 'EM_TRANSITO', %s)",
-                (id_motorista, id_veiculo, combustivel)
+                """INSERT INTO VISTORIAS 
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, ASS_USUARIO, ASS_MOTORISTA) 
+                   VALUES (%s, %s, NOW(), 'ENTREGA', 'EM_TRANSITO', %s, %s, %s)""",
+                (id_motorista, id_veiculo, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
             )
         else:  # DEVOLUCAO
             # Capturar o último ID antes da inserção
@@ -91,8 +109,9 @@ def salvar_vistoria():
             
             # Inserir vistoria de devolução
             cur.execute(
-                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL) VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s, %s)",
-                (id_motorista, id_veiculo, vistoria_entrega_id, combustivel)
+                "INSERT INTO VISTORIAS (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL, ASS_USUARIO, ASS_MOTORISTA) 
+                VALUES (%s, %s, NOW(), 'DEVOLUCAO', 'FINALIZADA', %s, %s, %s, %s)",
+                (id_motorista, id_veiculo, vistoria_entrega_id, combustivel, assinatura_usuario_bin, assinatura_motorista_bin)
             )
             # Atualizar status da vistoria de entrega para finalizada
             cur.execute(
