@@ -58,28 +58,42 @@
         }
         /* Estilos para o controle deslizante de combustível */
         .fuel-slider-container {
-            margin: 20px 0;
-            padding: 15px;
+            margin: 10px 0;
+            padding: 10px;
             background-color: #f9f9f9;
             border-radius: 5px;
             border: 1px solid #ddd;
         }
         .fuel-slider {
             width: 100%;
-            margin-top: 10px;
+            margin: 5px 0;
+        }
+        .fuel-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0;
         }
         .fuel-markers {
             display: flex;
             justify-content: space-between;
-            margin-top: 5px;
-            font-size: 0.8rem;
+            margin-top: 2px;
+            font-size: 0.7rem;
             color: #666;
         }
-        .fuel-level-display {
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 10px;
+        
+        /* Media query para telas maiores (computadores) */
+        @media (min-width: 768px) {
+            .fuel-row {
+                display: flex;
+                align-items: center;
+            }
+            .vehicle-col {
+                flex: 1;
+            }
+            .fuel-col {
+                flex: 1;
+                margin-left: 15px;
+            }
         }
     </style>
 </head>
@@ -100,8 +114,8 @@
             <input type="hidden" name="vistoria_entrega_id" value="{{ vistoria_entrega_id }}">
             {% endif %}
             
-            <div class="row mb-4">
-                <div class="col-md-6">
+            <div class="fuel-row mb-4">
+                <div class="vehicle-col">
                     <div class="mb-3">
                         <label for="id_motorista" class="form-label">Motorista</label>
                         {% if tipo == 'DEVOLUCAO' %}
@@ -116,8 +130,7 @@
                         </select>
                         {% endif %}
                     </div>
-                </div>
-                <div class="col-md-6">
+                
                     <div class="mb-3">
                         <label for="id_veiculo" class="form-label">Veículo</label>
                         {% if tipo == 'DEVOLUCAO' %}
@@ -133,21 +146,23 @@
                         {% endif %}
                     </div>
                 </div>
-            </div>
-            
-            <!-- Controle deslizante para o nível de combustível -->
-            <div class="fuel-slider-container">
-                <h4>Nível de Combustível</h4>
-                <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="50" step="1">
-                <div class="fuel-markers">
-                    <span>0%</span>
-                    <span>25%</span>
-                    <span>50%</span>
-                    <span>75%</span>
-                    <span>100%</span>
-                </div>
-                <div class="fuel-level-display">
-                    <span id="combustivel-valor">50%</span>
+                
+                <div class="fuel-col">
+                    <!-- Controle deslizante para o nível de combustível -->
+                    <div class="fuel-slider-container">
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="fuel-label">Combustível:</span>
+                            <span id="combustivel-valor" class="ms-2">100%</span>
+                        </div>
+                        <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="100" step="1">
+                        <div class="fuel-markers">
+                            <span>0</span>
+                            <span>1/4</span>
+                            <span>1/2</span>
+                            <span>3/4</span>
+                            <span>1</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -157,17 +172,12 @@
                     <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple>
                     <div class="form-text">Selecione várias fotos de uma vez para adicionar à vistoria</div>
                 </div>
-                <button type="button" class="btn btn-primary" id="adicionar-multi-fotos">Adicionar Selecionadas</button>
             </div>
             
             <h2>Fotos da Vistoria</h2>
             <div id="fotos-container">
                 <!-- Aqui serão adicionados os itens de foto dinamicamente -->
             </div>
-            
-            <button type="button" class="btn btn-success mb-4" id="addFotoBtn">
-                <i class="bi bi-plus-circle"></i> Adicionar Foto Individual
-            </button>
             
             <div class="camera-container" id="camera-container">
                 <video id="video" autoplay></video>
@@ -228,23 +238,11 @@
             combustivelValor.textContent = this.value + '%';
         });
         
-        // Adicionar a primeira foto ao iniciar
-        document.addEventListener('DOMContentLoaded', function() {
-            adicionarNovaFoto();
-        });
-        
-        // Botão para adicionar nova foto
-        document.getElementById('addFotoBtn').addEventListener('click', function() {
-            adicionarNovaFoto();
-        });
-        
-        // Botão para adicionar múltiplas fotos
-        document.getElementById('adicionar-multi-fotos').addEventListener('click', function() {
-            const multiInput = document.getElementById('multi-foto-input');
-            const files = multiInput.files;
+        // Monitorar o input multi-foto e processar automaticamente
+        document.getElementById('multi-foto-input').addEventListener('change', function() {
+            const files = this.files;
             
             if (files.length === 0) {
-                alert('Selecione pelo menos uma foto para adicionar');
                 return;
             }
             
@@ -267,9 +265,6 @@
                 }
                 reader.readAsDataURL(file);
             }
-            
-            // Limpar o input de múltiplas fotos
-            multiInput.value = '';
         });
         
         // Função para adicionar nova foto
@@ -386,6 +381,11 @@
                 e.preventDefault();
                 alert('É necessário incluir pelo menos uma foto na vistoria.');
             }
+        });
+        
+        // Adicionar a primeira foto ao iniciar (opcional, pode ser removido se não quiser que inicie com um item vazio)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Nada a fazer aqui, já que as fotos serão adicionadas ao selecionar no input multi-foto
         });
     </script>
 </body>
