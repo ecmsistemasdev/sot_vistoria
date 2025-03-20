@@ -58,13 +58,15 @@
         }
         /* Estilos para o controle deslizante de combustível */
         .fuel-slider-container {
-            margin: 10px 0;
+            margin: 0;
             padding: 10px;
             background-color: #f9f9f9;
             border-radius: 5px;
             border: 1px solid #ddd;
+            height: 100%;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            justify-content: center;
         }
         .fuel-slider-label {
             display: flex;
@@ -128,10 +130,29 @@
             border: 1px solid #ddd;
         }
         
-        @media (min-width: 768px) {
-            .fuel-slider-container {
+        /* Responsividade para o layout de 3 colunas */
+        @media (min-width: 992px) {
+            .flex-fields-container {
                 display: flex;
-                align-items: center;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            .flex-field {
+                flex: 1;
+                margin-bottom: 0;
+            }
+            .fuel-slider-container {
+                margin: 0;
+            }
+        }
+        
+        /* Para telas menores */
+        @media (max-width: 991px) {
+            .flex-field {
+                margin-bottom: 15px;
+            }
+            .fuel-slider-container {
+                margin-bottom: 20px;
             }
         }
     </style>
@@ -153,54 +174,52 @@
             <input type="hidden" name="vistoria_entrega_id" value="{{ vistoria_entrega_id }}">
             {% endif %}
             
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="id_motorista" class="form-label">Motorista</label>
-                        {% if tipo == 'DEVOLUCAO' %}
-                        <input type="hidden" name="id_motorista" value="{{ motorista_id }}">
-                        <input type="text" class="form-control" value="{{ motorista_nome }}" readonly>
-                        {% else %}
-                        <select class="form-select" id="id_motorista" name="id_motorista" required>
-                            <option value="">Selecione um motorista</option>
-                            {% for motorista in motoristas %}
-                            <option value="{{ motorista[0] }}">{{ motorista[1] }}</option>
-                            {% endfor %}
-                        </select>
-                        {% endif %}
+            <!-- Layout modificado com 3 colunas em telas maiores -->
+            <div class="flex-fields-container">
+                <div class="flex-field">
+                    <label for="id_motorista" class="form-label">Motorista</label>
+                    {% if tipo == 'DEVOLUCAO' %}
+                    <input type="hidden" name="id_motorista" value="{{ motorista_id }}">
+                    <input type="text" class="form-control" value="{{ motorista_nome }}" readonly>
+                    {% else %}
+                    <select class="form-select" id="id_motorista" name="id_motorista" required>
+                        <option value="">Selecione um motorista</option>
+                        {% for motorista in motoristas %}
+                        <option value="{{ motorista[0] }}">{{ motorista[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+                
+                <div class="flex-field">
+                    <label for="id_veiculo" class="form-label">Veículo</label>
+                    {% if tipo == 'DEVOLUCAO' %}
+                    <input type="hidden" name="id_veiculo" value="{{ veiculo_id }}">
+                    <input type="text" class="form-control" value="{{ veiculo_placa }}" readonly>
+                    {% else %}
+                    <select class="form-select" id="id_veiculo" name="id_veiculo" required>
+                        <option value="">Selecione um veículo</option>
+                        {% for veiculo in veiculos %}
+                        <option value="{{ veiculo[0] }}">{{ veiculo[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+                
+                <!-- Controle deslizante para o nível de combustível -->
+                <div class="flex-field fuel-slider-container">
+                    <div class="fuel-slider-label">
+                        Combustível: <span class="fuel-slider-value" id="combustivel-valor">100%</span>
                     </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="id_veiculo" class="form-label">Veículo</label>
-                        {% if tipo == 'DEVOLUCAO' %}
-                        <input type="hidden" name="id_veiculo" value="{{ veiculo_id }}">
-                        <input type="text" class="form-control" value="{{ veiculo_placa }}" readonly>
-                        {% else %}
-                        <select class="form-select" id="id_veiculo" name="id_veiculo" required>
-                            <option value="">Selecione um veículo</option>
-                            {% for veiculo in veiculos %}
-                            <option value="{{ veiculo[0] }}">{{ veiculo[1] }}</option>
-                            {% endfor %}
-                        </select>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Controle deslizante para o nível de combustível -->
-            <div class="fuel-slider-container">
-                <div class="fuel-slider-label">
-                    Combustível: <span class="fuel-slider-value" id="combustivel-valor">100%</span>
-                </div>
-                <div class="fuel-slider-content">
-                    <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="100" step="1">
-                    <div class="fuel-markers">
-                        <span>0</span>
-                        <span>1/4</span>
-                        <span>1/2</span>
-                        <span>3/4</span>
-                        <span>1</span>
+                    <div class="fuel-slider-content">
+                        <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="100" step="1">
+                        <div class="fuel-markers">
+                            <span>0</span>
+                            <span>1/4</span>
+                            <span>1/2</span>
+                            <span>3/4</span>
+                            <span>1</span>
+                        </div>
                     </div>
                 </div>
             </div>
