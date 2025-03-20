@@ -99,6 +99,13 @@
             font-weight: bold;
             margin-bottom: 10px;
         }
+        /* Media query para ajustar o layout em telas maiores */
+        @media (min-width: 992px) {
+            .info-field {
+                flex: 0 0 25%;
+                max-width: 25%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -126,20 +133,21 @@
             </h3>
         </div>
 
+        <!-- Campos de informação em uma única linha em telas grandes -->
         <div class="row mb-4">
-            <div class="col-md-4">
+            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0 info-field">
                 <h5>Motorista</h5>
                 <p>{{ vistoria[1] }}</p>
             </div>
-            <div class="col-md-4">
+            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0 info-field">
                 <h5>Veículo</h5>
                 <p>{{ vistoria[2] }} - {{ vistoria[7] }}</p>
             </div>
-            <div class="col-md-4">
+            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0 info-field">
                 <h5>Data</h5>
                 <p>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</p>
             </div>
-            <div class="col-md-4">
+            <div class="col-lg-3 col-md-6 mb-3 mb-lg-0 info-field">
                 <h5>Hodômetro (Km)</h5>
                 <p>{{ vistoria[11] }}</p>
             </div>            
@@ -254,6 +262,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         
         <div class="mt-4">
             <a href="/vistorias" class="btn btn-primary">Voltar para Lista</a>
