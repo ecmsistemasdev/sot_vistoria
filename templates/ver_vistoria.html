@@ -205,13 +205,6 @@
             </div>
         </div>
         {% endif %}
-
-        <!-- Adicionar botão para criar vistoria de devolução se for uma vistoria de entrega em trânsito -->
-        {% if vistoria[4] == 'ENTREGA' and vistoria[5] == 'EM_TRANSITO' and not vistoria_devolucao %}
-        <div class="mb-4">
-            <a href="/nova_vistoria_devolucao/{{ vistoria[0] }}" class="btn btn-success">Criar Vistoria de Devolução</a>
-        </div>
-        {% endif %}
         
         <h2>Fotos da Vistoria</h2>
         <div class="row">
