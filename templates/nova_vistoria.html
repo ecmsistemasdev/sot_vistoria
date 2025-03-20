@@ -58,7 +58,7 @@
         }
         /* Estilos para o controle deslizante de combustível */
         .fuel-slider-container {
-            margin: 20px 0;
+            margin: 10px 0;
             padding: 15px;
             background-color: #f9f9f9;
             border-radius: 5px;
@@ -66,21 +66,21 @@
         }
         .fuel-slider {
             width: 100%;
-            margin-top: 10px;
+            margin: 5px;
         }
+        .fuel-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0;
+        }        
         .fuel-markers {
             display: flex;
             justify-content: space-between;
-            margin-top: 5px;
-            font-size: 0.8rem;
+            margin-top: 2px;
+            font-size: 0.7rem;
             color: #666;
         }
-        .fuel-level-display {
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 10px;
-        }
+        
         /* Estilos para as áreas de assinatura */
         .signature-container {
             margin-top: 30px;
@@ -118,6 +118,20 @@
             display: none;
             border: 1px solid #ddd;
         }
+        /* Media query para telas maiores (computadores) */
+        @media (min-width: 768px) {
+            .fuel-row {
+                display: flex;
+                align-items: center;
+            }
+            .vehicle-col {
+                flex: 1;
+            }
+            .fuel-col {
+                flex: 1;
+                margin-left: 15px;
+            }
+        }        
     </style>
 </head>
 <body>
@@ -137,8 +151,8 @@
             <input type="hidden" name="vistoria_entrega_id" value="{{ vistoria_entrega_id }}">
             {% endif %}
             
-            <div class="row mb-4">
-                <div class="col-md-6">
+            <div class="fuel-row mb-4">
+                <div class="vehicle-col">
                     <div class="mb-3">
                         <label for="id_motorista" class="form-label">Motorista</label>
                         {% if tipo == 'DEVOLUCAO' %}
@@ -154,137 +168,135 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="id_veiculo" class="form-label">Veículo</label>
-                        {% if tipo == 'DEVOLUCAO' %}
-                        <input type="hidden" name="id_veiculo" value="{{ veiculo_id }}">
-                        <input type="text" class="form-control" value="{{ veiculo_placa }}" readonly>
-                        {% else %}
-                        <select class="form-select" id="id_veiculo" name="id_veiculo" required>
-                            <option value="">Selecione um veículo</option>
-                            {% for veiculo in veiculos %}
-                            <option value="{{ veiculo[0] }}">{{ veiculo[1] }}</option>
-                            {% endfor %}
-                        </select>
-                        {% endif %}
+
+                <div class="mb-3">
+                    <label for="id_veiculo" class="form-label">Veículo</label>
+                    {% if tipo == 'DEVOLUCAO' %}
+                    <input type="hidden" name="id_veiculo" value="{{ veiculo_id }}">
+                    <input type="text" class="form-control" value="{{ veiculo_placa }}" readonly>
+                    {% else %}
+                    <select class="form-select" id="id_veiculo" name="id_veiculo" required>
+                        <option value="">Selecione um veículo</option>
+                        {% for veiculo in veiculos %}
+                        <option value="{{ veiculo[0] }}">{{ veiculo[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="fuel-col">
+                <!-- Controle deslizante para o nível de combustível -->
+                <div class="fuel-slider-container">
+                    <div class="d-flex align-items-center mb-1">
+                        <span class="fuel-label">Combustível:</span>
+                        <span id="combustivel-valor" class="ms-2">100%</span>
+                    </div>
+                    <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="100" step="1">
+                    <div class="fuel-markers">
+                        <span>0</span>
+                        <span>1/4</span>
+                        <span>1/2</span>
+                        <span>3/4</span>
+                        <span>1</span>
                     </div>
                 </div>
             </div>
+        </div>
             
-            <!-- Controle deslizante para o nível de combustível -->
-            <div class="fuel-slider-container">
-                <h4>Nível de Combustível</h4>
-                <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="50" step="1">
-                <div class="fuel-markers">
-                    <span>0%</span>
-                    <span>25%</span>
-                    <span>50%</span>
-                    <span>75%</span>
-                    <span>100%</span>
-                </div>
-                <div class="fuel-level-display">
-                    <span id="combustivel-valor">50%</span>
-                </div>
-            </div>
-            
-            <div id="multi-foto-container" class="mb-4">
-                <h3>Selecionar Múltiplas Fotos</h3>
-                <div class="mb-3">
-                    <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple>
-                    <div class="form-text">Selecione várias fotos de uma vez para adicionar à vistoria</div>
-                </div>
-                <button type="button" class="btn btn-primary" id="adicionar-multi-fotos">Adicionar Selecionadas</button>
-            </div>
-            
-            <h2>Fotos da Vistoria</h2>
-            <div id="fotos-container">
-                <!-- Aqui serão adicionados os itens de foto dinamicamente -->
-            </div>
-            
-            <button type="button" class="btn btn-success mb-4" id="addFotoBtn">
-                <i class="bi bi-plus-circle"></i> Adicionar Foto Individual
-            </button>
-            
-            <div class="camera-container" id="camera-container">
-                <video id="video" autoplay></video>
-                <canvas id="canvas"></canvas>
-                <div class="camera-buttons" id="main-camera-buttons" style="display: none;">
-                    <button type="button" class="btn btn-primary" id="capture">Capturar Foto</button>
-                    <button type="button" class="btn btn-secondary" id="closeCamera">Fechar Câmera</button>
-                </div>
-            </div>
-            
-            <!-- Área de assinatura do usuário -->
-            <div class="signature-container">
-                <h4>Assinatura do Usuário</h4>
-                <p class="text-muted">Assine usando o dedo ou uma caneta stylus na área abaixo:</p>
-                
-                <div class="signature-pad-container">
-                    <canvas id="signature-pad-usuario" class="signature-pad"></canvas>
-                </div>
-                
-                <input type="hidden" name="assinatura_usuario" id="assinatura-usuario-input">
-                
-                <div class="signature-buttons">
-                    <button type="button" class="btn btn-secondary" id="limpar-assinatura-usuario">Limpar</button>
-                </div>
-                
-                <div class="preview-container">
-                    <img id="assinatura-usuario-preview" class="signature-preview">
-                </div>
-            </div>
-            
-            <!-- Área de assinatura do motorista -->
-            <div class="signature-container">
-                <h4>Assinatura do Motorista</h4>
-                <p class="text-muted">Peça ao motorista para assinar usando o dedo ou uma caneta stylus na área abaixo:</p>
-                
-                <div class="signature-pad-container">
-                    <canvas id="signature-pad-motorista" class="signature-pad"></canvas>
-                </div>
-                
-                <input type="hidden" name="assinatura_motorista" id="assinatura-motorista-input">
-                
-                <div class="signature-buttons">
-                    <button type="button" class="btn btn-secondary" id="limpar-assinatura-motorista">Limpar</button>
-                </div>
-                
-                <div class="preview-container">
-                    <img id="assinatura-motorista-preview" class="signature-preview">
-                </div>
-            </div>
-            
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">Salvar Vistoria</button>
-                <a href="/vistorias" class="btn btn-secondary">Cancelar</a>
-            </div>
-        </form>
-    </div>
-    
-    <!-- Template para novos itens de foto -->
-    <template id="foto-template">
-        <div class="foto-item">
+        <div id="multi-foto-container" class="mb-4">
+            <h3>Selecionar Múltiplas Fotos</h3>
             <div class="mb-3">
-                <label class="form-label">Foto</label>
-                <div class="d-flex">
-                    <input type="file" class="form-control foto-input" name="fotos[]" accept="image/*" capture="camera">
-                    <button type="button" class="btn btn-secondary ms-2 usar-camera-btn">Câmera</button>
-                </div>
+                <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple>
+                <div class="form-text">Selecione várias fotos de uma vez para adicionar à vistoria</div>
+            </div>
+        </div>
+            
+        <h2>Fotos da Vistoria</h2>
+        <div id="fotos-container">
+            <!-- Aqui serão adicionados os itens de foto dinamicamente -->
+        </div>
+            
+            
+        <div class="camera-container" id="camera-container">
+            <video id="video" autoplay></video>
+            <canvas id="canvas"></canvas>
+            <div class="camera-buttons" id="main-camera-buttons" style="display: none;">
+                <button type="button" class="btn btn-primary" id="capture">Capturar Foto</button>
+                <button type="button" class="btn btn-secondary" id="closeCamera">Fechar Câmera</button>
+            </div>
+        </div>
+            
+        <!-- Área de assinatura do usuário -->
+        <div class="signature-container">
+            <h4>Assinatura do Usuário</h4>
+            <p class="text-muted">Assine usando o dedo ou uma caneta stylus na área abaixo:</p>
+            
+            <div class="signature-pad-container">
+                <canvas id="signature-pad-usuario" class="signature-pad"></canvas>
+            </div>
+            
+            <input type="hidden" name="assinatura_usuario" id="assinatura-usuario-input">
+            
+            <div class="signature-buttons">
+                <button type="button" class="btn btn-secondary" id="limpar-assinatura-usuario">Limpar</button>
             </div>
             
             <div class="preview-container">
-                <img src="" class="preview-image" style="display: none;">
+                <img id="assinatura-usuario-preview" class="signature-preview">
             </div>
-            
-            <div class="mb-3 mt-3">
-                <label class="form-label">Detalhamento (máx. 100 caracteres)</label>
-                <textarea class="form-control" name="detalhamentos[]" maxlength="100" rows="2" placeholder="Digite detalhes sobre esta foto..."></textarea>
-            </div>
-            
-            <button type="button" class="btn btn-danger mt-3 remover-foto-btn">Remover esta foto</button>
         </div>
-    </template>
+        
+        <!-- Área de assinatura do motorista -->
+        <div class="signature-container">
+            <h4>Assinatura do Motorista</h4>
+            <p class="text-muted">Peça ao motorista para assinar usando o dedo ou uma caneta stylus na área abaixo:</p>
+            
+            <div class="signature-pad-container">
+                <canvas id="signature-pad-motorista" class="signature-pad"></canvas>
+            </div>
+            
+            <input type="hidden" name="assinatura_motorista" id="assinatura-motorista-input">
+            
+            <div class="signature-buttons">
+                <button type="button" class="btn btn-secondary" id="limpar-assinatura-motorista">Limpar</button>
+            </div>
+            
+            <div class="preview-container">
+                <img id="assinatura-motorista-preview" class="signature-preview">
+            </div>
+        </div>
+            
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary">Salvar Vistoria</button>
+            <a href="/vistorias" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+    
+<!-- Template para novos itens de foto -->
+<template id="foto-template">
+    <div class="foto-item">
+        <div class="mb-3">
+            <label class="form-label">Foto</label>
+            <div class="d-flex">
+                <input type="file" class="form-control foto-input" name="fotos[]" accept="image/*" capture="camera">
+                <button type="button" class="btn btn-secondary ms-2 usar-camera-btn">Câmera</button>
+            </div>
+        </div>
+        
+        <div class="preview-container">
+            <img src="" class="preview-image" style="display: none;">
+        </div>
+        
+        <div class="mb-3 mt-3">
+            <label class="form-label">Detalhamento (máx. 100 caracteres)</label>
+            <textarea class="form-control" name="detalhamentos[]" maxlength="100" rows="2" placeholder="Digite detalhes sobre esta foto..."></textarea>
+        </div>
+        
+        <button type="button" class="btn btn-danger mt-3 remover-foto-btn">Remover esta foto</button>
+    </div>
+</template>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
@@ -297,6 +309,14 @@
         const closeButton = document.getElementById('closeCamera');
         const fotosContainer = document.getElementById('fotos-container');
         const fotoTemplate = document.getElementById('foto-template');
+
+        // Configurar o controle deslizante de combustível
+        const combustivelSlider = document.getElementById('combustivel');
+        const combustivelValor = document.getElementById('combustivel-valor');
+        
+        combustivelSlider.addEventListener('input', function() {
+            combustivelValor.textContent = this.value + '%';
+        });
         
         // Inicializar as áreas de assinatura
         const signaturePadUsuario = new SignaturePad(document.getElementById('signature-pad-usuario'), {
@@ -308,6 +328,36 @@
             backgroundColor: 'rgb(255, 255, 255)',
             penColor: 'rgb(0, 0, 0)'
         });
+
+        // Monitorar o input multi-foto e processar automaticamente
+        document.getElementById('multi-foto-input').addEventListener('change', function() {
+            const files = this.files;
+            
+            if (files.length === 0) {
+                return;
+            }
+            
+            // Para cada arquivo selecionado, criar um novo item de foto
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fotoItem = adicionarNovaFoto();
+                
+                // Atribuir o arquivo ao input de arquivo
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fotoItem.querySelector('.foto-input').files = dataTransfer.files;
+                
+                // Mostrar preview da imagem
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = fotoItem.querySelector('.preview-image');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
         
         // Botões para limpar assinaturas
         document.getElementById('limpar-assinatura-usuario').addEventListener('click', function() {
