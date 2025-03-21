@@ -163,12 +163,56 @@
             padding: 15px;
             margin-bottom: 20px;
         }
+        .foto-preview-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
         .foto-preview {
             width: 100%;
-            height: 200px;
-            object-fit: cover;
+            height: 100%;
+            object-fit: contain;
             border-radius: 4px;
-            margin-bottom: 10px;
+        }
+        .drawing-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            cursor: crosshair;
+        }
+        
+        /* Estilos para os controles de desenho */
+        .drawing-tools {
+            margin-top: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .drawing-tools button {
+            min-width: 80px;
+        }
+        .brush-size-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .color-indicator {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid #ccc;
+            background-color: #00ff00;
         }
     </style>
 </head>
@@ -317,8 +361,31 @@
     <!-- Template para itens de foto gerados automaticamente -->
     <template id="foto-gerada-template">
         <div class="foto-gerada-item">
-            <img class="foto-preview" src="">
+            <div class="foto-preview-container">
+                <img class="foto-preview" src="">
+                <canvas class="drawing-canvas"></canvas>
+            </div>
             <input type="hidden" class="foto-input" name="fotos[]">
+            <input type="hidden" class="drawing-data" name="desenhos[]" value="">
+            
+            <div class="drawing-tools">
+                <div class="brush-size-container">
+                    <span>Espessura:</span>
+                    <input type="range" class="form-range brush-size" min="1" max="10" value="3" style="width: 100px;">
+                </div>
+                <div class="color-selector">
+                    <span>Cor:</span>
+                    <span class="color-indicator" style="background-color: #00ff00;"></span>
+                    <select class="form-select form-select-sm color-select" style="width: 130px;">
+                        <option value="#00ff00" selected>Verde Fluorescente</option>
+                        <option value="#ff0000">Vermelho</option>
+                        <option value="#0000ff">Azul</option>
+                        <option value="#ffff00">Amarelo</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary habilitar-desenho">Desenhar</button>
+                <button type="button" class="btn btn-sm btn-warning limpar-desenho">Limpar Desenho</button>
+            </div>
             
             <div class="mb-3 mt-3">
                 <label class="form-label">Observações (máx. 100 caracteres)</label>
@@ -335,6 +402,7 @@
         const canvas = document.getElementById('canvas');
         const captureButton = document.getElementById('capture');
         const closeButton = document.getElementById('closeCamera');
+        let activeDrawingCanvas = null;
         
         // Inicializar as áreas de assinatura
         const signaturePadUsuario = new SignaturePad(document.getElementById('signature-pad-usuario'), {
@@ -391,7 +459,7 @@
             });
         });
         
-        // Função para criar um item de foto com campo de detalhamento
+        // Função para criar um item de foto com campo de detalhamento e canvas de desenho
         function criarItemFotoComDetalhamento(file, container) {
             const template = document.getElementById('foto-gerada-template');
             const fotoItem = document.importNode(template.content, true).firstElementChild;
@@ -408,11 +476,181 @@
                 
                 // Armazenar o arquivo em um atributo de dados no input
                 fotoInput.setAttribute('data-file', file.name);
+                
+                // Configurar o canvas de desenho
+                const drawingCanvas = fotoItem.querySelector('.drawing-canvas');
+                ajustarTamanhoCanvas(previewImg, drawingCanvas);
+                
+                // Adicionar eventos depois que a imagem carregar completamente
+                previewImg.onload = function() {
+                    ajustarTamanhoCanvas(previewImg, drawingCanvas);
+                };
             }
             
             reader.readAsDataURL(file);
             container.appendChild(fotoItem);
+            
+            // Configurar botões de desenho
+            const habilitarDesenhoBtn = fotoItem.querySelector('.habilitar-desenho');
+            const limparDesenhoBtn = fotoItem.querySelector('.limpar-desenho');
+            const drawingCanvas = fotoItem.querySelector('.drawing-canvas');
+            const drawingDataInput = fotoItem.querySelector('.drawing-data');
+            const brushSizeInput = fotoItem.querySelector('.brush-size');
+            const colorSelect = fotoItem.querySelector('.color-select');
+            const colorIndicator = fotoItem.querySelector('.color-indicator');
+            
+            // Evento para mudar a cor do desenho
+            colorSelect.addEventListener('change', function() {
+                const selectedColor = this.value;
+                colorIndicator.style.backgroundColor = selectedColor;
+            });
+            
+            habilitarDesenhoBtn.addEventListener('click', function() {
+                // Desativar qualquer canvas ativo anterior
+                if (activeDrawingCanvas && activeDrawingCanvas !== drawingCanvas) {
+                    desativarDesenho(activeDrawingCanvas);
+                }
+                
+                // Ativar o desenho no canvas atual
+                ativarDesenho(drawingCanvas, drawingDataInput, brushSizeInput, colorSelect);
+                activeDrawingCanvas = drawingCanvas;
+                habilitarDesenhoBtn.classList.add('disabled');
+                habilitarDesenhoBtn.textContent = 'Desenhando...';
+            });
+            
+            limparDesenhoBtn.addEventListener('click', function() {
+                const ctx = drawingCanvas.getContext('2d');
+                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                drawingDataInput.value = '';
+                
+                if (activeDrawingCanvas === drawingCanvas) {
+                    desativarDesenho(drawingCanvas);
+                    activeDrawingCanvas = null;
+                    habilitarDesenhoBtn.classList.remove('disabled');
+                    habilitarDesenhoBtn.textContent = 'Desenhar';
+                }
+            });
+            
             return fotoItem;
+        }
+        
+        // Função para ajustar o tamanho do canvas de desenho para corresponder à imagem
+        function ajustarTamanhoCanvas(imgElement, canvasElement) {
+            if (!imgElement || !canvasElement) return;
+            
+            const container = imgElement.parentElement;
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+            
+            // Calcular a proporção da imagem
+            const imgWidth = imgElement.naturalWidth || imgElement.width;
+            const imgHeight = imgElement.naturalHeight || imgElement.height;
+            
+            // Definir o tamanho do canvas para corresponder ao tamanho do container
+            canvasElement.width = containerWidth;
+            canvasElement.height = containerHeight;
+        }
+        
+        // Função para ativar a capacidade de desenho no canvas
+        function ativarDesenho(canvas, dataInput, brushSize, colorSelect) {
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            // Função para começar a desenhar
+            function startDrawing(e) {
+                isDrawing = true;
+                
+                // Obter a posição do mouse/toque relativa ao canvas
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                
+                lastX = x;
+                lastY = y;
+            }
+            
+            // Função para desenhar
+            function draw(e) {
+                if (!isDrawing) return;
+                
+                // Impedir o comportamento padrão (como rolagem da página em dispositivos móveis)
+                e.preventDefault();
+                
+                // Obter posição atual
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                const y = (e.clientY || e.touches[0].clientY) - rect.top;
+                
+                // Configurar a caneta
+                ctx.strokeStyle = colorSelect.value;
+                ctx.lineWidth = brushSize.value;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                // Desenhar linha
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                
+                lastX = x;
+                lastY = y;
+                
+                // Salvar o desenho no input hidden
+                dataInput.value = canvas.toDataURL('image/png');
+            }
+            
+            // Função para parar de desenhar
+            function stopDrawing() {
+                isDrawing = false;
+            }
+            
+            // Adicionar event listeners para desktop
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Adicionar event listeners para dispositivos móveis
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
+            
+            // Armazenar os event listeners no canvas para poder removê-los depois
+            canvas.drawingListeners = {
+                mousedown: startDrawing,
+                mousemove: draw,
+                mouseup: stopDrawing,
+                mouseout: stopDrawing,
+                touchstart: startDrawing,
+                touchmove: draw,
+                touchend: stopDrawing
+            };
+        }
+        
+        // Função para desativar a capacidade de desenho no canvas
+        function desativarDesenho(canvas) {
+            if (!canvas.drawingListeners) return;
+            
+            // Remover todos os event listeners
+            canvas.removeEventListener('mousedown', canvas.drawingListeners.mousedown);
+            canvas.removeEventListener('mousemove', canvas.drawingListeners.mousemove);
+            canvas.removeEventListener('mouseup', canvas.drawingListeners.mouseup);
+            canvas.removeEventListener('mouseout', canvas.drawingListeners.mouseout);
+            canvas.removeEventListener('touchstart', canvas.drawingListeners.touchstart);
+            canvas.removeEventListener('touchmove', canvas.drawingListeners.touchmove);
+            canvas.removeEventListener('touchend', canvas.drawingListeners.touchend);
+            
+            // Limpar a referência aos listeners
+            canvas.drawingListeners = null;
+            
+            // Restaurar o botão de desenho
+            const fotoItem = canvas.closest('.foto-gerada-item');
+            const habilitarDesenhoBtn = fotoItem.querySelector('.habilitar-desenho');
+            habilitarDesenhoBtn.classList.remove('disabled');
+            habilitarDesenhoBtn.textContent = 'Desenhar';
         }
         
         function resizeSignaturePads() {
@@ -446,7 +684,39 @@
                     img.src = data;
                 }
             });
+            
+            // Também ajusta os canvas de desenho
+            const fotosContainer = document.getElementById('fotos-geradas-container');
+            const fotosItems = fotosContainer.querySelectorAll('.foto-gerada-item');
+            fotosItems.forEach(item => {
+                const previewImg = item.querySelector('.foto-preview');
+                const drawingCanvas = item.querySelector('.drawing-canvas');
+                ajustarTamanhoCanvas(previewImg, drawingCanvas);
+            });
         }
+        
+        // Adicionar evento de redimensionamento para ajustar os canvas quando a janela mudar de tamanho
+        window.addEventListener('resize', function() {
+            resizeSignaturePads();
+            
+            // Reajustar todos os canvas de desenho
+            const drawingCanvases = document.querySelectorAll('.drawing-canvas');
+            drawingCanvases.forEach(canvas => {
+                const previewImg = canvas.previousElementSibling;
+                ajustarTamanhoCanvas(previewImg, canvas);
+                
+                // Restaurar o desenho após o redimensionamento
+                const dataInput = canvas.closest('.foto-gerada-item').querySelector('.drawing-data');
+                if (dataInput.value) {
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                    img.src = dataInput.value;
+                }
+            });
+        });
         
         // Validação do formulário antes de enviar
         document.getElementById('vistoriaForm').addEventListener('submit', function(e) {
@@ -487,9 +757,7 @@
             previewMotorista.src = assinaturaMotoristaData;
             previewMotorista.style.display = 'block';
             
-            // Tratar os arquivos de imagem
-            const fotosInput = document.getElementById('multi-foto-input');
-            const files = fotosInput.files;
+            // Criar um FormData para o envio
             const formData = new FormData(this);
             
             // Limpar as entradas de fotos existentes
@@ -498,14 +766,95 @@
                 formData.delete('fotos[]');
             });
             
-            // Adicionar os arquivos de fotos ao FormData
-            for (let i = 0; i < files.length; i++) {
-                formData.append('fotos[]', files[i]);
+            // Processar cada item de foto para mesclar o desenho com a imagem
+            const fotoItems = document.querySelectorAll('.foto-gerada-item');
+            let processedItems = 0;
+            let totalItems = fotoItems.length;
+            
+            // Se não houver fotos, enviar o formulário diretamente
+            if (totalItems === 0) {
+                enviarFormulario(formData);
+                return;
             }
             
-            // Enviar o formulário com o FormData
+            // Para cada foto, mesclar o desenho com a imagem
+            fotoItems.forEach(function(item, index) {
+                const previewImg = item.querySelector('.foto-preview');
+                const drawingCanvas = item.querySelector('.drawing-canvas');
+                const drawingData = item.querySelector('.drawing-data').value;
+                const originalFile = document.getElementById('multi-foto-input').files[index];
+                
+                // Verificar se há desenho para mesclar
+                if (drawingData) {
+                    // Criar um canvas temporário para a mesclagem
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // Criar uma nova imagem para carregar a imagem original
+                    const img = new Image();
+                    img.onload = function() {
+                        // Definir o tamanho do canvas temporário para o tamanho original da imagem
+                        tempCanvas.width = img.naturalWidth;
+                        tempCanvas.height = img.naturalHeight;
+                        
+                        // Desenhar a imagem original no canvas temporário
+                        tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+                        
+                        // Carregar o desenho
+                        const drawingImg = new Image();
+                        drawingImg.onload = function() {
+                            // Desenhar o desenho em cima da imagem original
+                            // Redimensionar o desenho para se ajustar ao tamanho da imagem original
+                            tempCtx.drawImage(drawingImg, 0, 0, tempCanvas.width, tempCanvas.height);
+                            
+                            // Converter o canvas mesclado em um blob
+                            tempCanvas.toBlob(function(blob) {
+                                // Criar um novo arquivo com o blob
+                                const mergedFile = new File([blob], originalFile.name, {
+                                    type: 'image/png',
+                                    lastModified: new Date().getTime()
+                                });
+                                
+                                // Adicionar o arquivo mesclado ao FormData
+                                formData.append('fotos[]', mergedFile);
+                                
+                                // Incrementar o contador de itens processados
+                                processedItems++;
+                                
+                                // Se todos os itens foram processados, enviar o formulário
+                                if (processedItems === totalItems) {
+                                    enviarFormulario(formData);
+                                }
+                            }, 'image/png');
+                        };
+                        drawingImg.src = drawingData;
+                    };
+                    
+                    // Carregar a imagem original do arquivo
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(originalFile);
+                } else {
+                    // Se não houver desenho, adicionar o arquivo original
+                    formData.append('fotos[]', originalFile);
+                    
+                    // Incrementar o contador de itens processados
+                    processedItems++;
+                    
+                    // Se todos os itens foram processados, enviar o formulário
+                    if (processedItems === totalItems) {
+                        enviarFormulario(formData);
+                    }
+                }
+            });
+        });
+
+        // Função para enviar o formulário com o FormData
+        function enviarFormulario(formData) {
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', this.action, true);
+            xhr.open('POST', document.getElementById('vistoriaForm').action, true);
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     window.location.href = '/vistorias';
@@ -514,7 +863,8 @@
                 }
             };
             xhr.send(formData);
-        });
+        }
+                
     </script>
 </body>
 </html>
