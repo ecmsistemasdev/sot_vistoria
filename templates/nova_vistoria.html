@@ -155,6 +155,21 @@
                 margin-bottom: 20px;
             }
         }
+        
+        /* Estilo para a área de fotos geradas */
+        .foto-gerada-item {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .foto-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -231,16 +246,16 @@
             </div>
             
             <div id="multi-foto-container" class="mb-4">
-                <h3>Selecionar Múltiplas Fotos</h3>
+                <h3>Selecionar Fotos</h3>
                 <div class="mb-3">
-                    <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple>
-                    <div class="form-text">Selecione várias fotos de uma vez para adicionar à vistoria</div>
+                    <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple required>
+                    <div class="form-text">Selecione as fotos para adicionar à vistoria</div>
                 </div>
             </div>
             
-            <h2>Fotos da Vistoria</h2>
-            <div id="fotos-container">
-                <!-- Aqui serão adicionados os itens de foto dinamicamente -->
+            <!-- Área onde as fotos selecionadas serão mostradas com campos de detalhamento -->
+            <div id="fotos-geradas-container">
+                <!-- As fotos com campos de detalhamento serão adicionadas aqui -->
             </div>
             
             <div class="camera-container" id="camera-container">
@@ -299,41 +314,27 @@
         </form>
     </div>
     
-    <!-- Template para novos itens de foto -->
-    <template id="foto-template">
-        <div class="foto-item">
-            <div class="mb-3">
-                <label class="form-label">Foto</label>
-                <div class="d-flex">
-                    <input type="file" class="form-control foto-input" name="fotos[]" accept="image/*" capture="camera">
-                    <button type="button" class="btn btn-secondary ms-2 usar-camera-btn">Câmera</button>
-                </div>
-            </div>
-            
-            <div class="preview-container">
-                <img src="" class="preview-image" style="display: none;">
-            </div>
+    <!-- Template para itens de foto gerados automaticamente -->
+    <template id="foto-gerada-template">
+        <div class="foto-gerada-item">
+            <img class="foto-preview" src="">
+            <input type="hidden" class="foto-input" name="fotos[]">
             
             <div class="mb-3 mt-3">
-                <label class="form-label">Detalhamento (máx. 100 caracteres)</label>
+                <label class="form-label">Observações (máx. 100 caracteres)</label>
                 <textarea class="form-control" name="detalhamentos[]" maxlength="100" rows="2" placeholder="Digite detalhes sobre esta foto..."></textarea>
             </div>
-            
-            <button type="button" class="btn btn-danger mt-3 remover-foto-btn">Remover esta foto</button>
         </div>
     </template>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
     <script>
-        let currentFotoItem = null;
         let videoStream = null;
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const captureButton = document.getElementById('capture');
         const closeButton = document.getElementById('closeCamera');
-        const fotosContainer = document.getElementById('fotos-container');
-        const fotoTemplate = document.getElementById('foto-template');
         
         // Inicializar as áreas de assinatura
         const signaturePadUsuario = new SignaturePad(document.getElementById('signature-pad-usuario'), {
@@ -367,14 +368,52 @@
             combustivelValor.textContent = this.value + '%';
         });
         
-        // Adicionar a primeira foto ao iniciar
+        // Ajustar tamanho dos pads de assinatura para dispositivos móveis
         document.addEventListener('DOMContentLoaded', function() {
-            adicionarNovaFoto();
-            
-            // Ajustar tamanho dos pads de assinatura para dispositivos móveis
             window.addEventListener('resize', resizeSignaturePads);
             resizeSignaturePads();
+            
+            // Configurar processamento de múltiplas fotos
+            document.getElementById('multi-foto-input').addEventListener('change', function(e) {
+                const files = this.files;
+                const fotosContainer = document.getElementById('fotos-geradas-container');
+                fotosContainer.innerHTML = '';
+                
+                if (files.length === 0) {
+                    return;
+                }
+                
+                // Para cada arquivo selecionado, criar um item com a foto e campo de detalhamento
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    criarItemFotoComDetalhamento(file, fotosContainer);
+                }
+            });
         });
+        
+        // Função para criar um item de foto com campo de detalhamento
+        function criarItemFotoComDetalhamento(file, container) {
+            const template = document.getElementById('foto-gerada-template');
+            const fotoItem = document.importNode(template.content, true).firstElementChild;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Definir a imagem preview
+                const previewImg = fotoItem.querySelector('.foto-preview');
+                previewImg.src = e.target.result;
+                
+                // Criar um blob a partir do arquivo e atribuí-lo ao input
+                const fotoInput = fotoItem.querySelector('.foto-input');
+                fotoInput.value = file.name; // Isso será substituído pelo FormData no envio
+                
+                // Armazenar o arquivo em um atributo de dados no input
+                fotoInput.setAttribute('data-file', file.name);
+            }
+            
+            reader.readAsDataURL(file);
+            container.appendChild(fotoItem);
+            return fotoItem;
+        }
         
         function resizeSignaturePads() {
             // Ajusta a altura do canvas para manter a proporção
@@ -409,157 +448,13 @@
             });
         }
         
-        // Função para adicionar nova foto
-        function adicionarNovaFoto() {
-            const fotoItem = document.importNode(fotoTemplate.content, true).firstElementChild;
-            fotosContainer.appendChild(fotoItem);
-            
-            // Configurar evento para preview da foto selecionada pelo input file
-            const fotoInput = fotoItem.querySelector('.foto-input');
-            fotoInput.addEventListener('change', function(e) {
-                const file = this.files[0];
-                
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const preview = fotoItem.querySelector('.preview-image');
-                        preview.src = e.target.result;
-                        preview.style.display = 'block';
-                    }
-                    reader.readAsDataURL(file);
-                }
-            });
-            
-            // Configurar botão de usar câmera
-            const usarCameraBtn = fotoItem.querySelector('.usar-camera-btn');
-            usarCameraBtn.addEventListener('click', function() {
-                usarCamera(fotoItem);
-            });
-            
-            // Configurar botão de remover foto
-            const removerFotoBtn = fotoItem.querySelector('.remover-foto-btn');
-            removerFotoBtn.addEventListener('click', function() {
-                if (fotosContainer.children.length > 1) {
-                    fotoItem.remove();
-                } else {
-                    alert('Pelo menos uma foto é obrigatória para a vistoria.');
-                }
-            });
-            
-            return fotoItem;
-        }
-        
-        // Processar automaticamente fotos adicionadas pelo input múltiplo
-        document.getElementById('multi-foto-input').addEventListener('change', function(e) {
-            const files = this.files;
-            
-            if (files.length === 0) {
-                return;
-            }
-            
-            // Se temos apenas um item vazio, vamos remover antes de adicionar os novos
-            if (fotosContainer.children.length === 1) {
-                const primeiroInput = fotosContainer.querySelector('.foto-input');
-                if (!primeiroInput.files || primeiroInput.files.length === 0) {
-                    fotosContainer.innerHTML = '';
-                }
-            }
-            
-            // Para cada arquivo selecionado, criar um novo item de foto
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const fotoItem = adicionarNovaFoto();
-                
-                // Atribuir o arquivo ao input de arquivo
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                fotoItem.querySelector('.foto-input').files = dataTransfer.files;
-                
-                // Mostrar preview da imagem
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = fotoItem.querySelector('.preview-image');
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        // Função para abrir a câmera
-        function usarCamera(fotoItem) {
-            currentFotoItem = fotoItem;
-            
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                    .then(function(stream) {
-                        videoStream = stream;
-                        video.srcObject = stream;
-                        video.style.display = 'block';
-                        document.getElementById('main-camera-buttons').style.display = 'flex';
-                    })
-                    .catch(function(error) {
-                        console.error("Não foi possível acessar a câmera: ", error);
-                        alert("Não foi possível acessar a câmera. Verifique as permissões.");
-                    });
-            } else {
-                alert("Seu navegador não suporta acesso à câmera.");
-            }
-        }
-        
-        // Função para capturar foto
-        captureButton.addEventListener('click', function() {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const imageData = canvas.toDataURL('image/jpeg');
-            
-            // Mostrar preview da foto capturada
-            const preview = currentFotoItem.querySelector('.preview-image');
-            preview.src = imageData;
-            preview.style.display = 'block';
-            
-            // Converter a imagem para um arquivo e atribuir ao input
-            fetch(imageData)
-                .then(res => res.blob())
-                .then(blob => {
-                    const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(file);
-                    currentFotoItem.querySelector('.foto-input').files = dataTransfer.files;
-                });
-            
-            // Fechar câmera
-            fecharCamera();
-        });
-        
-        // Função para fechar a câmera
-        closeButton.addEventListener('click', fecharCamera);
-        
-        function fecharCamera() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                video.style.display = 'none';
-                document.getElementById('main-camera-buttons').style.display = 'none';
-            }
-        }
-        
         // Validação do formulário antes de enviar
         document.getElementById('vistoriaForm').addEventListener('submit', function(e) {
             e.preventDefault(); // Impede o envio padrão do formulário
             
             // Verifica se há fotos
-            const fotos = document.querySelectorAll('.foto-input');
-            let temFoto = false;
-            
-            fotos.forEach(function(foto) {
-                if (foto.files.length > 0) {
-                    temFoto = true;
-                }
-            });
-            
-            if (!temFoto) {
+            const fotosContainerItens = document.getElementById('fotos-geradas-container').children;
+            if (fotosContainerItens.length === 0) {
                 alert('É necessário incluir pelo menos uma foto na vistoria.');
                 return;
             }
@@ -592,8 +487,33 @@
             previewMotorista.src = assinaturaMotoristaData;
             previewMotorista.style.display = 'block';
             
-            // Enviar o formulário
-            this.submit();
+            // Tratar os arquivos de imagem
+            const fotosInput = document.getElementById('multi-foto-input');
+            const files = fotosInput.files;
+            const formData = new FormData(this);
+            
+            // Limpar as entradas de fotos existentes
+            const inputsExistentes = formData.getAll('fotos[]');
+            inputsExistentes.forEach(() => {
+                formData.delete('fotos[]');
+            });
+            
+            // Adicionar os arquivos de fotos ao FormData
+            for (let i = 0; i < files.length; i++) {
+                formData.append('fotos[]', files[i]);
+            }
+            
+            // Enviar o formulário com o FormData
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', this.action, true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    window.location.href = '/vistorias';
+                } else {
+                    alert('Houve um erro ao salvar a vistoria. Por favor, tente novamente.');
+                }
+            };
+            xhr.send(formData);
         });
     </script>
 </body>
