@@ -3,37 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOT - Vistoria de Veículo</title>
+    <title>Sistema de Vistorias</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
-    <style>
-        .logo-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .logo-img {
-            height: 60px;
-            width: auto;
-        }
-        .main-title {
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 30px;
-        }
-        /* Adicionando espaço entre os cards em visualização mobile */
-        @media (max-width: 767.98px) {
-            .card-spacing {
-                margin-bottom: 20px;
-            }
-        }
-    </style>
 </head>
 <body>
     <div class="container mt-4">
-        <div class="logo-container">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
-        </div>
-        <h2 class="main-title">SOT - Vistoria de Veículo Oficial</h2>       
+        <h1>SOTWeb - Vistoria de Veículo Oficial</h1>
+        <h4 class="text-muted mb-4">Sistema de Operações de Transporte - TJRO</h4>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -46,7 +22,7 @@
         {% endwith %}
         
         <div class="row mt-4">
-            <div class="col-md-6 card-spacing">
+            <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Nova Vistoria</h5>
@@ -58,7 +34,7 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Listar Vistorias</h5>
+                        <h5 class="card-title">Vistorias Anteriores</h5>
                         <p class="card-text">Consultar vistorias já realizadas.</p>
                         <a href="/vistorias" class="btn btn-secondary">Ver Vistorias</a>
                     </div>
