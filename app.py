@@ -166,8 +166,8 @@ def salvar_vistoria():
                         continue
                     
                     cur.execute(
-                        "INSERT INTO VISTORIA_ITENS (IDVISTORIA, FOTO, DETALHAMENTO) VALUES (%s, %s, %s)",
-                        (id_vistoria, foto_data, detalhamento)
+                        "INSERT INTO VISTORIA_ITENS (IDVISTORIA, FOTO) VALUES (%s, %s)",
+                        (id_vistoria, foto_data)
                     )
                     mysql.connection.commit()
                     
@@ -229,7 +229,7 @@ def listar_vistorias():
     
     # Buscar vistorias finalizadas (Saidas com devolução ou devoluções)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, v.DATA, v.TIPO, v.STATUS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -254,7 +254,7 @@ def ver_vistoria(id):
     cur.execute("""
         SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
                v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-               v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
+               v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -268,7 +268,7 @@ def ver_vistoria(id):
         cur.execute("""
             SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
                    v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
+                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -282,7 +282,7 @@ def ver_vistoria(id):
         cur.execute("""
             SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
                    v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
+                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
