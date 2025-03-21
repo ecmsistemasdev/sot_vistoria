@@ -176,8 +176,8 @@
     <div class="container mt-4">
         <div class="d-flex align-items-center">
             <h1>Nova Vistoria</h1>
-            {% if tipo == 'ENTREGA' %}
-            <span class="badge bg-primary tipo-vistoria-badge">Entrega</span>
+            {% if tipo == 'SAIDA' %}
+            <span class="badge bg-primary tipo-vistoria-badge">Saída</span>
             {% else %}
             <span class="badge bg-success tipo-vistoria-badge">Devolução</span>
             {% endif %}
@@ -185,8 +185,8 @@
         
         <form id="vistoriaForm" action="/salvar_vistoria" method="post" enctype="multipart/form-data">
             <input type="hidden" name="tipo" value="{{ tipo }}">
-            {% if vistoria_entrega_id %}
-            <input type="hidden" name="vistoria_entrega_id" value="{{ vistoria_entrega_id }}">
+            {% if vistoria_saida_id %}
+            <input type="hidden" name="vistoria_saida_id" value="{{ vistoria_saida_id }}">
             {% endif %}
             
             <!-- Layout modificado com 4 colunas em telas maiores -->
