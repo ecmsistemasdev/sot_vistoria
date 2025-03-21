@@ -119,8 +119,8 @@
         <div class="vistoria-header">
             <h3>
                 Vistoria #{{ vistoria[0] }}
-                {% if vistoria[4] == 'ENTREGA' %}
-                <span class="badge bg-primary vistoria-tipo">Entrega</span>
+                {% if vistoria[4] == 'SAIDA' %}
+                <span class="badge bg-primary vistoria-tipo">Saída</span>
                 {% else %}
                 <span class="badge bg-success vistoria-tipo">Devolução</span>
                 {% endif %}
@@ -167,25 +167,25 @@
         </div>
 
         <!-- Informações sobre vistoria relacionada -->
-        {% if vistoria_entrega %}
+        {% if vistoria_saida %}
         <div class="vistoria-relacionada">
-            <h3>Vistoria de Entrega Relacionada</h3>
+            <h3>Vistoria de Saída Relacionada</h3>
             <div class="row">
                 <div class="col-md-3">
-                    <strong>ID:</strong> {{ vistoria_entrega[0] }}
+                    <strong>ID:</strong> {{ vistoria_saida[0] }}
                 </div>
                 <div class="col-md-3">
-                    <strong>Motorista:</strong> {{ vistoria_entrega[1] }}
+                    <strong>Motorista:</strong> {{ vistoria_saida[1] }}
                 </div>
                 <div class="col-md-3">
-                    <strong>Veículo:</strong> {{ vistoria_entrega[2] }}
+                    <strong>Veículo:</strong> {{ vistoria_saida[2] }}
                 </div>
                 <div class="col-md-3">
-                    <strong>Data:</strong> {{ vistoria_entrega[3].strftime('%d/%m/%Y %H:%M') }}
+                    <strong>Data:</strong> {{ vistoria_saida[3].strftime('%d/%m/%Y %H:%M') }}
                 </div>
             </div>
             <div class="mt-2">
-                <a href="/vistoria/{{ vistoria_entrega[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+                <a href="/vistoria/{{ vistoria_saida[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
             </div>
         </div>
         {% endif %}
