@@ -9,12 +9,12 @@
         .item-foto {
             max-width: 100%;
             height: auto;
-            border: 1px solid #ddd;
+            border: 1px solid black;
             border-radius: 4px;
-            padding: 5px;
+            padding: 4px;
         }
         .foto-card {
-            margin-bottom: 20px;
+            margin-bottom: 5px;
         }
         .vistoria-header {
             background-color: #f8f9fa;
@@ -246,11 +246,7 @@
         <div class="row">
             {% for item in itens %}
             <div class="col-md-6 foto-card">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria">
-                    </div>
-                </div>
+                <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria">
             </div>
             {% endfor %}
         </div>
