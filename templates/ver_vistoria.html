@@ -9,12 +9,12 @@
         .item-foto {
             max-width: 100%;
             height: auto;
-            border: 1px solid black;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 3px;
+            padding: 5px;
         }
         .foto-card {
-            margin-bottom: 5px;
+            margin-bottom: 20px;
         }
         .vistoria-header {
             background-color: #f8f9fa;
@@ -61,24 +61,39 @@
             font-weight: bold;
             margin-bottom: 30px;
         }
-        /* Estilos para o medidor de combustível modificado */
+        /* Estilos modificados para o medidor de combustível */
+        .fuel-container {
+            position: relative;
+            height: 15px; /* Altura total do container incluindo marcadores */
+            margin-top: 5px;
+            margin-bottom: 15px; /* Espaço para os rótulos de texto */
+        }
         .fuel-level {
+            position: absolute;
+            top: 6px; /* Centralizado verticalmente */
+            left: 0;
             height: 3px; /* Linha fina de 3px */
             background-color: #000; /* Cor preta */
-            margin-top: 2px;
-            margin-bottom: 2px;
         }
         .fuel-markers {
+            position: relative;
             display: flex;
             justify-content: space-between;
-            margin-top: 2px; /* Espaçamento reduzido */
+            width: 100%;
+            height: 15px;
+        }
+        .fuel-marker {
+            position: relative;
+            width: 1px;
+            height: 15px;
+            background-color: #000;
+        }
+        .fuel-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3px;
             font-size: 0.8rem;
             color: #666;
-        }
-        .fuel-value {
-            display: inline-block;
-            font-weight: bold;
-            margin-left: 5px;
         }
         /* Estilos para as assinaturas */
         .assinatura-img {
@@ -157,9 +172,19 @@
             </div>
             <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
                 <h5>Combustível {{ vistoria[6] }}%</h5>
-                <div style="max-width: 100%;">
-                    <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
+                <div class="fuel-container">
+                    <!-- Marcadores verticais -->
                     <div class="fuel-markers">
+                        <div class="fuel-marker"></div>
+                        <div class="fuel-marker"></div>
+                        <div class="fuel-marker"></div>
+                        <div class="fuel-marker"></div>
+                        <div class="fuel-marker"></div>
+                    </div>
+                    <!-- Linha de nível do combustível -->
+                    <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
+                    <!-- Rótulos de texto -->
+                    <div class="fuel-labels">
                         <span>0</span>
                         <span>1/4</span>
                         <span>1/2</span>
@@ -221,8 +246,10 @@
         <div class="row">
             {% for item in itens %}
             <div class="col-md-6 foto-card">
-                <div class="card-body text-center">
-                    <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria">
+                    </div>
                 </div>
             </div>
             {% endfor %}
