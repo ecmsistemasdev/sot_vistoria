@@ -438,6 +438,51 @@
         const captureButton = document.getElementById('capture');
         const closeButton = document.getElementById('closeCamera');
         let activeDrawingCanvas = null;
+
+        function redimensionarImagem(file, callback) {
+            // Criar um objeto FileReader para ler o arquivo de imagem
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                // Criar uma imagem para obter as dimensões originais
+                const img = new Image();
+                
+                img.onload = function() {
+                    // Calcular as novas dimensões (60% do original)
+                    const novaLargura = Math.round(img.width * 0.6);
+                    const novaAltura = Math.round(img.height * 0.6);
+                    
+                    // Criar um canvas para desenhar a imagem redimensionada
+                    const canvas = document.createElement('canvas');
+                    canvas.width = novaLargura;
+                    canvas.height = novaAltura;
+                    
+                    // Desenhar a imagem redimensionada no canvas
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, novaLargura, novaAltura);
+                    
+                    // Converter o canvas para um blob com qualidade reduzida
+                    canvas.toBlob(function(blob) {
+                        // Criar um novo arquivo com o blob
+                        const imagemRedimensionada = new File([blob], file.name, {
+                            type: 'image/jpeg', // Forçar JPEG para melhor compressão
+                            lastModified: new Date().getTime()
+                        });
+                        
+                        // Retornar a imagem redimensionada através do callback
+                        callback(imagemRedimensionada);
+                    }, 'image/jpeg', 0.85); // Qualidade 85% para melhor equilíbrio tamanho/qualidade
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            // Ler o arquivo como uma URL de dados
+            reader.readAsDataURL(file);
+        }
+        
+        let imagensRedimensionadas = [];
+        
         
         // Inicializar as áreas de assinatura
         const signaturePadUsuario = new SignaturePad(document.getElementById('signature-pad-usuario'), {
@@ -497,11 +542,41 @@
                 if (files.length === 0) {
                     return;
                 }
+
+                // Limpar o array de imagens redimensionadas
+                imagensRedimensionadas = [];
                 
-                // Para cada arquivo selecionado, criar um item com a foto e campo de detalhamento
+                // Contador para acompanhar o progresso de redimensionamento
+                let imagensProcessadas = 0;
+                
+                // Mostrar um indicador de progresso
+                const progressIndicator = document.createElement('div');
+                progressIndicator.className = 'alert alert-info';
+                progressIndicator.textContent = 'Processando imagens...';
+                document.querySelector('.container').insertBefore(progressIndicator, fotosContainer);
+
+                // Para cada arquivo selecionado, redimensionar e criar um item
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
-                    criarItemFotoComDetalhamento(file, fotosContainer);
+                    const fileIndex = i;
+                    
+                    // Redimensionar a imagem
+                    redimensionarImagem(file, function(imagemRedimensionada) {
+                        // Armazenar a imagem redimensionada para uso posterior
+                        imagensRedimensionadas[fileIndex] = imagemRedimensionada;
+                        
+                        // Criar item de foto
+                        criarItemFotoComDetalhamento(imagemRedimensionada, fotosContainer);
+                        
+                        // Incrementar contador
+                        imagensProcessadas++;
+                        
+                        // Verificar se todas as imagens foram processadas
+                        if (imagensProcessadas === files.length) {
+                            // Remover o indicador de progresso
+                            progressIndicator.remove();
+                        }
+                    });
                 }
             });
         });
@@ -517,11 +592,8 @@
                 const previewImg = fotoItem.querySelector('.foto-preview');
                 previewImg.src = e.target.result;
                 
-                // Criar um blob a partir do arquivo e atribuí-lo ao input
-                const fotoInput = fotoItem.querySelector('.foto-input');
-                fotoInput.value = file.name; // Isso será substituído pelo FormData no envio
-                
                 // Armazenar o arquivo em um atributo de dados no input
+                const fotoInput = fotoItem.querySelector('.foto-input');
                 fotoInput.setAttribute('data-file', file.name);
                 
                 // Configurar o canvas de desenho
@@ -795,7 +867,7 @@
             document.getElementById('assinatura-usuario-input').value = assinaturaUsuarioData;
             document.getElementById('assinatura-motorista-input').value = assinaturaMotoristaData;
             
-            // Mostrar as previews das assinaturas (opcional)
+            // Mostrar as previews das assinaturas
             const previewUsuario = document.getElementById('assinatura-usuario-preview');
             previewUsuario.src = assinaturaUsuarioData;
             previewUsuario.style.display = 'block';
@@ -829,7 +901,9 @@
                 const previewImg = item.querySelector('.foto-preview');
                 const drawingCanvas = item.querySelector('.drawing-canvas');
                 const drawingData = item.querySelector('.drawing-data').value;
-                const originalFile = document.getElementById('multi-foto-input').files[index];
+                
+                // Usar a imagem redimensionada correspondente
+                const originalFile = imagensRedimensionadas[index];
                 
                 // Verificar se há desenho para mesclar
                 if (drawingData) {
@@ -840,25 +914,24 @@
                     // Criar uma nova imagem para carregar a imagem original
                     const img = new Image();
                     img.onload = function() {
-                        // Definir o tamanho do canvas temporário para o tamanho original da imagem
+                        // Definir o tamanho do canvas temporário para o tamanho da imagem redimensionada
                         tempCanvas.width = img.naturalWidth;
                         tempCanvas.height = img.naturalHeight;
                         
-                        // Desenhar a imagem original no canvas temporário
+                        // Desenhar a imagem no canvas temporário
                         tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
                         
                         // Carregar o desenho
                         const drawingImg = new Image();
                         drawingImg.onload = function() {
-                            // Desenhar o desenho em cima da imagem original
-                            // Redimensionar o desenho para se ajustar ao tamanho da imagem original
+                            // Desenhar o desenho em cima da imagem
                             tempCtx.drawImage(drawingImg, 0, 0, tempCanvas.width, tempCanvas.height);
                             
                             // Converter o canvas mesclado em um blob
                             tempCanvas.toBlob(function(blob) {
                                 // Criar um novo arquivo com o blob
                                 const mergedFile = new File([blob], originalFile.name, {
-                                    type: 'image/png',
+                                    type: 'image/jpeg',
                                     lastModified: new Date().getTime()
                                 });
                                 
@@ -872,19 +945,19 @@
                                 if (processedItems === totalItems) {
                                     enviarFormulario(formData);
                                 }
-                            }, 'image/png');
+                            }, 'image/jpeg', 0.85); // Qualidade 85%
                         };
                         drawingImg.src = drawingData;
                     };
                     
-                    // Carregar a imagem original do arquivo
+                    // Carregar a imagem redimensionada
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         img.src = e.target.result;
                     };
                     reader.readAsDataURL(originalFile);
                 } else {
-                    // Se não houver desenho, adicionar o arquivo original
+                    // Se não houver desenho, adicionar o arquivo redimensionado diretamente
                     formData.append('fotos[]', originalFile);
                     
                     // Incrementar o contador de itens processados
@@ -897,12 +970,9 @@
                 }
             });
         });
-
+        
         // Função para enviar o formulário com o FormData
         function enviarFormulario(formData) {
-            // Como removemos os detalhamentos dos itens individuais, não precisamos mais incluí-los no FormData
-            // O campo de observações gerais já está incluído automaticamente no FormData pelo próprio formulário
-            
             // Mostrar spinner e alterar texto do botão
             const salvarBtn = document.getElementById('salvar-btn');
             const btnText = document.getElementById('btn-text');
