@@ -73,6 +73,8 @@ def salvar_vistoria():
         vistoria_saida_id = request.form.get('vistoria_saida_id')
         combustivel = request.form['combustivel']
         hodometro = request.form['hodometro']
+        obs = request.form['observacoes']
+        
 
         # Obter as assinaturas
         assinatura_usuario_data = request.form.get('assinatura_usuario')
@@ -106,17 +108,17 @@ def salvar_vistoria():
             # Para vistorias de SAIDA, definir status como EM_TRANSITO
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA) 
-                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS) 
+                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin, obs)
             )
         else:  # DEVOLUCAO
             # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA) 
-                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS) 
+                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin, obs)
             )
             # Atualizar status da vistoria de saida para finalizada
             cur.execute(
