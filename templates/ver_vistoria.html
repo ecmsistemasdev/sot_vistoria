@@ -59,7 +59,13 @@
             text-align: center;
             font-size: 1.2rem;
             font-weight: bold;
-            margin-bottom: 30px;
+            margin-bottom: 5px; /* Reduzido para aproximar o subtítulo */
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            color: #666666;
         }
         /* Estilos modificados para o medidor de combustível */
         .fuel-container {
@@ -133,7 +139,8 @@
         <div class="logo-container">
             <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
         </div>
-        <h2 class="main-title">SOT - Vistoria de Veículo Oficial</h2>
+        <h2 class="main-title">SOTWeb - Vistoria de Veículo Oficial</h2>
+        <div class="subtitle"><strong>Sistema de Operações de Transporte - TJRO</strong></div> 
         
         <div class="vistoria-header">
             <h3>
