@@ -218,7 +218,7 @@ def listar_vistorias():
     
     # Buscar vistorias em trânsito (Saidas não finalizadas)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, v.DATA, v.TIPO, v.STATUS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
