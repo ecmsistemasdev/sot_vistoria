@@ -5,6 +5,7 @@ import uuid
 import base64
 from datetime import datetime
 from io import BytesIO
+from pytz import timezone
 
 app = Flask(__name__)
 
@@ -32,33 +33,33 @@ def nova_vistoria():
     veiculos = cur.fetchall()
     cur.close()
     
-    return render_template('nova_vistoria.html', motoristas=motoristas, veiculos=veiculos, tipo='ENTREGA')
+    return render_template('nova_vistoria.html', motoristas=motoristas, veiculos=veiculos, tipo='SAIDA')
 
-@app.route('/nova_vistoria_devolucao/<int:vistoria_entrega_id>')
-def nova_vistoria_devolucao(vistoria_entrega_id):
-    # Buscar informações da vistoria de entrega
+@app.route('/nova_vistoria_devolucao/<int:vistoria_saida_id>')
+def nova_vistoria_devolucao(vistoria_saida_id):
+    # Buscar informações da vistoria de saida
     cur = mysql.connection.cursor()
     cur.execute("""
         SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NM_MOTORISTA, ve.NU_PLACA, v.COMBUSTIVEL
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.IDVISTORIA = %s AND v.TIPO = 'ENTREGA'
-    """, (vistoria_entrega_id,))
-    vistoria_entrega = cur.fetchone()
+        WHERE v.IDVISTORIA = %s AND v.TIPO = 'SAIDA'
+    """, (vistoria_saida_id,))
+    vistoria_saida = cur.fetchone()
     cur.close()
     
-    if not vistoria_entrega:
-        flash('Vistoria de entrega não encontrada!', 'danger')
+    if not vistoria_saida:
+        flash('Vistoria de saida não encontrada!', 'danger')
         return redirect(url_for('vistorias'))
     
     return render_template(
         'nova_vistoria.html', 
-        motorista_id=vistoria_entrega[1],
-        motorista_nome=vistoria_entrega[3],
-        veiculo_id=vistoria_entrega[2],
-        veiculo_placa=vistoria_entrega[4],
-        vistoria_entrega_id=vistoria_entrega_id,
+        motorista_id=vistoria_saida[1],
+        motorista_nome=vistoria_saida[3],
+        veiculo_id=vistoria_saida[2],
+        veiculo_placa=vistoria_saida[4],
+        vistoria_saida_id=vistoria_saida_id,
         tipo='DEVOLUCAO'
     )
 
@@ -69,7 +70,7 @@ def salvar_vistoria():
         id_motorista = request.form['id_motorista']
         id_veiculo = request.form['id_veiculo']
         tipo = request.form['tipo']
-        vistoria_entrega_id = request.form.get('vistoria_entrega_id')
+        vistoria_saida_id = request.form.get('vistoria_saida_id')
         combustivel = request.form['combustivel']
         hodometro = request.form['hodometro']
 
@@ -95,27 +96,32 @@ def salvar_vistoria():
         # Capturar o último ID antes da inserção
         cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
         ultimo_id = cur.fetchone()[0] or 0
-        
-        if tipo == 'ENTREGA':
-            # Para vistorias de ENTREGA, definir status como EM_TRANSITO
+
+        data_e_hora_atual = datetime.now()
+        fuso_horario = timezone('America/Manaus')
+        data_hora = data_e_hora_atual.astimezone(fuso_horario)
+        #data_pagamento = data_e_hora_manaus.strftime('%d/%m/%Y %H:%M')        
+    
+        if tipo == 'SAIDA':
+            # Para vistorias de SAIDA, definir status como EM_TRANSITO
             cur.execute(
                 """INSERT INTO VISTORIAS 
                    (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA) 
-                   VALUES (%s, %s, NOW(), %s, 'EM_TRANSITO', %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, tipo, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin)
+                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin)
             )
         else:  # DEVOLUCAO
             # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_ENTREGA_ID, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA) 
-                   VALUES (%s, %s, NOW(), %s, 'FINALIZADA', %s, %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, tipo, vistoria_entrega_id, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA) 
+                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin)
             )
-            # Atualizar status da vistoria de entrega para finalizada
+            # Atualizar status da vistoria de saida para finalizada
             cur.execute(
                 "UPDATE VISTORIAS SET STATUS = 'FINALIZADA' WHERE IDVISTORIA = %s",
-                (vistoria_entrega_id,)
+                (vistoria_saida_id,)
             )
             
         # Realizar o commit para garantir que a vistoria foi salva
@@ -208,9 +214,9 @@ def salvar_foto():
 def listar_vistorias():
     cur = mysql.connection.cursor()
     
-    # Buscar vistorias em trânsito (Entregas não finalizadas)
+    # Buscar vistorias em trânsito (Saidas não finalizadas)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, v.DATA, v.TIPO, v.STATUS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -219,9 +225,9 @@ def listar_vistorias():
     """)
     vistorias_em_transito = cur.fetchall()
     
-    # Buscar vistorias finalizadas (Entregas com devolução ou devoluções)
+    # Buscar vistorias finalizadas (Saidas com devolução ou devoluções)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, v.DATA, v.TIPO, v.STATUS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -244,8 +250,9 @@ def ver_vistoria(id):
     
     # Buscar detalhes da vistoria
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-               v.VISTORIA_ENTREGA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
+               v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+               v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -253,29 +260,31 @@ def ver_vistoria(id):
     """, (id,))
     vistoria = cur.fetchone()
     
-    # Se for uma vistoria de devolução, buscar também a vistoria de entrega
-    vistoria_entrega = None
+    # Se for uma vistoria de devolução, buscar também a vistoria de saida
+    vistoria_saida = None
     if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                   v.VISTORIA_ENTREGA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
+                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
             WHERE v.IDVISTORIA = %s
         """, (vistoria[8],))
-        vistoria_entrega = cur.fetchone()
+        vistoria_saida = cur.fetchone()
     
-    # Se for uma vistoria de entrega, buscar se já existe uma vistoria de devolução
+    # Se for uma vistoria de saida, buscar se já existe uma vistoria de devolução
     vistoria_devolucao = None
-    if vistoria and vistoria[4] == 'ENTREGA':
+    if vistoria and vistoria[4] == 'SAIDA':
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, ve.NU_PLACA, v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                   v.VISTORIA_ENTREGA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
+                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-            WHERE v.VISTORIA_ENTREGA_ID = %s
+            WHERE v.VISTORIA_SAIDA_ID = %s
         """, (id,))
         vistoria_devolucao = cur.fetchone()
     
@@ -301,7 +310,7 @@ def ver_vistoria(id):
         'ver_vistoria.html', 
         vistoria=vistoria, 
         itens=itens,
-        vistoria_entrega=vistoria_entrega,
+        vistoria_saida=vistoria_saida,
         vistoria_devolucao=vistoria_devolucao
     )
 
@@ -340,8 +349,6 @@ def get_assinatura(tipo, vistoria_id):
     
     assinatura = resultado[0]
     
-    # Transformar o BLOB em um arquivo legível
-    #imagem_io = io.BytesIO(assinatura)
 
     return send_file(
         BytesIO(assinatura),
@@ -350,13 +357,6 @@ def get_assinatura(tipo, vistoria_id):
         download_name=f'assinatura_{tipo}_{vistoria_id}.png'  # nome do arquivo ao baixar
     )
     
-    # Enviar a imagem como um arquivo
-    #imagem_io.seek(0)
-    #return send_file(
-    #    imagem_io,
-    #    mimetype='image/png',  # Ajustar o tipo MIME conforme necessário
-    #    as_attachment=False
-    #)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
