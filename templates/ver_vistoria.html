@@ -16,10 +16,6 @@
         .foto-card {
             margin-bottom: 20px;
         }
-        .foto-detalhamento {
-            margin-top: 10px;
-            font-size: 1rem;
-        }
         .vistoria-header {
             background-color: #f8f9fa;
             padding: 15px;
@@ -98,6 +94,14 @@
         .assinatura-titulo {
             font-weight: bold;
             margin-bottom: 10px;
+        }
+        /* Estilo para o campo de observações */
+        .observacoes-card {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
         }
         /* Media query para ajustar o layout em telas maiores */
         @media (min-width: 992px) {
@@ -213,22 +217,29 @@
         </div>
         {% endif %}
         
-        <h3>Fotos da Vistoria</h2>
+        <h3>Fotos da Vistoria</h3>
         <div class="row">
             {% for item in itens %}
             <div class="col-md-6 foto-card">
                 <div class="card">
                     <div class="card-body text-center">
                         <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria">
-                        <p class="foto-detalhamento">{{ item.detalhamento }}</p>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
         
+        <!-- Campo de Observações -->
+        {% if vistoria[12] %}
+        <div class="observacoes-card">
+            <h3>Observações</h3>
+            <p>{{ vistoria[12] }}</p>
+        </div>
+        {% endif %}
+        
         <!-- Seção de Assinaturas -->
-        <h2 class="mt-4">Assinaturas</h2>
+        <h3 class="mt-4">Assinaturas</h3>
         <div class="row">
             <!-- Assinatura do Usuário -->
             <div class="col-md-6 assinatura-card">
@@ -259,7 +270,7 @@
             </div>
         </div>
         
-        <div class="mt-4">
+        <div class="mt-4 mb-4">
             <a href="/vistorias" class="btn btn-primary">Voltar para Lista</a>
         </div>
     </div>
