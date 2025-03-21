@@ -322,6 +322,12 @@
             <div id="fotos-geradas-container">
                 <!-- As fotos com campos de detalhamento serão adicionadas aqui -->
             </div>
+
+            <div class="mb-4">
+                <label for="observacoes" class="form-label">Observações Gerais</label>
+                <textarea class="form-control" id="observacoes" name="observacoes" maxlength="150" rows="3" placeholder="Digite observações gerais sobre a vistoria (máx. 150 caracteres)"></textarea>
+                <div class="form-text"><span id="char-count">0</span>/150 caracteres</div>
+            </div>
             
             <div class="camera-container" id="camera-container">
                 <video id="video" autoplay></video>
@@ -420,11 +426,6 @@
                 <button type="button" class="btn btn-sm btn-primary habilitar-desenho">Desenhar</button>
                 <button type="button" class="btn btn-sm btn-warning limpar-desenho">Limpar Desenho</button>
             </div>
-            
-            <div class="mb-3 mt-3">
-                <label class="form-label">Observações (máx. 100 caracteres)</label>
-                <textarea class="form-control" name="detalhamentos[]" maxlength="100" rows="2" placeholder="Digite detalhes sobre esta foto..."></textarea>
-            </div>
         </div>
     </template>
     
@@ -468,6 +469,18 @@
         
         combustivelSlider.addEventListener('input', function() {
             combustivelValor.textContent = this.value + '%';
+        });
+
+        document.getElementById('observacoes').addEventListener('input', function() {
+            const charCount = this.value.length;
+            document.getElementById('char-count').textContent = charCount;
+            
+            // Mudar a cor se estiver próximo do limite
+            if (charCount > 130) {
+                document.getElementById('char-count').style.color = 'red';
+            } else {
+                document.getElementById('char-count').style.color = '';
+            }
         });
         
         // Ajustar tamanho dos pads de assinatura para dispositivos móveis
@@ -887,6 +900,9 @@
 
         // Função para enviar o formulário com o FormData
         function enviarFormulario(formData) {
+            // Como removemos os detalhamentos dos itens individuais, não precisamos mais incluí-los no FormData
+            // O campo de observações gerais já está incluído automaticamente no FormData pelo próprio formulário
+            
             // Mostrar spinner e alterar texto do botão
             const salvarBtn = document.getElementById('salvar-btn');
             const btnText = document.getElementById('btn-text');
