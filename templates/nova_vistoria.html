@@ -130,6 +130,27 @@
             border: 1px solid #ddd;
         }
         
+        .fixed-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+            padding: 15px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        
+        .container {
+            padding-bottom: 5px;
+        }
+
+        .btn-saving {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
         /* Responsividade para o layout de 4 colunas */
         @media (min-width: 992px) {
             .flex-fields-container {
@@ -350,11 +371,24 @@
                     <img id="assinatura-motorista-preview" class="signature-preview">
                 </div>
             </div>
-            
+            <!--
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">Salvar Vistoria</button>
                 <a href="/vistorias" class="btn btn-secondary">Cancelar</a>
             </div>
+            -->
+            <div class="fixed-footer">
+                <div class="container">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="submit" class="btn btn-primary" id="salvar-btn">
+                            <span id="btn-text">Salvar Vistoria</span>
+                            <span id="spinner-loading" class="spinner-border spinner-border-sm ms-2" role="status" style="display: none;"></span>
+                        </button>
+                        <a href="/vistorias" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </div>
+            </div>
+            <div style="height: 80px;"></div>            
         </form>
     </div>
     
@@ -853,18 +887,44 @@
 
         // Função para enviar o formulário com o FormData
         function enviarFormulario(formData) {
+            // Mostrar spinner e alterar texto do botão
+            const salvarBtn = document.getElementById('salvar-btn');
+            const btnText = document.getElementById('btn-text');
+            const spinner = document.getElementById('spinner-loading');
+            
+            // Desativar o botão e mostrar o spinner
+            salvarBtn.classList.add('btn-saving');
+            btnText.textContent = "Salvando, aguarde...";
+            spinner.style.display = "inline-block";
+            
             const xhr = new XMLHttpRequest();
             xhr.open('POST', document.getElementById('vistoriaForm').action, true);
+            
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     window.location.href = '/vistorias';
                 } else {
+                    // Restaurar o botão em caso de erro
+                    salvarBtn.classList.remove('btn-saving');
+                    btnText.textContent = "Salvar Vistoria";
+                    spinner.style.display = "none";
+                    
                     alert('Houve um erro ao salvar a vistoria. Por favor, tente novamente.');
                 }
             };
+            
+            xhr.onerror = function() {
+                // Restaurar o botão em caso de erro
+                salvarBtn.classList.remove('btn-saving');
+                btnText.textContent = "Salvar Vistoria";
+                spinner.style.display = "none";
+                
+                alert('Houve um erro na conexão. Por favor, verifique sua internet e tente novamente.');
+            };
+            
             xhr.send(formData);
         }
-                
+
     </script>
 </body>
 </html>
