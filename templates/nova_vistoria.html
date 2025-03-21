@@ -6,6 +6,26 @@
     <title>Nova Vistoria</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
     <style>
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-img {
+            height: 60px;
+            width: auto;
+        }
+        .main-title {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px; /* Reduzido para aproximar o subtítulo */
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            color: #666666;
+        }        
         .preview-container {
             text-align: center;
             margin-top: 10px;
@@ -239,6 +259,12 @@
 </head>
 <body>
     <div class="container mt-4">
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
+        </div>
+        <h2 class="main-title">SOTWeb - Vistoria de Veículo Oficial</h2>
+        <div class="subtitle"><strong>Sistema de Operações de Transporte - TJRO</strong></div>   
+        
         <div class="d-flex align-items-center">
             <h5>Nova Vistoria</h5>
             {% if tipo == 'SAIDA' %}
