@@ -6,26 +6,6 @@
     <title>Nova Vistoria</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
     <style>
-        .logo-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .logo-img {
-            height: 60px;
-            width: auto;
-        }
-        .main-title {
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 5px; /* Reduzido para aproximar o subtítulo */
-        }
-        .subtitle {
-            text-align: center;
-            font-size: 0.9rem;
-            margin-bottom: 25px;
-            color: #666666;
-        }        
         .preview-container {
             text-align: center;
             margin-top: 10px;
@@ -259,14 +239,8 @@
 </head>
 <body>
     <div class="container mt-4">
-        <div class="logo-container">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
-        </div>
-        <h2 class="main-title">SOTWeb - Vistoria de Veículo Oficial</h2>
-        <div class="subtitle"><strong>Sistema de Operações de Transporte - TJRO</strong></div>   
-        
         <div class="d-flex align-items-center">
-            <h5>Nova Vistoria</h5>
+            <h1>Nova Vistoria</h1>
             {% if tipo == 'SAIDA' %}
             <span class="badge bg-primary tipo-vistoria-badge">Saída</span>
             {% else %}
@@ -464,6 +438,8 @@
         const captureButton = document.getElementById('capture');
         const closeButton = document.getElementById('closeCamera');
         let activeDrawingCanvas = null;
+        let signaturePadUsuario = null;
+        let signaturePadMotorista = null;
 
         function redimensionarImagem(file, callback) {
             // Criar um objeto FileReader para ler o arquivo de imagem
@@ -506,106 +482,689 @@
             // Ler o arquivo como uma URL de dados
             reader.readAsDataURL(file);
         }
-        
+
+        // Array para armazenar as imagens redimensionadas
         let imagensRedimensionadas = [];
-        
-        
-        // Inicializar as áreas de assinatura
-        const signaturePadUsuario = new SignaturePad(document.getElementById('signature-pad-usuario'), {
-            backgroundColor: 'rgb(255, 255, 255)',
-            penColor: 'rgb(0, 0, 0)'
-        });
-        
-        const signaturePadMotorista = new SignaturePad(document.getElementById('signature-pad-motorista'), {
-            backgroundColor: 'rgb(255, 255, 255)',
-            penColor: 'rgb(0, 0, 0)'
-        });
-        
-        // Botões para limpar assinaturas
-        document.getElementById('limpar-assinatura-usuario').addEventListener('click', function() {
-            signaturePadUsuario.clear();
-            document.getElementById('assinatura-usuario-preview').style.display = 'none';
-            document.getElementById('assinatura-usuario-input').value = '';
-        });
-        
-        document.getElementById('limpar-assinatura-motorista').addEventListener('click', function() {
-            signaturePadMotorista.clear();
-            document.getElementById('assinatura-motorista-preview').style.display = 'none';
-            document.getElementById('assinatura-motorista-input').value = '';
-        });
-        
-        // Configurar o controle deslizante de combustível
-        const combustivelSlider = document.getElementById('combustivel');
-        const combustivelValor = document.getElementById('combustivel-valor');
-        
-        combustivelSlider.addEventListener('input', function() {
-            combustivelValor.textContent = this.value + '%';
-        });
 
-        document.getElementById('observacoes').addEventListener('input', function() {
-            const charCount = this.value.length;
-            document.getElementById('char-count').textContent = charCount;
-            
-            // Mudar a cor se estiver próximo do limite
-            if (charCount > 130) {
-                document.getElementById('char-count').style.color = 'red';
-            } else {
-                document.getElementById('char-count').style.color = '';
+        // Função para salvar o estado atual das assinaturas
+        function salvarEstadoAssinaturas() {
+            if (signaturePadUsuario && !signaturePadUsuario.isEmpty()) {
+                const assinaturaUsuarioData = signaturePadUsuario.toDataURL('image/png');
+                document.getElementById('assinatura-usuario-input').value = assinaturaUsuarioData;
+                
+                // Mostrar preview
+                const previewUsuario = document.getElementById('assinatura-usuario-preview');
+                previewUsuario.src = assinaturaUsuarioData;
+                previewUsuario.style.display = 'block';
             }
-        });
-        
-        // Ajustar tamanho dos pads de assinatura para dispositivos móveis
-        document.addEventListener('DOMContentLoaded', function() {
-            window.addEventListener('resize', resizeSignaturePads);
-            resizeSignaturePads();
             
-            // Configurar processamento de múltiplas fotos
-            document.getElementById('multi-foto-input').addEventListener('change', function(e) {
-                const files = this.files;
-                const fotosContainer = document.getElementById('fotos-geradas-container');
-                fotosContainer.innerHTML = '';
+            if (signaturePadMotorista && !signaturePadMotorista.isEmpty()) {
+                const assinaturaMotoristaData = signaturePadMotorista.toDataURL('image/png');
+                document.getElementById('assinatura-motorista-input').value = assinaturaMotoristaData;
                 
-                if (files.length === 0) {
-                    return;
-                }
-
-                // Limpar o array de imagens redimensionadas
-                imagensRedimensionadas = [];
+                // Mostrar preview
+                const previewMotorista = document.getElementById('assinatura-motorista-preview');
+                previewMotorista.src = assinaturaMotoristaData;
+                previewMotorista.style.display = 'block';
+            }
+        }                
+        
+        // Função para processar cada item de foto para manter o desenho após a rolagem
+        function processarItensDesenho() {
+            const fotoItems = document.querySelectorAll('.foto-gerada-item');
+            
+            fotoItems.forEach(function(item) {
+                const drawingCanvas = item.querySelector('.drawing-canvas');
+                const drawingData = item.querySelector('.drawing-data').value;
                 
-                // Contador para acompanhar o progresso de redimensionamento
-                let imagensProcessadas = 0;
-                
-                // Mostrar um indicador de progresso
-                const progressIndicator = document.createElement('div');
-                progressIndicator.className = 'alert alert-info';
-                progressIndicator.textContent = 'Processando imagens...';
-                document.querySelector('.container').insertBefore(progressIndicator, fotosContainer);
-
-                // Para cada arquivo selecionado, redimensionar e criar um item
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    const fileIndex = i;
-                    
-                    // Redimensionar a imagem
-                    redimensionarImagem(file, function(imagemRedimensionada) {
-                        // Armazenar a imagem redimensionada para uso posterior
-                        imagensRedimensionadas[fileIndex] = imagemRedimensionada;
-                        
-                        // Criar item de foto
-                        criarItemFotoComDetalhamento(imagemRedimensionada, fotosContainer);
-                        
-                        // Incrementar contador
-                        imagensProcessadas++;
-                        
-                        // Verificar se todas as imagens foram processadas
-                        if (imagensProcessadas === files.length) {
-                            // Remover o indicador de progresso
-                            progressIndicator.remove();
-                        }
-                    });
+                if (drawingData && drawingCanvas) {
+                    // Restaurar o desenho
+                    const img = new Image();
+                    img.onload = function() {
+                        const ctx = drawingCanvas.getContext('2d');
+                        ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                        ctx.drawImage(img, 0, 0, drawingCanvas.width, drawingCanvas.height);
+                    };
+                    img.src = drawingData;
                 }
             });
+        }
+
+        // Adicionar event listener para processar itens de desenho após rolagem
+        window.addEventListener('scroll', function() {
+            // Usar debounce para não chamar muitas vezes durante rolagem
+            clearTimeout(window.scrollTimer);
+            window.scrollTimer = setTimeout(function() {
+                processarItensDesenho();
+            }, 200);
+        }, { passive: true });        
+        
+        // Ajustes para o canvas de assinatura
+        function inicializarAssinaturas() {
+            // Inicializar as áreas de assinatura apenas uma vez
+            if (typeof SignaturePad !== 'undefined' && !signaturePadUsuario && !signaturePadMotorista) {
+                const padUsuario = document.getElementById('signature-pad-usuario');
+                const padMotorista = document.getElementById('signature-pad-motorista');
+                
+                if (padUsuario && padMotorista) {
+                    signaturePadUsuario = new SignaturePad(padUsuario, {
+                        backgroundColor: 'rgb(255, 255, 255)',
+                        penColor: 'rgb(0, 0, 0)'
+                    });
+                    
+                    signaturePadMotorista = new SignaturePad(padMotorista, {
+                        backgroundColor: 'rgb(255, 255, 255)',
+                        penColor: 'rgb(0, 0, 0)'
+                    });
+                    
+                    // Botões para limpar assinaturas
+                    document.getElementById('limpar-assinatura-usuario').addEventListener('click', function() {
+                        signaturePadUsuario.clear();
+                        document.getElementById('assinatura-usuario-preview').style.display = 'none';
+                        document.getElementById('assinatura-usuario-input').value = '';
+                    });
+                    
+                    document.getElementById('limpar-assinatura-motorista').addEventListener('click', function() {
+                        signaturePadMotorista.clear();
+                        document.getElementById('assinatura-motorista-preview').style.display = 'none';
+                        document.getElementById('assinatura-motorista-input').value = '';
+                    });
+                    
+                    // Verificar e salvar o estado das assinaturas quando o usuário interage com elas
+                    padUsuario.addEventListener('mouseup', salvarEstadoAssinaturas);
+                    padUsuario.addEventListener('touchend', salvarEstadoAssinaturas, { passive: false });
+                    padMotorista.addEventListener('mouseup', salvarEstadoAssinaturas);
+                    padMotorista.addEventListener('touchend', salvarEstadoAssinaturas, { passive: false });
+                    
+                    // Impedir o comportamento padrão para evitar a rolagem durante o desenho
+                    padUsuario.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+                    padMotorista.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+                    
+                    // Salvar assinaturas também nos eventos de scroll
+                    window.addEventListener('scroll', salvarEstadoAssinaturas, { passive: true });
+                }
+            }
+            
+            // Ajustar tamanho dos pads de assinatura
+            resizeSignaturePads();
+            
+            // Adicionar evento de redimensionamento
+            window.addEventListener('resize', resizeSignaturePads);
+        }        
+        
+        // Event listener para o input de múltiplas fotos
+        document.addEventListener('DOMContentLoaded', function() {
+            const multiPhotoInput = document.getElementById('multi-foto-input');
+            
+            if (multiPhotoInput) {
+                multiPhotoInput.addEventListener('change', function(e) {
+                    console.log("File input change detected, files selected:", this.files.length);
+                    
+                    const files = this.files;
+                    const fotosContainer = document.getElementById('fotos-geradas-container');
+                    
+                    // Clear the container
+                    fotosContainer.innerHTML = '';
+                    
+                    if (files.length === 0) {
+                        console.log("No files selected");
+                        return;
+                    }
+
+                    // Add a simple loading indicator
+                    const loadingIndicator = document.createElement('div');
+                    loadingIndicator.className = 'alert alert-info';
+                    loadingIndicator.textContent = 'Processando imagens...';
+                    fotosContainer.appendChild(loadingIndicator);
+
+                    // Clear the array of resized images
+                    imagensRedimensionadas = [];
+                    
+                    // Process each file
+                    let processedCount = 0;
+                    
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const fileIndex = i;
+                        
+                        console.log("Processing file:", file.name);
+                        
+                        // Create a temporary preview while processing
+                        const tempPreview = document.createElement('div');
+                        tempPreview.className = 'temp-preview';
+                        tempPreview.textContent = `Processando: ${file.name}`;
+                        fotosContainer.appendChild(tempPreview);
+                        
+                        // Process the image
+                        processImage(file, fileIndex, function(processedImage) {
+                            // Remove the temporary preview
+                            if (tempPreview && tempPreview.parentNode) {
+                                tempPreview.parentNode.removeChild(tempPreview);
+                            }
+                            
+                            // Store the processed image
+                            imagensRedimensionadas[fileIndex] = processedImage;
+                            
+                            // Create the photo item
+                            criarItemFotoComDetalhamento(processedImage, fotosContainer);
+                            
+                            // Update processed count
+                            processedCount++;
+                            
+                            // Check if all images are processed
+                            if (processedCount === files.length) {
+                                // Remove loading indicator
+                                if (loadingIndicator && loadingIndicator.parentNode) {
+                                    loadingIndicator.parentNode.removeChild(loadingIndicator);
+                                }
+                                console.log("All images processed successfully");
+                            }
+                        });
+                    }
+                });
+            } else {
+                console.error("File input element not found!");
+            }
+            
+            // Initialize other components
+            inicializarAssinaturas();
+            configurarControleDeslizanteCombustivel();
+            configurarObservacoes();
+            configurarFormulario();
+
+            // Adicionar event listener para touchstart em todo o documento
+            document.addEventListener('touchstart', function(e) {
+                // Esta é apenas uma função vazia para garantir que o navegador
+                // preste atenção aos nossos event listeners de touchmove
+            }, { passive: false });
+                        
         });
+
+        // Simplified image processing function for better reliability
+        function processImage(file, index, callback) {
+            console.log("Processing image:", file.name);
+            
+            // Create a FileReader
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                // Create an image to get dimensions
+                const img = new Image();
+                
+                img.onload = function() {
+                    try {
+                        // Calculate new dimensions (60% of original)
+                        const newWidth = Math.round(img.width * 0.6);
+                        const newHeight = Math.round(img.height * 0.6);
+                        
+                        // Create a canvas for the resized image
+                        const canvas = document.createElement('canvas');
+                        canvas.width = newWidth;
+                        canvas.height = newHeight;
+                        
+                        // Draw the resized image
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                        
+                        // Convert to blob with reduced quality
+                        canvas.toBlob(function(blob) {
+                            if (!blob) {
+                                console.error("Failed to create blob for image");
+                                // If blob creation fails, use the original file
+                                callback(file);
+                                return;
+                            }
+                            
+                            // Create a new file with the blob
+                            const resizedImage = new File([blob], file.name, {
+                                type: 'image/jpeg',
+                                lastModified: new Date().getTime()
+                            });
+                            
+                            console.log("Image processed successfully:", file.name);
+                            callback(resizedImage);
+                            
+                        }, 'image/jpeg', 0.85);
+                        
+                    } catch (error) {
+                        console.error("Error processing image:", error);
+                        // If there's an error, use the original file
+                        callback(file);
+                    }
+                };
+                
+                img.onerror = function() {
+                    console.error("Error loading image:", file.name);
+                    // If there's an error loading the image, use the original file
+                    callback(file);
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            reader.onerror = function() {
+                console.error("Error reading file:", file.name);
+                // If there's an error reading the file, use the original file
+                callback(file);
+            };
+            
+            // Read the file
+            reader.readAsDataURL(file);
+        }
+
+        // Configurar o controle deslizante de combustível
+        function configurarControleDeslizanteCombustivel() {
+            const combustivelSlider = document.getElementById('combustivel');
+            const combustivelValor = document.getElementById('combustivel-valor');
+            
+            if (combustivelSlider && combustivelValor) {
+                combustivelSlider.addEventListener('input', function() {
+                    combustivelValor.textContent = this.value + '%';
+                });
+            }
+        }
+
+        // Configurar campo de observações
+        function configurarObservacoes() {
+            const observacoes = document.getElementById('observacoes');
+            if (observacoes) {
+                observacoes.addEventListener('input', function() {
+                    const charCount = this.value.length;
+                    document.getElementById('char-count').textContent = charCount;
+                    
+                    // Mudar a cor se estiver próximo do limite
+                    if (charCount > 130) {
+                        document.getElementById('char-count').style.color = 'red';
+                    } else {
+                        document.getElementById('char-count').style.color = '';
+                    }
+                });
+            }
+        }
+
+        // Configurar envio do formulário
+        function configurarFormulario() {
+            const form = document.getElementById('vistoriaForm');
+            if (form) {
+                form.addEventListener('submit', enviarVistoria);
+            }
+        }
+
+        // Capturar assinaturas para envio
+        function capturarAssinaturas() {
+            // Usar os valores já salvos nos inputs
+            const assinaturaUsuarioData = document.getElementById('assinatura-usuario-input').value;
+            const assinaturaMotoristaData = document.getElementById('assinatura-motorista-input').value;
+            
+            // Verificar se estão vazios e tentar capturar novamente se necessário
+            if (!assinaturaUsuarioData && signaturePadUsuario && !signaturePadUsuario.isEmpty()) {
+                document.getElementById('assinatura-usuario-input').value = signaturePadUsuario.toDataURL('image/png');
+            }
+            
+            if (!assinaturaMotoristaData && signaturePadMotorista && !signaturePadMotorista.isEmpty()) {
+                document.getElementById('assinatura-motorista-input').value = signaturePadMotorista.toDataURL('image/png');
+            }
+            
+            // Mostrar as previews das assinaturas
+            if (document.getElementById('assinatura-usuario-input').value) {
+                const previewUsuario = document.getElementById('assinatura-usuario-preview');
+                previewUsuario.src = document.getElementById('assinatura-usuario-input').value;
+                previewUsuario.style.display = 'block';
+            }
+            
+            if (document.getElementById('assinatura-motorista-input').value) {
+                const previewMotorista = document.getElementById('assinatura-motorista-preview');
+                previewMotorista.src = document.getElementById('assinatura-motorista-input').value;
+                previewMotorista.style.display = 'block';
+            }
+        }
+
+        // Processar fotos para envio
+        function processarFotosParaEnvio(formData) {
+            // Limpar as entradas de fotos existentes
+            const inputsExistentes = formData.getAll('fotos[]');
+            inputsExistentes.forEach(() => {
+                formData.delete('fotos[]');
+            });
+            
+            // Processar cada item de foto para mesclar o desenho com a imagem
+            const fotoItems = document.querySelectorAll('.foto-gerada-item');
+            let processedItems = 0;
+            let totalItems = fotoItems.length;
+            
+            // Se não houver fotos, enviar o formulário diretamente
+            if (totalItems === 0) {
+                enviarFormulario(formData);
+                return;
+            }
+            
+            // Array para armazenar as imagens processadas na ordem correta
+            const processedImages = new Array(totalItems);
+            
+            // Para cada foto, mesclar o desenho com a imagem
+            fotoItems.forEach(function(item, index) {
+                const previewImg = item.querySelector('.foto-preview');
+                const drawingCanvas = item.querySelector('.drawing-canvas');
+                const drawingData = item.querySelector('.drawing-data').value;
+                
+                // Usar a imagem redimensionada correspondente
+                const originalFile = imagensRedimensionadas[index];
+                
+                // Verificar se há desenho para mesclar
+                if (drawingData) {
+                    // Criar um canvas temporário para a mesclagem
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // Criar uma nova imagem para carregar a imagem original
+                    const img = new Image();
+                    img.onload = function() {
+                        // Definir o tamanho do canvas temporário para o tamanho da imagem redimensionada
+                        tempCanvas.width = img.naturalWidth;
+                        tempCanvas.height = img.naturalHeight;
+                        
+                        // Desenhar a imagem no canvas temporário
+                        tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+                        
+                        // Carregar o desenho
+                        const drawingImg = new Image();
+                        drawingImg.onload = function() {
+                            // Desenhar o desenho em cima da imagem
+                            tempCtx.drawImage(drawingImg, 0, 0, tempCanvas.width, tempCanvas.height);
+                            
+                            // Converter o canvas mesclado em um blob
+                            tempCanvas.toBlob(function(blob) {
+                                // Criar um novo arquivo com o blob
+                                const mergedFile = new File([blob], originalFile.name, {
+                                    type: 'image/jpeg',
+                                    lastModified: new Date().getTime()
+                                });
+                                
+                                // Armazenar o arquivo mesclado no array na posição correta
+                                processedImages[index] = mergedFile;
+                                
+                                // Incrementar o contador de itens processados
+                                processedItems++;
+                                
+                                // Se todos os itens foram processados, adicionar ao FormData na ordem correta
+                                if (processedItems === totalItems) {
+                                    // Adicionar todas as imagens processadas na ordem correta
+                                    processedImages.forEach(image => {
+                                        if (image) {
+                                            formData.append('fotos[]', image);
+                                        }
+                                    });
+                                    
+                                    enviarFormulario(formData);
+                                }
+                            }, 'image/jpeg', 0.85); // Qualidade 85%
+                        };
+                        drawingImg.src = drawingData;
+                    };
+                    
+                    // Carregar a imagem redimensionada
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(originalFile);
+                } else {
+                    // Se não houver desenho, adicionar o arquivo redimensionado diretamente no array
+                    processedImages[index] = originalFile;
+                    
+                    // Incrementar o contador de itens processados
+                    processedItems++;
+                    
+                    // Se todos os itens foram processados, adicionar ao FormData na ordem correta
+                    if (processedItems === totalItems) {
+                        // Adicionar todas as imagens processadas na ordem correta
+                        processedImages.forEach(image => {
+                            if (image) {
+                                formData.append('fotos[]', image);
+                            }
+                        });
+                        
+                        enviarFormulario(formData);
+                    }
+                }
+            });
+        }
+
+        // Função para enviar o formulário
+        function enviarVistoria(e) {
+            e.preventDefault();
+            
+            // Salvar o estado atual das assinaturas antes de validar
+            salvarEstadoAssinaturas();
+            
+            // Validações antes de enviar
+            if (!validarAssinaturas() || !validarFotos()) {
+                return;
+            }
+            
+            // Capturar assinaturas
+            capturarAssinaturas();
+            
+            // Criar FormData para o envio
+            const formData = new FormData(this);
+            
+            // Processar fotos com seus desenhos
+            processarFotosParaEnvio(formData);
+        }
+
+        // Função para validar assinaturas
+        function validarAssinaturas() {
+            // Verificar se assinaturas estão salvas nos inputs hidden
+            const assinaturaUsuarioValue = document.getElementById('assinatura-usuario-input').value;
+            const assinaturaMotoristaValue = document.getElementById('assinatura-motorista-input').value;
+            
+            if (!assinaturaUsuarioValue || assinaturaUsuarioValue === '') {
+                alert('É necessário incluir a assinatura do usuário.');
+                return false;
+            }
+            
+            if (!assinaturaMotoristaValue || assinaturaMotoristaValue === '') {
+                alert('É necessário incluir a assinatura do motorista.');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Validar fotos
+        function validarFotos() {
+            const fotosContainerItens = document.getElementById('fotos-geradas-container').children;
+            if (fotosContainerItens.length === 0) {
+                alert('É necessário incluir pelo menos uma foto na vistoria.');
+                return false;
+            }
+            return true;
+        }
+
+        // Função para enviar o formulário com o FormData
+        function enviarFormulario(formData) {
+            // Mostrar spinner e alterar texto do botão
+            const salvarBtn = document.getElementById('salvar-btn');
+            const btnText = document.getElementById('btn-text');
+            const spinner = document.getElementById('spinner-loading');
+            
+            // Desativar o botão e mostrar o spinner
+            salvarBtn.classList.add('btn-saving');
+            btnText.textContent = "Salvando, aguarde...";
+            spinner.style.display = "inline-block";
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', document.getElementById('vistoriaForm').action, true);
+            
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    window.location.href = '/vistorias';
+                } else {
+                    // Restaurar o botão em caso de erro
+                    salvarBtn.classList.remove('btn-saving');
+                    btnText.textContent = "Salvar Vistoria";
+                    spinner.style.display = "none";
+                    
+                    alert('Houve um erro ao salvar a vistoria. Por favor, tente novamente.');
+                }
+            };
+            
+            xhr.onerror = function() {
+                // Restaurar o botão em caso de erro
+                salvarBtn.classList.remove('btn-saving');
+                btnText.textContent = "Salvar Vistoria";
+                spinner.style.display = "none";
+                
+                alert('Houve um erro na conexão. Por favor, verifique sua internet e tente novamente.');
+            };
+            
+            xhr.send(formData);
+        }
+
+        // Função para ativar a capacidade de desenho no canvas
+        function ativarDesenho(canvas, dataInput, brushSize, colorSelect) {
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            
+            // Referência à imagem para verificar limites
+            const fotoItem = canvas.closest('.foto-gerada-item');
+            const previewImg = fotoItem.querySelector('.foto-preview');
+            
+            // Ajustar o tamanho do canvas para corresponder à imagem
+            ajustarTamanhoCanvas(previewImg, canvas);
+            
+            // Função para converter coordenadas do evento para coordenadas do canvas
+            function getCoordenadas(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left,
+                    y: (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
+                };
+            }
+            
+            // Função para começar a desenhar
+            function startDrawing(e) {
+                e.preventDefault(); // Prevenir comportamento padrão
+                
+                // Obter a posição do mouse/toque relativa ao canvas
+                const coords = getCoordenadas(e);
+                
+                isDrawing = true;
+                lastX = coords.x;
+                lastY = coords.y;
+            }
+            
+            // Função para desenhar
+            function draw(e) {
+                if (!isDrawing) return;
+                
+                // Impedir o comportamento padrão (como rolagem da página em dispositivos móveis)
+                e.preventDefault();
+                
+                // Obter posição atual
+                const coords = getCoordenadas(e);
+                
+                // Configurar a caneta
+                ctx.strokeStyle = colorSelect.value;
+                ctx.lineWidth = brushSize.value;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                // Desenhar linha
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(coords.x, coords.y);
+                ctx.stroke();
+                
+                lastX = coords.x;
+                lastY = coords.y;
+                
+                // Salvar o desenho no input hidden imediatamente após cada traço
+                dataInput.value = canvas.toDataURL('image/png');
+            }
+            
+            // Função para parar de desenhar
+            function stopDrawing(e) {
+                if (isDrawing) {
+                    isDrawing = false;
+                    // Salvar o desenho no input hidden
+                    dataInput.value = canvas.toDataURL('image/png');
+                }
+            }
+            
+            // Adicionar event listeners para desktop
+            canvas.addEventListener('mousedown', startDrawing, { passive: false });
+            canvas.addEventListener('mousemove', draw, { passive: false });
+            window.addEventListener('mouseup', stopDrawing, { passive: false });
+            
+            // Adicionar event listeners para dispositivos móveis
+            canvas.addEventListener('touchstart', startDrawing, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            window.addEventListener('touchend', stopDrawing, { passive: false });
+            
+            // Armazenar os event listeners no canvas para poder removê-los depois
+            canvas.drawingListeners = {
+                mousedown: startDrawing,
+                mousemove: draw,
+                mouseup: stopDrawing,
+                touchstart: startDrawing,
+                touchmove: draw,
+                touchend: stopDrawing
+            };
+        }
+        
+        // Função para desativar a capacidade de desenho no canvas
+        function desativarDesenho(canvas) {
+            if (!canvas.drawingListeners) return;
+            
+            // Remover todos os event listeners
+            canvas.removeEventListener('mousedown', canvas.drawingListeners.mousedown);
+            canvas.removeEventListener('mousemove', canvas.drawingListeners.mousemove);
+            window.removeEventListener('mouseup', canvas.drawingListeners.mouseup);
+            canvas.removeEventListener('touchstart', canvas.drawingListeners.touchstart);
+            canvas.removeEventListener('touchmove', canvas.drawingListeners.touchmove);
+            window.removeEventListener('touchend', canvas.drawingListeners.touchend);
+            
+            // Limpar a referência aos listeners
+            canvas.drawingListeners = null;
+            
+            // Restaurar o botão de desenho
+            const fotoItem = canvas.closest('.foto-gerada-item');
+            const habilitarDesenhoBtn = fotoItem.querySelector('.habilitar-desenho');
+            habilitarDesenhoBtn.classList.remove('disabled');
+            habilitarDesenhoBtn.textContent = 'Desenhar';
+        }        
+
+        // Função para ajustar o tamanho do canvas de desenho para corresponder à imagem
+        function ajustarTamanhoCanvas(imgElement, canvasElement) {
+            if (!imgElement || !canvasElement) return;
+            
+            // Usar o retângulo da imagem para definir as dimensões do canvas
+            const imgRect = imgElement.getBoundingClientRect();
+            const containerRect = imgElement.parentElement.getBoundingClientRect();
+            
+            // Definir o tamanho do canvas para corresponder exatamente ao tamanho da imagem
+            canvasElement.width = containerRect.width;
+            canvasElement.height = containerRect.height;
+            
+            // Limpar o canvas após redimensionamento apenas se não houver dados de desenho
+            const drawingDataInput = canvasElement.closest('.foto-gerada-item')?.querySelector('.drawing-data');
+            if (drawingDataInput && !drawingDataInput.value) {
+                const ctx = canvasElement.getContext('2d');
+                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            } else if (drawingDataInput && drawingDataInput.value) {
+                // Restaurar o desenho se existir
+                const img = new Image();
+                img.onload = function() {
+                    const ctx = canvasElement.getContext('2d');
+                    ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                    ctx.drawImage(img, 0, 0, canvasElement.width, canvasElement.height);
+                };
+                img.src = drawingDataInput.value;
+            }
+        }        
         
         // Função para criar um item de foto com campo de detalhamento e canvas de desenho
         function criarItemFotoComDetalhamento(file, container) {
@@ -678,129 +1237,14 @@
             
             return fotoItem;
         }
-        
-        // Função para ajustar o tamanho do canvas de desenho para corresponder à imagem
-        function ajustarTamanhoCanvas(imgElement, canvasElement) {
-            if (!imgElement || !canvasElement) return;
-            
-            const container = imgElement.parentElement;
-            const containerWidth = container.offsetWidth;
-            const containerHeight = container.offsetHeight;
-            
-            // Calcular a proporção da imagem
-            const imgWidth = imgElement.naturalWidth || imgElement.width;
-            const imgHeight = imgElement.naturalHeight || imgElement.height;
-            
-            // Definir o tamanho do canvas para corresponder ao tamanho do container
-            canvasElement.width = containerWidth;
-            canvasElement.height = containerHeight;
-        }
-        
-        // Função para ativar a capacidade de desenho no canvas
-        function ativarDesenho(canvas, dataInput, brushSize, colorSelect) {
-            const ctx = canvas.getContext('2d');
-            let isDrawing = false;
-            let lastX = 0;
-            let lastY = 0;
-            
-            // Função para começar a desenhar
-            function startDrawing(e) {
-                isDrawing = true;
-                
-                // Obter a posição do mouse/toque relativa ao canvas
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX || e.touches[0].clientX) - rect.left;
-                const y = (e.clientY || e.touches[0].clientY) - rect.top;
-                
-                lastX = x;
-                lastY = y;
-            }
-            
-            // Função para desenhar
-            function draw(e) {
-                if (!isDrawing) return;
-                
-                // Impedir o comportamento padrão (como rolagem da página em dispositivos móveis)
-                e.preventDefault();
-                
-                // Obter posição atual
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX || e.touches[0].clientX) - rect.left;
-                const y = (e.clientY || e.touches[0].clientY) - rect.top;
-                
-                // Configurar a caneta
-                ctx.strokeStyle = colorSelect.value;
-                ctx.lineWidth = brushSize.value;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                
-                // Desenhar linha
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-                
-                lastX = x;
-                lastY = y;
-                
-                // Salvar o desenho no input hidden
-                dataInput.value = canvas.toDataURL('image/png');
-            }
-            
-            // Função para parar de desenhar
-            function stopDrawing() {
-                isDrawing = false;
-            }
-            
-            // Adicionar event listeners para desktop
-            canvas.addEventListener('mousedown', startDrawing);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
-            
-            // Adicionar event listeners para dispositivos móveis
-            canvas.addEventListener('touchstart', startDrawing);
-            canvas.addEventListener('touchmove', draw);
-            canvas.addEventListener('touchend', stopDrawing);
-            
-            // Armazenar os event listeners no canvas para poder removê-los depois
-            canvas.drawingListeners = {
-                mousedown: startDrawing,
-                mousemove: draw,
-                mouseup: stopDrawing,
-                mouseout: stopDrawing,
-                touchstart: startDrawing,
-                touchmove: draw,
-                touchend: stopDrawing
-            };
-        }
-        
-        // Função para desativar a capacidade de desenho no canvas
-        function desativarDesenho(canvas) {
-            if (!canvas.drawingListeners) return;
-            
-            // Remover todos os event listeners
-            canvas.removeEventListener('mousedown', canvas.drawingListeners.mousedown);
-            canvas.removeEventListener('mousemove', canvas.drawingListeners.mousemove);
-            canvas.removeEventListener('mouseup', canvas.drawingListeners.mouseup);
-            canvas.removeEventListener('mouseout', canvas.drawingListeners.mouseout);
-            canvas.removeEventListener('touchstart', canvas.drawingListeners.touchstart);
-            canvas.removeEventListener('touchmove', canvas.drawingListeners.touchmove);
-            canvas.removeEventListener('touchend', canvas.drawingListeners.touchend);
-            
-            // Limpar a referência aos listeners
-            canvas.drawingListeners = null;
-            
-            // Restaurar o botão de desenho
-            const fotoItem = canvas.closest('.foto-gerada-item');
-            const habilitarDesenhoBtn = fotoItem.querySelector('.habilitar-desenho');
-            habilitarDesenhoBtn.classList.remove('disabled');
-            habilitarDesenhoBtn.textContent = 'Desenhar';
-        }
-        
+
+        // Função para ajustar o tamanho dos pads de assinatura
         function resizeSignaturePads() {
             // Ajusta a altura do canvas para manter a proporção
-            const containerWidth = document.querySelector('.signature-pad-container').offsetWidth;
+            const containers = document.querySelectorAll('.signature-pad-container');
+            if (containers.length === 0) return;
+            
+            const containerWidth = containers[0].offsetWidth;
             const ratio = Math.max(0.5, Math.min(1, containerWidth / 500)); // Mantém uma proporção razoável
             
             const height = 200 * ratio;
@@ -808,418 +1252,54 @@
             // Ajusta o tamanho do canvas
             const signaturePads = document.querySelectorAll('.signature-pad');
             signaturePads.forEach(pad => {
-                // Salva o conteúdo atual antes de redimensionar
-                const currentPad = pad.id === 'signature-pad-usuario' ? signaturePadUsuario : signaturePadMotorista;
-                const data = currentPad.toDataURL();
-                
                 // Ajusta o tamanho do container e do canvas
                 pad.parentElement.style.height = `${height}px`;
                 
-                // Redefine o canvas (isso limpa o conteúdo)
+                // Salvar conteúdo atual caso exista
+                let currentData = '';
+                if (pad.id === 'signature-pad-usuario' && signaturePadUsuario) {
+                    currentData = signaturePadUsuario.isEmpty() ? '' : signaturePadUsuario.toDataURL();
+                } else if (pad.id === 'signature-pad-motorista' && signaturePadMotorista) {
+                    currentData = signaturePadMotorista.isEmpty() ? '' : signaturePadMotorista.toDataURL();
+                }
+                
+                // Redefine o tamanho do canvas
                 pad.width = pad.offsetWidth;
                 pad.height = pad.offsetHeight;
                 
                 // Restaura o conteúdo se houver
-                if (!currentPad.isEmpty()) {
-                    // Restaura a assinatura após um redimensionamento
+                if (currentData) {
                     const img = new Image();
+                    const ctx = pad.getContext('2d');
+                    
                     img.onload = function() {
-                        pad.getContext('2d').drawImage(img, 0, 0, pad.width, pad.height);
+                        ctx.drawImage(img, 0, 0, pad.width, pad.height);
+                        
+                        // Recria a instância do SignaturePad com o conteúdo restaurado
+                        if (pad.id === 'signature-pad-usuario') {
+                            signaturePadUsuario = new SignaturePad(pad, { backgroundColor: 'rgb(255, 255, 255)', penColor: 'rgb(0, 0, 0)' });
+                            signaturePadUsuario._data = signaturePadUsuario.toData(); // Salva os dados do traço
+                        } else if (pad.id === 'signature-pad-motorista') {
+                            signaturePadMotorista = new SignaturePad(pad, { backgroundColor: 'rgb(255, 255, 255)', penColor: 'rgb(0, 0, 0)' });
+                            signaturePadMotorista._data = signaturePadMotorista.toData(); // Salva os dados do traço
+                        }
                     };
-                    img.src = data;
+                    
+                    img.src = currentData;
                 }
             });
             
             // Também ajusta os canvas de desenho
             const fotosContainer = document.getElementById('fotos-geradas-container');
-            const fotosItems = fotosContainer.querySelectorAll('.foto-gerada-item');
-            fotosItems.forEach(item => {
-                const previewImg = item.querySelector('.foto-preview');
-                const drawingCanvas = item.querySelector('.drawing-canvas');
-                ajustarTamanhoCanvas(previewImg, drawingCanvas);
-            });
-        }
-        
-        // Adicionar evento de redimensionamento para ajustar os canvas quando a janela mudar de tamanho
-        window.addEventListener('resize', function() {
-            resizeSignaturePads();
-            
-            // Reajustar todos os canvas de desenho
-            const drawingCanvases = document.querySelectorAll('.drawing-canvas');
-            drawingCanvases.forEach(canvas => {
-                const previewImg = canvas.previousElementSibling;
-                ajustarTamanhoCanvas(previewImg, canvas);
-                
-                // Restaurar o desenho após o redimensionamento
-                const dataInput = canvas.closest('.foto-gerada-item').querySelector('.drawing-data');
-                if (dataInput.value) {
-                    const ctx = canvas.getContext('2d');
-                    const img = new Image();
-                    img.onload = function() {
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    };
-                    img.src = dataInput.value;
-                }
-            });
-        });
-        
-        // Validação do formulário antes de enviar
-        document.getElementById('vistoriaForm').addEventListener('submit', function(e) {
-            e.preventDefault(); // Impede o envio padrão do formulário
-            
-            // Verifica se há fotos
-            const fotosContainerItens = document.getElementById('fotos-geradas-container').children;
-            if (fotosContainerItens.length === 0) {
-                alert('É necessário incluir pelo menos uma foto na vistoria.');
-                return;
-            }
-            
-            // Verificar as assinaturas
-            if (signaturePadUsuario.isEmpty()) {
-                alert('É necessário incluir a assinatura do usuário.');
-                return;
-            }
-            
-            if (signaturePadMotorista.isEmpty()) {
-                alert('É necessário incluir a assinatura do motorista.');
-                return;
-            }
-            
-            // Capturar as assinaturas como imagens base64
-            const assinaturaUsuarioData = signaturePadUsuario.toDataURL('image/png');
-            const assinaturaMotoristaData = signaturePadMotorista.toDataURL('image/png');
-            
-            // Armazenar nos campos hidden
-            document.getElementById('assinatura-usuario-input').value = assinaturaUsuarioData;
-            document.getElementById('assinatura-motorista-input').value = assinaturaMotoristaData;
-            
-            // Mostrar as previews das assinaturas
-            const previewUsuario = document.getElementById('assinatura-usuario-preview');
-            previewUsuario.src = assinaturaUsuarioData;
-            previewUsuario.style.display = 'block';
-            
-            const previewMotorista = document.getElementById('assinatura-motorista-preview');
-            previewMotorista.src = assinaturaMotoristaData;
-            previewMotorista.style.display = 'block';
-            
-            // Criar um FormData para o envio
-            const formData = new FormData(this);
-            
-            // Limpar as entradas de fotos existentes
-            const inputsExistentes = formData.getAll('fotos[]');
-            inputsExistentes.forEach(() => {
-                formData.delete('fotos[]');
-            });
-            
-            // Processar cada item de foto para mesclar o desenho com a imagem
-            const fotoItems = document.querySelectorAll('.foto-gerada-item');
-            let processedItems = 0;
-            let totalItems = fotoItems.length;
-            
-            // Se não houver fotos, enviar o formulário diretamente
-            if (totalItems === 0) {
-                enviarFormulario(formData);
-                return;
-            }
-            
-            // Para cada foto, mesclar o desenho com a imagem
-            fotoItems.forEach(function(item, index) {
-                const previewImg = item.querySelector('.foto-preview');
-                const drawingCanvas = item.querySelector('.drawing-canvas');
-                const drawingData = item.querySelector('.drawing-data').value;
-                
-                // Usar a imagem redimensionada correspondente
-                const originalFile = imagensRedimensionadas[index];
-                
-                // Verificar se há desenho para mesclar
-                if (drawingData) {
-                    // Criar um canvas temporário para a mesclagem
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    
-                    // Criar uma nova imagem para carregar a imagem original
-                    const img = new Image();
-                    img.onload = function() {
-                        // Definir o tamanho do canvas temporário para o tamanho da imagem redimensionada
-                        tempCanvas.width = img.naturalWidth;
-                        tempCanvas.height = img.naturalHeight;
-                        
-                        // Desenhar a imagem no canvas temporário
-                        tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-                        
-                        // Carregar o desenho
-                        const drawingImg = new Image();
-                        drawingImg.onload = function() {
-                            // Desenhar o desenho em cima da imagem
-                            tempCtx.drawImage(drawingImg, 0, 0, tempCanvas.width, tempCanvas.height);
-                            
-                            // Converter o canvas mesclado em um blob
-                            tempCanvas.toBlob(function(blob) {
-                                // Criar um novo arquivo com o blob
-                                const mergedFile = new File([blob], originalFile.name, {
-                                    type: 'image/jpeg',
-                                    lastModified: new Date().getTime()
-                                });
-                                
-                                // Adicionar o arquivo mesclado ao FormData
-                                formData.append('fotos[]', mergedFile);
-                                
-                                // Incrementar o contador de itens processados
-                                processedItems++;
-                                
-                                // Se todos os itens foram processados, enviar o formulário
-                                if (processedItems === totalItems) {
-                                    enviarFormulario(formData);
-                                }
-                            }, 'image/jpeg', 0.85); // Qualidade 85%
-                        };
-                        drawingImg.src = drawingData;
-                    };
-                    
-                    // Carregar a imagem redimensionada
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        img.src = e.target.result;
-                    };
-                    reader.readAsDataURL(originalFile);
-                } else {
-                    // Se não houver desenho, adicionar o arquivo redimensionado diretamente
-                    formData.append('fotos[]', originalFile);
-                    
-                    // Incrementar o contador de itens processados
-                    processedItems++;
-                    
-                    // Se todos os itens foram processados, enviar o formulário
-                    if (processedItems === totalItems) {
-                        enviarFormulario(formData);
-                    }
-                }
-            });
-        });
-        
-        // Função para enviar o formulário com o FormData
-        function enviarFormulario(formData) {
-            // Mostrar spinner e alterar texto do botão
-            const salvarBtn = document.getElementById('salvar-btn');
-            const btnText = document.getElementById('btn-text');
-            const spinner = document.getElementById('spinner-loading');
-            
-            // Desativar o botão e mostrar o spinner
-            salvarBtn.classList.add('btn-saving');
-            btnText.textContent = "Salvando, aguarde...";
-            spinner.style.display = "inline-block";
-            
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', document.getElementById('vistoriaForm').action, true);
-            
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    window.location.href = '/vistorias';
-                } else {
-                    // Restaurar o botão em caso de erro
-                    salvarBtn.classList.remove('btn-saving');
-                    btnText.textContent = "Salvar Vistoria";
-                    spinner.style.display = "none";
-                    
-                    alert('Houve um erro ao salvar a vistoria. Por favor, tente novamente.');
-                }
-            };
-            
-            xhr.onerror = function() {
-                // Restaurar o botão em caso de erro
-                salvarBtn.classList.remove('btn-saving');
-                btnText.textContent = "Salvar Vistoria";
-                spinner.style.display = "none";
-                
-                alert('Houve um erro na conexão. Por favor, verifique sua internet e tente novamente.');
-            };
-            
-            xhr.send(formData);
-        }
-        
-        ///////////////////////////
-        // Função para redimensionar imagens antes do upload
-        function resizeImage(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = new Image();
-                    img.onload = function() {
-                        // Definir dimensões máximas
-                        const MAX_WIDTH = 1024;
-                        const MAX_HEIGHT = 768;
-                        
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        // Calcular novas dimensões mantendo a proporção
-                        if (width > MAX_WIDTH) {
-                            height = Math.round(height * (MAX_WIDTH / width));
-                            width = MAX_WIDTH;
-                        }
-                        
-                        if (height > MAX_HEIGHT) {
-                            width = Math.round(width * (MAX_HEIGHT / height));
-                            height = MAX_HEIGHT;
-                        }
-                        
-                        // Criar canvas para redimensionar
-                        const canvas = document.createElement('canvas');
-                        canvas.width = width;
-                        canvas.height = height;
-                        
-                        // Desenhar imagem redimensionada
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // Converter para Blob com qualidade reduzida (0.8 = 80%)
-                        canvas.toBlob((blob) => {
-                            // Criar um novo arquivo a partir do blob
-                            const resizedFile = new File([blob], file.name, {
-                                type: 'image/jpeg',
-                                lastModified: Date.now()
-                            });
-                            resolve(resizedFile);
-                        }, 'image/jpeg', 0.8);
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-        
-        // Função para exibir miniaturas das imagens
-        function displayImagePreviews(files, previewContainerId) {
-            const previewContainer = document.getElementById(previewContainerId);
-            
-            // Limpar previews anteriores
-            previewContainer.innerHTML = '';
-            
-            // Criar contador de arquivos
-            const fileCounter = document.createElement('div');
-            fileCounter.className = 'file-counter mb-2';
-            fileCounter.textContent = `${files.length} arquivo(s) selecionado(s)`;
-            previewContainer.appendChild(fileCounter);
-            
-            // Criar container para as miniaturas
-            const thumbnailsContainer = document.createElement('div');
-            thumbnailsContainer.className = 'thumbnails-container d-flex flex-wrap';
-            previewContainer.appendChild(thumbnailsContainer);
-            
-            // Criar previews para cada arquivo
-            Array.from(files).forEach((file) => {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    const previewWrapper = document.createElement('div');
-                    previewWrapper.className = 'preview-wrapper m-2';
-                    
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'img-thumbnail preview-img';
-                    img.style.maxWidth = '150px';
-                    img.style.maxHeight = '150px';
-                    
-                    const fileName = document.createElement('div');
-                    fileName.className = 'file-name small text-center text-truncate';
-                    fileName.style.maxWidth = '150px';
-                    fileName.textContent = file.name;
-                    
-                    previewWrapper.appendChild(img);
-                    previewWrapper.appendChild(fileName);
-                    thumbnailsContainer.appendChild(previewWrapper);
-                };
-                
-                reader.readAsDataURL(file);
-            });
-        }
-        
-        // Função principal para inicializar os campos de upload
-        function initImageUpload() {
-            // Configurar todos os inputs de arquivo com classe 'photo-upload'
-            document.querySelectorAll('.photo-upload').forEach(input => {
-                const previewContainerId = input.dataset.previewContainer;
-                
-                input.addEventListener('change', async function(e) {
-                    const files = e.target.files;
-                    
-                    if (files.length > 0) {
-                        // Exibir previews imediatamente para feedback rápido
-                        displayImagePreviews(files, previewContainerId);
-                        
-                        // Redimensionar as imagens (sem substituir os arquivos do input)
-                        const resizedFiles = [];
-                        for (let i = 0; i < files.length; i++) {
-                            if (files[i].type.startsWith('image/')) {
-                                try {
-                                    const resizedFile = await resizeImage(files[i]);
-                                    resizedFiles.push(resizedFile);
-                                } catch (error) {
-                                    console.error("Erro ao redimensionar:", error);
-                                    resizedFiles.push(files[i]); // Use o arquivo original em caso de erro
-                                }
-                            } else {
-                                resizedFiles.push(files[i]); // Manter arquivos não-imagem intactos
-                            }
-                        }
-                        
-                        // Aqui podemos armazenar os arquivos redimensionados para envio posterior
-                        // Não podemos substituir diretamente no input.files, mas podemos usar FormData no envio
-                        input.dataset.resizedFiles = JSON.stringify(resizedFiles);
-                    }
-                });
-            });
-            
-            // Configurar o formulário para usar as imagens redimensionadas durante o envio
-            const form = document.querySelector('form');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const formData = new FormData(form);
-                    
-                    // Substituir arquivos originais pelos redimensionados para cada input
-                    document.querySelectorAll('.photo-upload').forEach(input => {
-                        const inputName = input.name;
-                        
-                        // Remover os arquivos originais
-                        formData.delete(inputName);
-                        
-                        // Adicionar os arquivos redimensionados
-                        if (input.files.length > 0) {
-                            for (let i = 0; i < input.files.length; i++) {
-                                formData.append(inputName, input.files[i]);
-                            }
-                        }
-                    });
-                    
-                    // Continuar com o envio do formulário usando fetch ou outra técnica
-                    fetch(form.action, {
-                        method: form.method,
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            window.location.href = data.redirect;
-                        } else {
-                            alert("Erro ao enviar o formulário: " + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Erro ao enviar:", error);
-                        alert("Ocorreu um erro ao enviar o formulário. Tente novamente.");
-                    });
+            if (fotosContainer) {
+                const fotosItems = fotosContainer.querySelectorAll('.foto-gerada-item');
+                fotosItems.forEach(item => {
+                    const previewImg = item.querySelector('.foto-preview');
+                    const drawingCanvas = item.querySelector('.drawing-canvas');
+                    ajustarTamanhoCanvas(previewImg, drawingCanvas);
                 });
             }
         }
-        
-        // Inicializar quando o DOM estiver pronto
-        document.addEventListener('DOMContentLoaded', initImageUpload);
-
-
-
-        
     </script>
 </body>
 </html>
