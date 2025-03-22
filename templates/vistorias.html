@@ -46,6 +46,25 @@
         .btn-actions {
             white-space: nowrap;
         }
+        .merged-cell {
+            vertical-align: middle;
+            border-right: 1px solid #dee2e6;
+        }
+        .subrow td {
+            border-top: none;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+        
+        /* Estilos específicos para o zebramento */
+        .vistorias-wrapper tr {
+            background-color: #fff !important;
+        }
+        
+        /* Aplicar cores de fundo para grupos pares (cada grupo contém duas linhas) */
+        .vistorias-wrapper .grupo:nth-child(even) tr {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+        }
     </style>
 </head>
 <body>
@@ -113,10 +132,9 @@
         <!-- Vistorias finalizadas -->
         <h3 class="section-title">Vistorias Finalizadas</h3>
         <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
+            <table class="table table-hover">
+                <thead class="table-light">
                     <tr>
-                        <th>ID</th>
                         <th>Motorista</th>
                         <th>Veículo</th>
                         <th>Data</th>
@@ -125,30 +143,91 @@
                         <th>Ações</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="vistorias-wrapper">
+                    {# Agrupamos as vistorias por motorista+veículo #}
+                    {% set agrupadas = {} %}
                     {% for v in vistorias_finalizadas %}
-                    <tr>
-                        <td>{{ v[0] }}</td>
-                        <td>{{ v[1] }}</td>
-                        <td>{{ v[2] }}</td>
-                        <td>{{ v[3].strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>
+                        {% set chave = v[1] ~ "|" ~ v[2] %}
+                        {% if chave not in agrupadas %}
+                            {% set agrupadas = agrupadas.update({chave: []}) or agrupadas %}
+                        {% endif %}
+                        {% set _ = agrupadas[chave].append(v) %}
+                    {% endfor %}
+                    
+                    {# Exibimos as vistorias agrupadas #}
+                    {% for chave, grupo in agrupadas.items() %}
+                        {% set parts = chave.split('|') %}
+                        {% set motorista = parts[0] %}
+                        {% set veiculo = parts[1] %}
+                        
+                        {# Organizamos as saídas primeiro, depois devoluções #}
+                        {% set saidas = [] %}
+                        {% set devolucoes = [] %}
+                        {% for v in grupo %}
                             {% if v[4] == 'SAIDA' %}
-                            <span class="badge bg-primary">Saída</span>
+                                {% set _ = saidas.append(v) %}
                             {% else %}
-                            <span class="badge bg-success">Devolução</span>
+                                {% set _ = devolucoes.append(v) %}
                             {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary">Finalizada</span>
-                        </td>
-                        <td>
-                            <a href="/vistoria/{{ v[0] }}" class="btn btn-sm btn-info">Visualizar</a>
-                        </td>
-                    </tr>
+                        {% endfor %}
+                        
+                        {# Processamos pares de saída+devolução juntos #}
+                        {% set num_pares = [saidas|length, devolucoes|length]|min %}
+                        
+                        {% for i in range(num_pares) %}
+                            <div class="grupo">
+                                {% set saida = saidas[i] %}
+                                {% set devolucao = devolucoes[i] %}
+                                
+                                <tr>
+                                    <td class="merged-cell" rowspan="2">{{ motorista }}</td>
+                                    <td class="merged-cell" rowspan="2">{{ veiculo }}</td>
+                                    <td>{{ saida[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td><span class="badge bg-primary">Saída</span></td>
+                                    <td><span class="badge bg-secondary">Finalizada</span></td>
+                                    <td><a href="/vistoria/{{ saida[0] }}" class="btn btn-sm btn-info">Visualizar</a></td>
+                                </tr>
+                                <tr class="subrow">
+                                    <td>{{ devolucao[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td><span class="badge bg-success">Devolução</span></td>
+                                    <td><span class="badge bg-secondary">Finalizada</span></td>
+                                    <td><a href="/vistoria/{{ devolucao[0] }}" class="btn btn-sm btn-info">Visualizar</a></td>
+                                </tr>
+                            </div>
+                        {% endfor %}
+                        
+                        {# Processamos saídas extras sem devolução #}
+                        {% for i in range(num_pares, saidas|length) %}
+                            <div class="grupo">
+                                {% set saida = saidas[i] %}
+                                <tr>
+                                    <td class="merged-cell">{{ motorista }}</td>
+                                    <td class="merged-cell">{{ veiculo }}</td>
+                                    <td>{{ saida[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td><span class="badge bg-primary">Saída</span></td>
+                                    <td><span class="badge bg-secondary">Finalizada</span></td>
+                                    <td><a href="/vistoria/{{ saida[0] }}" class="btn btn-sm btn-info">Visualizar</a></td>
+                                </tr>
+                            </div>
+                        {% endfor %}
+                        
+                        {# Processamos devoluções extras sem saída #}
+                        {% for i in range(num_pares, devolucoes|length) %}
+                            <div class="grupo">
+                                {% set devolucao = devolucoes[i] %}
+                                <tr>
+                                    <td class="merged-cell">{{ motorista }}</td>
+                                    <td class="merged-cell">{{ veiculo }}</td>
+                                    <td>{{ devolucao[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td><span class="badge bg-success">Devolução</span></td>
+                                    <td><span class="badge bg-secondary">Finalizada</span></td>
+                                    <td><a href="/vistoria/{{ devolucao[0] }}" class="btn btn-sm btn-info">Visualizar</a></td>
+                                </tr>
+                            </div>
+                        {% endfor %}
                     {% else %}
                     <tr>
-                        <td colspan="7" class="text-center">Não há vistorias finalizadas</td>
+                        <td colspan="6" class="text-center">Não há vistorias finalizadas</td>
                     </tr>
                     {% endfor %}
                 </tbody>
