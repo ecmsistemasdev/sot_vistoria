@@ -29,7 +29,7 @@ def nova_vistoria():
     cur = mysql.connection.cursor()
     cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
-    cur.execute("SELECT ID_VEICULO, CONCAT(NU_PLACA,' - ',DS_MODELO) AS VEICULO FROM ecmdb.TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
+    cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM ecmdb.TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
     cur.close()
     
