@@ -95,9 +95,9 @@
                             <span class="badge bg-warning">Em Trânsito</span>
                         </td>
                         <td class="btn-actions">
-                            <a href="/vistoria/{{ v[0] }}" class="btn btn-sm btn-info">Detalhes</a>
+                            <a href="/vistoria/{{ v[0] }}" class="btn btn-sm btn-info">Visualizar</a>
                             {% if v[4] == 'SAIDA' %}
-                            <a href="/vistoria/devolver/{{ v[0] }}" class="btn btn-sm btn-success">Devolver</a>
+                            <a href="/nova_vistoria_devolucao/{{ v[0] }}" class="btn btn-sm btn-success">Devolução</a>
                             {% endif %}
                         </td>
                     </tr>
@@ -143,7 +143,7 @@
                             <span class="badge bg-secondary">Finalizada</span>
                         </td>
                         <td>
-                            <a href="/vistoria/{{ v[0] }}" class="btn btn-sm btn-info">Detalhes</a>
+                            <a href="/vistoria/{{ v[0] }}" class="btn btn-sm btn-info">Visualizar</a>
                         </td>
                     </tr>
                     {% else %}
