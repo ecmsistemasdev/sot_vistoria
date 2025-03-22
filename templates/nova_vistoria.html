@@ -166,7 +166,7 @@
                 margin: 0;
             }
         }
-        
+
         /* Para telas menores */
         @media (max-width: 991px) {
             .flex-field {
@@ -176,7 +176,6 @@
                 margin-bottom: 20px;
             }
         }
-        
         /* Estilo para a área de fotos geradas */
         .foto-gerada-item {
             border: 1px solid #ddd;
@@ -186,17 +185,21 @@
         }
         .foto-preview-container {
             position: relative;
-            width: 100%;
-            height: 300px;
-            margin-bottom: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
         }
         .foto-preview {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border-radius: 4px;
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
         }
+        .drawing-canvas {
+            position: absolute;
+           /* pointer-events: none; /* Desativa eventos quando não estiver desenhando */
+        }
+        /*
         .drawing-canvas {
             position: absolute;
             top: 0;
@@ -206,7 +209,10 @@
             z-index: 10;
             cursor: crosshair;
         }
-        
+        */
+        .drawing-canvas.active {
+            pointer-events: auto;
+        }
         /* Estilos para os controles de desenho */
         .drawing-tools {
             margin-top: 10px;
@@ -314,7 +320,7 @@
                 <h3>Selecionar Fotos</h3>
                 <div class="mb-3">
                     <input type="file" class="form-control" id="multi-foto-input" accept="image/*" multiple required>
-                    <div class="form-text">Selecione as fotos para adicionar à vistoria</div>
+                    <div class="form-text">Selecione as fotos para adicionar à vistoria. (máx. 20 fotos)</div>
                 </div>
             </div>
             
@@ -597,12 +603,22 @@
             const multiPhotoInput = document.getElementById('multi-foto-input');
             
             if (multiPhotoInput) {
+                // Limitar para 20 arquivos
+                multiPhotoInput.setAttribute('max', '20');
+
                 multiPhotoInput.addEventListener('change', function(e) {
                     console.log("File input change detected, files selected:", this.files.length);
                     
                     const files = this.files;
                     const fotosContainer = document.getElementById('fotos-geradas-container');
                     
+                    // Verificar se o usuário selecionou mais de 20 fotos
+                    if (files.length > 20) {
+                        alert('Você só pode selecionar até 20 fotos. Por favor, tente novamente.');
+                        this.value = ''; // Limpar a seleção
+                        return;
+                    }
+
                     // Clear the container
                     fotosContainer.innerHTML = '';
                     
@@ -859,7 +875,7 @@
                     // Criar uma nova imagem para carregar a imagem original
                     const img = new Image();
                     img.onload = function() {
-                        // Definir o tamanho do canvas temporário para o tamanho da imagem redimensionada
+                        // Definir o tamanho do canvas temporário para o tamanho original da imagem
                         tempCanvas.width = img.naturalWidth;
                         tempCanvas.height = img.naturalHeight;
                         
@@ -869,8 +885,18 @@
                         // Carregar o desenho
                         const drawingImg = new Image();
                         drawingImg.onload = function() {
-                            // Desenhar o desenho em cima da imagem
-                            tempCtx.drawImage(drawingImg, 0, 0, tempCanvas.width, tempCanvas.height);
+                            // Calcular a razão de aspecto para redimensionar o desenho corretamente
+                            const aspectRatio = {
+                                original: img.naturalWidth / img.naturalHeight,
+                                drawing: drawingCanvas.width / drawingCanvas.height
+                            };
+                            
+                            // Ajustar o desenho para as dimensões da imagem original mantendo a proporção
+                            tempCtx.drawImage(
+                                drawingImg, 
+                                0, 0, drawingImg.width, drawingImg.height, 
+                                0, 0, tempCanvas.width, tempCanvas.height
+                            );
                             
                             // Converter o canvas mesclado em um blob
                             tempCanvas.toBlob(function(blob) {
@@ -1028,19 +1054,18 @@
             let lastX = 0;
             let lastY = 0;
             
-            // Referência à imagem para verificar limites
-            const fotoItem = canvas.closest('.foto-gerada-item');
-            const previewImg = fotoItem.querySelector('.foto-preview');
-            
-            // Ajustar o tamanho do canvas para corresponder à imagem
-            ajustarTamanhoCanvas(previewImg, canvas);
-            
             // Função para converter coordenadas do evento para coordenadas do canvas
             function getCoordenadas(e) {
                 const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;    // Relação entre tamanho físico e exibido
+                const scaleY = canvas.height / rect.height;
+                
+                const eventX = e.clientX || (e.touches && e.touches[0].clientX);
+                const eventY = e.clientY || (e.touches && e.touches[0].clientY);
+                
                 return {
-                    x: (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left,
-                    y: (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top
+                    x: (eventX - rect.left) * scaleX,
+                    y: (eventY - rect.top) * scaleY
                 };
             }
             
@@ -1129,33 +1154,61 @@
             
             // Limpar a referência aos listeners
             canvas.drawingListeners = null;
-            
-            // Restaurar o botão de desenho
-            const fotoItem = canvas.closest('.foto-gerada-item');
-            const habilitarDesenhoBtn = fotoItem.querySelector('.habilitar-desenho');
-            habilitarDesenhoBtn.classList.remove('disabled');
-            habilitarDesenhoBtn.textContent = 'Desenhar';
         }        
 
-        // Função para ajustar o tamanho do canvas de desenho para corresponder à imagem
+        // Função melhorada para ajustar o tamanho do canvas de desenho para corresponder exatamente à imagem
         function ajustarTamanhoCanvas(imgElement, canvasElement) {
             if (!imgElement || !canvasElement) return;
             
-            // Usar o retângulo da imagem para definir as dimensões do canvas
+            // Aguardar até que a imagem esteja carregada
+            if (!imgElement.complete) {
+                imgElement.onload = function() {
+                    ajustarTamanhoCanvas(imgElement, canvasElement);
+                };
+                return;
+            }
+            
+            // Obter as dimensões reais da imagem
+            const imgWidth = imgElement.naturalWidth;
+            const imgHeight = imgElement.naturalHeight;
+            
+            // Obter o retângulo do elemento de imagem atual na tela
             const imgRect = imgElement.getBoundingClientRect();
             const containerRect = imgElement.parentElement.getBoundingClientRect();
             
-            // Definir o tamanho do canvas para corresponder exatamente ao tamanho da imagem
-            canvasElement.width = containerRect.width;
-            canvasElement.height = containerRect.height;
+            // Calcular a razão de aspecto da imagem
+            const imgAspectRatio = imgWidth / imgHeight;
             
-            // Limpar o canvas após redimensionamento apenas se não houver dados de desenho
+            // Calcular o tamanho exibido da imagem (pode ter barras laterais ou superior/inferior)
+            let displayedWidth, displayedHeight;
+            const containerAspectRatio = containerRect.width / containerRect.height;
+            
+            if (imgAspectRatio > containerAspectRatio) {
+                // Imagem é mais larga - terá barras acima e abaixo
+                displayedWidth = containerRect.width;
+                displayedHeight = containerRect.width / imgAspectRatio;
+            } else {
+                // Imagem é mais alta - terá barras laterais
+                displayedHeight = containerRect.height;
+                displayedWidth = containerRect.height * imgAspectRatio;
+            }
+            
+            // Calcular os offsets para centralizá-la
+            const offsetX = (containerRect.width - displayedWidth) / 2;
+            const offsetY = (containerRect.height - displayedHeight) / 2;
+            
+            // Ajustar o tamanho e posição do canvas para corresponder exatamente à imagem exibida
+            canvasElement.width = displayedWidth;
+            canvasElement.height = displayedHeight;
+            
+            // Ajustar a posição do canvas para cobrir apenas a área da imagem
+            canvasElement.style.position = 'absolute';
+            canvasElement.style.left = offsetX + 'px';
+            canvasElement.style.top = offsetY + 'px';
+            
+            // Restaurar desenho existente se houver
             const drawingDataInput = canvasElement.closest('.foto-gerada-item')?.querySelector('.drawing-data');
-            if (drawingDataInput && !drawingDataInput.value) {
-                const ctx = canvasElement.getContext('2d');
-                ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            } else if (drawingDataInput && drawingDataInput.value) {
-                // Restaurar o desenho se existir
+            if (drawingDataInput && drawingDataInput.value) {
                 const img = new Image();
                 img.onload = function() {
                     const ctx = canvasElement.getContext('2d');
@@ -1166,7 +1219,7 @@
             }
         }        
         
-        // Função para criar um item de foto com campo de detalhamento e canvas de desenho
+        // Modificar a função para alternar entre 'Desenhar' e 'Salvar'
         function criarItemFotoComDetalhamento(file, container) {
             const template = document.getElementById('foto-gerada-template');
             const fotoItem = document.importNode(template.content, true).firstElementChild;
@@ -1209,17 +1262,45 @@
                 colorIndicator.style.backgroundColor = selectedColor;
             });
             
+            // Modificação: estado do desenho
+            let desenhoAtivo = false;
+            
             habilitarDesenhoBtn.addEventListener('click', function() {
-                // Desativar qualquer canvas ativo anterior
-                if (activeDrawingCanvas && activeDrawingCanvas !== drawingCanvas) {
-                    desativarDesenho(activeDrawingCanvas);
+                if (!desenhoAtivo) {
+                    // Está no modo "Desenhar" - ativa o desenho
+                    
+                    // Desativar qualquer canvas ativo anterior
+                    if (activeDrawingCanvas && activeDrawingCanvas !== drawingCanvas) {
+                        // Encontrar o botão do canvas ativo anterior e restaurá-lo
+                        const itemAnterior = activeDrawingCanvas.closest('.foto-gerada-item');
+                        const botaoAnterior = itemAnterior.querySelector('.habilitar-desenho');
+                        botaoAnterior.textContent = 'Desenhar';
+                        botaoAnterior.classList.remove('btn-warning');
+                        botaoAnterior.classList.add('btn-primary');
+                        
+                        desativarDesenho(activeDrawingCanvas);
+                    }
+                    
+                    // Ativar o desenho no canvas atual
+                    ativarDesenho(drawingCanvas, drawingDataInput, brushSizeInput, colorSelect);
+                    activeDrawingCanvas = drawingCanvas;
+                    
+                    // Mudar o botão para "Salvar"
+                    habilitarDesenhoBtn.textContent = 'Salvar';
+                    habilitarDesenhoBtn.classList.remove('btn-primary');
+                    habilitarDesenhoBtn.classList.add('btn-warning');
+                    desenhoAtivo = true;
+                } else {
+                    // Está no modo "Salvar" - desativa o desenho
+                    desativarDesenho(drawingCanvas);
+                    activeDrawingCanvas = null;
+                    
+                    // Mudar o botão de volta para "Desenhar"
+                    habilitarDesenhoBtn.textContent = 'Desenhar';
+                    habilitarDesenhoBtn.classList.remove('btn-warning');
+                    habilitarDesenhoBtn.classList.add('btn-primary');
+                    desenhoAtivo = false;
                 }
-                
-                // Ativar o desenho no canvas atual
-                ativarDesenho(drawingCanvas, drawingDataInput, brushSizeInput, colorSelect);
-                activeDrawingCanvas = drawingCanvas;
-                habilitarDesenhoBtn.classList.add('disabled');
-                habilitarDesenhoBtn.textContent = 'Desenhando...';
             });
             
             limparDesenhoBtn.addEventListener('click', function() {
@@ -1230,8 +1311,12 @@
                 if (activeDrawingCanvas === drawingCanvas) {
                     desativarDesenho(drawingCanvas);
                     activeDrawingCanvas = null;
-                    habilitarDesenhoBtn.classList.remove('disabled');
+                    
+                    // Restaurar o botão para "Desenhar"
                     habilitarDesenhoBtn.textContent = 'Desenhar';
+                    habilitarDesenhoBtn.classList.remove('btn-warning');
+                    habilitarDesenhoBtn.classList.add('btn-primary');
+                    desenhoAtivo = false;
                 }
             });
             
