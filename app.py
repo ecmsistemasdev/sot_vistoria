@@ -218,7 +218,7 @@ def listar_vistorias():
     
     # Buscar vistorias em trânsito (Saidas não finalizadas)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -229,7 +229,7 @@ def listar_vistorias():
     
     # Buscar vistorias finalizadas (Saidas com devolução ou devoluções)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -252,7 +252,7 @@ def ver_vistoria(id):
     
     # Buscar detalhes da vistoria
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
                v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
         FROM VISTORIAS v
@@ -266,7 +266,7 @@ def ver_vistoria(id):
     vistoria_saida = None
     if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
                    v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                    v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
             FROM VISTORIAS v
@@ -280,7 +280,7 @@ def ver_vistoria(id):
     vistoria_devolucao = None
     if vistoria and vistoria[4] == 'SAIDA':
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.NU_PLACA,' - ',ve.DS_MODELO) AS VEICULO, 
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
                    v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                    v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
             FROM VISTORIAS v
