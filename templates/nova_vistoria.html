@@ -383,12 +383,6 @@
                     <img id="assinatura-motorista-preview" class="signature-preview">
                 </div>
             </div>
-            <!--
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">Salvar Vistoria</button>
-                <a href="/vistorias" class="btn btn-secondary">Cancelar</a>
-            </div>
-            -->
             <div class="fixed-footer">
                 <div class="container">
                     <div class="d-flex justify-content-between align-items-center">
@@ -863,8 +857,23 @@
                 const drawingCanvas = item.querySelector('.drawing-canvas');
                 const drawingData = item.querySelector('.drawing-data').value;
                 
-                // Usar a imagem redimensionada correspondente
-                const originalFile = imagensRedimensionadas[index];
+
+                // Important: Get the file name from the data attribute 
+                const fileName = item.querySelector('.foto-input').getAttribute('data-file');
+
+                // Find the original file by name, not by index
+                let originalFile = null;
+                for (let i = 0; i < imagensRedimensionadas.length; i++) {
+                    if (imagensRedimensionadas[i].name === fileName) {
+                        originalFile = imagensRedimensionadas[i];
+                        break;
+                    }
+                }
+                
+                // If we couldn't find the file, use the index as fallback
+                if (!originalFile) {
+                    originalFile = imagensRedimensionadas[index];
+                }
                 
                 // Verificar se há desenho para mesclar
                 if (drawingData) {
