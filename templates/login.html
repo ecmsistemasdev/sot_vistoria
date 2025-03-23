@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOT - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding-top: 100px;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-img {
+            height: 60px;
+            width: auto;
+        }
+        .main-title {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            color: #666666;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container login-container">
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
+        </div>
+        <h2 class="main-title">SOTWeb - Módulo de Vistoria de Veículo</h2>
+        <div class="subtitle"><strong>Sistema de Operações de Transporte - TJRO</strong></div>
+        
+        <div id="alertContainer">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        <div class="card">
+            <div class="card-body p-4">
+                <h5 class="card-title text-center mb-4">Login</h5>
+                <form id="loginForm" method="POST" action="/autenticar">
+                    <div class="mb-3">
+                        <label for="login" class="form-label">Login</label>
+                        <input type="text" class="form-control" id="login" name="login" required maxlength="7">
+                    </div>
+                    <div class="mb-3">
+                        <label for="senha" class="form-label">Senha</label>
+                        <input type="password" class="form-control" id="senha" name="senha" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">Entrar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Verificar se já existe um usuário logado no localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const usuarioLogado = localStorage.getItem('usuario_logado');
+            if (usuarioLogado === 'true') {
+                window.location.href = '/';
+            }
+        });
+        
+        // Manipular o envio do formulário de login
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('/autenticar', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    // Salvar dados do usuário no localStorage
+                    localStorage.setItem('usuario_logado', 'true');
+                    localStorage.setItem('usuario_id', data.usuario_id);
+                    localStorage.setItem('usuario_nome', data.usuario_nome);
+                    localStorage.setItem('nivel_acesso', data.nivel_acesso);
+                    
+                    // Redirecionar para a página inicial
+                    window.location.href = '/';
+                } else {
+                    // Exibir mensagem de erro
+                    const alertContainer = document.getElementById('alertContainer');
+                    alertContainer.innerHTML = '<div class="alert alert-danger" role="alert">Credenciais inválidas. Tente novamente.</div>';
+                    
+                    // Limpar o campo de senha
+                    document.getElementById('senha').value = '';
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                // Exibir mensagem de erro
+                const alertContainer = document.getElementById('alertContainer');
+                alertContainer.innerHTML = '<div class="alert alert-danger" role="alert">Erro ao processar a requisição. Tente novamente.</div>';
+            });
+        });
+    </script>
+</body>
+</html>

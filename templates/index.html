@@ -6,6 +6,14 @@
     <title>SOT - Vistoria de Veículo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
     <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .content {
+            flex: 1 0 auto;
+        }
         .logo-container {
             text-align: center;
             margin-bottom: 20px;
@@ -32,48 +40,97 @@
                 margin-bottom: 20px;
             }
         }
+        /* Estilo para o footer fixo */
+        .footer {
+            flex-shrink: 0;
+            background-color: #343a40;
+            color: white;
+            padding: 10px 0;
+            width: 100%;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+        }
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .footer-content .btn-logout {
+            color: white;
+            background-color: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        .footer-content .btn-logout:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
     </style>
+    <!-- Adicionar o script de verificação de autenticação -->
+    <script src="{{ url_for('static', filename='js/auth-check.js') }}"></script>
 </head>
 <body>
-    <div class="container mt-4">
-        <div class="logo-container">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
-        </div>
-        <h2 class="main-title">SOTWeb - Vistoria de Veículo Oficial</h2>
-        <div class="subtitle"><strong>Sistema de Operações de Transporte - TJRO</strong></div>       
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" role="alert">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        <div class="row mt-4">
-            <div class="col-md-6 card-spacing">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Nova Vistoria</h5>
-                        <p class="card-text">Criar uma nova vistoria de veículo.</p>
-                        <a href="/nova_vistoria" class="btn btn-primary">Criar Vistoria</a>
+    <div class="content">
+        <div class="container mt-4 mb-5">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
+            </div>
+            <h2 class="main-title">SOTWeb - Vistoria de Veículo Oficial</h2>
+            <div class="subtitle"><strong>Sistema de Operações de Transporte - TJRO</strong></div>       
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" role="alert">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="row mt-4">
+                <div class="col-md-6 card-spacing">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Nova Vistoria</h5>
+                            <p class="card-text">Criar uma nova vistoria de veículo.</p>
+                            <a href="/nova_vistoria" class="btn btn-primary">Criar Vistoria</a>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Listar Vistorias</h5>
-                        <p class="card-text">Consultar vistorias já realizadas.</p>
-                        <a href="/vistorias" class="btn btn-secondary">Ver Vistorias</a>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Listar Vistorias</h5>
+                            <p class="card-text">Consultar vistorias já realizadas.</p>
+                            <a href="/vistorias" class="btn btn-secondary">Ver Vistorias</a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
     
+    <!-- Footer fixo -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div id="userInfo">Usuário</div>
+                <button class="btn btn-sm btn-logout" onclick="fazerLogout()">Sair</button>
+            </div>
+        </div>
+    </footer>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Script para exibir informações do usuário -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const usuarioNome = localStorage.getItem('usuario_nome');
+            
+            if (usuarioNome) {
+                document.getElementById('userInfo').textContent = usuarioNome;
+            }
+        });
+    </script>
 </body>
 </html>
