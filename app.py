@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session
+from functools import wraps
 import os
 from flask_mysqldb import MySQL
 import uuid
@@ -19,9 +20,70 @@ mysql = MySQL(app)
 # Configuração para segurança
 app.secret_key = os.getenv('SECRET_KEY')
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'usuario_logado' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
+
+@app.route('/login')
+def login():
+    if 'usuario_logado' in session:
+        return redirect(url_for('index'))
+    return render_template('login.html')
+
+@app.route('/autenticar', methods=['POST'])
+def autenticar():
+    login = request.form['login']
+    senha = request.form['senha']
+    
+    # Criptografa a senha para comparação
+    senha_criptografada = criptografar(senha)
+    
+    # Busca o usuário no banco de dados
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT ID_USUARIO, NM_USUARIO, NIVEL_ACESSO 
+        FROM TJ_USUARIO 
+        WHERE US_LOGIN = %s 
+        AND SENHA = %s 
+        AND FL_STATUS = 'A'
+    """, (login, senha_criptografada))
+    
+    usuario = cur.fetchone()
+    cur.close()
+    
+    if usuario:
+        # Usuário encontrado e senha correta
+        session['usuario_logado'] = True
+        session['usuario_id'] = usuario[0]
+        session['usuario_nome'] = usuario[1]
+        session['nivel_acesso'] = usuario[2]
+        
+        # Retorna dados para salvar no localStorage via JavaScript
+        return jsonify({
+            'sucesso': True,
+            'usuario_id': usuario[0],
+            'usuario_nome': usuario[1],
+            'nivel_acesso': usuario[2]
+        })
+    else:
+        # Usuário não encontrado ou credenciais inválidas
+        flash('Credenciais inválidas. Tente novamente.', 'danger')
+        return jsonify({'sucesso': False, 'mensagem': 'Credenciais inválidas'})
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
 
 @app.route('/nova_vistoria')
 def nova_vistoria():
@@ -75,6 +137,8 @@ def salvar_vistoria():
         hodometro = request.form['hodometro']
         obs = request.form['observacoes']
         
+        # Obter o nome do usuário da sessão
+        usuario_nome = session.get('usuario_nome', 'Sistema')
 
         # Obter as assinaturas
         assinatura_usuario_data = request.form.get('assinatura_usuario')
@@ -108,17 +172,17 @@ def salvar_vistoria():
             # Para vistorias de SAIDA, definir status como EM_TRANSITO
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS) 
-                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin, obs)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO) 
+                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome)
             )
         else:  # DEVOLUCAO
             # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS) 
-                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin, obs)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO) 
+                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome)
             )
             # Atualizar status da vistoria de saida para finalizada
             cur.execute(
@@ -359,6 +423,38 @@ def get_assinatura(tipo, vistoria_id):
         download_name=f'assinatura_{tipo}_{vistoria_id}.png'  # nome do arquivo ao baixar
     )
     
+
+def criptografar(texto):
+    key = '123456'
+    resultado = ''
+    
+    for i in range(len(texto)):
+        # Aplica XOR entre o caractere do texto e o caractere correspondente da chave
+        c = ord(key[i % len(key)]) ^ ord(texto[i])
+        # Converte para hexadecimal e garante que tenha 2 dígitos
+        resultado += f'{c:02x}'
+    
+    return resultado
+
+def descriptografar(texto):
+    key = '123456'
+    resultado = ''
+    
+    # Processa cada par de caracteres hexadecimais
+    for i in range(0, len(texto) // 2):
+        # Converte o par de caracteres hexadecimais para um valor inteiro
+        try:
+            c = int(texto[i*2:i*2+2], 16)
+        except ValueError:
+            # Se não for possível converter, usa espaço como fallback (como no Delphi)
+            c = ord(' ')
+        
+        # Aplica XOR novamente para reverter a criptografia
+        c = ord(key[i % len(key)]) ^ c
+        resultado += chr(c)
+    
+    return resultado
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
