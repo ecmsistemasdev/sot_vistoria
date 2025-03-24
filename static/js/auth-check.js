@@ -1,28 +1,40 @@
 function verificarAutenticacao() {
     const usuarioLogado = localStorage.getItem('usuario_logado');
+    const paginaAtual = window.location.pathname;
     
-    // Se não estiver na página de login e não houver usuário logado
-    if (window.location.pathname !== '/login' && usuarioLogado !== 'true') {
-        window.location.href = '/login';
-        return false;
+    // Se estamos em uma página diferente de login e não há usuário logado
+    if (paginaAtual !== '/login' && usuarioLogado !== 'true') {
+        // Verificar se não estamos já sendo redirecionados para evitar loop
+        if (!sessionStorage.getItem('redirecionando')) {
+            sessionStorage.setItem('redirecionando', 'true');
+            window.location.href = '/login';
+            return false;
+        }
+    } 
+    // Se estamos na página de login e há usuário logado
+    else if (paginaAtual === '/login' && usuarioLogado === 'true') {
+        // Verificar se não estamos já sendo redirecionados para evitar loop
+        if (!sessionStorage.getItem('redirecionando')) {
+            sessionStorage.setItem('redirecionando', 'true');
+            window.location.href = '/';
+            return false;
+        }
     }
-    
-    // Se estiver na página de login e houver usuário logado
-    if (window.location.pathname === '/login' && usuarioLogado === 'true') {
-        window.location.href = '/';
-        return false;
-    }
-    
-    // Se estiver em uma página autenticada, adicionar o footer caso ele ainda não exista
-    if (usuarioLogado === 'true' && window.location.pathname !== '/login' && !document.querySelector('.footer')) {
-        adicionarFooter();
+    // Limpar o flag de redirecionamento se estamos na página correta
+    else {
+        sessionStorage.removeItem('redirecionando');
+        
+        // Se estiver em uma página autenticada, adicionar o footer
+        if (usuarioLogado === 'true' && paginaAtual !== '/login' && !document.querySelector('.footer')) {
+            adicionarFooter();
+        }
     }
     
     return true;
 }
 
-// Executa a verificação quando a página carrega
-document.addEventListener('DOMContentLoaded', verificarAutenticacao);
+// Executa a verificação quando a página carrega completa
+window.addEventListener('load', verificarAutenticacao);
 
 // Função para adicionar o footer dinâmicamente
 function adicionarFooter() {
