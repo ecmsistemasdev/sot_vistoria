@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Vistoria</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <style>
+        .tipo-vistoria-badge {
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            margin-left: 1rem;
+        }
+        /* Estilos para o controle deslizante de combustível */
+        .fuel-slider-container {
+            margin: 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .fuel-slider-label {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .fuel-slider-value {
+            margin-left: 5px;
+            font-weight: normal;
+        }
+        .fuel-slider-content {
+            flex: 1;
+        }
+        .fuel-slider {
+            width: 100%;
+            margin: 5px 0;
+        }
+        .fuel-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #666;
+        }
+        .fixed-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+            padding: 15px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        
+        .container {
+            padding-bottom: 5px;
+        }
+
+        .btn-saving {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+        .motorista-link-box {
+            word-break: break-all;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Responsividade para o layout de 4 colunas */
+        @media (min-width: 992px) {
+            .flex-fields-container {
+                display: flex;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            .flex-field {
+                flex: 1;
+                margin-bottom: 0;
+            }
+            .fuel-slider-container {
+                margin: 0;
+            }
+        }
+
+        /* Para telas menores */
+        @media (max-width: 991px) {
+            .flex-field {
+                margin-bottom: 15px;
+            }
+            .fuel-slider-container {
+                margin-bottom: 20px;
+            }
+        }
+        
+        /* Estilo para o link no modal */
+        .link-container {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .motorista-link {
+            flex-grow: 1;
+            font-family: monospace;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 5px 10px;
+            margin-right: 10px;
+        }
+        
+        .copy-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+    <script src="{{ url_for('static', filename='js/auth-check.js') }}"></script>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="d-flex align-items-center">
+            <h3>Nova Vistoria</h3>
+            {% if tipo == 'INICIAL' %}
+            <span class="badge bg-primary tipo-vistoria-badge">Inicial</span>
+            {% else %}
+            <span class="badge bg-success tipo-vistoria-badge">Confirmação</span>
+            {% endif %}
+        </div>
+        
+        <form id="vistoriaForm" action="/salvar_vistoria2" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="tipo" value="{{ tipo }}">
+            {% if vistoria_saida_id %}
+            <input type="hidden" name="vistoria_saida_id" value="{{ vistoria_saida_id }}">
+            {% endif %}
+            
+            <!-- Layout modificado com 4 colunas em telas maiores -->
+            <div class="flex-fields-container">
+                <div class="flex-field">
+                    <label for="id_motorista" class="form-label">Motorista</label>
+                    {% if tipo == 'CONFIRMACAO' %}
+                    <input type="hidden" name="id_motorista" value="{{ motorista_id }}">
+                    <input type="text" class="form-control" value="{{ motorista_nome }}" readonly>
+                    {% else %}
+                    <select class="form-select" id="id_motorista" name="id_motorista" required>
+                        <option value="">Selecione um motorista</option>
+                        {% for motorista in motoristas %}
+                        <option value="{{ motorista[0] }}">{{ motorista[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+                
+                <div class="flex-field">
+                    <label for="id_veiculo" class="form-label">Veículo</label>
+                    {% if tipo == 'CONFIRMACAO' %}
+                    <input type="hidden" name="id_veiculo" value="{{ veiculo_id }}">
+                    <input type="text" class="form-control" value="{{ veiculo_placa }}" readonly>
+                    {% else %}
+                    <select class="form-select" id="id_veiculo" name="id_veiculo" required>
+                        <option value="">Selecione um veículo</option>
+                        {% for veiculo in veiculos %}
+                        <option value="{{ veiculo[0] }}">{{ veiculo[1] }}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+                
+                <!-- Novo campo de Hodômetro -->
+                <div class="flex-field">
+                    <label for="hodometro" class="form-label">Hodômetro (Km)</label>
+                    <input type="number" class="form-control" id="hodometro" name="hodometro" min="0" value="0">
+                </div>
+                
+                <!-- Controle deslizante para o nível de combustível -->
+                <div class="flex-field fuel-slider-container">
+                    <div class="fuel-slider-label">
+                        Combustível: <span class="fuel-slider-value" id="combustivel-valor">100%</span>
+                    </div>
+                    <div class="fuel-slider-content">
+                        <input type="range" class="form-range fuel-slider" id="combustivel" name="combustivel" min="0" max="100" value="100" step="1">
+                        <div class="fuel-markers">
+                            <span>0</span>
+                            <span>1/4</span>
+                            <span>1/2</span>
+                            <span>3/4</span>
+                            <span>1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label for="observacoes" class="form-label">Observações Gerais</label>
+                <textarea class="form-control" id="observacoes" name="observacoes" maxlength="150" rows="3" placeholder="Digite observações gerais sobre a vistoria (máx. 150 caracteres)"></textarea>
+                <div class="form-text"><span id="char-count">0</span>/150 caracteres</div>
+            </div>
+                                    
+            <div class="fixed-footer">
+                <div class="container">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="submit" class="btn btn-primary" id="salvar-btn">
+                            <span id="btn-text">Salvar Vistoria</span>
+                            <span id="spinner-loading" class="spinner-border spinner-border-sm ms-2" role="status" style="display: none;"></span>
+                        </button>
+                        <a href="/" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </div>
+            </div>
+            <div style="height: 80px;"></div>            
+        </form>
+    </div>
+    
+    <!-- Modal de Confirmação para motorista -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background-color: #e6f2ff;">
+                    <h5 class="modal-title text-primary" id="successModalLabel">Vistoria iniciada com sucesso</h5>
+                </div>
+                <div class="modal-body">
+                    <p>Copie o link abaixo e envie ao motorista para incluir as fotos do veículo.</p>
+                    
+                    <div class="link-container mb-3">
+                        <div class="motorista-link-box p-2 rounded text-truncate" id="motorista-link"></div>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-sm px-3" id="copiar-link">
+                        Copiar Link
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-voltar">Voltar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    <!-- Notificação de cópia -->
+    <div class="copy-notification" id="copy-notification">
+        Link copiado com sucesso!
+    </div>
+        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Configurar o controle deslizante de combustível
+        function configurarControleDeslizanteCombustivel() {
+            const combustivelSlider = document.getElementById('combustivel');
+            const combustivelValor = document.getElementById('combustivel-valor');
+            
+            if (combustivelSlider && combustivelValor) {
+                combustivelSlider.addEventListener('input', function() {
+                    combustivelValor.textContent = this.value + '%';
+                });
+            }
+        }
+        
+        configurarControleDeslizanteCombustivel();
+
+        // Configurar campo de observações
+        function configurarObservacoes() {
+            const observacoes = document.getElementById('observacoes');
+            if (observacoes) {
+                observacoes.addEventListener('input', function() {
+                    const charCount = this.value.length;
+                    document.getElementById('char-count').textContent = charCount;
+                    
+                    // Mudar a cor se estiver próximo do limite
+                    if (charCount > 130) {
+                        document.getElementById('char-count').style.color = 'red';
+                    } else {
+                        document.getElementById('char-count').style.color = '';
+                    }
+                });
+            }
+        }
+
+        // Mostrar modal com link para o motorista
+        function mostrarModalSucesso(idVistoria) {
+            // Obter a URL base atual
+            const urlBase = window.location.protocol + '//' + window.location.host;
+            const linkMotorista = urlBase + '/confirma_vistoria/' + idVistoria;
+            
+            // Configurar o link no modal
+            const motoristaLinkElement = document.getElementById('motorista-link');
+            if (motoristaLinkElement) {
+                motoristaLinkElement.textContent = linkMotorista;
+            }
+            
+            // Configurar o botão para copiar o link
+            const btnCopiarLink = document.getElementById('copiar-link');
+            if (btnCopiarLink) {
+                btnCopiarLink.addEventListener('click', function() {
+                    // Criar elemento de texto temporário para copiar o link
+                    const tempInput = document.createElement('textarea');
+                    tempInput.value = linkMotorista;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    
+                    // Mostrar notificação de cópia
+                    const notification = document.getElementById('copy-notification');
+                    notification.style.display = 'block';
+                    setTimeout(function() {
+                        notification.style.display = 'none';
+                    }, 2000);
+                });
+            }
+            
+            // Configurar o botão para voltar à lista de vistorias
+            const btnVoltar = document.getElementById('btn-voltar');
+            if (btnVoltar) {
+                btnVoltar.addEventListener('click', function() {
+                    window.location.href = '/vistorias';
+                });
+            }
+            
+            // Mostrar o modal
+            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+        }
+
+        // Configurar envio do formulário
+        function configurarFormulario() {
+            const form = document.getElementById('vistoriaForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Criar FormData para o envio
+                    const formData = new FormData(this);
+                    
+                    // Mostrar spinner e alterar texto do botão
+                    const salvarBtn = document.getElementById('salvar-btn');
+                    const btnText = document.getElementById('btn-text');
+                    const spinner = document.getElementById('spinner-loading');
+                    
+                    // Desativar o botão e mostrar o spinner
+                    salvarBtn.classList.add('btn-saving');
+                    btnText.textContent = "Salvando, aguarde...";
+                    spinner.style.display = "inline-block";
+                    
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', this.action, true);
+                    xhr.responseType = 'json';
+                    
+                    xhr.onload = function() {
+                        // Restaurar o botão
+                        salvarBtn.classList.remove('btn-saving');
+                        btnText.textContent = "Salvar Vistoria";
+                        spinner.style.display = "none";
+                        
+                        if (xhr.status === 200) {
+                            // Verificar se a resposta contém o ID da vistoria
+                            if (xhr.response && xhr.response.id_vistoria) {
+                                mostrarModalSucesso(xhr.response.id_vistoria);
+                            } else {
+                                // Caso não tenha o ID, mas a operação foi bem sucedida
+                                window.location.href = '/vistorias';
+                            }
+                        } else {
+                            alert('Houve um erro ao salvar a vistoria. Por favor, tente novamente.');
+                        }
+                    };
+                    
+                    xhr.onerror = function() {
+                        // Restaurar o botão em caso de erro
+                        salvarBtn.classList.remove('btn-saving');
+                        btnText.textContent = "Salvar Vistoria";
+                        spinner.style.display = "none";
+                        
+                        alert('Houve um erro na conexão. Por favor, verifique sua internet e tente novamente.');
+                    };
+                    
+                    xhr.send(formData);
+                });
+            }
+        }
+        
+        // Inicializar todas as funcionalidades
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnCopiarLink = document.getElementById('copiar-link');
+            const linkElement = document.getElementById('motorista-link');
+
+            function copyToClipboard(text) {
+                // Tentar primeiro o método moderno
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showCopyFeedback();
+                    }).catch(err => {
+                        // Se falhar, tentar método alternativo
+                        fallbackCopyTextToClipboard(text);
+                    });
+                } else {
+                    // Método para navegadores mais antigos
+                    fallbackCopyTextToClipboard(text);
+                }
+            }
+
+            function fallbackCopyTextToClipboard(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showCopyFeedback();
+                } catch (err) {
+                    console.error('Erro ao copiar:', err);
+                }
+                
+                document.body.removeChild(textArea);
+            }
+
+            function showCopyFeedback() {
+                const originalText = btnCopiarLink.innerHTML;
+                btnCopiarLink.innerHTML = 'Copiado!';
+                btnCopiarLink.classList.remove('btn-primary');
+                btnCopiarLink.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    btnCopiarLink.innerHTML = originalText;
+                    btnCopiarLink.classList.remove('btn-success');
+                    btnCopiarLink.classList.add('btn-primary');
+                }, 2000);
+            }
+
+            // Evento de clique para copiar
+            btnCopiarLink.addEventListener('click', function() {
+                const linkText = linkElement.textContent.trim();
+                copyToClipboard(linkText);
+            });
+
+            configurarObservacoes();
+            configurarFormulario();
+
+        });
+    </script>
+</body>
+</html>

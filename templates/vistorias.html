@@ -147,7 +147,56 @@
                 </tbody>
             </table>
         </div>
-        
+
+        <!-- Vistorias pendentes -->
+        <h3 class="section-title">Vistorias pendentes</h3>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Motorista</th>
+                        <th>Veículo</th>
+                        <th>Data</th>
+                        <th class="vistoria-tipo">Tipo</th>
+                        <th class="vistoria-status">Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vistorias_pendentes %}
+                    <tr>
+                        <td>{{ v[0] }}</td>
+                        <td>{{ v[1] }}</td>
+                        <td>{{ v[2] }}</td>
+                        <td>{{ v[3].strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {% if v[4] == 'INICIAL' %}
+                            <span class="badge bg-success">Iniciada (2 etapas)</span>
+                            {% else %}
+                            <span class="badge bg-primary">A Confirmar</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-warning">Em Trânsito</span>
+                        </td>
+                        <td class="btn-actions">
+                            {% if v[4] == 'INICIAL' %}
+                            <span class="badge bg-secondary">Aguardando Fotos</span>
+                            {% else %}
+                            <a href="/vistoria_finaliza/{{ v[0] }}" class="btn btn-sm btn-dark">Confirmar</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Não há vistorias em trânsito</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>        
+
         <!-- Vistorias finalizadas -->
         <h3 class="section-title">Vistorias Finalizadas</h3>
         <div class="table-responsive">
