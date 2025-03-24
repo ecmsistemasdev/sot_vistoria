@@ -142,7 +142,7 @@
         .signature-toggle-btn {
             margin-right: 10px;
         }
-                
+
         .fixed-footer {
             position: fixed;
             bottom: 0;
@@ -548,10 +548,26 @@
             if (typeof SignaturePad !== 'undefined' && !signaturePadUsuario && !signaturePadMotorista) {
                 const padUsuario = document.getElementById('signature-pad-usuario');
                 const padMotorista = document.getElementById('signature-pad-motorista');
+                const containerUsuario = padUsuario.closest('.signature-pad-container');
+                const containerMotorista = padMotorista.closest('.signature-pad-container');
                 const btnUsuario = document.getElementById('assinar-usuario-btn');
                 const btnMotorista = document.getElementById('assinar-motorista-btn');
                 
                 if (padUsuario && padMotorista) {
+                    // Always make containers visible
+                    containerUsuario.style.display = 'block';
+                    containerMotorista.style.display = 'block';
+                    
+                    // Increase the height of signature pads
+                    containerUsuario.style.height = '300px';
+                    containerMotorista.style.height = '300px';
+                    
+                    padUsuario.width = containerUsuario.offsetWidth;
+                    padUsuario.height = 300;
+                    
+                    padMotorista.width = containerMotorista.offsetWidth;
+                    padMotorista.height = 300;
+                    
                     signaturePadUsuario = new SignaturePad(padUsuario, {
                         backgroundColor: 'rgb(255, 255, 255)',
                         penColor: 'rgb(0, 0, 0)'
@@ -562,55 +578,39 @@
                         penColor: 'rgb(0, 0, 0)'
                     });
                     
-                    // Configurar botão de assinatura do usuário
+                    // Configure user signature button
                     btnUsuario.addEventListener('click', function() {
-                        const padContainer = padUsuario.closest('.signature-pad-container');
-                        
-                        if (padContainer.style.display === 'none') {
-                            // Ativar assinatura
-                            padContainer.style.display = 'block';
-                            btnUsuario.textContent = 'Salvar';
-                            btnUsuario.classList.remove('btn-primary');
-                            btnUsuario.classList.add('btn-success');
-                        } else {
-                            // Salvar assinatura
-                            if (!signaturePadUsuario.isEmpty()) {
-                                const assinaturaData = signaturePadUsuario.toDataURL('image/png');
-                                document.getElementById('assinatura-usuario-input').value = assinaturaData;
-                                
-                                padContainer.style.display = 'none';
-                                btnUsuario.textContent = 'Assinar';
-                                btnUsuario.classList.remove('btn-success');
-                                btnUsuario.classList.add('btn-primary');
-                            }
+                        if (signaturePadUsuario.isEmpty()) {
+                            alert('Por favor, assine o campo do usuário.');
+                            return;
                         }
+                        
+                        const assinaturaData = signaturePadUsuario.toDataURL('image/png');
+                        document.getElementById('assinatura-usuario-input').value = assinaturaData;
+                        
+                        // Show preview
+                        const previewUsuario = document.getElementById('assinatura-usuario-preview');
+                        previewUsuario.src = assinaturaData;
+                        previewUsuario.style.display = 'block';
                     });
                     
-                    // Configurar botão de assinatura do motorista (similar ao usuário)
+                    // Configure driver signature button
                     btnMotorista.addEventListener('click', function() {
-                        const padContainer = padMotorista.closest('.signature-pad-container');
-                        
-                        if (padContainer.style.display === 'none') {
-                            // Ativar assinatura
-                            padContainer.style.display = 'block';
-                            btnMotorista.textContent = 'Salvar';
-                            btnMotorista.classList.remove('btn-primary');
-                            btnMotorista.classList.add('btn-success');
-                        } else {
-                            // Salvar assinatura
-                            if (!signaturePadMotorista.isEmpty()) {
-                                const assinaturaData = signaturePadMotorista.toDataURL('image/png');
-                                document.getElementById('assinatura-motorista-input').value = assinaturaData;
-                                
-                                padContainer.style.display = 'none';
-                                btnMotorista.textContent = 'Assinar';
-                                btnMotorista.classList.remove('btn-success');
-                                btnMotorista.classList.add('btn-primary');
-                            }
+                        if (signaturePadMotorista.isEmpty()) {
+                            alert('Por favor, assine o campo do motorista.');
+                            return;
                         }
+                        
+                        const assinaturaData = signaturePadMotorista.toDataURL('image/png');
+                        document.getElementById('assinatura-motorista-input').value = assinaturaData;
+                        
+                        // Show preview
+                        const previewMotorista = document.getElementById('assinatura-motorista-preview');
+                        previewMotorista.src = assinaturaData;
+                        previewMotorista.style.display = 'block';
                     });
                     
-                    // Adicionar botão para limpar assinatura
+                    // Add clear buttons
                     const limparBotaoUsuario = document.createElement('button');
                     limparBotaoUsuario.type = 'button';
                     limparBotaoUsuario.textContent = 'Limpar';
@@ -618,6 +618,7 @@
                     limparBotaoUsuario.addEventListener('click', function() {
                         signaturePadUsuario.clear();
                         document.getElementById('assinatura-usuario-input').value = '';
+                        document.getElementById('assinatura-usuario-preview').style.display = 'none';
                     });
                     btnUsuario.parentNode.insertBefore(limparBotaoUsuario, btnUsuario.nextSibling);
                     
@@ -625,14 +626,30 @@
                     limparBotaoMotorista.addEventListener('click', function() {
                         signaturePadMotorista.clear();
                         document.getElementById('assinatura-motorista-input').value = '';
+                        document.getElementById('assinatura-motorista-preview').style.display = 'none';
                     });
                     btnMotorista.parentNode.insertBefore(limparBotaoMotorista, btnMotorista.nextSibling);
                 }
-                
-                // Ajustar tamanho dos pads de assinatura
-                resizeSignaturePads();
             }
-        }        
+        }
+
+        // Update validation function to ensure both signatures are present
+        function validarAssinaturas() {
+            const assinaturaUsuarioValue = document.getElementById('assinatura-usuario-input').value;
+            const assinaturaMotoristaValue = document.getElementById('assinatura-motorista-input').value;
+            
+            if (!assinaturaUsuarioValue || assinaturaUsuarioValue === '') {
+                alert('Por favor, assine o campo do usuário antes de salvar.');
+                return false;
+            }
+            
+            if (!assinaturaMotoristaValue || assinaturaMotoristaValue === '') {
+                alert('Por favor, assine o campo do motorista antes de salvar.');
+                return false;
+            }
+            
+            return true;
+        }
         
         // Event listener para o input de múltiplas fotos
         document.addEventListener('DOMContentLoaded', function() {
