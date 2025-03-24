@@ -127,20 +127,25 @@ def confirma_vistoria(id):
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.IDVISTORIA = %s
+        WHERE v.TIPO = 'INICIAL' AND v.IDVISTORIA = %s
     """, (id,))
     vistoria = cur.fetchone()
 
-    return render_template(
-        'confirma_vistoria.html',
-        motorista_id=vistoria[1],
-        motorista_nome=vistoria[2],
-        veiculo_id=vistoria[3],
-        veiculo_placa=vistoria[4],
-        combustivel=vistoria[8],
-        hodometro=vistoria[9],
-        tipo='INICIAL'
-    )
+    if vistoria:
+        return render_template(
+            'confirma_vistoria.html',
+            vistoria_id=vistoria[0],
+            motorista_id=vistoria[1],
+            motorista_nome=vistoria[2],
+            veiculo_id=vistoria[3],
+            veiculo_placa=vistoria[4],
+            combustivel=vistoria[8],
+            hodometro=vistoria[9],
+            tipo='INICIAL'
+        )
+    else:
+        return redirect(url_for('ver_vistoria2', id=id))
+       
 
 
 @app.route('/nova_vistoria_devolucao/<int:vistoria_saida_id>')
@@ -340,7 +345,7 @@ def salvar_vistoria2():
         obs = request.form['observacoes']
         
         # Obter o nome do usuário da sessão
-        usuario_nome = session.get('usuario_nome', 'Sistema')
+        usuario_nome = session.get('usuario_nome')
         
         # Criar uma nova vistoria
         cur = mysql.connection.cursor()
@@ -394,7 +399,7 @@ def salvar_vistoria3():
             return "ID da vistoria não encontrado na sessão", 400
         
         # Obter dados do formulário
-        tipo = 'SAIDA'  # Pegamos o tipo do formulário
+        tipo = 'CONFIRMACAO' 
         combustivel = request.form['combustivel']
         hodometro = request.form['hodometro']
         obs = request.form['observacoes']
@@ -633,6 +638,77 @@ def ver_vistoria(id):
         vistoria_saida=vistoria_saida,
         vistoria_devolucao=vistoria_devolucao
     )
+
+@app.route('/vistoria2/<int:id>')
+def ver_vistoria2(id):
+    cur = mysql.connection.cursor()
+    
+    # Buscar detalhes da vistoria
+    cur.execute("""
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
+               v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+               v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
+        FROM VISTORIAS v
+        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+        WHERE v.IDVISTORIA = %s
+    """, (id,))
+    vistoria = cur.fetchone()
+    
+    # Se for uma vistoria de devolução, buscar também a vistoria de saida
+    vistoria_saida = None
+    if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
+        cur.execute("""
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
+            FROM VISTORIAS v
+            JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+            JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+            WHERE v.IDVISTORIA = %s
+        """, (vistoria[8],))
+        vistoria_saida = cur.fetchone()
+    
+    # Se for uma vistoria de saida, buscar se já existe uma vistoria de devolução
+    vistoria_devolucao = None
+    if vistoria and vistoria[4] == 'SAIDA':
+        cur.execute("""
+            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
+                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
+            FROM VISTORIAS v
+            JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+            JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+            WHERE v.VISTORIA_SAIDA_ID = %s
+        """, (id,))
+        vistoria_devolucao = cur.fetchone()
+    
+    # Buscar fotos e detalhamentos da vistoria
+    cur.execute("""
+        SELECT ID, DETALHAMENTO
+        FROM VISTORIA_ITENS
+        WHERE IDVISTORIA = %s
+    """, (id,))
+    itens_raw = cur.fetchall()
+    
+    # Converter para dicionários para uso no template
+    itens = []
+    for item in itens_raw:
+        itens.append({
+            'id': item[0],
+            'detalhamento': item[1]
+        })
+    
+    cur.close()
+    
+    return render_template(
+        'ver_vistoria2.html', 
+        vistoria=vistoria, 
+        itens=itens,
+        vistoria_saida=vistoria_saida,
+        vistoria_devolucao=vistoria_devolucao
+    )
+
 
 @app.route('/vistoria_finaliza/<int:id>')
 def vistoria_finaliza(id):
