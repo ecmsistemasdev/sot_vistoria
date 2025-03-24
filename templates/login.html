@@ -106,22 +106,16 @@
     <script>
         // Verificar se já existe um usuário logado no localStorage
         document.addEventListener('DOMContentLoaded', function() {
+            // Verificar se estamos no meio de um redirecionamento
+            if (sessionStorage.getItem('redirecionando')) {
+                return; // Não fazer nada se estamos redirecionando
+            }
+            
             const usuarioLogado = localStorage.getItem('usuario_logado');
             if (usuarioLogado === 'true') {
+                sessionStorage.setItem('redirecionando', 'true');
                 window.location.href = '/';
             }
-
-            // Adicionar validação para o campo login (somente números)
-            const loginInput = document.getElementById('login');
-            loginInput.addEventListener('input', function(e) {
-                // Remove caracteres não numéricos
-                this.value = this.value.replace(/[^0-9]/g, '');
-                
-                // Limita a 6 dígitos
-                if (this.value.length > 6) {
-                    this.value = this.value.slice(0, 6);
-                }
-            });
         });
         
         // Manipular o envio do formulário de login
