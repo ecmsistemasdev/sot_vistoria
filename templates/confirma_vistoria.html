@@ -243,7 +243,7 @@
             {% endif %}
         </div>
         
-        <form id="vistoriaForm" action="/salvar_vistoria3" method="post" enctype="multipart/form-data">
+        <form id="vistoriaForm" action="/salvar_vistoria3" method="post" enctype="multipart/form-data" data-vistoria-id="{{ vistoria_id }}">
             <!-- Layout modificado com 4 colunas em telas maiores -->
             <div class="flex-fields-container">
                 <div class="flex-field">
@@ -936,7 +936,14 @@
         // Função para enviar o formulário
         function enviarVistoria(e) {
             e.preventDefault();
-            
+
+            // Nova validação para combustível
+            const hodometroValor = parseInt(document.getElementById('hodometro').value);
+            if (hodometroValor === 0) {
+                alert('Obrigatório informar o hodômetro.');
+                return;
+            }
+
             // Salvar o estado atual das assinaturas antes de validar
             salvarEstadoAssinaturas();
             
@@ -1001,16 +1008,20 @@
             
             // Desativar o botão e mostrar o spinner
             salvarBtn.classList.add('btn-saving');
-            salvarBtn.disabled = true; // Adicione esta linha para desabilitar o botão
+            salvarBtn.disabled = true;
             btnText.textContent = "Salvando, aguarde...";
             spinner.style.display = "inline-block";
             
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/salvar_vistoria3', true); // Garantir que estamos usando a URL correta
+            xhr.open('POST', '/salvar_vistoria3', true);
             
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    window.location.href = '/vistorias';
+                    // Use the vistoria_id passed in the template rendering
+                    const vistoriaId = document.getElementById('vistoriaForm').getAttribute('data-vistoria-id');
+                    
+                    // Redirect immediately after successful save
+                    window.location.href = `/vistoria2/${vistoriaId}`;
                 } else {
                     // Restaurar o botão em caso de erro
                     salvarBtn.classList.remove('btn-saving');

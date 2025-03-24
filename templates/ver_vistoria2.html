@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOT - Vistoria de Veículo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <style>
+        .item-foto {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid black;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        .foto-card {
+            margin-bottom: 5px;
+        }
+        .vistoria-header {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .vistoria-header h3 {
+            font-size: 1rem; /* Reduzido para o mesmo tamanho dos captions */
+            font-weight: bold;
+        }
+        .vistoria-tipo {
+            font-size: 1rem;
+            padding: 5px 10px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .vistoria-status {
+            font-size: 1rem;
+            padding: 5px 10px;
+            margin-left: 10px;
+        }
+        .vistoria-relacionada {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .vistoria-relacionada h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-img {
+            height: 60px;
+            width: auto;
+        }
+        .main-title {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px; /* Reduzido para aproximar o subtítulo */
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            color: #666666;
+        }
+        /* Estilos modificados para o medidor de combustível */
+        .fuel-container {
+            position: relative;
+            height: 15px; /* Altura total do container incluindo marcadores */
+            margin-top: 5px;
+            margin-bottom: 15px; /* Espaço para os rótulos de texto */
+        }
+        .fuel-level {
+            position: absolute;
+            top: 6px; /* Centralizado verticalmente */
+            left: 0;
+            height: 3px; /* Linha fina de 3px */
+            background-color: #000; /* Cor preta */
+        }
+        .fuel-markers {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            height: 15px;
+        }
+        .fuel-marker {
+            position: relative;
+            width: 1px;
+            height: 15px;
+            background-color: #000;
+        }
+        .fuel-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+        /* Estilos para as assinaturas */
+        .assinatura-img {
+            max-width: 100%;
+            max-height: 150px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .assinatura-card {
+            margin-bottom: 20px;
+        }
+        .assinatura-titulo {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        /* Estilo para o campo de observações */
+        .observacoes-card {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        /* Media query para ajustar o layout em telas maiores */
+        @media (min-width: 992px) {
+            .info-field {
+                flex: 0 0 20%;
+                max-width: 20%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Logo e título principal -->
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
+        </div>
+        <h2 class="main-title">SOTWeb - Vistoria de Veículo Oficial</h2>
+        <div class="subtitle"><strong>Sistema de Operações de Transporte - TJRO</strong></div> 
+        
+        <div class="vistoria-header">
+            <h3>
+                Vistoria #{{ vistoria[0] }}
+                {% if vistoria[4] == 'SAIDA' %}
+                <span class="badge bg-primary vistoria-tipo">Saída</span>
+                {% elif vistoria[4] == 'DEVOLUCAO' %}
+                <span class="badge bg-success vistoria-tipo">Devolução</span>
+                {% elif vistoria[4] == 'CONFIRMACAO' %}
+                <span class="badge bg-danger vistoria-tipo">Aguardado Aceite Vistoriador</span>
+                {% endif %}
+                
+                {% if vistoria[5] == 'EM_TRANSITO' %}
+                <span class="badge bg-warning vistoria-status">Em Trânsito</span>
+                {% else %}
+                <span class="badge bg-secondary vistoria-status">Finalizada</span>
+                {% endif %}
+            </h3>
+        </div>
+
+        <!-- Todos os campos de informação em uma única linha em telas grandes -->
+        <div class="row mb-4">
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
+                <h5>Motorista</h5>
+                <p>{{ vistoria[1] }}</p>
+            </div>
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
+                <h5>Veículo</h5>
+                <p>{{ vistoria[2] }}</p>
+            </div>
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
+                <h5>Data</h5>
+                <p>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</p>
+            </div>
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
+                <h5>Hodômetro</h5>
+                <p>{{ vistoria[11] }}</p>
+            </div>
+            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
+                <h5>Nível de Combustível: {{ vistoria[6] }}%</h5>
+                <div class="fuel-container">
+                    <!-- Marcadores verticais -->
+                    <div class="fuel-markers">
+                        <div class="fuel-marker"></div>
+                        <div class="fuel-marker"></div>
+                        <div class="fuel-marker"></div>
+                        <div class="fuel-marker"></div>
+                        <div class="fuel-marker"></div>
+                    </div>
+                    <!-- Linha de nível do combustível -->
+                    <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
+                    <!-- Rótulos de texto -->
+                    <div class="fuel-labels">
+                        <span>0</span>
+                        <span>1/4</span>
+                        <span>1/2</span>
+                        <span>3/4</span>
+                        <span>1</span>
+                    </div>
+                </div>
+            </div>            
+        </div>
+
+        <!-- Informações sobre vistoria relacionada -->
+        {% if vistoria_saida %}
+        <div class="vistoria-relacionada">
+            <h3>Vistoria de Saída Relacionada</h3>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>ID:</strong> {{ vistoria_saida[0] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Motorista:</strong> {{ vistoria_saida[1] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Veículo:</strong> {{ vistoria_saida[2] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Data:</strong> {{ vistoria_saida[3].strftime('%d/%m/%Y %H:%M') }}
+                </div>
+            </div>
+            <div class="mt-2">
+                <a href="/vistoria/{{ vistoria_saida[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if vistoria_devolucao %}
+        <div class="vistoria-relacionada">
+            <h3>Vistoria de Devolução Relacionada</h3>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>ID:</strong> {{ vistoria_devolucao[0] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Motorista:</strong> {{ vistoria_devolucao[1] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Veículo:</strong> {{ vistoria_devolucao[2] }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Data:</strong> {{ vistoria_devolucao[3].strftime('%d/%m/%Y %H:%M') }}
+                </div>
+            </div>
+            <div class="mt-2">
+                <a href="/vistoria/{{ vistoria_devolucao[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <h3>Fotos da Vistoria</h3>
+        <div class="row">
+            {% for item in itens %}
+            <div class="col-md-6 foto-card">
+                <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria">
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Campo de Observações -->
+        {% if vistoria[12] %}
+        <div class="observacoes-card">
+            <h3>Observações</h3>
+            <p>{{ vistoria[12] }}</p>
+        </div>
+        {% endif %}
+        
+        <!-- Seção de Assinaturas -->
+        <h3 class="mt-4">Assinaturas</h3>
+        <div class="row">
+            <!-- Assinatura do Usuário -->
+            <div class="col-md-6 assinatura-card">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p class="assinatura-titulo">Assinatura Vistoriador</p>
+                        {% if vistoria[9] is not none %}
+                            <img src="{{ url_for('get_assinatura', tipo='usuario', vistoria_id=vistoria[0]) }}" class="assinatura-img" alt="Assinatura do Usuário">
+                        {% else %}
+                            <p class="text-muted">Sem assinatura</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Assinatura do Motorista -->
+            <div class="col-md-6 assinatura-card">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p class="assinatura-titulo">Assinatura do Motorista</p>
+                        {% if vistoria[10] is not none %}
+                            <img src="{{ url_for('get_assinatura', tipo='motorista', vistoria_id=vistoria[0]) }}" class="assinatura-img" alt="Assinatura do Motorista">
+                        {% else %}
+                            <p class="text-muted">Sem assinatura</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p>Vistoriador: {{ vistoria[13] }}</p>
+        <div class="mt-4 mb-4">
+            <a href="/vistorias" class="btn btn-primary">Voltar para Lista</a>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
