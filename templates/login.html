@@ -106,21 +106,73 @@
     <script>
         // Verificar se já existe um usuário logado no localStorage
         document.addEventListener('DOMContentLoaded', function() {
-            const usuarioLogado = localStorage.getItem('usuario_logado');
-            if (usuarioLogado === 'true') {
-                window.location.href = '/';
-            }
-
-            // Adicionar validação para o campo login (somente números)
             const loginInput = document.getElementById('login');
+            const loginForm = document.getElementById('loginForm');
+            const alertContainer = document.getElementById('alertContainer');
+
+            // Validate login input (numbers only, max 6 digits)
             loginInput.addEventListener('input', function(e) {
-                // Remove caracteres não numéricos
-                this.value = this.value.replace(/[^0-9]/g, '');
+                this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+            });
+
+            // Prevent multiple form submissions
+            let isSubmitting = false;
+
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                // Prevent multiple submissions
+                if (isSubmitting) return;
+                isSubmitting = true;
+
+                const formData = new FormData(this);
                 
-                // Limita a 6 dígitos
-                if (this.value.length > 6) {
-                    this.value = this.value.slice(0, 6);
-                }
+                fetch('/autenticar', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.sucesso) {
+                        // Clear any previous alerts
+                        alertContainer.innerHTML = '';
+
+                        // Save user data securely
+                        localStorage.setItem('usuario_logado', 'true');
+                        localStorage.setItem('usuario_id', data.usuario_id);
+                        localStorage.setItem('usuario_nome', data.usuario_nome);
+                        localStorage.setItem('nivel_acesso', data.nivel_acesso);
+                        
+                        // Redirect to home page
+                        window.location.href = '/';
+                    } else {
+                        throw new Error('Login unsuccessful');
+                    }
+                })
+                .catch(error => {
+                    console.error('Login Error:', error);
+                    
+                    // Clear password field
+                    document.getElementById('senha').value = '';
+                    
+                    // Show error message
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-danger" role="alert">
+                            ${error.message === 'Login unsuccessful' 
+                                ? 'Credenciais inválidas. Tente novamente.' 
+                                : 'Erro ao processar a requisição. Verifique sua conexão.'}
+                        </div>
+                    `;
+                })
+                .finally(() => {
+                    // Reset submission flag
+                    isSubmitting = false;
+                });
             });
         });
         
