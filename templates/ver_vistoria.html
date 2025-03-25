@@ -517,23 +517,58 @@
             'saida': document.querySelector('#fotos-saida-container') ? Array.from(document.querySelectorAll('#fotos-saida-container img')) : [],
             'devolucao': document.querySelector('#fotos-devolucao-container') ? Array.from(document.querySelectorAll('#fotos-devolucao-container img')) : []
         };
-
+    
+        // Ensure the modal exists
+        if (!document.getElementById('imageModal')) {
+            const modalHtml = `
+            <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img id="modalImage" src="" class="img-fluid" alt="Enlarged Image">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="navigateImage(-1)">
+                                <i class="bi bi-arrow-left"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="navigateImage(1)">
+                                <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+    
         const modalImage = document.getElementById('modalImage');
         const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
         let currentContainer = 'current';
         let currentImageIndex = 0;
-
+    
         function openImageModal(index, container) {
             currentContainer = container;
             currentImageIndex = index;
-            modalImage.src = currentImages[container][index].src;
-            imageModal.show();
-        }
-
-        function navigateImage(direction) {
-            currentImageIndex += direction;
             
+            // Ensure the images exist for the given container
+            const images = currentImages[container];
+            if (images && images.length > 0) {
+                modalImage.src = images[index].src;
+                imageModal.show();
+            }
+        }
+    
+        function navigateImage(direction) {
             const images = currentImages[currentContainer];
+            
+            // Ensure images exist for the current container
+            if (!images || images.length === 0) return;
+    
+            currentImageIndex += direction;
             
             // Circular navigation
             if (currentImageIndex < 0) {
@@ -541,30 +576,22 @@
             } else if (currentImageIndex >= images.length) {
                 currentImageIndex = 0;
             }
-
+    
             modalImage.src = images[currentImageIndex].src;
         }
-
-        // Fechar modal ao pressionar ESC
+    
+        // Keyboard navigation
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                imageModal.hide();
-            }
-            
-            // Navegação com setas quando o modal está aberto
-            if (imageModal._isShown) {
-                if (event.key === 'ArrowLeft') {
+            if (imageModal._element && imageModal._isShown) {
+                if (event.key === 'Escape') {
+                    imageModal.hide();
+                } else if (event.key === 'ArrowLeft') {
                     navigateImage(-1);
                 } else if (event.key === 'ArrowRight') {
                     navigateImage(1);
                 }
             }
         });
-
-        // Função para imprimir a página
-        function imprimirPagina() {
-            window.print();
-        }
     </script>
 </body>
 </html>
