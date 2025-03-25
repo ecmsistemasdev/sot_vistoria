@@ -585,7 +585,7 @@ def ver_vistoria(id):
     """, (id,))
     vistoria = cur.fetchone()
    
-    # Se for uma vistoria de devolução, buscar também a vistoria de saida
+    # Recuperar vistoria de saída se for uma devolução
     vistoria_saida = None
     vistoria_saida_itens = []
     if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
@@ -600,15 +600,16 @@ def ver_vistoria(id):
         """, (vistoria[8],))
         vistoria_saida = cur.fetchone()
 
-        # Buscar fotos da vistoria de saída
-        cur.execute("""
-            SELECT ID, DETALHAMENTO
-            FROM VISTORIA_ITENS
-            WHERE IDVISTORIA = %s
-        """, (vistoria[8],))
-        vistoria_saida_itens = cur.fetchall()
+        # Se recuperou a vistoria de saída, buscar suas fotos
+        if vistoria_saida:
+            cur.execute("""
+                SELECT ID, DETALHAMENTO
+                FROM VISTORIA_ITENS
+                WHERE IDVISTORIA = %s
+            """, (vistoria[8],))
+            vistoria_saida_itens = cur.fetchall()
 
-    # Se for uma vistoria de saida, buscar se já existe uma vistoria de devolução
+    # Recuperar vistoria de devolução se for uma saída
     vistoria_devolucao = None
     vistoria_devolucao_itens = []
     if vistoria and vistoria[4] == 'SAIDA':
@@ -623,7 +624,7 @@ def ver_vistoria(id):
         """, (id,))
         vistoria_devolucao = cur.fetchone()
 
-        # Buscar fotos da vistoria de devolução
+        # Se recuperou a vistoria de devolução, buscar suas fotos
         if vistoria_devolucao:
             cur.execute("""
                 SELECT ID, DETALHAMENTO
@@ -656,7 +657,7 @@ def ver_vistoria(id):
         vistoria_devolucao=vistoria_devolucao,
         vistoria_devolucao_itens=vistoria_devolucao_itens
     )
-
+    
 @app.route('/vistoria_finaliza/<int:id>')
 def vistoria_finaliza(id):
     cur = mysql.connection.cursor()
