@@ -563,75 +563,94 @@
                     padMotorista.height = 180;
                     
                     // Criar SignaturePads inicialmente bloqueados
-                    signaturePadUsuario = new SignaturePad(padUsuario, {
+                    const signaturePadUsuario = new SignaturePad(padUsuario, {
                         backgroundColor: 'rgb(255, 255, 255)',
                         penColor: 'rgb(0, 0, 0)',
                         disabled: true // Inicialmente bloqueado
                     });
                     
-                    signaturePadMotorista = new SignaturePad(padMotorista, {
+                    const signaturePadMotorista = new SignaturePad(padMotorista, {
                         backgroundColor: 'rgb(255, 255, 255)',
                         penColor: 'rgb(0, 0, 0)',
                         disabled: true // Inicialmente bloqueado
                     });
                     
-                    // Configurar botão de assinatura do usuário
-                    btnUsuario.addEventListener('click', function() {
-                        if (this.textContent === 'Assinar') {
-                            // Ativar desenho
-                            signaturePadUsuario.disabled = false;
-                            this.textContent = 'Salvar';
-                            this.classList.remove('btn-primary');
-                            this.classList.add('btn-warning');
-                        } else {
-                            // Validar e salvar assinatura
-                            if (signaturePadUsuario.isEmpty()) {
-                                alert('Por favor, assine o campo do usuário.');
-                                return;
+                    // Função para gerenciar o estado do botão de assinatura
+                    function gerenciarBotaoAssinatura(signaturePad, botao, inputId, previewId) {
+                        const input = document.getElementById(inputId);
+                        const preview = document.getElementById(previewId);
+                        
+                        botao.addEventListener('click', function() {
+                            switch(botao.textContent.trim()) {
+                                case 'Assinar':
+                                    // Ativar desenho
+                                    signaturePad.disabled = false;
+                                    botao.textContent = 'Salvar';
+                                    botao.classList.remove('btn-primary');
+                                    botao.classList.add('btn-warning');
+                                    break;
+                                
+                                case 'Salvar':
+                                    // Validar e salvar assinatura
+                                    if (signaturePad.isEmpty()) {
+                                        alert('Por favor, assine o campo.');
+                                        return;
+                                    }
+                                    
+                                    // Bloquear e salvar
+                                    signaturePad.disabled = true;
+                                    const assinaturaData = signaturePad.toDataURL('image/png');
+                                    input.value = assinaturaData;
+                                    
+                                    // Atualizar botão para Limpar
+                                    botao.textContent = 'Limpar';
+                                    botao.classList.remove('btn-warning');
+                                    botao.classList.add('btn-danger');
+                                    
+                                    // Opcional: Mostrar preview (invisível por padrão)
+                                    preview.src = assinaturaData;
+                                    preview.style.display = 'none';
+                                    break;
+                                
+                                case 'Limpar':
+                                    // Limpar assinatura
+                                    signaturePad.clear();
+                                    input.value = '';
+                                    
+                                    // Restaurar para estado inicial
+                                    botao.textContent = 'Assinar';
+                                    botao.classList.remove('btn-danger');
+                                    botao.classList.add('btn-primary');
+                                    
+                                    // Esconder preview
+                                    preview.src = '';
+                                    preview.style.display = 'none';
+                                    break;
                             }
-                            
-                            signaturePadUsuario.disabled = true;
-                            const assinaturaData = signaturePadUsuario.toDataURL('image/png');
-                            document.getElementById('assinatura-usuario-input').value = assinaturaData;
-                            
-                            // Resetar botão
-                            this.textContent = 'Assinar';
-                            this.classList.remove('btn-warning');
-                            this.classList.add('btn-primary');
-                        }
-                    });
+                        });
+                    }
                     
-                    // Configurar botão de assinatura do motorista
-                    btnMotorista.addEventListener('click', function() {
-                        if (this.textContent === 'Assinar') {
-                            // Ativar desenho
-                            signaturePadMotorista.disabled = false;
-                            this.textContent = 'Salvar';
-                            this.classList.remove('btn-primary');
-                            this.classList.add('btn-warning');
-                        } else {
-                            // Validar e salvar assinatura
-                            if (signaturePadMotorista.isEmpty()) {
-                                alert('Por favor, assine o campo do motorista.');
-                                return;
-                            }
-                            
-                            signaturePadMotorista.disabled = true;
-                            const assinaturaData = signaturePadMotorista.toDataURL('image/png');
-                            document.getElementById('assinatura-motorista-input').value = assinaturaData;
-                            
-                            // Resetar botão
-                            this.textContent = 'Assinar';
-                            this.classList.remove('btn-warning');
-                            this.classList.add('btn-primary');
-                        }
-                    });
+                    // Configurar botões de assinatura
+                    gerenciarBotaoAssinatura(
+                        signaturePadUsuario, 
+                        btnUsuario, 
+                        'assinatura-usuario-input', 
+                        'assinatura-usuario-preview'
+                    );
+                    
+                    gerenciarBotaoAssinatura(
+                        signaturePadMotorista, 
+                        btnMotorista, 
+                        'assinatura-motorista-input', 
+                        'assinatura-motorista-preview'
+                    );
                 }
             }
         }
 
+        // Adicionar event listener para inicializar quando o DOM estiver carregado
         document.addEventListener('DOMContentLoaded', inicializarAssinaturas);
-        
+
         // Update validation function to ensure both signatures are present
         function validarAssinaturas() {
             const assinaturaUsuarioValue = document.getElementById('assinatura-usuario-input').value;
