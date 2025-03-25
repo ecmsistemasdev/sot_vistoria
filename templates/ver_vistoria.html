@@ -261,7 +261,7 @@
             </h3>
         </div>
 
-        <!-- Todos os campos de informação em uma única linha em telas grandes -->
+        <!-- Informações principais -->
         <div class="row mb-4">
             <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
                 <h5>Motorista</h5>
@@ -279,62 +279,22 @@
                 <h5>Hodômetro</h5>
                 <p>{{ vistoria[11] }}</p>
             </div>
-            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
-                <h5>Nível de Combustível: {{ vistoria[6] }}%</h5>
-                <div class="fuel-container">
-                    <!-- Marcadores verticais -->
-                    <div class="fuel-markers">
-                        <div class="fuel-marker"></div>
-                        <div class="fuel-marker"></div>
-                        <div class="fuel-marker"></div>
-                        <div class="fuel-marker"></div>
-                        <div class="fuel-marker"></div>
-                    </div>
-                    <!-- Linha de nível do combustível -->
-                    <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
-                    <!-- Rótulos de texto -->
-                    <div class="fuel-labels">
-                        <span>0</span>
-                        <span>1/4</span>
-                        <span>1/2</span>
-                        <span>3/4</span>
-                        <span>1</span>
-                    </div>
-                </div>
-            </div> 
-
-            <h3>Fotos da Vistoria</h3>
-            <div class="row" id="fotos-container">
-                {% for item in itens %}
-                <div class="col-md-6 foto-card position-relative">
-                    <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria" data-index="{{ loop.index0 }}">
-                    <button class="zoom-button" onclick="openImageModal({{ loop.index0 }})">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-                {% endfor %}
-            </div>
-    
-            <!-- Modal de Imagem -->
-            <div class="modal fade image-modal" id="imageModal" tabindex="-1">
-                <div class="modal-dialog modal-fullscreen">
-                    <div class="modal-content">
-                        <div class="modal-body">
-                            <button class="image-navigation-btn prev" onclick="navigateImage(-1)">
-                                <i class="bi bi-chevron-left"></i>
-                            </button>
-                            <img src="" class="modal-image" id="modalImage">
-                            <button class="image-navigation-btn next" onclick="navigateImage(1)">
-                                <i class="bi bi-chevron-right"></i>
-                            </button>
-                            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
-                        </div>
-                    </div>
-                </div>
-            </div>            
         </div>
 
-        <!-- Informações sobre vistoria relacionada -->
+        <!-- Fotos da Vistoria Atual -->
+        <h3>Fotos da Vistoria</h3>
+        <div class="row" id="fotos-container">
+            {% for item in itens %}
+            <div class="col-md-6 foto-card position-relative">
+                <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria" data-index="{{ loop.index0 }}">
+                <button class="zoom-button" onclick="openImageModal({{ loop.index0 }}, 'current')">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Vistoria de Saída Relacionada -->
         {% if vistoria_saida %}
         <div class="vistoria-relacionada">
             <h3>Vistoria de Saída Relacionada</h3>
@@ -352,12 +312,50 @@
                     <strong>Data:</strong> {{ vistoria_saida[3].strftime('%d/%m/%Y %H:%M') }}
                 </div>
             </div>
-            <div class="mt-2">
-                <a href="/vistoria/{{ vistoria_saida[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+
+            <h4>Fotos da Vistoria de Saída</h4>
+            <div class="row" id="fotos-saida-container">
+                {% for item in vistoria_saida_itens %}
+                <div class="col-md-6 foto-card position-relative">
+                    <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria de saída" data-index="{{ loop.index0 }}">
+                    <button class="zoom-button" onclick="openImageModal({{ loop.index0 }}, 'saida')">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <h4 class="mt-4">Assinaturas da Vistoria de Saída</h4>
+            <div class="row">
+                <div class="col-md-6 assinatura-card">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <p class="assinatura-titulo">Assinatura Vistoriador</p>
+                            {% if vistoria_saida[9] is not none %}
+                                <img src="{{ url_for('get_assinatura', tipo='usuario', vistoria_id=vistoria_saida[0]) }}" class="assinatura-img" alt="Assinatura do Usuário">
+                            {% else %}
+                                <p class="text-muted">Sem assinatura</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 assinatura-card">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <p class="assinatura-titulo">Assinatura do Motorista</p>
+                            {% if vistoria_saida[10] is not none %}
+                                <img src="{{ url_for('get_assinatura', tipo='motorista', vistoria_id=vistoria_saida[0]) }}" class="assinatura-img" alt="Assinatura do Motorista">
+                            {% else %}
+                                <p class="text-muted">Sem assinatura</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         {% endif %}
 
+        <!-- Vistoria de Devolução Relacionada -->
         {% if vistoria_devolucao %}
         <div class="vistoria-relacionada">
             <h3>Vistoria de Devolução Relacionada</h3>
@@ -375,61 +373,76 @@
                     <strong>Data:</strong> {{ vistoria_devolucao[3].strftime('%d/%m/%Y %H:%M') }}
                 </div>
             </div>
-            <div class="mt-2">
-                <a href="/vistoria/{{ vistoria_devolucao[0] }}" class="btn btn-sm btn-info">Ver Detalhes</a>
+
+            <h4>Fotos da Vistoria de Devolução</h4>
+            <div class="row" id="fotos-devolucao-container">
+                {% for item in vistoria_devolucao_itens %}
+                <div class="col-md-6 foto-card position-relative">
+                    <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria de devolução" data-index="{{ loop.index0 }}">
+                    <button class="zoom-button" onclick="openImageModal({{ loop.index0 }}, 'devolucao')">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <h4 class="mt-4">Assinaturas da Vistoria de Devolução</h4>
+            <div class="row">
+                <div class="col-md-6 assinatura-card">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <p class="assinatura-titulo">Assinatura Vistoriador</p>
+                            {% if vistoria_devolucao[9] is not none %}
+                                <img src="{{ url_for('get_assinatura', tipo='usuario', vistoria_id=vistoria_devolucao[0]) }}" class="assinatura-img" alt="Assinatura do Usuário">
+                            {% else %}
+                                <p class="text-muted">Sem assinatura</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 assinatura-card">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <p class="assinatura-titulo">Assinatura do Motorista</p>
+                            {% if vistoria_devolucao[10] is not none %}
+                                <img src="{{ url_for('get_assinatura', tipo='motorista', vistoria_id=vistoria_devolucao[0]) }}" class="assinatura-img" alt="Assinatura do Motorista">
+                            {% else %}
+                                <p class="text-muted">Sem assinatura</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         {% endif %}
-        
-        <h3>Fotos da Vistoria</h3>
-        <div class="row">
-            {% for item in itens %}
-            <div class="col-md-6 foto-card">
-                <img src="{{ url_for('get_foto', item_id=item.id) }}" class="item-foto" alt="Foto da vistoria">
-            </div>
-            {% endfor %}
-        </div>
-        
-        <!-- Campo de Observações -->
+
+        <!-- Observações -->
         {% if vistoria[12] %}
         <div class="observacoes-card">
             <h3>Observações</h3>
             <p>{{ vistoria[12] }}</p>
         </div>
         {% endif %}
-        
-        <!-- Seção de Assinaturas -->
-        <h3 class="mt-4">Assinaturas</h3>
-        <div class="row">
-            <!-- Assinatura do Usuário -->
-            <div class="col-md-6 assinatura-card">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <p class="assinatura-titulo">Assinatura Vistoriador</p>
-                        {% if vistoria[9] is not none %}
-                            <img src="{{ url_for('get_assinatura', tipo='usuario', vistoria_id=vistoria[0]) }}" class="assinatura-img" alt="Assinatura do Usuário">
-                        {% else %}
-                            <p class="text-muted">Sem assinatura</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Assinatura do Motorista -->
-            <div class="col-md-6 assinatura-card">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <p class="assinatura-titulo">Assinatura do Motorista</p>
-                        {% if vistoria[10] is not none %}
-                            <img src="{{ url_for('get_assinatura', tipo='motorista', vistoria_id=vistoria[0]) }}" class="assinatura-img" alt="Assinatura do Motorista">
-                        {% else %}
-                            <p class="text-muted">Sem assinatura</p>
-                        {% endif %}
+
+        <!-- Modal de Imagem -->
+        <div class="modal fade image-modal" id="imageModal" tabindex="-1">
+            <div class="modal-dialog modal-fullscreen">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <button class="image-navigation-btn prev" onclick="navigateImage(-1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <img src="" class="modal-image" id="modalImage">
+                        <button class="image-navigation-btn next" onclick="navigateImage(1)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
                     </div>
                 </div>
             </div>
         </div>
-        <p>Vistoriador: {{ vistoria[13] }}</p>
+
+        <!-- Rodapé com botões -->
         <div class="fixed-footer">
             <div class="container">
                 <div class="d-flex justify-content-between align-items-center">
@@ -440,29 +453,33 @@
                 </div>
             </div>
         </div>
-        <div style="height: 80px;"></div> 
-        <!--
-        <div class="mt-4 mb-4">
-            <a href="/vistorias" class="btn btn-primary">Voltar para Lista</a>
-        </div>
-        -->
+        <div style="height: 80px;"></div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
     <script>
-        const images = Array.from(document.querySelectorAll('#fotos-container img'));
+        const currentImages = {
+            'current': Array.from(document.querySelectorAll('#fotos-container img')),
+            'saida': document.querySelector('#fotos-saida-container') ? Array.from(document.querySelectorAll('#fotos-saida-container img')) : [],
+            'devolucao': document.querySelector('#fotos-devolucao-container') ? Array.from(document.querySelectorAll('#fotos-devolucao-container img')) : []
+        };
+
         const modalImage = document.getElementById('modalImage');
         const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+        let currentContainer = 'current';
         let currentImageIndex = 0;
 
-        function openImageModal(index) {
+        function openImageModal(index, container) {
+            currentContainer = container;
             currentImageIndex = index;
-            modalImage.src = images[index].src;
+            modalImage.src = currentImages[container][index].src;
             imageModal.show();
         }
 
         function navigateImage(direction) {
             currentImageIndex += direction;
+            
+            const images = currentImages[currentContainer];
             
             // Circular navigation
             if (currentImageIndex < 0) {
@@ -489,6 +506,11 @@
                 }
             }
         });
-    </script>    
+
+        // Função para imprimir a página
+        function imprimirPagina() {
+            window.print();
+        }
+    </script>
 </body>
 </html>
