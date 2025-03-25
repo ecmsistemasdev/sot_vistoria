@@ -557,10 +557,10 @@
                 if (padUsuario && padMotorista) {
                     // Configurar dimensões dos pads
                     padUsuario.width = containerUsuario.offsetWidth;
-                    padUsuario.height = 200;
+                    padUsuario.height = 180;
                     
                     padMotorista.width = containerMotorista.offsetWidth;
-                    padMotorista.height = 200;
+                    padMotorista.height = 180;
                     
                     // Criar SignaturePads inicialmente bloqueados
                     signaturePadUsuario = new SignaturePad(padUsuario, {
@@ -594,11 +594,6 @@
                             const assinaturaData = signaturePadUsuario.toDataURL('image/png');
                             document.getElementById('assinatura-usuario-input').value = assinaturaData;
                             
-                            // Mostrar preview
-                            const previewUsuario = document.getElementById('assinatura-usuario-preview');
-                            previewUsuario.src = assinaturaData;
-                            previewUsuario.style.display = 'block';
-                            
                             // Resetar botão
                             this.textContent = 'Assinar';
                             this.classList.remove('btn-warning');
@@ -625,55 +620,17 @@
                             const assinaturaData = signaturePadMotorista.toDataURL('image/png');
                             document.getElementById('assinatura-motorista-input').value = assinaturaData;
                             
-                            // Mostrar preview
-                            const previewMotorista = document.getElementById('assinatura-motorista-preview');
-                            previewMotorista.src = assinaturaData;
-                            previewMotorista.style.display = 'block';
-                            
                             // Resetar botão
                             this.textContent = 'Assinar';
                             this.classList.remove('btn-warning');
                             this.classList.add('btn-primary');
                         }
                     });
-                    
-                    // Adicionar botão Limpar para usuário
-                    const limparBotaoUsuario = document.createElement('button');
-                    limparBotaoUsuario.type = 'button';
-                    limparBotaoUsuario.textContent = 'Limpar';
-                    limparBotaoUsuario.className = 'btn btn-danger ml-2';
-                    limparBotaoUsuario.addEventListener('click', function() {
-                        signaturePadUsuario.clear();
-                        signaturePadUsuario.disabled = true;
-                        document.getElementById('assinatura-usuario-input').value = '';
-                        document.getElementById('assinatura-usuario-preview').style.display = 'none';
-                        
-                        // Resetar botão
-                        btnUsuario.textContent = 'Assinar';
-                        btnUsuario.classList.remove('btn-warning');
-                        btnUsuario.classList.add('btn-primary');
-                    });
-                    btnUsuario.parentNode.insertBefore(limparBotaoUsuario, btnUsuario.nextSibling);
-                    
-                    // Adicionar botão Limpar para motorista
-                    const limparBotaoMotorista = limparBotaoUsuario.cloneNode(true);
-                    limparBotaoMotorista.addEventListener('click', function() {
-                        signaturePadMotorista.clear();
-                        signaturePadMotorista.disabled = true;
-                        document.getElementById('assinatura-motorista-input').value = '';
-                        document.getElementById('assinatura-motorista-preview').style.display = 'none';
-                        
-                        // Resetar botão
-                        btnMotorista.textContent = 'Assinar';
-                        btnMotorista.classList.remove('btn-warning');
-                        btnMotorista.classList.add('btn-primary');
-                    });
-                    btnMotorista.parentNode.insertBefore(limparBotaoMotorista, btnMotorista.nextSibling);
                 }
             }
         }
 
-        document.addEventListener('DOMContentLoaded', inicializarAssinaturas);        
+        document.addEventListener('DOMContentLoaded', inicializarAssinaturas);
         
         // Update validation function to ensure both signatures are present
         function validarAssinaturas() {
