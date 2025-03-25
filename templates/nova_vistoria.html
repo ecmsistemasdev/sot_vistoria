@@ -474,7 +474,7 @@
                         
                         // Retornar a imagem redimensionada através do callback
                         callback(imagemRedimensionada);
-                    }, 'image/jpeg', 0.85); // Qualidade 85% para melhor equilíbrio tamanho/qualidade
+                    }, 'image/jpeg', 0.75); // Qualidade 75% para melhor equilíbrio tamanho/qualidade
                 };
                 
                 img.src = e.target.result;
@@ -704,49 +704,91 @@
                 
                 img.onload = function() {
                     try {
-                        // Calculate new dimensions (30% of original)
-                        const newWidth = Math.round(img.width * 0.3);
-                        const newHeight = Math.round(img.height * 0.3);
+                        // Step 1: Rotate image if height > width
+                        let processedWidth = img.width;
+                        let processedHeight = img.height;
+                        let canvas = document.createElement('canvas');
+                        let ctx = canvas.getContext('2d');
                         
-                        // Create a canvas for the resized image
-                        const canvas = document.createElement('canvas');
-                        canvas.width = newWidth;
-                        canvas.height = newHeight;
+                        // Check and rotate if needed
+                        if (img.height > img.width) {
+                            canvas.width = img.height;
+                            canvas.height = img.width;
+                            
+                            // Rotate 90 degrees
+                            ctx.translate(img.height, 0);
+                            ctx.rotate(Math.PI / 2);
+                            ctx.drawImage(img, 0, 0);
+                            
+                            // Swap width and height
+                            processedWidth = img.height;
+                            processedHeight = img.width;
+                        } else {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+                        }
                         
-                        // Draw the resized image
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                        // Step 2: Crop to 4:3 aspect ratio
+                        const targetAspectRatio = 4 / 3;
+                        let finalCanvas = document.createElement('canvas');
+                        let finalCtx = finalCanvas.getContext('2d');
+                        
+                        if (processedWidth / processedHeight > targetAspectRatio) {
+                            // Width is too wide, crop width
+                            const targetWidth = processedHeight * targetAspectRatio;
+                            const cropX = (processedWidth - targetWidth) / 2;
+                            
+                            finalCanvas.width = targetWidth;
+                            finalCanvas.height = processedHeight;
+                            
+                            finalCtx.drawImage(
+                                canvas, 
+                                cropX, 0, targetWidth, processedHeight,
+                                0, 0, targetWidth, processedHeight
+                            );
+                        } else {
+                            // Height is too tall, crop height
+                            const targetHeight = processedWidth / targetAspectRatio;
+                            const cropY = (processedHeight - targetHeight) / 2;
+                            
+                            finalCanvas.width = processedWidth;
+                            finalCanvas.height = targetHeight;
+                            
+                            finalCtx.drawImage(
+                                canvas, 
+                                0, cropY, processedWidth, targetHeight,
+                                0, 0, processedWidth, targetHeight
+                            );
+                        }
                         
                         // Convert to blob with reduced quality
-                        canvas.toBlob(function(blob) {
+                        finalCanvas.toBlob(function(blob) {
                             if (!blob) {
                                 console.error("Failed to create blob for image");
-                                // If blob creation fails, use the original file
                                 callback(file);
                                 return;
                             }
                             
                             // Create a new file with the blob
-                            const resizedImage = new File([blob], file.name, {
+                            const processedImage = new File([blob], file.name, {
                                 type: 'image/jpeg',
                                 lastModified: new Date().getTime()
                             });
                             
                             console.log("Image processed successfully:", file.name);
-                            callback(resizedImage);
+                            callback(processedImage);
                             
-                        }, 'image/jpeg', 0.85);
+                        }, 'image/jpeg', 0.75);
                         
                     } catch (error) {
                         console.error("Error processing image:", error);
-                        // If there's an error, use the original file
                         callback(file);
                     }
                 };
                 
                 img.onerror = function() {
                     console.error("Error loading image:", file.name);
-                    // If there's an error loading the image, use the original file
                     callback(file);
                 };
                 
@@ -755,7 +797,6 @@
             
             reader.onerror = function() {
                 console.error("Error reading file:", file.name);
-                // If there's an error reading the file, use the original file
                 callback(file);
             };
             
@@ -933,7 +974,7 @@
                                     
                                     enviarFormulario(formData);
                                 }
-                            }, 'image/jpeg', 0.85); // Qualidade 85%
+                            }, 'image/jpeg', 0.75); // Qualidade 75%
                         };
                         drawingImg.src = drawingData;
                     };
