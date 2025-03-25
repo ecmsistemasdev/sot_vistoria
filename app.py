@@ -572,7 +572,7 @@ def listar_vistorias():
 @app.route('/vistoria/<int:id>')
 def ver_vistoria(id):
     cur = mysql.connection.cursor()
-    
+
     # Buscar detalhes da vistoria
     cur.execute("""
         SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
@@ -584,9 +584,10 @@ def ver_vistoria(id):
         WHERE v.IDVISTORIA = %s
     """, (id,))
     vistoria = cur.fetchone()
-    
+   
     # Se for uma vistoria de devolução, buscar também a vistoria de saida
     vistoria_saida = None
+    vistoria_saida_itens = []
     if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
         cur.execute("""
             SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
@@ -598,9 +599,18 @@ def ver_vistoria(id):
             WHERE v.IDVISTORIA = %s
         """, (vistoria[8],))
         vistoria_saida = cur.fetchone()
-    
+
+        # Buscar fotos da vistoria de saída
+        cur.execute("""
+            SELECT ID, DETALHAMENTO
+            FROM VISTORIA_ITENS
+            WHERE IDVISTORIA = %s
+        """, (vistoria[8],))
+        vistoria_saida_itens = cur.fetchall()
+
     # Se for uma vistoria de saida, buscar se já existe uma vistoria de devolução
     vistoria_devolucao = None
+    vistoria_devolucao_itens = []
     if vistoria and vistoria[4] == 'SAIDA':
         cur.execute("""
             SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
@@ -612,8 +622,17 @@ def ver_vistoria(id):
             WHERE v.VISTORIA_SAIDA_ID = %s
         """, (id,))
         vistoria_devolucao = cur.fetchone()
-    
-    # Buscar fotos e detalhamentos da vistoria
+
+        # Buscar fotos da vistoria de devolução
+        if vistoria_devolucao:
+            cur.execute("""
+                SELECT ID, DETALHAMENTO
+                FROM VISTORIA_ITENS
+                WHERE IDVISTORIA = %s
+            """, (vistoria_devolucao[0],))
+            vistoria_devolucao_itens = cur.fetchall()
+
+    # Buscar fotos desta vistoria atual
     cur.execute("""
         SELECT ID, DETALHAMENTO
         FROM VISTORIA_ITENS
@@ -622,93 +641,21 @@ def ver_vistoria(id):
     itens_raw = cur.fetchall()
     
     # Converter para dicionários para uso no template
-    itens = []
-    for item in itens_raw:
-        itens.append({
-            'id': item[0],
-            'detalhamento': item[1]
-        })
-    
+    itens = [{'id': item[0], 'detalhamento': item[1]} for item in itens_raw]
+    vistoria_saida_itens = [{'id': item[0], 'detalhamento': item[1]} for item in vistoria_saida_itens]
+    vistoria_devolucao_itens = [{'id': item[0], 'detalhamento': item[1]} for item in vistoria_devolucao_itens]
+
     cur.close()
-    
+
     return render_template(
         'ver_vistoria.html', 
         vistoria=vistoria, 
         itens=itens,
         vistoria_saida=vistoria_saida,
-        vistoria_devolucao=vistoria_devolucao
+        vistoria_saida_itens=vistoria_saida_itens,
+        vistoria_devolucao=vistoria_devolucao,
+        vistoria_devolucao_itens=vistoria_devolucao_itens
     )
-
-@app.route('/vistoria2/<int:id>')
-def ver_vistoria2(id):
-    cur = mysql.connection.cursor()
-    
-    # Buscar detalhes da vistoria
-    cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
-               v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-               v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
-        FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.IDVISTORIA = %s
-    """, (id,))
-    vistoria = cur.fetchone()
-    
-    # Se for uma vistoria de devolução, buscar também a vistoria de saida
-    vistoria_saida = None
-    if vistoria and vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
-        cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
-                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
-            FROM VISTORIAS v
-            JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-            JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-            WHERE v.IDVISTORIA = %s
-        """, (vistoria[8],))
-        vistoria_saida = cur.fetchone()
-    
-    # Se for uma vistoria de saida, buscar se já existe uma vistoria de devolução
-    vistoria_devolucao = None
-    if vistoria and vistoria[4] == 'SAIDA':
-        cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
-                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
-            FROM VISTORIAS v
-            JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-            JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-            WHERE v.VISTORIA_SAIDA_ID = %s
-        """, (id,))
-        vistoria_devolucao = cur.fetchone()
-    
-    # Buscar fotos e detalhamentos da vistoria
-    cur.execute("""
-        SELECT ID, DETALHAMENTO
-        FROM VISTORIA_ITENS
-        WHERE IDVISTORIA = %s
-    """, (id,))
-    itens_raw = cur.fetchall()
-    
-    # Converter para dicionários para uso no template
-    itens = []
-    for item in itens_raw:
-        itens.append({
-            'id': item[0],
-            'detalhamento': item[1]
-        })
-    
-    cur.close()
-    
-    return render_template(
-        'ver_vistoria2.html', 
-        vistoria=vistoria, 
-        itens=itens,
-        vistoria_saida=vistoria_saida,
-        vistoria_devolucao=vistoria_devolucao
-    )
-
 
 @app.route('/vistoria_finaliza/<int:id>')
 def vistoria_finaliza(id):
