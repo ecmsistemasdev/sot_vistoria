@@ -593,7 +593,13 @@
                                 case 'Salvar':
                                     // Validar e salvar assinatura
                                     if (signaturePad.isEmpty()) {
-                                        alert('Por favor, assine o campo.');
+                                        // Se estiver vazio, não faz nada além de bloquear o canvas
+                                        signaturePad.disabled = true;
+                                        
+                                        // Restaurar para estado inicial se não tiver assinado
+                                        botao.textContent = 'Assinar';
+                                        botao.classList.remove('btn-warning');
+                                        botao.classList.add('btn-primary');
                                         return;
                                     }
                                     
@@ -607,9 +613,9 @@
                                     botao.classList.remove('btn-warning');
                                     botao.classList.add('btn-danger');
                                     
-                                    // Opcional: Mostrar preview (invisível por padrão)
+                                    // Mostrar preview
                                     preview.src = assinaturaData;
-                                    preview.style.display = 'none';
+                                    preview.style.display = 'block';
                                     break;
                                 
                                 case 'Limpar':
