@@ -403,9 +403,9 @@
                 const img = new Image();
                 
                 img.onload = function() {
-                    // Calcular as novas dimensões (60% do original)
-                    const novaLargura = Math.round(img.width * 0.6);
-                    const novaAltura = Math.round(img.height * 0.6);
+                    // Calcular as novas dimensões (30% do original)
+                    const novaLargura = Math.round(img.width * 0.3);
+                    const novaAltura = Math.round(img.height * 0.3);
                     
                     // Criar um canvas para desenhar a imagem redimensionada
                     const canvas = document.createElement('canvas');
@@ -683,9 +683,9 @@
                 
                 img.onload = function() {
                     try {
-                        // Calculate new dimensions (60% of original)
-                        const newWidth = Math.round(img.width * 0.6);
-                        const newHeight = Math.round(img.height * 0.6);
+                        // Calculate new dimensions (30% of original)
+                        const newWidth = Math.round(img.width * 0.3);
+                        const newHeight = Math.round(img.height * 0.3);
                         
                         // Create a canvas for the resized image
                         const canvas = document.createElement('canvas');
