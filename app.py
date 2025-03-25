@@ -555,7 +555,8 @@ def listar_vistorias():
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.STATUS = 'FINALIZADA'
+        WHERE v.TIPO = 'SAIDA' 
+        AND v.STATUS = 'FINALIZADA'
         ORDER BY v.DATA DESC
     """)
     vistorias_finalizadas = cur.fetchall()
