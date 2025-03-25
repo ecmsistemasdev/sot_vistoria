@@ -129,20 +129,7 @@
             display: none;
             border: 1px solid #ddd;
         }
-
-        .signature-pad-wrapper {
-            position: relative;
-        }
-
-        .signature-pad-container {
-            border: 1px solid #ccc;
-            margin-bottom: 10px;
-        }
-
-        .signature-toggle-btn {
-            margin-right: 10px;
-        }
-
+        
         .fixed-footer {
             position: fixed;
             bottom: 0;
@@ -358,37 +345,45 @@
                 </div>
             </div>
             
-            <!-- HTML Structure for Signature Pads -->
+            <!-- Área de assinatura do usuário -->
             <div class="signature-container">
                 <h4>Assinatura Vistoriador</h4>
-                <div class="signature-pad-wrapper">
-                    <div class="signature-pad-container" style="display:block;">
-                        <canvas id="signature-pad-usuario" class="signature-pad"></canvas>
-                    </div>
-                    <button type="button" class="btn btn-primary signature-toggle-btn" id="assinar-usuario-btn">
-                        Assinar
-                    </button>
-                    <img id="assinatura-usuario-preview" style="display:none; max-width: 100%; max-height: 150px;" />
+                <p class="text-muted">Assine usando o dedo ou uma caneta stylus na área abaixo:</p>
+                
+                <div class="signature-pad-container">
+                    <canvas id="signature-pad-usuario" class="signature-pad"></canvas>
                 </div>
                 
                 <input type="hidden" name="assinatura_usuario" id="assinatura-usuario-input">
+                
+                <div class="signature-buttons">
+                    <button type="button" class="btn btn-secondary" id="limpar-assinatura-usuario">Limpar</button>
+                </div>
+                
+                <div class="preview-container">
+                    <img id="assinatura-usuario-preview" class="signature-preview">
+                </div>
             </div>
-
+            
+            <!-- Área de assinatura do motorista -->
             <div class="signature-container">
                 <h4>Assinatura do Motorista</h4>
-                <div class="signature-pad-wrapper">
-                    <div class="signature-pad-container" style="display:block;">
-                        <canvas id="signature-pad-motorista" class="signature-pad"></canvas>
-                    </div>
-                    <button type="button" class="btn btn-primary signature-toggle-btn" id="assinar-motorista-btn">
-                        Assinar
-                    </button>
-                    <img id="assinatura-motorista-preview" style="display:none; max-width: 100%; max-height: 150px;" />
+                <p class="text-muted">Peça ao motorista para assinar usando o dedo ou uma caneta stylus na área abaixo:</p>
+                
+                <div class="signature-pad-container">
+                    <canvas id="signature-pad-motorista" class="signature-pad"></canvas>
                 </div>
                 
                 <input type="hidden" name="assinatura_motorista" id="assinatura-motorista-input">
+                
+                <div class="signature-buttons">
+                    <button type="button" class="btn btn-secondary" id="limpar-assinatura-motorista">Limpar</button>
+                </div>
+                
+                <div class="preview-container">
+                    <img id="assinatura-motorista-preview" class="signature-preview">
+                </div>
             </div>
-
             <div class="fixed-footer">
                 <div class="container">
                     <div class="d-flex justify-content-between align-items-center">
@@ -456,9 +451,9 @@
                 const img = new Image();
                 
                 img.onload = function() {
-                    // Calcular as novas dimensões (30% do original)
-                    const novaLargura = Math.round(img.width * 0.3);
-                    const novaAltura = Math.round(img.height * 0.3);
+                    // Calcular as novas dimensões (60% do original)
+                    const novaLargura = Math.round(img.width * 0.6);
+                    const novaAltura = Math.round(img.height * 0.6);
                     
                     // Criar um canvas para desenhar a imagem redimensionada
                     const canvas = document.createElement('canvas');
@@ -545,135 +540,58 @@
             }, 200);
         }, { passive: true });        
         
+        // Ajustes para o canvas de assinatura
         function inicializarAssinaturas() {
-            if (typeof SignaturePad !== 'undefined') {
+            // Inicializar as áreas de assinatura apenas uma vez
+            if (typeof SignaturePad !== 'undefined' && !signaturePadUsuario && !signaturePadMotorista) {
                 const padUsuario = document.getElementById('signature-pad-usuario');
                 const padMotorista = document.getElementById('signature-pad-motorista');
-                const containerUsuario = padUsuario.closest('.signature-pad-container');
-                const containerMotorista = padMotorista.closest('.signature-pad-container');
-                const btnUsuario = document.getElementById('assinar-usuario-btn');
-                const btnMotorista = document.getElementById('assinar-motorista-btn');
                 
                 if (padUsuario && padMotorista) {
-                    // Configurar dimensões dos pads
-                    padUsuario.width = containerUsuario.offsetWidth;
-                    padUsuario.height = 180;
-                    
-                    padMotorista.width = containerMotorista.offsetWidth;
-                    padMotorista.height = 180;
-                    
-                    // Criar SignaturePads inicialmente bloqueados
-                    const signaturePadUsuario = new SignaturePad(padUsuario, {
+                    signaturePadUsuario = new SignaturePad(padUsuario, {
                         backgroundColor: 'rgb(255, 255, 255)',
-                        penColor: 'rgb(0, 0, 0)',
-                        disabled: true // Inicialmente bloqueado
+                        penColor: 'rgb(0, 0, 0)'
                     });
                     
-                    const signaturePadMotorista = new SignaturePad(padMotorista, {
+                    signaturePadMotorista = new SignaturePad(padMotorista, {
                         backgroundColor: 'rgb(255, 255, 255)',
-                        penColor: 'rgb(0, 0, 0)',
-                        disabled: true // Inicialmente bloqueado
+                        penColor: 'rgb(0, 0, 0)'
                     });
                     
-                    // Função para gerenciar o estado do botão de assinatura
-                    function gerenciarBotaoAssinatura(signaturePad, botao, inputId, previewId) {
-                        const input = document.getElementById(inputId);
-                        const preview = document.getElementById(previewId);
-                        
-                        botao.addEventListener('click', function() {
-                            switch(botao.textContent.trim()) {
-                                case 'Assinar':
-                                    // Ativar desenho
-                                    signaturePad.disabled = false;
-                                    botao.textContent = 'Salvar';
-                                    botao.classList.remove('btn-primary');
-                                    botao.classList.add('btn-warning');
-                                    break;
-                                
-                                case 'Salvar':
-                                    // Validar e salvar assinatura
-                                    if (signaturePad.isEmpty()) {
-                                        // Se estiver vazio, não faz nada além de bloquear o canvas
-                                        signaturePad.disabled = true;
-                                        
-                                        // Restaurar para estado inicial se não tiver assinado
-                                        botao.textContent = 'Assinar';
-                                        botao.classList.remove('btn-warning');
-                                        botao.classList.add('btn-primary');
-                                        return;
-                                    }
-                                    
-                                    // Bloquear e salvar
-                                    signaturePad.disabled = true;
-                                    const assinaturaData = signaturePad.toDataURL('image/png');
-                                    input.value = assinaturaData;
-                                    
-                                    // Atualizar botão para Limpar
-                                    botao.textContent = 'Limpar';
-                                    botao.classList.remove('btn-warning');
-                                    botao.classList.add('btn-danger');
-                                    
-                                    // Mostrar preview
-                                    preview.src = assinaturaData;
-                                    preview.style.display = 'block';
-                                    break;
-                                
-                                case 'Limpar':
-                                    // Limpar assinatura
-                                    signaturePad.clear();
-                                    input.value = '';
-                                    
-                                    // Restaurar para estado inicial
-                                    botao.textContent = 'Assinar';
-                                    botao.classList.remove('btn-danger');
-                                    botao.classList.add('btn-primary');
-                                    
-                                    // Esconder preview
-                                    preview.src = '';
-                                    preview.style.display = 'none';
-                                    break;
-                            }
-                        });
-                    }
+                    // Botões para limpar assinaturas
+                    document.getElementById('limpar-assinatura-usuario').addEventListener('click', function() {
+                        signaturePadUsuario.clear();
+                        document.getElementById('assinatura-usuario-preview').style.display = 'none';
+                        document.getElementById('assinatura-usuario-input').value = '';
+                    });
                     
-                    // Configurar botões de assinatura
-                    gerenciarBotaoAssinatura(
-                        signaturePadUsuario, 
-                        btnUsuario, 
-                        'assinatura-usuario-input', 
-                        'assinatura-usuario-preview'
-                    );
+                    document.getElementById('limpar-assinatura-motorista').addEventListener('click', function() {
+                        signaturePadMotorista.clear();
+                        document.getElementById('assinatura-motorista-preview').style.display = 'none';
+                        document.getElementById('assinatura-motorista-input').value = '';
+                    });
                     
-                    gerenciarBotaoAssinatura(
-                        signaturePadMotorista, 
-                        btnMotorista, 
-                        'assinatura-motorista-input', 
-                        'assinatura-motorista-preview'
-                    );
+                    // Verificar e salvar o estado das assinaturas quando o usuário interage com elas
+                    padUsuario.addEventListener('mouseup', salvarEstadoAssinaturas);
+                    padUsuario.addEventListener('touchend', salvarEstadoAssinaturas, { passive: false });
+                    padMotorista.addEventListener('mouseup', salvarEstadoAssinaturas);
+                    padMotorista.addEventListener('touchend', salvarEstadoAssinaturas, { passive: false });
+                    
+                    // Impedir o comportamento padrão para evitar a rolagem durante o desenho
+                    padUsuario.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+                    padMotorista.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+                    
+                    // Salvar assinaturas também nos eventos de scroll
+                    window.addEventListener('scroll', salvarEstadoAssinaturas, { passive: true });
                 }
             }
-        }
-
-        // Adicionar event listener para inicializar quando o DOM estiver carregado
-        document.addEventListener('DOMContentLoaded', inicializarAssinaturas);
-
-        // Update validation function to ensure both signatures are present
-        function validarAssinaturas() {
-            const assinaturaUsuarioValue = document.getElementById('assinatura-usuario-input').value;
-            const assinaturaMotoristaValue = document.getElementById('assinatura-motorista-input').value;
             
-            if (!assinaturaUsuarioValue || assinaturaUsuarioValue === '') {
-                alert('Por favor, assine o campo do usuário antes de salvar.');
-                return false;
-            }
+            // Ajustar tamanho dos pads de assinatura
+            resizeSignaturePads();
             
-            if (!assinaturaMotoristaValue || assinaturaMotoristaValue === '') {
-                alert('Por favor, assine o campo do motorista antes de salvar.');
-                return false;
-            }
-            
-            return true;
-        }
+            // Adicionar evento de redimensionamento
+            window.addEventListener('resize', resizeSignaturePads);
+        }        
         
         // Event listener para o input de múltiplas fotos
         document.addEventListener('DOMContentLoaded', function() {
@@ -786,9 +704,9 @@
                 
                 img.onload = function() {
                     try {
-                        // Calculate new dimensions (30% of original)
-                        const newWidth = Math.round(img.width * 0.3);
-                        const newHeight = Math.round(img.height * 0.3);
+                        // Calculate new dimensions (60% of original)
+                        const newWidth = Math.round(img.width * 0.6);
+                        const newHeight = Math.round(img.height * 0.6);
                         
                         // Create a canvas for the resized image
                         const canvas = document.createElement('canvas');
