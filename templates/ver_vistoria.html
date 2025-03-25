@@ -43,8 +43,10 @@
         }
         .vistoria-relacionada {
             background-color: #f0f0f0;
-            padding: 15px;
+            padding-top: 15px;
             border-radius: 5px;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 20px;
             margin-bottom: 20px;
         }
         .vistoria-relacionada h3 {
@@ -114,19 +116,19 @@
             padding: 5px;
         }
         .assinatura-card {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .assinatura-titulo {
             font-weight: bold;
             margin-bottom: 10px;
         }
         /* Estilo para o campo de observações */
-        .observacoes-card {
-            margin-top: 20px;
-            margin-bottom: 20px;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
+        .observacoes-card { 
+            background-color: #f8f9fa; 
+            border: 1px solid #e9ecef; 
+            border-radius: 5px; 
+            padding: 15px; 
+            margin-top: 20px; 
         }
         .fixed-footer {
             position: fixed;
@@ -325,6 +327,20 @@
                 {% endfor %}
             </div>
 
+            <!-- Observações da Vistoria de Saída -->
+            {% if vistoria_saida[12] %}
+            <div class="observacoes-card">
+                <h4>Observações da Vistoria de Saída</h4>
+                <p>{{ vistoria_saida[12] }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Usuário da Vistoria de Saída -->
+            <div class="mt-3">
+                <h4>Usuário Responsável (Vistoriador)</h4>
+                <p>{{ vistoria_saida[13] }}</p>
+            </div>
+
             <h4 class="mt-4">Assinaturas da Vistoria de Saída</h4>
             <div class="row">
                 <div class="col-md-6 assinatura-card">
@@ -386,6 +402,20 @@
                 {% endfor %}
             </div>
 
+            <!-- Observações da Vistoria de Devolução -->
+            {% if vistoria_devolucao[12] %}
+            <div class="observacoes-card">
+                <h4>Observações da Vistoria de Devolução</h4>
+                <p>{{ vistoria_devolucao[12] }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Usuário da Vistoria de Devolução -->
+            <div class="mt-3">
+                <h4>Usuário Responsável (Vistoriador)</h4>
+                <p>{{ vistoria_devolucao[13] }}</p>
+            </div>
+
             <h4 class="mt-4">Assinaturas da Vistoria de Devolução</h4>
             <div class="row">
                 <div class="col-md-6 assinatura-card">
@@ -416,10 +446,10 @@
         </div>
         {% endif %}
 
-        <!-- Observações -->
+        <!-- Observações da Vistoria Atual -->
         {% if vistoria[12] %}
         <div class="observacoes-card">
-            <h3>Observações</h3>
+            <h3>Observações da Vistoria</h3>
             <p>{{ vistoria[12] }}</p>
         </div>
         {% endif %}
