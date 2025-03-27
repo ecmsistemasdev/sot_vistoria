@@ -10,7 +10,9 @@
         @media print {
             .fixed-footer, .image-navigation-btn { display: none; }
             .modal { display: none !important; }
+            .zoom-button { display: none !important; }
         }        
+        
         .item-foto {
             max-width: 100%;
             height: auto;
@@ -19,21 +21,80 @@
             padding: 4px;
         }
         .row.mb-4 .info-field {
-            margin-bottom: 10px !important; /* Reduced from 15px to 10px */
+            margin-bottom: 10px !important; /*
+             Reduced from 15px to 10px */
         }
         .foto-card {
             margin-bottom: 5px;
         }
+
+        .gray-background-saida {
+            background-color: #c5f0f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+ 
+        .gray-background-devolucao {
+            background-color: #c4fad1;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+ 
         .vistoria-header {
-            background-color: #f8f9fa;
+            background-color: #e3ecf5;
             padding: 10px;
             border-radius: 5px;
             margin-bottom: 10px;
         }
         .vistoria-header h3 {
             font-size: 1rem; /* Reduzido para o mesmo tamanho dos captions */
-            font-weight: bold;
+            /*font-weight: bold; */
         }
+
+        .vistoria-header .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+        }
+
+        .vistoria-header .info-row .motorista-info,
+        .vistoria-header .info-row .veiculo-info {
+            margin-right: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .vistoria-header .info-row .veiculo-info {
+                width: 100%;
+                margin-top: 5px;
+            }
+        }
+
+        /* Ajuste para os campos de Data, Hodômetro e Combustível */
+        .vistoria-saida .row-info {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vistoria-saida .row-info > div {
+            flex: 1;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .vistoria-saida .row-info > div {
+                flex-basis: 100%;
+                margin-right: 0;
+            }
+        }
+
+
         .vistoria-tipo {
             font-size: 1rem;
             padding: 5px 10px;
@@ -251,40 +312,63 @@
         
         <div class="vistoria-header">
             <h3>
-                Vistoria #{{ vistoria[0] }}
-                {% if vistoria[4] == 'SAIDA' %}
-                <span class="badge bg-primary vistoria-tipo">Saída</span>
-                {% else %}
-                <span class="badge bg-success vistoria-tipo">Devolução</span>
-                {% endif %}
-                
+                <strong>Vistoria ID: </strong> {{ vistoria[0] }}
                 {% if vistoria[5] == 'EM_TRANSITO' %}
                 <span class="badge bg-warning vistoria-status">Em Trânsito</span>
                 {% else %}
                 <span class="badge bg-secondary vistoria-status">Finalizada</span>
                 {% endif %}
+                <div class="info-row">
+                    <div class="motorista-info">
+                        <strong>Motorista: </strong> {{ vistoria[1] }}
+                    </div>
+                    <div class="veiculo-info">
+                        <strong>Veículo: </strong>{{ vistoria[2] }}
+                    </div>
+                </div>
             </h3>
         </div>
 
         <!-- Informações principais -->
         <div class="row mb-4">
-            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
-                <h5>Motorista</h5>
-                <p>{{ vistoria[1] }}</p>
-            </div>
-            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
-                <h5>Veículo</h5>
-                <p>{{ vistoria[2] }}</p>
-            </div>
-            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
-                <h5>Data</h5>
-                <p>{{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}</p>
-            </div>
-            <div class="col-lg info-field col-md-6 mb-3 mb-lg-0">
-                <h5>Hodômetro</h5>
-                <p>{{ vistoria[11] }}</p>
+        </div>
+
+
+        <div class="vistoria-saida">
+            <h5 class="gray-background-saida">Vistoria de Saída</h5>
+            <div class="row-info">
+                <div>
+                    <strong>Data:</strong> {{ vistoria[3].strftime('%d/%m/%Y %H:%M') }}
+                </div>
+                <div>
+                    <strong>Hodômetro: </strong> {{ vistoria[11] }}
+                </div>    
+                <div>
+                    <strong>Nível de Combustível: {{ vistoria[6] }}%</strong>
+                    <div class="fuel-container">
+                        <!-- Marcadores verticais -->
+                        <div class="fuel-markers">
+                            <div class="fuel-marker"></div>
+                            <div class="fuel-marker"></div>
+                            <div class="fuel-marker"></div>
+                            <div class="fuel-marker"></div>
+                            <div class="fuel-marker"></div>
+                        </div>
+                        <!-- Linha de nível do combustível -->
+                        <div class="fuel-level" style="width: {{ vistoria[6] }}%;"></div>
+                        <!-- Rótulos de texto -->
+                        <div class="fuel-labels">
+                            <span>0</span>
+                            <span>1/4</span>
+                            <span>1/2</span>
+                            <span>3/4</span>
+                            <span>1</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
 
         <!-- Fotos da Vistoria Atual -->
         <h5>Fotos da Vistoria</h5>
@@ -301,8 +385,7 @@
 
             <!-- Usuário da Vistoria de Saída -->
         <div class="mt-3">
-            <h5>Vistoriador</h5>
-            <p>{{ vistoria[13] }}</p>
+            <strong>Vistoriador: </strong> {{ vistoria[13] }}
         </div>
 
         <h5 class="mt-4">Assinaturas da Vistoria de Saída</h5>
@@ -366,8 +449,7 @@
 
             <!-- Usuário da Vistoria de Saída -->
             <div class="mt-3">
-                <h5>Vistoriador)</h5>
-                <p>{{ vistoria_saida[13] }}</p>
+                <strong>Vistoriador: </strong> {{ vistoria_saida[13] }}
             </div>
 
             <h4 class="mt-4">Assinaturas da Vistoria de Saída</h4>
@@ -410,24 +492,41 @@
 
         <!-- Vistoria de Devolução Relacionada -->
         {% if vistoria_devolucao %}
-        <div class="vistoria-relacionada">
-            <h5>Vistoria de Devolução Relacionada</h5>
-            <div class="row">
-                <div class="col-md-3">
-                    <strong>ID:</strong> {{ vistoria_devolucao[0] }}
-                </div>
-                <div class="col-md-3">
-                    <strong>Motorista:</strong> {{ vistoria_devolucao[1] }}
-                </div>
-                <div class="col-md-3">
-                    <strong>Veículo:</strong> {{ vistoria_devolucao[2] }}
-                </div>
-                <div class="col-md-3">
+        <div class="vistoria-saida">
+            <h5 class="gray-background-devolucao">Vistoria de Devolução</h5>
+            <div class="row-info">
+                <div>
                     <strong>Data:</strong> {{ vistoria_devolucao[3].strftime('%d/%m/%Y %H:%M') }}
+                </div>
+                <div>
+                    <strong>Hodômetro: </strong> {{ vistoria_devolucao[11] }}
+                </div>    
+                <div>
+                    <strong>Nível de Combustível: {{ vistoria_devolucao[6] }}%</strong>
+                    <div class="fuel-container">
+                        <!-- Marcadores verticais -->
+                        <div class="fuel-markers">
+                            <div class="fuel-marker"></div>
+                            <div class="fuel-marker"></div>
+                            <div class="fuel-marker"></div>
+                            <div class="fuel-marker"></div>
+                            <div class="fuel-marker"></div>
+                        </div>
+                        <!-- Linha de nível do combustível -->
+                        <div class="fuel-level" style="width: {{ vistoria_devolucao[6] }}%;"></div>
+                        <!-- Rótulos de texto -->
+                        <div class="fuel-labels">
+                            <span>0</span>
+                            <span>1/4</span>
+                            <span>1/2</span>
+                            <span>3/4</span>
+                            <span>1</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <h5>Fotos da Vistoria de Devolução</h5>
+            <h5>Fotos</h5>
             <div class="row" id="fotos-devolucao-container">
                 {% for item in vistoria_devolucao_itens %}
                 <div class="col-md-6 foto-card position-relative">
@@ -441,8 +540,7 @@
 
             <!-- Usuário da Vistoria de Devolução -->
             <div class="mt-3">
-                <h5>Vistoriador</h5>
-                <p>{{ vistoria_devolucao[13] }}</p>
+                <strong>Vistoriador: </strong> {{ vistoria_devolucao[13] }}
             </div>
 
             <h5 class="mt-4">Assinaturas da Vistoria de Devolução</h5>
