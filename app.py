@@ -1249,7 +1249,7 @@ def api_saldo_diarias(id_cl):
             resultado.append({
                 'DE_VEICULO': saldo[0],
                 'VL_DIARIA_KM': saldo[1],
-                'QT_DK': saldo[2],
+                'QT_DK': int(saldo[2]),
                 'QT_UTILIZADO': saldo[3],
                 'QT_SALDO': saldo[4],
                 'VALOR_TOTAL': float(saldo[5]) if saldo[5] else 0,
@@ -1339,36 +1339,59 @@ def api_locacoes_transito(id_cl):
         app.logger.error(f"Erro ao buscar locações em trânsito: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/meses_locacoes/<int:id_cl>')
+@login_required
+def api_meses_locacoes(id_cl):
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT DISTINCT CONCAT(m.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO 
+        FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MES m 
+        WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s AND i.FL_STATUS = 'F'
+        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC
+        """
+        
+        app.logger.info(f"Executando consulta de meses/anos disponíveis para ID_CL={id_cl}")
+        cursor.execute(query, (id_cl,))
+        meses_anos = cursor.fetchall()
+        app.logger.info(f"Encontrados {len(meses_anos)} opções de mês/ano")
+        
+        # Converter para lista de dicionários
+        resultado = []
+        for item in meses_anos:
+            resultado.append({'MES_ANO': item[0]})
+            
+        cursor.close()
+        return jsonify(resultado)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar opções de mês/ano: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/locacoes_finalizadas/<int:id_cl>')
 @login_required
 def api_locacoes_finalizadas(id_cl):
     try:
         cursor = mysql.connection.cursor()
-        query = """
-        SELECT
-           i.ID_ITEM, i.ID_EXERCICIO, x.NU_MES, x.DE_MES,
-           CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO,
-           e.NU_EMPENHO, v.ID_VEICULO_LOC, v.DE_VEICULO,
-           i.DS_VEICULO_MOD, i.DT_INICIAL, i.DT_FINAL, 
-           i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM,
-           i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM,
-           i.NU_SEI, i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
-           CASE WHEN i.ID_MOTORISTA=0
-           THEN CONCAT('*',i.NC_CONDUTOR,'*')
-           ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
-           i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
-        FROM TJ_CONTROLE_LOCACAO_ITENS i
-        LEFT JOIN TJ_MOTORISTA m
-        ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x,
-        TJ_CONTROLE_LOCACAO_EMPENHOS e
-        WHERE e.ID_EMPENHO = i.ID_EMPENHO
-        AND x.ID_MES = i.ID_MES
-        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC
-        AND i.FL_STATUS = 'F'
-        AND i.ID_CL = %s
-        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC, i.DATA_INICIO DESC, i.DATA_FIM DESC
+        query = """ 
+        SELECT i.ID_ITEM, i.ID_EXERCICIO, x.NU_MES, x.DE_MES, CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
+        e.NU_EMPENHO, v.ID_VEICULO_LOC, v.DE_VEICULO, i.DS_VEICULO_MOD, 
+        i.DT_INICIAL, i.DT_FINAL, i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM, 
+        i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, 
+        i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
+        CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
+        i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV 
+        FROM TJ_CONTROLE_LOCACAO_ITENS i 
+        LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+        TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
+        WHERE e.ID_EMPENHO = i.ID_EMPENHO 
+        AND x.ID_MES = i.ID_MES 
+        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
+        AND i.FL_STATUS = 'F' 
+        AND i.ID_CL = %s 
+        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC, i.DATA_INICIO DESC, i.DATA_FIM DESC 
         """
+        
         app.logger.info(f"Executando consulta de locações finalizadas para ID_CL={id_cl}")
         cursor.execute(query, (id_cl,))
         locacoes = cursor.fetchall()
@@ -1408,12 +1431,90 @@ def api_locacoes_finalizadas(id_cl):
                 'OBS_DEV': loc[27]
             }
             resultado.append(item)
-        
+            
         cursor.close()
         return jsonify(resultado)
+        
     except Exception as e:
-        app.logger.error(f"Erro ao buscar locações em trânsito: {str(e)}")
+        app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+# @app.route('/api/locacoes_finalizadas/<int:id_cl>')
+# @login_required
+# def api_locacoes_finalizadas(id_cl):
+#     try:
+#         cursor = mysql.connection.cursor()
+#         query = """
+#         SELECT
+#            i.ID_ITEM, i.ID_EXERCICIO, x.NU_MES, x.DE_MES,
+#            CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO,
+#            e.NU_EMPENHO, v.ID_VEICULO_LOC, v.DE_VEICULO,
+#            i.DS_VEICULO_MOD, i.DT_INICIAL, i.DT_FINAL, 
+#            i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM,
+#            i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM,
+#            i.NU_SEI, i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
+#            CASE WHEN i.ID_MOTORISTA=0
+#            THEN CONCAT('*',i.NC_CONDUTOR,'*')
+#            ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
+#            i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
+#         FROM TJ_CONTROLE_LOCACAO_ITENS i
+#         LEFT JOIN TJ_MOTORISTA m
+#         ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+#         TJ_VEICULO_LOCACAO v, TJ_MES x,
+#         TJ_CONTROLE_LOCACAO_EMPENHOS e
+#         WHERE e.ID_EMPENHO = i.ID_EMPENHO
+#         AND x.ID_MES = i.ID_MES
+#         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC
+#         AND i.FL_STATUS = 'F'
+#         AND i.ID_CL = %s
+#         ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC, i.DATA_INICIO DESC, i.DATA_FIM DESC
+#         """
+#         app.logger.info(f"Executando consulta de locações finalizadas para ID_CL={id_cl}")
+#         cursor.execute(query, (id_cl,))
+#         locacoes = cursor.fetchall()
+#         app.logger.info(f"Encontradas {len(locacoes)} locações finalizadas")
+        
+#         # Converter para dicionários
+#         resultado = []
+#         for loc in locacoes:
+#             item = {
+#                 'ID_ITEM': loc[0],
+#                 'ID_EXERCICIO': loc[1],
+#                 'NU_MES': loc[2],
+#                 'DE_MES': loc[3],
+#                 'MES_ANO': loc[4],
+#                 'NU_EMPENHO': loc[5],
+#                 'ID_VEICULO_LOC': loc[6],
+#                 'DE_VEICULO': loc[7],
+#                 'DS_VEICULO_MOD': loc[8],
+#                 'DT_INICIAL': loc[9] if loc[9] else None,
+#                 'DT_FINAL': loc[10] if loc[10] else None,
+#                 'HR_INICIAL': loc[11],
+#                 'HR_FINAL': loc[12],
+#                 'QT_DIARIA_KM': loc[13],
+#                 'VL_DK': float(loc[14]) if loc[14] else 0,
+#                 'VL_SUBTOTAL': float(loc[15]) if loc[15] else 0,
+#                 'VL_DIFERENCA': float(loc[16]) if loc[16] else 0,
+#                 'VL_TOTALITEM': float(loc[17]) if loc[17] else 0,
+#                 'NU_SEI': loc[18],
+#                 'OBJETIVO': loc[19],
+#                 'SETOR_SOLICITANTE': loc[20],
+#                 'ID_MOTORISTA': loc[21],
+#                 'MOTORISTA': loc[22],
+#                 'FL_EMAIL': loc[23],
+#                 'KM_RODADO': loc[24],
+#                 'COMBUSTIVEL': loc[25],
+#                 'OBS': loc[26],
+#                 'OBS_DEV': loc[27]
+#             }
+#             resultado.append(item)
+        
+#         cursor.close()
+#         return jsonify(resultado)
+#     except Exception as e:
+#         app.logger.error(f"Erro ao buscar locações em trânsito: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
