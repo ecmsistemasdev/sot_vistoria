@@ -1498,7 +1498,7 @@ def get_rel_locacao_analitico(id_cl):
         ORDER BY i.ID_EXERCICIO, i.ID_MES, i.DATA_INICIO, i.DATA_FIM
     """
     try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor = mysql.connection.cursor()
         cursor.execute(query, (id_cl,))
         items = cursor.fetchall()
         cursor.close()
@@ -1511,7 +1511,6 @@ def get_rel_locacao_analitico(id_cl):
 @login_required
 def rel_locacao_analitico():
     return render_template('rel_locacao_analitico.html')
-
 
 
 
