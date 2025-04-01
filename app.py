@@ -854,6 +854,567 @@ def descriptografar(texto):
     
     return resultado
 
+@app.route('/motoristas')
+@login_required
+def pagina_motoristas():
+    return render_template('motoristas.html')
+
+@app.route('/api/setores')
+@login_required
+def listar_setores():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT SIGLA_SETOR FROM TJ_SETORES ORDER BY SIGLA_SETOR")
+        setores = [{'sigla': row[0]} for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify(setores)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+@app.route('/api/motoristas')
+@login_required
+def listar_motoristas():
+    try:
+        nome = request.args.get('nome', '')
+        cursor = mysql.connection.cursor()
+        
+        if nome:
+            query = """
+            SELECT 
+                ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
+                ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
+                FILE_PDF IS NOT NULL AS FILE_PDF
+            FROM TJ_MOTORISTA 
+            WHERE ID_MOTORISTA > 0
+            AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
+            ORDER BY NM_MOTORISTA
+            """
+            cursor.execute(query, (f'%{nome}%',))
+        else:
+            query = """
+            SELECT 
+                ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
+                ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
+                FILE_PDF IS NOT NULL AS FILE_PDF
+            FROM TJ_MOTORISTA
+            WHERE ID_MOTORISTA > 0 
+            ORDER BY NM_MOTORISTA
+            """
+            cursor.execute(query)
+        
+        columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf']
+        motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify(motoristas)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+@app.route('/api/motoristas/<int:id_motorista>')
+@login_required
+def detalhe_motorista(id_motorista):
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT 
+            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
+            ORDEM_LISTA, SIGLA_SETOR, CAT_CNH, 
+            DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
+            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO
+        FROM TJ_MOTORISTA 
+        WHERE ID_MOTORISTA = %s
+        """
+        cursor.execute(query, (id_motorista,))
+        result = cursor.fetchone()
+        cursor.close()
+        
+        if result:
+            motorista = {
+                'id_motorista': result[0],
+                'cad_motorista': result[1],
+                'nm_motorista': result[2],
+                'tipo_cadastro': result[3],
+                'sigla_setor': result[4],
+                'cat_cnh': result[5],
+                'dt_validade_cnh': result[6],
+                'ultima_atualizacao': result[7],
+                'nu_telefone': result[8],
+                'obs_motorista': result[9],
+                'ativo': result[10],
+                'tipo_cadastro_desc': result[11],
+                'nome_arquivo': result[12]
+            }
+            return jsonify(motorista)
+        else:
+            return jsonify({'erro': 'Motorista não encontrado'}), 404
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+@app.route('/api/motoristas/cadastrar', methods=['POST'])
+@login_required
+def cadastrar_motorista():
+
+    tipo_cad = {
+        1: 'Administrativo',
+        2: 'Motorista Desembargador',
+        3: 'Motorista Atendimento',
+        4: 'Cadastro de Condutores'
+    }
+
+    try:
+
+        cursor = mysql.connection.cursor()
+        
+        # Get last ID and increment
+        cursor.execute("SELECT COALESCE(MAX(ID_MOTORISTA), 0) + 1 FROM TJ_MOTORISTA")
+        novo_id = cursor.fetchone()[0]
+
+        # Form data
+        cad_motorista = request.form.get('cad_motorista')
+        nm_motorista = request.form.get('nm_motorista')
+        tipo_cadastro = int(request.form.get('tipo_cadastro'))
+        sigla_setor = request.form.get('sigla_setor')
+        cat_cnh = request.form.get('cat_cnh')
+        dt_validade_cnh = request.form.get('dt_validade_cnh')
+        ultima_atualizacao = request.form.get('ultima_atualizacao')
+        nu_telefone = request.form.get('nu_telefone')
+        obs_motorista = request.form.get('obs_motorista', '')
+        
+        tipo_cadastro_desc = tipo_cad[tipo_cadastro]
+
+        
+        # File handling
+        file_pdf = request.files.get('file_pdf')
+        nome_arquivo = None
+        file_blob = None
+        if file_pdf:
+            nome_arquivo = file_pdf.filename
+            file_blob = file_pdf.read()
+
+        # Get current timestamp in Manaus timezone
+        manaus_tz = timezone('America/Manaus')
+        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+
+        # Insert query
+        query = """
+        INSERT INTO TJ_MOTORISTA (
+            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, 
+            SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
+            NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, DT_TRANSACAO, 
+            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(query, (
+            novo_id, cad_motorista, nm_motorista, tipo_cadastro_desc, 
+            sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
+            nu_telefone, obs_motorista, session.get('usuario_id'), 
+            dt_transacao, file_blob, nome_arquivo, tipo_cadastro
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'sucesso': True, 'id_motorista': novo_id})
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
+
+@app.route('/api/motoristas/atualizar', methods=['POST'])
+@login_required
+def atualizar_motorista():
+
+    tipo_cad = {
+        1: 'Administrativo',
+        2: 'Motorista Desembargador',
+        3: 'Motorista Atendimento',
+        4: 'Cadastro de Condutores'
+    }
+
+
+    try:
+        cursor = mysql.connection.cursor()
+
+        # Form data
+        id_motorista = request.form.get('id_motorista')
+        cad_motorista = request.form.get('cad_motorista')
+        nm_motorista = request.form.get('nm_motorista')
+        tipo_cadastro = int(request.form.get('tipo_cadastro'))
+        sigla_setor = request.form.get('sigla_setor')
+        cat_cnh = request.form.get('cat_cnh')
+        dt_validade_cnh = request.form.get('dt_validade_cnh')
+        ultima_atualizacao = request.form.get('ultima_atualizacao')
+        nu_telefone = request.form.get('nu_telefone')
+        obs_motorista = request.form.get('obs_motorista', '')
+        ativo = 'S' if request.form.get('ativo') == 'on' else 'N'
+
+        tipo_cadastro_desc = tipo_cad[tipo_cadastro]
+
+        # File 
+        file_pdf = request.files.get('file_pdf')
+        nome_arquivo = None
+        file_blob = None
+        
+        # Check if new file is uploaded
+        if file_pdf:
+            nome_arquivo = file_pdf.filename
+            file_blob = file_pdf.read()
+
+        # Get current timestamp in Manaus timezone
+        manaus_tz = timezone('America/Manaus')
+        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+
+        # Update query 
+        if file_pdf:
+            # Update with file
+            query = """
+            UPDATE TJ_MOTORISTA 
+            SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
+                SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
+                ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
+                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, 
+                FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s
+            WHERE ID_MOTORISTA = %s
+            """
+            
+            cursor.execute(query, (
+                cad_motorista, nm_motorista, tipo_cadastro_desc, 
+                sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
+                nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
+                dt_transacao, file_blob, nome_arquivo, tipo_cadastro, id_motorista
+            ))
+        else:
+            # Update without changing file
+            query = """
+            UPDATE TJ_MOTORISTA 
+            SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
+                SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
+                ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
+                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, ORDEM_LISTA = %s
+            WHERE ID_MOTORISTA = %s
+            """
+            
+            cursor.execute(query, (
+                cad_motorista, nm_motorista, tipo_cadastro_desc, 
+                sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
+                nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
+                dt_transacao, tipo_cadastro, id_motorista
+            ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'sucesso': True, 'id_motorista': id_motorista})
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
+
+@app.route('/api/motoristas/download_cnh/<int:id_motorista>')
+@login_required
+def download_cnh(id_motorista):
+    try:
+        cursor = mysql.connection.cursor()
+        query = "SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s"
+        cursor.execute(query, (id_motorista,))
+        result = cursor.fetchone()
+        cursor.close()
+
+        if result and result[0]:
+            return send_file(
+                BytesIO(result[0]),
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=result[1]
+            )
+        else:
+            return "Arquivo não encontrado", 404
+    except Exception as e:
+        return str(e), 500
+
+
+@app.route('/controle_locacoes')
+@login_required
+def controle_locacoes():
+    return render_template('controle_locacoes.html')
+
+@app.route('/api/processos_locacao')
+@login_required
+def api_processos_locacao():
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT cl.ID_CL, cl.ANO_EXERCICIO,
+               f.NM_FORNECEDOR, cl.NU_SEI, cl.NU_CONTRATO
+        FROM TJ_CONTROLE_LOCACAO cl, TJ_FORNECEDOR f
+        WHERE f.ID_FORNECEDOR = cl.ID_FORNECEDOR
+        AND cl.ATIVO = 'S'
+        """
+        cursor.execute(query)
+        processos = cursor.fetchall()
+        
+        # Converter para dicionários para facilitar o uso no JSON
+        resultado = []
+        for processo in processos:
+            resultado.append({
+                'ID_CL': processo[0],
+                'ANO_EXERCICIO': processo[1],
+                'NM_FORNECEDOR': processo[2],
+                'NU_SEI': processo[3],
+                'NU_CONTRATO': processo[4]
+            })
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar processos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/empenhos/<int:id_cl>')
+@login_required
+def api_empenhos(id_cl):
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT e.ID_EMPENHO, e.NU_EMPENHO, e.VL_EMPENHO,
+               (SELECT IFNULL(SUM(VL_SUBTOTAL),0) 
+               FROM TJ_CONTROLE_LOCACAO_ITENS
+               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_DIARIAS,      
+               (SELECT IFNULL(SUM(VL_DIFERENCA),0) 
+               FROM TJ_CONTROLE_LOCACAO_ITENS
+               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_DIF,
+               (SELECT IFNULL(SUM(VL_TOTALITEM),0) 
+               FROM TJ_CONTROLE_LOCACAO_ITENS I
+               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_UTILIZADO,
+               e.VL_EMPENHO - e.VL_ANULADO - 
+               (SELECT IFNULL(SUM(VL_TOTALITEM),0) 
+               FROM TJ_CONTROLE_LOCACAO_ITENS I
+               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_SALDO
+        FROM TJ_CONTROLE_LOCACAO_EMPENHOS e
+        WHERE e.ATIVO = 'S'
+        AND e.ID_CL = %s
+        """
+        cursor.execute(query, (id_cl,))
+        empenhos = cursor.fetchall()
+        
+        # Converter para dicionários
+        resultado = []
+        for empenho in empenhos:
+            resultado.append({
+                'ID_EMPENHO': empenho[0],
+                'NU_EMPENHO': empenho[1],
+                'VL_EMPENHO': float(empenho[2]) if empenho[2] else 0,
+                'VL_DIARIAS': float(empenho[3]) if empenho[3] else 0,
+                'VL_DIF': float(empenho[4]) if empenho[4] else 0,
+                'VL_UTILIZADO': float(empenho[5]) if empenho[5] else 0,
+                'VL_SALDO': float(empenho[6]) if empenho[6] else 0
+            })
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/saldo_diarias/<int:id_cl>')
+@login_required
+def api_saldo_diarias(id_cl):
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT V.DE_VEICULO, V.VL_DIARIA_KM, V.QT_DK,  
+            (SELECT IFNULL(SUM(QT_DIARIA_KM),0)
+                FROM TJ_CONTROLE_LOCACAO_ITENS
+                WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC) AS QT_UTILIZADO,
+            IFNULL(V.QT_DK - ( SELECT IFNULL(SUM(QT_DIARIA_KM),0)
+                        FROM TJ_CONTROLE_LOCACAO_ITENS
+                        WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC),0) AS QT_SALDO,
+            IFNULL((V.VL_DIARIA_KM * V.QT_DK),0) AS VALOR_TOTAL,
+            IFNULL((SELECT CAST(SUM(VL_TOTALITEM) AS DECIMAL(10,2))
+                        FROM TJ_CONTROLE_LOCACAO_ITENS
+                    WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC
+                        AND ID_CL = V.ID_CL),0) AS VL_UTILIZADO,
+            IFNULL((V.VL_DIARIA_KM * V.QT_DK) -
+                    IFNULL((SELECT SUM(VL_TOTALITEM)
+                        FROM TJ_CONTROLE_LOCACAO_ITENS
+                    WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC
+                        AND ID_CL = V.ID_CL),0),0) AS VL_SALDO
+        FROM TJ_VEICULO_LOCACAO V
+        WHERE ID_CL = %s
+        """
+        cursor.execute(query, (id_cl,))
+        saldos = cursor.fetchall()
+        
+        # Converter para dicionários
+        resultado = []
+        for saldo in saldos:
+            resultado.append({
+                'DE_VEICULO': saldo[0],
+                'VL_DIARIA_KM': saldo[1],
+                'QT_DK': saldo[2],
+                'QT_UTILIZADO': saldo[3],
+                'QT_SALDO': saldo[4],
+                'VALOR_TOTAL': float(saldo[5]) if saldo[5] else 0,
+                'VL_UTILIZADO': float(saldo[6]) if saldo[6] else 0,
+                'VL_SALDO': float(saldo[7]) if saldo[7] else 0
+            })
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/locacoes_transito/<int:id_cl>')
+@login_required
+def api_locacoes_transito(id_cl):
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT
+           i.ID_ITEM, i.ID_EXERCICIO, x.NU_MES, x.DE_MES,
+           CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO,
+           e.NU_EMPENHO, v.ID_VEICULO_LOC, v.DE_VEICULO,
+           i.DS_VEICULO_MOD, i.DT_INICIAL, i.DT_FINAL, 
+           i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM,
+           i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM,
+           i.NU_SEI, i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
+           CASE WHEN i.ID_MOTORISTA=0
+           THEN CONCAT('*',i.NC_CONDUTOR,'*')
+           ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
+           i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
+        FROM TJ_CONTROLE_LOCACAO_ITENS i
+        LEFT JOIN TJ_MOTORISTA m
+        ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+        TJ_VEICULO_LOCACAO v, TJ_MES x,
+        TJ_CONTROLE_LOCACAO_EMPENHOS e
+        WHERE e.ID_EMPENHO = i.ID_EMPENHO
+        AND x.ID_MES = i.ID_MES
+        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC
+        AND i.FL_STATUS = 'T'
+        AND i.ID_CL = %s
+        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC, i.DATA_INICIO DESC, i.DATA_FIM DESC
+        """
+        app.logger.info(f"Executando consulta de locações em trânsito para ID_CL={id_cl}")
+        cursor.execute(query, (id_cl,))
+        locacoes = cursor.fetchall()
+        app.logger.info(f"Encontradas {len(locacoes)} locações em trânsito")
+        
+        # Converter para dicionários
+        resultado = []
+        for loc in locacoes:
+            item = {
+                'ID_ITEM': loc[0],
+                'ID_EXERCICIO': loc[1],
+                'NU_MES': loc[2],
+                'DE_MES': loc[3],
+                'MES_ANO': loc[4],
+                'NU_EMPENHO': loc[5],
+                'ID_VEICULO_LOC': loc[6],
+                'DE_VEICULO': loc[7],
+                'DS_VEICULO_MOD': loc[8],
+                'DT_INICIAL': loc[9] if loc[9] else None,
+                'DT_FINAL': loc[10] if loc[10] else None,
+                'HR_INICIAL': loc[11],
+                'HR_FINAL': loc[12],
+                'QT_DIARIA_KM': loc[13],
+                'VL_DK': float(loc[14]) if loc[14] else 0,
+                'VL_SUBTOTAL': float(loc[15]) if loc[15] else 0,
+                'VL_DIFERENCA': float(loc[16]) if loc[16] else 0,
+                'VL_TOTALITEM': float(loc[17]) if loc[17] else 0,
+                'NU_SEI': loc[18],
+                'OBJETIVO': loc[19],
+                'SETOR_SOLICITANTE': loc[20],
+                'ID_MOTORISTA': loc[21],
+                'MOTORISTA': loc[22],
+                'FL_EMAIL': loc[23],
+                'KM_RODADO': loc[24],
+                'COMBUSTIVEL': loc[25],
+                'OBS': loc[26],
+                'OBS_DEV': loc[27]
+            }
+            resultado.append(item)
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar locações em trânsito: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/locacoes_finalizadas/<int:id_cl>')
+@login_required
+def api_locacoes_finalizadas(id_cl):
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT
+           i.ID_ITEM, i.ID_EXERCICIO, x.NU_MES, x.DE_MES,
+           CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO,
+           e.NU_EMPENHO, v.ID_VEICULO_LOC, v.DE_VEICULO,
+           i.DS_VEICULO_MOD, i.DT_INICIAL, i.DT_FINAL, 
+           i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM,
+           i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM,
+           i.NU_SEI, i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
+           CASE WHEN i.ID_MOTORISTA=0
+           THEN CONCAT('*',i.NC_CONDUTOR,'*')
+           ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
+           i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
+        FROM TJ_CONTROLE_LOCACAO_ITENS i
+        LEFT JOIN TJ_MOTORISTA m
+        ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+        TJ_VEICULO_LOCACAO v, TJ_MES x,
+        TJ_CONTROLE_LOCACAO_EMPENHOS e
+        WHERE e.ID_EMPENHO = i.ID_EMPENHO
+        AND x.ID_MES = i.ID_MES
+        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC
+        AND i.FL_STATUS = 'F'
+        AND i.ID_CL = %s
+        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC, i.DATA_INICIO DESC, i.DATA_FIM DESC
+        """
+        app.logger.info(f"Executando consulta de locações finalizadas para ID_CL={id_cl}")
+        cursor.execute(query, (id_cl,))
+        locacoes = cursor.fetchall()
+        app.logger.info(f"Encontradas {len(locacoes)} locações finalizadas")
+        
+        # Converter para dicionários
+        resultado = []
+        for loc in locacoes:
+            item = {
+                'ID_ITEM': loc[0],
+                'ID_EXERCICIO': loc[1],
+                'NU_MES': loc[2],
+                'DE_MES': loc[3],
+                'MES_ANO': loc[4],
+                'NU_EMPENHO': loc[5],
+                'ID_VEICULO_LOC': loc[6],
+                'DE_VEICULO': loc[7],
+                'DS_VEICULO_MOD': loc[8],
+                'DT_INICIAL': loc[9] if loc[9] else None,
+                'DT_FINAL': loc[10] if loc[10] else None,
+                'HR_INICIAL': loc[11],
+                'HR_FINAL': loc[12],
+                'QT_DIARIA_KM': loc[13],
+                'VL_DK': float(loc[14]) if loc[14] else 0,
+                'VL_SUBTOTAL': float(loc[15]) if loc[15] else 0,
+                'VL_DIFERENCA': float(loc[16]) if loc[16] else 0,
+                'VL_TOTALITEM': float(loc[17]) if loc[17] else 0,
+                'NU_SEI': loc[18],
+                'OBJETIVO': loc[19],
+                'SETOR_SOLICITANTE': loc[20],
+                'ID_MOTORISTA': loc[21],
+                'MOTORISTA': loc[22],
+                'FL_EMAIL': loc[23],
+                'KM_RODADO': loc[24],
+                'COMBUSTIVEL': loc[25],
+                'OBS': loc[26],
+                'OBS_DEV': loc[27]
+            }
+            resultado.append(item)
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar locações em trânsito: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
