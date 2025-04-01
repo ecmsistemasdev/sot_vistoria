@@ -265,11 +265,11 @@
                     data.forEach(function(item) {
                         selectHtml += `<option value="${item.MES_ANO}">${item.MES_ANO}</option>`;
                     });
-                    $('#filtroMesAno').html(selectHtml);
+                    $('#filtroMesAnoRelatorio').html(selectHtml);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar opções de mês/ano:", error);
-                    $('#filtroMesAno').html('<option value="Todos">Todos</option>');
+                    $('#filtroMesAnoRelatorio').html('<option value="Todos">Todos</option>');
                 }
             });
         }
