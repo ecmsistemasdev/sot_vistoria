@@ -1506,7 +1506,7 @@ def get_rel_locacao_analitico(id_cl):
 
         # Converter para dicionários
         resultado = []
-        for item in itens:
+        for item in items:
             lista = {
                 'ID_ITEM': item[0],
                 'MES_ANO': item[1],
