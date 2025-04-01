@@ -13,6 +13,7 @@
         }
         .content {
             flex: 1 0 auto;
+            padding-bottom: 60px; /* Espaço para o footer */
         }
         .logo-container {
             text-align: center;
@@ -26,7 +27,7 @@
             text-align: center;
             font-size: 1.2rem;
             font-weight: bold;
-            margin-bottom: 5px; /* Reduzido para aproximar o subtítulo */
+            margin-bottom: 5px;
         }
         .subtitle {
             text-align: center;
@@ -34,14 +35,16 @@
             margin-bottom: 25px;
             color: #666666;
         }
-        a {
-            margin-bottom: 15px;
+        .main-menu {
+            margin-bottom: 30px;
+            background-color: #d0e4ff !important; /* Menu com cor azul claro */
+            padding: 0.3rem 0; /* Reduzindo a altura do menu */
         }
-        /* Adicionando espaço entre os cards em visualização mobile */
-        @media (max-width: 767.98px) {
-            .card-spacing {
-                margin-bottom: 20px;
-            }
+        .nav-item {
+            margin-right: 5px;
+        }
+        .dropdown-divider {
+            margin: 0.3rem 0;
         }
         /* Estilo para o footer fixo */
         .footer {
@@ -67,18 +70,28 @@
         .footer-content .btn-logout:hover {
             background-color: rgba(255,255,255,0.1);
         }
+        .welcome-message {
+            text-align: center;
+            margin: 30px 0;
+            color: #6c757d;
+        }
+        /* Ajustes para reduzir a altura dos itens do menu */
+        .navbar-nav .nav-link {
+            padding-top: 0.3rem;
+            padding-bottom: 0.3rem;
+        }
     </style>
     <!-- Adicionar o script de verificação de autenticação -->
     <script src="{{ url_for('static', filename='js/auth-check.js') }}"></script>
 </head>
 <body>
     <div class="content">
-        <div class="container mt-4 mb-5">
+        <div class="container mt-4">
             <div class="logo-container">
                 <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
             </div>
-            <h2 class="main-title">SOTWeb - Vistoria de Veículo Oficial</h2>
-            <div class="subtitle"><strong>Sistema de Operações de Transporte - TJRO</strong></div>       
+            <h2 class="main-title">SOTWeb - Sistema de Operações de Transporte</h2>
+            <a>-</a>       
             
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -90,26 +103,67 @@
                 {% endif %}
             {% endwith %}
             
-            <div class="row mt-4">
-                <div class="col-md-6 card-spacing">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Nova Vistoria</h5>
-                            <p class="card-text">Criar uma nova vistoria de veículo.</p>
-                            <a href="/nova_vistoria" class="btn btn-primary">Vistoria Completa</a>
-                            <a href="/nova_vistoria2" class="btn btn-success">Vistoria em Duas Etapas</a>
-                        </div>
+            <!-- Menu de navegação -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light main-menu">
+                <div class="container-fluid">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                            <!-- Cadastros -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarCadastros" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Cadastros
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbarCadastros">
+                                    <li><a class="dropdown-item" href="/motoristas">Motorista</a></li>
+                                    <li><a class="dropdown-item" href="#">Veículo</a></li>
+                                </ul>
+                            </li>
+                            
+                            <!-- Controles -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarControles" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Controles
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbarControles">
+                                    <li><a class="dropdown-item" href="/controle_locacoes">Controle de Locações</a></li>
+                                </ul>
+                            </li>
+                            
+                            <!-- Vistorias -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarVistorias" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Vistorias
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbarVistorias">
+                                    <li><a class="dropdown-item" href="/nova_vistoria">Vistoria Completa</a></li>
+                                    <li><a class="dropdown-item" href="/nova_vistoria2">Vistoria em Duas Etapas</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/vistorias">Lista Vistorias</a></li>
+                                </ul>
+                            </li>
+                            
+                            <!-- Relatórios -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarRelatorios" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Relatórios
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbarRelatorios">
+                                    <li><a class="dropdown-item" href="#">Relatório 1</a></li>
+                                    <li><a class="dropdown-item" href="#">Relatório 2</a></li>
+                                </ul>
+                            </li>
+                        </ul>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Listar Vistorias</h5>
-                            <p class="card-text">Consultar vistorias já realizadas.</p>
-                            <a href="/vistorias" class="btn btn-secondary">Ver Vistorias</a>
-                        </div>
-                    </div>
-                </div>
+            </nav>
+            
+            <!-- Mensagem de boas-vindas -->
+            <div class="welcome-message">
+                <h4>Bem-vindo ao Sistema de Operações de Transporte</h4>
+                <p>Selecione uma opção no menu acima para começar.</p>
             </div>
         </div>
     </div>
