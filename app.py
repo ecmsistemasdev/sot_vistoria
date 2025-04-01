@@ -33,6 +33,11 @@ def login_required(f):
 def index():
     return render_template('index.html')
 
+@app.route('/index2')
+@login_required
+def index2():
+    return render_template('index2.html')
+
 @app.route('/login')
 def login():
     if 'usuario_logado' in session:
