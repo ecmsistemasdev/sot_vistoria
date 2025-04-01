@@ -135,6 +135,9 @@
         </div>
         
         <h2>Relatório de Locações - Analítico</h2>
+        <div class="mb-3">
+            <strong>Fornecedor:</strong> <span id="fornecedorSpan"></span>
+        </div>
         
         <!-- Filtro -->
         <div class="d-flex justify-content-end mb-3 no-print">
@@ -196,7 +199,11 @@
         $(document).ready(function() {
             // Obter ID_CL da URL
             const urlParams = new URLSearchParams(window.location.search);
+            
             processoIdSelecionado = urlParams.get('id_cl');
+            
+            const fornecedorNome = localStorage.getItem('fornecedorNome') || 'Não disponível';
+            $('#fornecedorSpan').text(fornecedorNome);
             
             if (processoIdSelecionado) {
                 carregarDadosRelatorio(processoIdSelecionado);
