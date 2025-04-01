@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOT - Cadastro de Motoristas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 80px; /* Espaço para o footer */
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 80px); /* Altura da viewport menos o footer */
+        }
+        
+        .header-section {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 100;
+            padding-top: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .table-container {
+            overflow-y: auto;
+            max-height: calc(100vh - 250px); /* Altura ajustável conforme necessário */
+            margin-bottom: 20px;
+        }
+        
+        .table-header {
+            position: sticky;
+            top: 0;
+            background-color: #9ecde2;
+            z-index: 10;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+            padding: 15px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            height: auto;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .footer .container-fluid {
+            width: 100%;
+            padding: 0px 235px 0 235px;
+        }
+        
+        .footer .d-flex {
+            width: 100%;
+        }
+        
+        @media print {
+            .footer {
+                display: none; /* Ocultar no modo impressão */
+            }
+        }
+        
+        .form-title {
+            background-color: #4a90e2;
+            color: white;
+            padding: 5px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        #cadastroForm {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .file-name {
+            margin-top: 5px;
+            color: #6c757d;
+        }
+
+        /* Ajustes para mobile */
+        @media (max-width: 768px) {
+            .footer .container-fluid {
+                padding: 0 10px;
+            }
+            
+            .footer .d-flex {
+                justify-content: space-between !important;
+                width: 100%;
+            }
+            
+            .footer .btn {
+                font-size: 0.85rem;
+                padding: 0.375rem 0.5rem;
+            }
+            
+            .table-container {
+                max-height: calc(100vh - 230px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header Section (Sempre visível) -->
+        <div class="header-section">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12 text-center mb-3">
+                        <h2>Cadastro de Motoristas</h2>
+                    </div>
+                </div>
+
+                <!-- Pesquisa -->
+                <div class="row mb-3" id="secaoPesquisa">
+                    <div class="col-md-6 offset-md-3">
+                        <div class="input-group">
+                            <input type="text" id="pesquisaNome" class="form-control" placeholder="Pesquisar por qualquer Campo da lista">
+                            <button class="btn btn-primary" type="button" id="botaoPesquisar">
+                                <i class="fas fa-search"></i> Pesquisar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo principal -->
+        <div class="container-fluid">
+            <!-- Tabela de Motoristas -->
+            <div class="row" id="secaoTabela">
+                <div class="col-md-10 offset-md-1">
+                    <div class="table-container">
+                        <table class="table table-striped" id="tabelaMotoristas">
+                            <thead class="table-header">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cadastro</th>
+                                    <th>Nome</th>
+                                    <th>Tipo Cadastro</th>
+                                    <th>Setor</th>
+                                    <th>CNH</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabela">
+                                <!-- Linhas serão preenchidas dinamicamente via JavaScript/fetch -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulário de Cadastro (inicialmente oculto) -->
+            <div class="row" id="secaoCadastro" style="display:none;">
+                <div class="col-md-8 offset-md-2">
+                    <form id="cadastroForm">
+                        <input type="hidden" id="idMotorista" name="id_motorista">
+                        <div class="form-title text-center">
+                            <h5>Cadastro de Motorista</h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="cadMotorista" class="form-label">Cadastro</label>
+                                <input type="text" class="form-control" id="cadMotorista" name="cad_motorista" 
+                                       pattern="[0-9]{6}-[0-9]" required inputmode="numeric" 
+                                       placeholder="000000-0">
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label for="nmMotorista" class="form-label">Nome Completo</label>
+                                <input type="text" class="form-control" id="nmMotorista" name="nm_motorista" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="tipoCadastro" class="form-label">Tipo Cadastro</label>
+                                <select class="form-select" id="tipoCadastro" name="tipo_cadastro" required>
+                                    <option value="">Selecione</option>
+                                    <option value="1">Administrativo</option>
+                                    <option value="2">Motorista Desembargador</option>
+                                    <option value="3">Motorista Atendimento</option>
+                                    <option value="4">Cadastro de Condutores</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="siglasSetor" class="form-label">Setor</label>
+                                <select class="form-select" id="siglasSetor" name="sigla_setor" required>
+                                    <!-- Preenchido dinamicamente via JS/fetch -->
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="catCnh" class="form-label">Categoria CNH</label>
+                                <input type="text" class="form-control text-uppercase" id="catCnh" 
+                                       name="cat_cnh" required maxlength="3">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="dtValidadeCnh" class="form-label">Validade CNH</label>
+                                <input type="date" class="form-control" id="dtValidadeCnh" 
+                                       name="dt_validade_cnh" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ultimaAtualizacao" class="form-label">Última Atualização</label>
+                                <input type="text" class="form-control" id="ultimaAtualizacao" 
+                                       name="ultima_atualizacao" required inputmode="numeric" maxlength="4">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="nuTelefone" class="form-label">Telefone</label>
+                                <input type="text" class="form-control" id="nuTelefone" 
+                                       name="nu_telefone" required placeholder="(99) 99999-9999">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="obsMotorist" class="form-label">Observações</label>
+                                <textarea class="form-control" id="obsMotorist" name="obs_motorista" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="fileCnh" class="form-label">Anexar CNH (PDF ou Imagem)</label>
+                                <input class="form-control" type="file" id="fileCnh" name="file_pdf" 
+                                       accept=".pdf,.jpg,.jpeg,.png">
+                                <div id="fileNameDisplay" class="file-name"></div>
+                            </div>
+                        </div>
+
+                        <div class="row" id="secaoAtivo" style="display:none;">
+                            <div class="col-md-12 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="ativo" name="ativo">
+                                    <label class="form-check-label" for="ativo">
+                                        Ativo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer for Main View -->
+    <div class="footer" id="mainFooter">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <button id="btnNovoRegistroFooter" class="btn btn-success">
+                    <i class="fas fa-plus-circle bnt-novo"></i> Novo Registro
+                </button>
+                <button id="btnVoltarFooter" class="btn btn-secondary" onclick="window.location.href='/';">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer para formulário (inicialmente oculto) -->
+    <div class="footer" id="formFooter" style="display:none;">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <button id="btnSalvarMotorista" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+                <button id="btnCancelar" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Máscaras
+            $('#cadMotorista').mask('000000-0');
+            $('#nuTelefone').mask('(00) 00000-0000');
+            $('#catCnh').css('text-transform', 'uppercase');
+
+            // Mapeamento de tipos de cadastro
+            const tipoCadastroMap = {
+                1: 'Administrativo',
+                2: 'Motorista Desembargador',
+                3: 'Motorista Atendimento',
+                4: 'Cadastro de Condutores'
+            };
+
+            // Carregar setores
+            let setores = []; // Global setores array
+            function carregarSetores() {
+                fetch('/api/setores')
+                    .then(response => response.json())
+                    .then(data => {
+                        setores = data; // Store setores globally
+                        const selectSetor = $('#siglasSetor');
+                        selectSetor.empty();
+                        selectSetor.append('<option value="">Selecione o Setor</option>');
+                        data.forEach(setor => {
+                            selectSetor.append(`<option value="${setor.sigla}">${setor.sigla}</option>`);
+                        });
+                    });
+            }
+            carregarSetores();
+
+            // File input name display
+            $('#fileCnh').on('change', function() {
+                const fileName = this.files[0] ? this.files[0].name : '';
+                $('#fileNameDisplay').text(fileName ? `Arquivo selecionado: ${fileName}` : '');
+            });
+
+            // Update event listeners to handle both section and footer buttons
+            $('#btnNovoRegistro, #btnNovoRegistroFooter').click(function() {
+                $('#secaoPesquisa, #secaoTabela, #secaoTabelaBotoes, #mainFooter').hide();
+                $('#secaoCadastro, #formFooter').show();
+                $('#idMotorista').val('');
+                $('#secaoAtivo').hide();
+                $('#cadastroForm')[0].reset();
+                $('#fileNameDisplay').text('');
+            });
+
+            // Botão Cancelar / Voltar
+            $('#btnCancelar, #btnVoltarFooter').click(function() {
+                $('#secaoCadastro, #formFooter').hide();
+                $('#secaoPesquisa, #secaoTabela, #secaoTabelaBotoes, #mainFooter').show();
+                carregarMotoristas();
+            });
+
+            // Carregar motoristas
+            function carregarMotoristas(filtroNome = '') {
+                fetch(`/api/motoristas?nome=${encodeURIComponent(filtroNome)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const corpoTabela = $('#corpoTabela');
+                        corpoTabela.empty();
+                        data.forEach(motorista => {
+                            // Adiciona descrição do tipo de cadastro
+                            const tipoCadastroDesc = tipoCadastroMap[motorista.tipo_cadastro] || 'Não definido';
+                            
+                            const linhaCnh = motorista.file_pdf 
+                                ? '<span class="badge bg-success">CNH ANEXADA</span>' 
+                                : '<span class="badge bg-secondary">SEM ARQUIVO</span>';
+                            
+                            corpoTabela.append(`
+                                <tr>
+                                    <td>${motorista.id_motorista}</td>
+                                    <td>${motorista.cad_motorista}</td>
+                                    <td>${motorista.nm_motorista}</td>
+                                    <td>${tipoCadastroDesc}</td>
+                                    <td>${motorista.sigla_setor}</td>
+                                    <td>${linhaCnh}</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-info btnEditar" 
+                                        data-id="${motorista.id_motorista}">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar motoristas:', error);
+                        alert('Erro ao carregar motoristas');
+                    });
+            }
+            carregarMotoristas();
+
+            // Pesquisar motoristas
+            $('#botaoPesquisar').click(function() {
+                const filtroNome = $('#pesquisaNome').val();
+                carregarMotoristas(filtroNome);
+            });
+
+            // Pesquisar ao pressionar Enter
+            $('#pesquisaNome').on('keypress', function(e) {
+                if (e.which === 13) {
+                    const filtroNome = $(this).val();
+                    carregarMotoristas(filtroNome);
+                }
+            });
+
+            // Editar motorista
+            $(document).on('click', '.btnEditar', function(e) {
+                e.preventDefault();
+                const idMotorista = $(this).data('id');
+                
+                fetch(`/api/motoristas/${idMotorista}`)
+                    .then(response => response.json())
+                    .then(motorista => {
+                        $('#secaoPesquisa, #secaoTabela, #secaoTabelaBotoes, #mainFooter').hide();
+                        $('#secaoCadastro, #formFooter').show();
+                        $('#secaoAtivo').show();
+
+                        // Preencher formulário
+                        $('#idMotorista').val(motorista.id_motorista);
+
+                        // Aplicar máscara ao cadastro do motorista
+                        const cadMotorista = motorista.cad_motorista;
+                        const cadMotoristaFormatado = cadMotorista.length === 7 
+                            ? `${cadMotorista.slice(0,6)}-${cadMotorista.slice(6)}` 
+                            : cadMotorista;
+                        $('#cadMotorista').val(cadMotoristaFormatado);
+
+                        $('#nmMotorista').val(motorista.nm_motorista);
+                        $('#tipoCadastro').val(motorista.tipo_cadastro);
+                        
+                        // Setor: Ensure the correct sector is selected
+                        $('#siglasSetor').val(motorista.sigla_setor);
+                        
+                        $('#catCnh').val(motorista.cat_cnh);
+                        
+                        // Convert date format from DD/MM/YYYY to YYYY-MM-DD
+                        if (motorista.dt_validade_cnh) {
+                            const [dia, mes, ano] = motorista.dt_validade_cnh.split('/');
+                            $('#dtValidadeCnh').val(`${ano}-${mes}-${dia}`);
+                        }
+                        
+                        $('#ultimaAtualizacao').val(motorista.ultima_atualizacao);
+                        $('#nuTelefone').val(motorista.nu_telefone);
+                        $('#obsMotorist').val(motorista.obs_motorista);
+                        
+                        // Checkbox Ativo
+                        $('#ativo').prop('checked', motorista.ativo === 'S');
+                        
+                        // Display filename if exists
+                        if (motorista.nome_arquivo) {
+                            $('#fileNameDisplay').text(`Arquivo atual: ${motorista.nome_arquivo}`);
+                        } else {
+                            $('#fileNameDisplay').text('');
+                        }
+                    });
+            });
+
+            // Enviar formulário
+            $('#btnSalvarMotorista').click(function(e) {
+                e.preventDefault();
+                const formData = new FormData($('#cadastroForm')[0]);
+
+                // Remover máscara do campo cadMotorista
+                const cadMotoristaComMascara = $('#cadMotorista').val();
+                const cadMotoristaLimpo = cadMotoristaComMascara.replace(/[.-]/g, '');
+                formData.set('cad_motorista', cadMotoristaLimpo);
+                                
+                // Convert date back to DD/MM/YYYY
+                const dataInput = $('#dtValidadeCnh').val();
+                if (dataInput) {
+                    const [ano, mes, dia] = dataInput.split('-');
+                    formData.set('dt_validade_cnh', `${dia}/${mes}/${ano}`);
+                }
+                
+                const url = formData.get('id_motorista') 
+                    ? '/api/motoristas/atualizar' 
+                    : '/api/motoristas/cadastrar';
+
+                fetch(url, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.sucesso) {
+                        alert('Motorista salvo com sucesso!');
+                        $('#secaoCadastro, #formFooter').hide();
+                        $('#secaoPesquisa, #secaoTabela, #secaoTabelaBotoes, #mainFooter').show();
+                        carregarMotoristas();
+                    } else {
+                        alert('Erro ao salvar motorista: ' + result.mensagem);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao processar a solicitação.');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

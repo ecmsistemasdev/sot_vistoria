@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Locações</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            padding-bottom: 80px; /* Espaço para o footer */
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .groupbox {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            padding: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .groupbox-header {
+            background-color: #f5f5f5;
+            padding: 5px 15px; /* Reduzido de 8px para 5px */
+            border-bottom: 1px solid #ddd;
+            font-weight: 600;
+            border-radius: 4px 4px 0 0;
+            font-size: 0.9rem;
+        }
+        .groupbox-body {
+            padding: 0; /* Removido o padding 10px;*/
+            overflow-x: auto;
+            height: calc(90px + 2rem);
+        }
+        .tabs-body {
+            padding: 0; /* Removido o padding */
+            overflow-x: auto;
+            height: calc(130px + 2rem);
+        }
+        .lista-grande {
+            height: calc(100vh - 450px);
+            min-height: 250px;
+        }
+        .table-responsive {
+            height: 100%;
+            overflow-y: auto;
+        }
+        .acao-btn {
+            margin-bottom: 5px;
+            display: block;
+            text-align: center;
+        }
+        .btn-selecionar {
+            background-color: #0d6efd;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.75rem;
+        }
+        .btn-abrir {
+            background-color: #198754;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.75rem;
+        }
+        .btn-devolucao {
+            background-color: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 0.75rem;
+        }
+        .sticky-column {
+            position: sticky;
+            right: 0;
+            background-color: #f8f9fa !important;
+            z-index: 2;
+            border-left: 1px solid #e0e0e0;
+        }
+        
+        th.sticky-column {
+            position: sticky;
+            right: 0;
+            background-color: #9ecde2 !important;
+            z-index: 999;
+            border-left: 1px solid #e0e0e0;
+        }
+        
+        thead {
+            z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            .sticky-column {
+                position: sticky;
+                right: 0;
+                z-index: 2;
+            }
+            .groupbox-body {
+                height: calc(150px + 2rem);
+            }
+            .lista-grande {
+                height: calc(100vh - 350px);
+                min-height: 300px;
+            }
+            .footer .container-fluid {
+                padding: 0 10px;
+            }
+        }
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,0,0,.05);
+        }
+        th {
+            position: sticky;
+            top: 0;
+            background-color: #9ecde2 !important;
+            z-index: 998;
+            font-size: 0.8rem;
+        }
+        .table {
+            font-size: 0.8rem;
+            margin-bottom: 0; /* Removendo a margem inferior das tabelas */
+        }
+        td {
+            padding: 0.25rem 0.5rem !important;
+            vertical-align: middle;
+        }
+        .table-sm td, .table-sm th {
+            padding: 0.2rem 0.5rem;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+            padding: 15px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            height: auto;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .footer .container-fluid {
+            width: 100%;
+            padding: 0px 15px 0 15px;
+        }
+        
+        .footer .d-flex {
+            width: 100%;
+        }
+        
+        /* Estilos ajustados para as guias (tabs) */
+        .nav-tabs {
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 0; /* Removida a margem inferior */
+            font-size: 0.85rem;
+            background-color: #f5f5f5;
+            padding-top: 5px;
+            padding-left: 5px;
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .nav-tabs .nav-link {
+            padding: 0.3rem 0.8rem;
+            margin-bottom: -1px;
+            border: 1px solid transparent;
+            border-top-left-radius: 0.25rem;
+            border-top-right-radius: 0.25rem;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: #fff;
+            border-color: #ddd #ddd #fff;
+        }
+        
+        .tab-content {
+            background-color: #fff;
+            padding: 0; /* Removido o padding */
+            height: calc(100% - 32px); /* Ajuste para considerar a altura das tabs */
+            overflow: hidden;
+        }
+        
+        .tab-pane {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .tab-pane .table-responsive {
+            height: 100%;
+            overflow-y: auto;
+            border-top: 0;
+        }
+        
+        @media print {
+            .footer {
+                display: none; /* Ocultar no modo impressão */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-2">
+        <h4 class="mb-3">Controle de Locações</h4>
+        
+        <div class="row">
+            <!-- GroupBox - Processos de Locação -->
+            <div class="col-md-6">
+                <div class="groupbox">
+                    <div class="groupbox-header">Processos de Locação</div>
+                    <div class="groupbox-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Ano</th>
+                                        <th>Fornecedor</th>
+                                        <th>Nº SEI</th>
+                                        <th>Nº Contrato</th>
+                                        <th class="sticky-column">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-processos">
+                                    <!-- Dados carregados via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- GroupBox - Empenhos (com guias) -->
+            <div class="col-md-6">
+                <div class="groupbox">
+                    <div class="tabs-body">
+                        <!-- Guias (Tabs) -->
+                        <ul class="nav nav-tabs" id="empenhosTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="empenhos-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#empenhos" type="button" role="tab" 
+                                        aria-controls="empenhos" aria-selected="true">Empenhos</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="saldo-diarias-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#saldo-diarias" type="button" role="tab" 
+                                        aria-controls="saldo-diarias" aria-selected="false">Saldo Diárias</button>
+                            </li>
+                        </ul>
+                        
+                        <!-- Conteúdo das Guias -->
+                        <div class="tab-content" id="empenhosTabsContent">
+                            <!-- Guia Empenhos -->
+                            <div class="tab-pane fade show active" id="empenhos" role="tabpanel" aria-labelledby="empenhos-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Nº Empenho</th>
+                                                <th>Vl. Empenho</th>
+                                                <th>Vl. Diárias</th>
+                                                <th>Vl. Dif.</th>
+                                                <th>Vl. Total Util.</th>
+                                                <th>Valor Saldo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tabela-empenhos">
+                                            <!-- Dados carregados via AJAX -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Guia Saldo Diárias -->
+                            <div class="tab-pane fade" id="saldo-diarias" role="tabpanel" aria-labelledby="saldo-diarias-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Veículo</th>
+                                                <th>Vl. Diária</th>
+                                                <th>Qtd. Diária</th>
+                                                <th>Qtd. Util.</th>
+                                                <th>Qtd. Saldo</th>
+                                                <th>Valor Total</th>
+                                                <th>Valor Util.</th>
+                                                <th>Valor Saldo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tabela-saldo-diarias">
+                                            <!-- Dados carregados via AJAX -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- GroupBox - Locações em Trânsito -->
+        <div class="row">
+            <div class="col-12">
+                <div class="groupbox">
+                    <div class="groupbox-header">Locações em Trânsito</div>
+                    <div class="groupbox-body lista-grande">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Mês/Ano</th>
+                                        <th>Veículo</th>
+                                        <th>Mod. Veículo</th>
+                                        <th>Início</th>
+                                        <th>Fim</th>
+                                        <th>Diárias</th>
+                                        <th>Valor Total</th>
+                                        <th>Motorista</th>
+                                        <th class="sticky-column">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-transito">
+                                    <!-- Dados carregados via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- GroupBox - Locações Finalizadas -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="groupbox">
+                    <div class="groupbox-header">Locações Finalizadas</div>
+                    <div class="groupbox-body lista-grande">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Mês/Ano</th>
+                                        <th>Veículo</th>
+                                        <th>Mod. Veículo</th>
+                                        <th>Início</th>
+                                        <th>Fim</th>
+                                        <th>Diárias</th>
+                                        <th>Valor Total</th>
+                                        <th>Motorista</th>
+                                        <th class="sticky-column">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-finalizadas">
+                                    <!-- Dados carregados via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer (novo, baseado no footer da página de motoristas) -->
+    <div class="footer">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <button id="btnNovaLocacao" class="btn btn-success">
+                    <i class="fas fa-plus-circle"></i> Nova Locação
+                </button>
+                <button id="btnVoltar" class="btn btn-secondary" onclick="window.location.href='/';">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <script>
+        // Carregar lista de processos ao iniciar a página
+        $(document).ready(function() {
+            carregarProcessos();
+            
+            // Ação do botão Nova Locação
+            $('#btnNovaLocacao').click(function() {
+                // Aqui você irá adicionar a função posteriormente
+                console.log("Botão Nova Locação clicado");
+                alert("Funcionalidade em desenvolvimento");
+            });
+        });
+        
+        // Função para carregar processos de locação
+        function carregarProcessos() {
+            $.ajax({
+                url: '/api/processos_locacao',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    let html = '';
+                    data.forEach(function(item) {
+                        html += `<tr>
+                            <td>${item.ID_CL}</td>
+                            <td>${item.ANO_EXERCICIO}</td>
+                            <td>${item.NM_FORNECEDOR}</td>
+                            <td>${item.NU_SEI}</td>
+                            <td>${item.NU_CONTRATO}</td>
+                            <td class="sticky-column">
+                                <a href="javascript:void(0)" onclick="selecionarProcesso(${item.ID_CL})" class="btn-selecionar">Selecionar</a>
+                            </td>
+                        </tr>`;
+                    });
+                    $('#tabela-processos').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar processos:", error);
+                    alert("Erro ao carregar dados. Verifique o console para mais detalhes.");
+                }
+            });
+        }
+        
+        // Função para selecionar um processo e carregar os dados relacionados
+        function selecionarProcesso(id_cl) {
+            console.log("Selecionando processo ID:", id_cl);
+            
+            // Carregar empenhos
+            $.ajax({
+                url: `/api/empenhos/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Empenhos carregados:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="6" class="text-center">Nenhum empenho encontrado</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.NU_EMPENHO}</td>
+                                <td>R$ ${formatarValor(item.VL_EMPENHO)}</td>
+                                <td>R$ ${formatarValor(item.VL_DIARIAS)}</td>
+                                <td>R$ ${formatarValor(item.VL_DIF)}</td>
+                                <td>R$ ${formatarValor(item.VL_UTILIZADO)}</td>
+                                <td>R$ ${formatarValor(item.VL_SALDO)}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-empenhos').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar empenhos:", error);
+                    $('#tabela-empenhos').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });
+            
+            // Carregar saldo de diárias (nova funcionalidade)
+            $.ajax({
+                url: `/api/saldo_diarias/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Saldo de diárias carregado:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.DE_VEICULO}</td>
+                                <td>R$ ${formatarValor(item.VL_DIARIA_KM)}</td>
+                                <td>${item.QT_DK}</td>
+                                <td>${item.QT_UTILIZADO}</td>
+                                <td>${item.QT_SALDO}</td>
+                                <td>R$ ${formatarValor(item.VALOR_TOTAL)}</td>
+                                <td>R$ ${formatarValor(item.VL_UTILIZADO)}</td>
+                                <td>R$ ${formatarValor(item.VL_SALDO)}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-saldo-diarias').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar saldo de diárias:", error);
+                    $('#tabela-saldo-diarias').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });
+            
+            // Carregar locações em trânsito
+            $.ajax({
+                url: `/api/locacoes_transito/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Locações em trânsito carregadas:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.ID_ITEM}</td>
+                                <td>${item.MES_ANO}</td>
+                                <td>${item.DE_VEICULO}</td>
+                                <td>${item.DS_VEICULO_MOD}</td>
+                                <td>${formatarDataString(item.DT_INICIAL)}</td>
+                                <td>${formatarDataString(item.DT_FINAL)}</td>
+                                <td>${item.QT_DIARIA_KM}</td>
+                                <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                                <td>${item.MOTORISTA}</td>
+                                <td class="sticky-column">
+                                    <a href="javascript:void(0)" class="acao-btn btn-abrir">Abrir</a>
+                                    <a href="javascript:void(0)" class="acao-btn btn-devolucao">Devolução</a>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-transito').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar locações em trânsito:", error);
+                    console.error("Status:", xhr.status);
+                    console.error("Resposta:", xhr.responseText);
+                    $('#tabela-transito').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });
+            
+            // Carregar locações finalizadas
+            $.ajax({
+                url: `/api/locacoes_finalizadas/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Locações finalizadas carregadas:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação finalizada encontrada</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.ID_ITEM}</td>
+                                <td>${item.MES_ANO}</td>
+                                <td>${item.DE_VEICULO}</td>
+                                <td>${item.DS_VEICULO_MOD}</td>
+                                <td>${formatarDataString(item.DT_INICIAL)}</td>
+                                <td>${formatarDataString(item.DT_FINAL)}</td>
+                                <td>${item.QT_DIARIA_KM}</td>
+                                <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                                <td>${item.MOTORISTA}</td>
+                                <td class="sticky-column">
+                                    <a href="javascript:void(0)" class="acao-btn btn-abrir">Abrir</a>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-finalizadas').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar locações finalizadas:", error);
+                    console.error("Status:", xhr.status);
+                    console.error("Resposta:", xhr.responseText);
+                    $('#tabela-finalizadas').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });
+        }
+        
+        // Função para formatar valores monetários
+        function formatarValor(valor) {
+            if (valor === null || valor === undefined) return '0,00';
+            return parseFloat(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+        
+        // Função para formatar datas (string no formato dd/mm/yyyy)
+        function formatarDataString(dataStr) {
+            if (!dataStr) return '';
+            
+            // Verifica se a data já está no formato desejado (dd/mm/yyyy)
+            if (typeof dataStr === 'string' && dataStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                return dataStr; // Já está no formato correto, retorna a própria string
+            }
+            
+            // Tenta converter usando o formato ISO
+            try {
+                const dt = new Date(dataStr);
+                if (!isNaN(dt.getTime())) {
+                    return dt.toLocaleDateString('pt-BR');
+                }
+            } catch (e) {
+                console.error("Erro ao formatar data como ISO:", e);
+            }
+            
+            // Se não conseguiu converter como ISO, tenta outros formatos comuns
+            try {
+                // Tenta extrair dia, mês e ano para os casos onde dataStr é algo como "dd/mm/yyyy"
+                // ou quando é uma string em outro formato que precisa ser manipulado
+                let dia, mes, ano;
+                
+                // Formato dd/mm/yyyy
+                const formatoBR = dataStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                if (formatoBR) {
+                    dia = formatoBR[1];
+                    mes = formatoBR[2];
+                    ano = formatoBR[3];
+                    return `${dia}/${mes}/${ano}`;
+                }
+                
+                // Formato yyyy-mm-dd ou yyyy/mm/dd
+                const formatoISO = dataStr.match(/^(\d{4})[\/-](\d{2})[\/-](\d{2})$/);
+                if (formatoISO) {
+                    dia = formatoISO[3];
+                    mes = formatoISO[2];
+                    ano = formatoISO[1];
+                    return `${dia}/${mes}/${ano}`;
+                }
+                
+                // Se chegou até aqui, retorna a string original
+                return dataStr;
+            } catch (e) {
+                console.error("Erro ao formatar data com regex:", e);
+                return dataStr; // Em caso de erro, retorna o valor original
+            }
+        }
+    </script>
+</body>
+</html>
