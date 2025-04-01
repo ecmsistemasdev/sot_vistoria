@@ -74,6 +74,10 @@
             text-decoration: none;
             font-size: 0.75rem;
         }
+        .btn-sm {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+        }        
         .sticky-column {
             position: sticky;
             right: 0;
@@ -490,6 +494,13 @@
             console.log("Selecionando processo ID:", id_cl);
             processoIdSelecionado = id_cl;
             
+            // Obter o nome do fornecedor a partir da tabela
+            const fornecedorNome = $(`#tabela-processos tr:has(td:contains(${id_cl}):first-child) td:nth-child(3)`).text();
+            
+            // Armazenar no localStorage
+            localStorage.setItem('fornecedorNome', fornecedorNome);
+            console.log("Nome do fornecedor armazenado:", fornecedorNome);
+
             // Carregar empenhos
             $.ajax({
                 url: `/api/empenhos/${id_cl}`,
@@ -603,8 +614,14 @@
                                 <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
                                 <td>${item.MOTORISTA}</td>
                                 <td class="sticky-column">
-                                    <a href="javascript:void(0)" class="acao-btn btn-abrir">Abrir</a>
-                                    <a href="javascript:void(0)" class="acao-btn btn-devolucao">Devolução</a>
+                                    <div class="d-flex justify-content-around">
+                                        <a href="javascript:void(0)" class="btn btn-sm btn-primary" title="Abrir">
+                                            <i class="fas fa-folder-open"></i>
+                                        </a>
+                                        <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução">
+                                            <i class="fas fa-undo-alt"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>`;
                         });
