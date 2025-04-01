@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório de Locações - Analítico</title>
+    <title>Relatório Analítico de Locações</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            padding-bottom: 80px; /* Espaço para o footer */
+            padding-bottom: 80px;
             margin: 0;
-            overflow-x: hidden;
-            font-size: 0.8rem;
+            font-family: 'Arial Narrow', Arial, sans-serif;
+            font-size: 0.85rem;
         }
         
-        .header {
+        .header-container {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 10px 15px;
-            border-bottom: 1px solid #ddd;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #ccc;
         }
         
         .logo-img {
@@ -28,46 +28,59 @@
             width: auto;
         }
         
-        .sistema-nome {
-            margin-left: 15px;
-            font-size: 0.9rem;
-            color: #666;
+        .system-name {
+            font-size: 0.85rem;
+            color: #555;
         }
         
         h2 {
-            margin: 15px;
-            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
         }
         
         .table {
-            font-size: 0.75rem;
             width: 100%;
             border-collapse: collapse;
+            font-size: 0.75rem;
         }
         
         .table th {
-            background-color: #9ecde2;
-            color: #000;
             position: sticky;
             top: 0;
-            z-index: 10;
-            white-space: nowrap;
-            padding: 4px 8px;
-            font-weight: 600;
+            background-color: #9ecde2 !important;
+            z-index: 998;
+            font-size: 0.75rem;
+            text-align: center;
+            vertical-align: middle;
         }
         
         .table td {
-            padding: 3px 8px;
+            padding: 0.25rem 0.5rem !important;
             vertical-align: middle;
-            white-space: nowrap;
         }
         
-        .table-hover tbody tr:hover {
-            background-color: rgba(0,0,0,.05);
+        .group-header {
+            background-color: #f0f0f0 !important;
+            font-weight: bold;
         }
         
-        .table-sm td, .table-sm th {
-            padding: 2px 5px;
+        .group-footer {
+            background-color: #e9e9e9 !important;
+            font-weight: bold;
+        }
+        
+        .total-footer {
+            background-color: #d0d0d0 !important;
+            font-weight: bold;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
         }
         
         .footer {
@@ -94,95 +107,71 @@
             width: 100%;
         }
         
-        .subtotal-row {
-            background-color: #f2f2f2;
-            font-weight: 600;
-        }
-        
-        .total-row {
-            background-color: #e6e6e6;
-            font-weight: 700;
-        }
-        
-        .filtro-container {
-            margin: 0 15px 15px 15px;
-            display: flex;
-            align-items: center;
+        @page {
+            size: landscape;
         }
         
         @media print {
-            body {
-                padding-bottom: 0;
-            }
-            
-            .footer {
+            .footer, .no-print {
                 display: none !important;
             }
             
-            @page {
-                size: landscape;
-            }
-            
-            .table {
-                font-size: 0.7rem;
-            }
-            
-            .table th, .table td {
-                padding: 2px 4px;
-            }
-            
-            .subtotal-row, .total-row {
-                background-color: #f2f2f2 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .filtro-container {
-                display: none;
+            body {
+                padding-bottom: 0;
             }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img">
-        <span class="sistema-nome">SOTWeb - Sistema de Operações de Transporte</span>
-    </div>
-
-    <h2>Relatório de Locações - Analítico</h2>
-    
-    <div class="filtro-container">
-        <label for="filtroMesAnoRelatorio" class="me-2 mb-0">Filtrar por Mês/Ano:</label>
-        <select id="filtroMesAnoRelatorio" class="form-select form-select-sm" style="width: auto;">
-            <option value="Todos">Todos</option>
-            <!-- Opções carregadas via JavaScript -->
-        </select>
-    </div>
-
-    <div class="container-fluid">
+    <div class="container-fluid mt-2">
+        <!-- Cabeçalho -->
+        <div class="header-container">
+            <div>
+                <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="Logo">
+            </div>
+            <div class="system-name">
+                SOTWeb - Sistema de Operações de Transporte
+            </div>
+        </div>
+        
+        <h2>Relatório de Locações - Analítico</h2>
+        
+        <!-- Filtro -->
+        <div class="d-flex justify-content-end mb-3 no-print">
+            <div class="d-flex align-items-center">
+                <label for="filtroMesAno" class="me-2 mb-0">Filtro Mês/Ano:</label>
+                <select id="filtroMesAno" class="form-select form-select-sm" style="width: auto;">
+                    <option value="Todos">Todos</option>
+                    <!-- Opções carregadas via JavaScript -->
+                </select>
+            </div>
+        </div>
+        
+        <!-- Tabela de Dados -->
         <div class="table-responsive">
-            <table class="table table-sm table-hover">
+            <table class="table table-sm table-bordered table-hover" id="tabelaAnalitico">
                 <thead>
                     <tr>
-                        <th>Item</th>
-                        <th>Mês/Ano</th>
-                        <th>Período</th>
-                        <th>Veículo</th>
-                        <th>Motorista</th>
-                        <th class="text-end">Qtde</th>
-                        <th class="text-end">Valor Diária</th>
-                        <th class="text-end">Valor Dif.</th>
-                        <th class="text-end">Valor Total</th>
-                        <th class="text-end">Km Rodado</th>
+                        <th style="width: 5%">Item</th>
+                        <th style="width: 8%">Mês/Ano</th>
+                        <th style="width: 15%">Período</th>
+                        <th style="width: 15%">Veículo</th>
+                        <th style="width: 15%">Motorista</th>
+                        <th style="width: 6%">Qtde</th>
+                        <th style="width: 9%">Valor Diária</th>
+                        <th style="width: 7%">Valor Dif.</th>
+                        <th style="width: 10%">Valor Total</th>
+                        <th style="width: 10%">Km Rodado</th>
                     </tr>
                 </thead>
-                <tbody id="tabela-relatorio">
-                    <!-- Dados carregados via JavaScript -->
+                <tbody id="corpoTabelaAnalitico">
+                    <!-- Dados serão carregados via JavaScript -->
                 </tbody>
             </table>
         </div>
     </div>
-
+    
+    <!-- Footer -->
     <div class="footer">
         <div class="container-fluid">
             <div class="d-flex justify-content-between align-items-center">
@@ -201,155 +190,172 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
     <script>
         // Variáveis globais
-        let dadosRelatorioCompletos = [];
-        const urlParams = new URLSearchParams(window.location.search);
-        const idCl = urlParams.get('id_cl');
+        let dadosCompletos = [];
+        let processoIdSelecionado = null;
         
-        // Carregar dados ao iniciar a página
         $(document).ready(function() {
-            if (!idCl) {
-                alert("ID do processo de locação não especificado. Redirecionando...");
+            // Obter ID_CL da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            processoIdSelecionado = urlParams.get('id_cl');
+            
+            if (processoIdSelecionado) {
+                carregarDadosRelatorio(processoIdSelecionado);
+                carregarOpcoesFiltragem(processoIdSelecionado);
+            } else {
+                alert('ID do processo não especificado na URL');
                 window.location.href = '/controle_locacoes';
-                return;
             }
             
-            carregarDadosRelatorio();
-            
-            // Evento de mudança no filtro de mês/ano
-            $('#filtroMesAnoRelatorio').change(function() {
-                aplicarFiltroMesAno();
+            // Evento de filtro
+            $('#filtroMesAno').change(function() {
+                aplicarFiltro();
             });
             
-            // Ação do botão Imprimir
+            // Botão de impressão
             $('#btnImprimir').click(function() {
                 window.print();
             });
         });
         
         // Função para carregar dados do relatório
-        function carregarDadosRelatorio() {
+        function carregarDadosRelatorio(id_cl) {
             $.ajax({
-                url: `/api/rel_locacao_analitico/${idCl}`,
+                url: `/api/rel_locacao_analitico/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
                 success: function(data) {
                     console.log("Dados do relatório carregados:", data);
-                    dadosRelatorioCompletos = data;
-                    
-                    // Carregar opções de filtro para mês/ano
-                    const mesesAno = [...new Set(data.map(item => item.MES_ANO))];
-                    let selectHtml = '<option value="Todos">Todos</option>';
-                    mesesAno.forEach(function(mesAno) {
-                        selectHtml += `<option value="${mesAno}">${mesAno}</option>`;
-                    });
-                    $('#filtroMesAnoRelatorio').html(selectHtml);
-                    
-                    // Exibir todos os dados inicialmente
-                    exibirDadosRelatorio(data);
+                    dadosCompletos = data;
+                    renderizarTabela(data);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar dados do relatório:", error);
-                    alert("Erro ao carregar dados do relatório. Verifique o console para mais detalhes.");
-                    $('#tabela-relatorio').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    alert("Erro ao carregar dados. Verifique o console para mais detalhes.");
                 }
             });
         }
         
-        // Função para exibir dados do relatório
-        function exibirDadosRelatorio(data) {
-            if (data.length === 0) {
-                $('#tabela-relatorio').html('<tr><td colspan="10" class="text-center">Nenhum registro encontrado</td></tr>');
+        // Função para carregar opções de filtragem
+        function carregarOpcoesFiltragem(id_cl) {
+            $.ajax({
+                url: `/api/meses_locacoes/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Opções de mês/ano carregadas:", data);
+                    let selectHtml = '<option value="Todos">Todos</option>';
+                    data.forEach(function(item) {
+                        selectHtml += `<option value="${item.MES_ANO}">${item.MES_ANO}</option>`;
+                    });
+                    $('#filtroMesAno').html(selectHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar opções de mês/ano:", error);
+                    $('#filtroMesAno').html('<option value="Todos">Todos</option>');
+                }
+            });
+        }
+        
+        // Função para aplicar filtro
+        function aplicarFiltro() {
+            const filtroSelecionado = $('#filtroMesAno').val();
+            
+            if (filtroSelecionado === 'Todos') {
+                renderizarTabela(dadosCompletos);
+            } else {
+                const dadosFiltrados = dadosCompletos.filter(item => item.MES_ANO === filtroSelecionado);
+                renderizarTabela(dadosFiltrados);
+            }
+        }
+        
+        // Função para renderizar a tabela com agrupamento e totais
+        function renderizarTabela(dados) {
+            if (!dados || dados.length === 0) {
+                $('#corpoTabelaAnalitico').html('<tr><td colspan="10" class="text-center">Nenhum dado encontrado</td></tr>');
                 return;
             }
             
             let html = '';
-            let itemCount = 1;
-            let mesAnoAtual = '';
-            let subtotalQtde = 0;
-            let subtotalValorTotal = 0;
-            let totalGeralQtde = 0;
-            let totalGeralValorTotal = 0;
+            let contador = 1;
+            let grupoAtual = '';
+            let qtdGrupo = 0;
+            let valorTotalGrupo = 0;
+            let qtdTotal = 0;
+            let valorTotalGeral = 0;
             
-            data.forEach(function(item, index) {
-                // Verificar se mudou o mês/ano para adicionar subtotal
-                if (mesAnoAtual !== '' && mesAnoAtual !== item.MES_ANO) {
-                    // Adicionar linha de subtotal para o mês/ano anterior
-                    html += `<tr class="subtotal-row">
-                        <td colspan="5" class="text-end">Subtotal ${mesAnoAtual}:</td>
-                        <td class="text-end">${subtotalQtde}</td>
-                        <td colspan="2"></td>
-                        <td class="text-end">R$ ${formatarValor(subtotalValorTotal)}</td>
-                        <td></td>
-                    </tr>`;
+            dados.forEach((item, index) => {
+                // Verifica se é um novo grupo
+                if (grupoAtual !== item.MES_ANO) {
+                    // Adiciona totalizador do grupo anterior (exceto para o primeiro item)
+                    if (grupoAtual !== '') {
+                        html += `
+                        <tr class="group-footer">
+                            <td colspan="5" class="text-right">Subtotal ${grupoAtual}:</td>
+                            <td class="text-center">${qtdGrupo}</td>
+                            <td></td>
+                            <td></td>
+                            <td class="text-right">R$ ${formatarValor(valorTotalGrupo)}</td>
+                            <td></td>
+                        </tr>`;
+                    }
                     
-                    // Zerar subtotais para o novo mês/ano
-                    subtotalQtde = 0;
-                    subtotalValorTotal = 0;
+                    // Inicia novo grupo
+                    grupoAtual = item.MES_ANO;
+                    qtdGrupo = 0;
+                    valorTotalGrupo = 0;
                 }
                 
-                // Atualizar mês/ano atual
-                mesAnoAtual = item.MES_ANO;
+                // Acumula para o total do grupo
+                qtdGrupo += parseFloat(item.QT_DIARIA_KM) || 0;
+                valorTotalGrupo += parseFloat(item.VL_TOTALITEM) || 0;
                 
-                // Acumular valores para subtotal
-                subtotalQtde += parseFloat(item.QT_DIARIA_KM);
-                subtotalValorTotal += parseFloat(item.VL_TOTALITEM);
+                // Acumula para o total geral
+                qtdTotal += parseFloat(item.QT_DIARIA_KM) || 0;
+                valorTotalGeral += parseFloat(item.VL_TOTALITEM) || 0;
                 
-                // Acumular valores para total geral
-                totalGeralQtde += parseFloat(item.QT_DIARIA_KM);
-                totalGeralValorTotal += parseFloat(item.VL_TOTALITEM);
-                
-                // Adicionar linha de dados
-                html += `<tr>
-                    <td>${itemCount}</td>
+                // Adiciona linha com os dados
+                html += `
+                <tr>
+                    <td class="text-center">${contador}</td>
                     <td>${item.MES_ANO}</td>
                     <td>${item.PERIODO}</td>
                     <td>${item.VEICULO}</td>
                     <td>${item.MOTORISTA}</td>
-                    <td class="text-end">${item.QT_DIARIA_KM}</td>
-                    <td class="text-end">R$ ${formatarValor(item.VL_DK)}</td>
-                    <td class="text-end">R$ ${formatarValor(item.VL_DIFERENCA)}</td>
-                    <td class="text-end">R$ ${formatarValor(item.VL_TOTALITEM)}</td>
-                    <td class="text-end">${item.KM_RODADO || ''}</td>
+                    <td class="text-center">${item.QT_DIARIA_KM}</td>
+                    <td class="text-right">R$ ${formatarValor(item.VL_DK)}</td>
+                    <td class="text-right">R$ ${formatarValor(item.VL_DIFERENCA)}</td>
+                    <td class="text-right">R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                    <td class="text-center">${item.KM_RODADO}</td>
                 </tr>`;
                 
-                itemCount++;
+                contador++;
                 
-                // Se for o último item, adicionar o subtotal final
-                if (index === data.length - 1) {
-                    html += `<tr class="subtotal-row">
-                        <td colspan="5" class="text-end">Subtotal ${mesAnoAtual}:</td>
-                        <td class="text-end">${subtotalQtde}</td>
-                        <td colspan="2"></td>
-                        <td class="text-end">R$ ${formatarValor(subtotalValorTotal)}</td>
+                // Adiciona o subtotal do último grupo
+                if (index === dados.length - 1) {
+                    html += `
+                    <tr class="group-footer">
+                        <td colspan="5" class="text-right">Subtotal ${grupoAtual}:</td>
+                        <td class="text-center">${qtdGrupo}</td>
+                        <td></td>
+                        <td></td>
+                        <td class="text-right">R$ ${formatarValor(valorTotalGrupo)}</td>
                         <td></td>
                     </tr>`;
                 }
             });
             
-            // Adicionar linha de total geral
-            html += `<tr class="total-row">
-                <td colspan="5" class="text-end">Total Geral:</td>
-                <td class="text-end">${totalGeralQtde}</td>
-                <td colspan="2"></td>
-                <td class="text-end">R$ ${formatarValor(totalGeralValorTotal)}</td>
+            // Adiciona o total geral
+            html += `
+            <tr class="total-footer">
+                <td colspan="5" class="text-right"><strong>Total Geral:</strong></td>
+                <td class="text-center"><strong>${qtdTotal}</strong></td>
+                <td></td>
+                <td></td>
+                <td class="text-right"><strong>R$ ${formatarValor(valorTotalGeral)}</strong></td>
                 <td></td>
             </tr>`;
             
-            $('#tabela-relatorio').html(html);
-        }
-        
-        // Função para aplicar filtro por mês/ano
-        function aplicarFiltroMesAno() {
-            const filtroSelecionado = $('#filtroMesAnoRelatorio').val();
-            
-            if (filtroSelecionado === 'Todos') {
-                // Exibir todos os dados
-                exibirDadosRelatorio(dadosRelatorioCompletos);
-            } else {
-                // Filtrar os dados pelo mês/ano selecionado
-                const dadosFiltrados = dadosRelatorioCompletos.filter(item => item.MES_ANO === filtroSelecionado);
-                exibirDadosRelatorio(dadosFiltrados);
-            }
+            $('#corpoTabelaAnalitico').html(html);
         }
         
         // Função para formatar valores monetários
