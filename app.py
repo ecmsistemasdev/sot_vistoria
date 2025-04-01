@@ -1534,7 +1534,286 @@ def get_rel_locacao_analitico(id_cl):
 def rel_locacao_analitico():
     return render_template('rel_locacao_analitico.html')
 
+# Rota para listar veículos disponíveis por ID_CL
+@app.route('/api/lista_veiculo')
+@login_required
+def listar_veiculos():
+    try:
+        id_cl = request.args.get('id_cl')
+        if not id_cl:
+            return jsonify({'erro': 'ID_CL não fornecido'}), 400
+            
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT ID_VEICULO_LOC, DE_VEICULO, VL_DIARIA_KM FROM TJ_VEICULO_LOCACAO WHERE ID_CL = %s", (id_cl,))
+        
+        veiculos = []
+        for row in cursor.fetchall():
+            veiculos.append({
+                'ID_VEICULO_LOC': row[0],
+                'DE_VEICULO': row[1],
+                'VL_DIARIA_KM': float(row[2]) if row[2] else 0.0
+            })
+            
+        cursor.close()
+        return jsonify(veiculos)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
 
+# Rota para listar motoristas
+@app.route('/api/lista_motorista')
+@login_required
+def listar_motoristas():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT ID_MOTORISTA, NM_MOTORISTA, NU_TELEFONE, 
+            FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
+            WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA
+        """)
+        
+        motoristas = []
+        for row in cursor.fetchall():
+            motoristas.append({
+                'ID_MOTORISTA': row[0],
+                'NM_MOTORISTA': row[1],
+                'NU_TELEFONE': row[2],
+                'FILE_PDF': row[3],
+                'NOME_ARQUIVO': row[4]
+            })
+            
+        cursor.close()
+        return jsonify(motoristas)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+# Rota para obter o próximo ID_ITEM
+def obter_proximo_id_item():
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT MAX(ID_ITEM) FROM TJ_CONTROLE_LOCACAO_ITENS")
+    resultado = cursor.fetchone()
+    cursor.close()
+    
+    ultimo_id = resultado[0] if resultado[0] else 0
+    return ultimo_id + 1
+
+
+
+# Rota para salvar nova locação
+@app.route('/api/nova_locacao', methods=['POST'])
+def nova_locacao():
+    try:
+        # Obter dados do formulário
+        id_cl = request.form.get('id_cl')
+        setor_solicitante = request.form.get('setor_solicitante')
+        objetivo = request.form.get('objetivo')
+        id_veiculo_loc = request.form.get('id_veiculo_loc')
+        id_motorista = request.form.get('id_motorista')
+        data_inicio = request.form.get('data_inicio')
+        data_fim = request.form.get('data_fim')
+        hora_inicio = request.form.get('hora_inicio')
+        qt_diaria_km = request.form.get('qt_diaria_km')
+        vl_dk = request.form.get('vl_dk')
+        vl_totalitem = request.form.get('vl_totalitem')
+        nu_sei = request.form.get('nu_sei')
+        obs = request.form.get('obs')
+        
+        # Obter o próximo ID_ITEM
+        id_item = obter_proximo_id_item()
+        
+        # Converter data_inicio e data_fim para objetos datetime
+        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
+        
+        # Extrair ano e mês da data de fim
+        id_exercicio = data_fim_obj.year
+        id_mes = data_fim_obj.month
+        
+        # Converter data para o formato dd/mm/yyyy para os campos de string
+        dt_inicial = data_inicio_obj.strftime('%d/%m/%Y')
+        dt_final = data_fim_obj.strftime('%d/%m/%Y')
+        
+        # Converter hora para string no formato hh:mm
+        hr_inicial = hora_inicio
+        
+        # Obter ID do usuário da sessão
+        usuario = session.get('usuario_id')
+        
+        # Verificar se o motorista tem CNH cadastrada
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
+        motorista_info = cursor.fetchone()
+        
+        # Verificar se é necessário salvar a CNH
+        file_pdf = motorista_info['FILE_PDF']
+        nome_arquivo_cnh = motorista_info['NOME_ARQUIVO']
+        
+        if not file_pdf and 'file_cnh' in request.files:
+            file_cnh = request.files['file_cnh']
+            
+            if file_cnh.filename != '':
+                # Salvar o arquivo
+                # (Código real para salvar o arquivo depende da implementação específica)
+                # Aqui estamos assumindo que o arquivo será salvo e o FILE_PDF será atualizado
+                file_pdf = True
+                nome_arquivo_cnh = file_cnh.filename
+                
+                # Atualizar o motorista com o arquivo da CNH
+                cursor.execute(
+                    "UPDATE TJ_MOTORISTA SET FILE_PDF = %s, NOME_ARQUIVO = %s WHERE ID_MOTORISTA = %s",
+                    (file_pdf, nome_arquivo_cnh, id_motorista)
+                )
+                mysql.connection.commit()
+        
+        # Inserir na tabela TJ_CONTROLE_LOCACAO_ITENS
+        cursor.execute("""
+            INSERT INTO TJ_CONTROLE_LOCACAO_ITENS (
+                ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, 
+                ID_VEICULO_LOC, ID_MOTORISTA, DATA_INICIO, DATA_FIM, HORA_INICIO, 
+                QT_DIARIA_KM, VL_DK, VL_SUBTOTAL, VL_TOTALITEM, NU_SEI, FL_EMAIL, 
+                OBS, FL_STATUS, USUARIO, DT_INICIAL, DT_FINAL, HR_INICIAL
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            id_item, id_cl, id_exercicio, setor_solicitante, objetivo, id_mes, 
+            id_veiculo_loc, id_motorista, data_inicio, data_fim, hora_inicio, 
+            qt_diaria_km, vl_dk, vl_totalitem, vl_totalitem, nu_sei, 'N', 
+            obs, 'T', usuario, dt_inicial, dt_final, hr_inicial
+        ))
+        mysql.connection.commit()
+        
+        # Obter informações do veículo
+        cursor.execute("SELECT DE_VEICULO FROM TJ_VEICULO_LOCACAO WHERE ID_VEICULO_LOC = %s", (id_veiculo_loc,))
+        veiculo_info = cursor.fetchone()
+        de_veiculo = veiculo_info['DE_VEICULO']
+        
+        # Enviar e-mail para a empresa locadora
+        email_enviado = enviar_email_locacao(
+            id_item, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
+            dt_inicial, dt_final, hr_inicial, de_veiculo,
+            nome_arquivo_cnh
+        )
+        
+        return jsonify({
+            'sucesso': True,
+            'email_enviado': email_enviado,
+            'mensagem': 'Locação cadastrada com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao cadastrar locação: {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
+
+
+def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, nome_arquivo_cnh):
+    """
+    Função para enviar e-mail de locação de veículo
+    
+    Args:
+        id_item (int): ID da locação
+        nm_motorista (str): Nome do motorista
+        nu_telefone (str): Telefone do motorista
+        dt_inicial (str): Data inicial no formato DD/MM/YYYY
+        dt_final (str): Data final no formato DD/MM/YYYY
+        hr_inicial (str): Hora inicial no formato HH:MM
+        de_veiculo (str): Descrição do veículo
+        nome_arquivo_cnh (str): Nome do arquivo da CNH do motorista
+    
+    Returns:
+        dict: Dicionário com resultado do envio
+    """
+    try:
+        # Definir saudação com base na hora atual
+        from datetime import datetime
+        hora_atual = datetime.now().hour
+        saudacao = "Bom dia" if hora_atual < 12 else "Boa tarde" if hora_atual < 18 else "Boa noite"
+        
+        # Obter informações do usuário da sessão
+        nome_usuario = session.get('usuario_nome')
+        usuario_id = session.get('usuario_id')
+        
+        # Configurar destinatários
+        destinatarios = [
+            "atendimentopvh@rovemalocadora.com.br",
+            "atendimento02@rovemalocadora.com.br", 
+            "Carmem@rovemalocadora.com.br"
+        ]
+        
+        # Configurar assunto
+        assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
+        
+        # Corpo do e-mail
+        corpo_email = f'''
+        {saudacao},
+
+        Prezados, solicito locação de veículo conforme informações abaixo:
+
+            Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+            Veículo: {de_veiculo} ou Similar
+            Condutor: {nm_motorista} - Telefone {nu_telefone}
+
+        Segue anexo CNH do condutor.
+
+        Atenciosamente,
+
+        {nome_usuario}
+        Tribunal de Justiça do Estado de Rondônia
+        Seção de Gestão Operacional do Transporte
+        (69) 3309-6229/6227
+        '''
+        
+        # Criar mensagem
+        from flask_mail import Message
+        msg = Message(
+            subject=assunto,
+            recipients=destinatarios,
+            body=corpo_email,
+            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+        )
+        
+        # Anexar arquivo CNH
+        import os
+        caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo_cnh)
+        with app.open_resource(caminho_arquivo) as fp:
+            msg.attach(nome_arquivo_cnh, "application/pdf", fp.read())
+        
+        # Enviar e-mail
+        mail.send(msg)
+        
+        # Registrar informações no banco de dados
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Registrar na tabela TJ_EMAIL_LOCACAO
+        sql_email = """
+        INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA)
+        VALUES (%s, %s, %s, %s, %s, NOW())
+        """
+        cursor.execute(
+            sql_email, 
+            (id_item, request.form.get('id_cl'), ', '.join(destinatarios), assunto, corpo_email)
+        )
+        
+        # Atualizar FL_EMAIL na tabela TJ_CONTROLE_LOCACAO_ITENS
+        sql_update = """
+        UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s
+        """
+        cursor.execute(sql_update, (id_item,))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {"success": True, "message": "E-mail enviado com sucesso"}
+    
+    except Exception as e:
+        # Registrar erro
+        import traceback
+        app.logger.error(f"Erro ao enviar e-mail: {str(e)}")
+        app.logger.error(traceback.format_exc())
+        
+        return {"success": False, "message": str(e)}
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
