@@ -1480,7 +1480,9 @@ def api_locacoes_finalizadas(id_cl):
 @app.route('/api/rel_locacao_analitico/<int:id_cl>')
 @login_required
 def get_rel_locacao_analitico(id_cl):
-    query = """
+    try:
+        cursor = mysql.connection.cursor()    
+        query = """
         SELECT i.ID_ITEM, CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
         CASE WHEN i.DT_INICIAL=i.DT_FINAL THEN i.DT_INICIAL
         ELSE CONCAT(i.DT_INICIAL,' - ',i.DT_FINAL) END AS PERIODO,
@@ -1496,14 +1498,34 @@ def get_rel_locacao_analitico(id_cl):
         AND i.FL_STATUS = 'F' 
         AND i.ID_CL = %s
         ORDER BY i.ID_EXERCICIO, i.ID_MES, i.DATA_INICIO, i.DATA_FIM
-    """
-    try:
-        cursor = mysql.connection.cursor()
+        """
+        
+        app.logger.info(f"Executando Relatório para ID_CL={id_cl}")
         cursor.execute(query, (id_cl,))
         items = cursor.fetchall()
+
+        # Converter para dicionários
+        resultado = []
+        for item in itens:
+            lista = {
+                'ID_ITEM': item[0],
+                'MES_ANO': item[1],
+                'PERIODO': item[2],
+                'VEICULO': item[3],
+                'MOTORISTA': item[4],
+                'QT_DIARIA_KM': item[5],
+                'VL_DK': float(item[15]) if item[6] else 0,
+                'VL_DIFERENCA': float(item[7]) if item[7] else 0,
+                'VL_TOTALITEM': float(item[8]) if item[8] else 0,
+                'KM_RODADO': item[9]
+            }
+            resultado.append(lista)
+            
         cursor.close()
-        return jsonify(items)
+        return jsonify(resultado)
+        
     except Exception as e:
+        app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
