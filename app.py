@@ -1514,7 +1514,7 @@ def get_rel_locacao_analitico(id_cl):
                 'VEICULO': item[3],
                 'MOTORISTA': item[4],
                 'QT_DIARIA_KM': item[5],
-                'VL_DK': float(item[15]) if item[6] else 0,
+                'VL_DK': float(item[6]) if item[6] else 0,
                 'VL_DIFERENCA': float(item[7]) if item[7] else 0,
                 'VL_TOTALITEM': float(item[8]) if item[8] else 0,
                 'KM_RODADO': item[9]
