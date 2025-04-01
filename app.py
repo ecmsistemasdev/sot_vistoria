@@ -1506,10 +1506,16 @@ def get_rel_locacao_analitico(id_cl):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/rel_locacao_analitico')
+@app.route('/rel_locacao_analitico/<int:id_cl>')
 @login_required
-def rel_locacao_analitico():
-    return render_template('rel_locacao_analitico.html')
+def rel_locacao_analitico(id_cl):
+    return render_template('rel_locacao_analitico.html', id_cl=id_cl)
+
+
+#@app.route('/rel_locacao_analitico')
+#@login_required
+#def rel_locacao_analitico():
+#    return render_template('rel_locacao_analitico.html')
 
 # @app.route('/api/locacoes_finalizadas/<int:id_cl>')
 # @login_required
