@@ -253,25 +253,6 @@
                     $('#tabela-relatorio').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                 }
             });
-
-            // Carregar opções de filtro para mês/ano
-            $.ajax({
-                url: `/api/meses_locacoes/${id_cl}`,
-                type: 'GET',
-                dataType: 'json',
-                success: function(data) {
-                    console.log("Opções de mês/ano carregadas:", data);
-                    let selectHtml = '<option value="Todos">Todos</option>';
-                    data.forEach(function(item) {
-                        selectHtml += `<option value="${item.MES_ANO}">${item.MES_ANO}</option>`;
-                    });
-                    $('#filtroMesAnoRelatorio').html(selectHtml);
-                },
-                error: function(xhr, status, error) {
-                    console.error("Erro ao carregar opções de mês/ano:", error);
-                    $('#filtroMesAnoRelatorio').html('<option value="Todos">Todos</option>');
-                }
-            });
         }
         
         // Função para exibir dados do relatório
