@@ -253,6 +253,11 @@
                                         data-bs-target="#saldo-diarias" type="button" role="tab" 
                                         aria-controls="saldo-diarias" aria-selected="false">Saldo Diárias</button>
                             </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="dados-pls-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#dados-pls" type="button" role="tab" 
+                                        aria-controls="dados-pls" aria-selected="true">Dados PLS</button>
+                            </li>
                         </ul>
                         
                         <!-- Conteúdo das Guias -->
@@ -295,6 +300,25 @@
                                             </tr>
                                         </thead>
                                         <tbody id="tabela-saldo-diarias">
+                                            <!-- Dados carregados via AJAX -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Guia Dados PLS -->
+                            <div class="tab-pane fade" id="dados-pls" role="tabpanel" aria-labelledby="dados-pls-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Mês/Ano</th>
+                                                <th>Qtde Locação</th>
+                                                <th>Valor</th>
+                                                <th>Combustível</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tabela-dados-pls">
                                             <!-- Dados carregados via AJAX -->
                                         </tbody>
                                     </table>
@@ -514,6 +538,34 @@
                     $('#tabela-saldo-diarias').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                 }
             });
+
+            // Carregar dados do PLS
+            $.ajax({
+                url: `/api/dados_pls/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Dados do PLS carregado:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.MES_ANO}</td>
+                                <td>${item.QT_DK}</td>
+                                <td>R$ ${formatarValor(item.VL_TOTAL)}</td>
+                                <td>${item.COMBUSTIVEL}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-dados-pls').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar saldo de diárias:", error);
+                    $('#tabela-dados-pls').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });            
             
             // Carregar locações em trânsito
             $.ajax({
