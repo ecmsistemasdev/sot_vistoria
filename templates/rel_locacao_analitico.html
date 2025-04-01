@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Locações - Analítico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding-bottom: 80px; /* Espaço para o footer */
+            margin: 0;
+            overflow-x: hidden;
+            font-size: 0.8rem;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .logo-img {
+            height: 50px;
+            width: auto;
+        }
+        
+        .sistema-nome {
+            margin-left: 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        h2 {
+            margin: 15px;
+            color: #333;
+        }
+        
+        .table {
+            font-size: 0.75rem;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th {
+            background-color: #9ecde2;
+            color: #000;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            white-space: nowrap;
+            padding: 4px 8px;
+            font-weight: 600;
+        }
+        
+        .table td {
+            padding: 3px 8px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,0,0,.05);
+        }
+        
+        .table-sm td, .table-sm th {
+            padding: 2px 5px;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+            padding: 15px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            height: auto;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .footer .container-fluid {
+            width: 100%;
+            padding: 0px 15px 0 15px;
+        }
+        
+        .footer .d-flex {
+            width: 100%;
+        }
+        
+        .subtotal-row {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        
+        .total-row {
+            background-color: #e6e6e6;
+            font-weight: 700;
+        }
+        
+        .filtro-container {
+            margin: 0 15px 15px 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        @media print {
+            body {
+                padding-bottom: 0;
+            }
+            
+            .footer {
+                display: none !important;
+            }
+            
+            @page {
+                size: landscape;
+            }
+            
+            .table {
+                font-size: 0.7rem;
+            }
+            
+            .table th, .table td {
+                padding: 2px 4px;
+            }
+            
+            .subtotal-row, .total-row {
+                background-color: #f2f2f2 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .filtro-container {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img">
+        <span class="sistema-nome">SOTWeb - Sistema de Operações de Transporte</span>
+    </div>
+
+    <h2>Relatório de Locações - Analítico</h2>
+    
+    <div class="filtro-container">
+        <label for="filtroMesAnoRelatorio" class="me-2 mb-0">Filtrar por Mês/Ano:</label>
+        <select id="filtroMesAnoRelatorio" class="form-select form-select-sm" style="width: auto;">
+            <option value="Todos">Todos</option>
+            <!-- Opções carregadas via JavaScript -->
+        </select>
+    </div>
+
+    <div class="container-fluid">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Mês/Ano</th>
+                        <th>Período</th>
+                        <th>Veículo</th>
+                        <th>Motorista</th>
+                        <th class="text-end">Qtde</th>
+                        <th class="text-end">Valor Diária</th>
+                        <th class="text-end">Valor Dif.</th>
+                        <th class="text-end">Valor Total</th>
+                        <th class="text-end">Km Rodado</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-relatorio">
+                    <!-- Dados carregados via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <button id="btnImprimir" class="btn btn-primary">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <button id="btnVoltar" class="btn btn-secondary" onclick="window.location.href='/controle_locacoes';">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <script>
+        // Variáveis globais
+        let dadosRelatorioCompletos = [];
+        const urlParams = new URLSearchParams(window.location.search);
+        const idCl = urlParams.get('id_cl');
+        
+        // Carregar dados ao iniciar a página
+        $(document).ready(function() {
+            if (!idCl) {
+                alert("ID do processo de locação não especificado. Redirecionando...");
+                window.location.href = '/controle_locacoes';
+                return;
+            }
+            
+            carregarDadosRelatorio();
+            
+            // Evento de mudança no filtro de mês/ano
+            $('#filtroMesAnoRelatorio').change(function() {
+                aplicarFiltroMesAno();
+            });
+            
+            // Ação do botão Imprimir
+            $('#btnImprimir').click(function() {
+                window.print();
+            });
+        });
+        
+        // Função para carregar dados do relatório
+        function carregarDadosRelatorio() {
+            $.ajax({
+                url: `/api/rel_locacao_analitico/${idCl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Dados do relatório carregados:", data);
+                    dadosRelatorioCompletos = data;
+                    
+                    // Carregar opções de filtro para mês/ano
+                    const mesesAno = [...new Set(data.map(item => item.MES_ANO))];
+                    let selectHtml = '<option value="Todos">Todos</option>';
+                    mesesAno.forEach(function(mesAno) {
+                        selectHtml += `<option value="${mesAno}">${mesAno}</option>`;
+                    });
+                    $('#filtroMesAnoRelatorio').html(selectHtml);
+                    
+                    // Exibir todos os dados inicialmente
+                    exibirDadosRelatorio(data);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar dados do relatório:", error);
+                    alert("Erro ao carregar dados do relatório. Verifique o console para mais detalhes.");
+                    $('#tabela-relatorio').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });
+        }
+        
+        // Função para exibir dados do relatório
+        function exibirDadosRelatorio(data) {
+            if (data.length === 0) {
+                $('#tabela-relatorio').html('<tr><td colspan="10" class="text-center">Nenhum registro encontrado</td></tr>');
+                return;
+            }
+            
+            let html = '';
+            let itemCount = 1;
+            let mesAnoAtual = '';
+            let subtotalQtde = 0;
+            let subtotalValorTotal = 0;
+            let totalGeralQtde = 0;
+            let totalGeralValorTotal = 0;
+            
+            data.forEach(function(item, index) {
+                // Verificar se mudou o mês/ano para adicionar subtotal
+                if (mesAnoAtual !== '' && mesAnoAtual !== item.MES_ANO) {
+                    // Adicionar linha de subtotal para o mês/ano anterior
+                    html += `<tr class="subtotal-row">
+                        <td colspan="5" class="text-end">Subtotal ${mesAnoAtual}:</td>
+                        <td class="text-end">${subtotalQtde}</td>
+                        <td colspan="2"></td>
+                        <td class="text-end">R$ ${formatarValor(subtotalValorTotal)}</td>
+                        <td></td>
+                    </tr>`;
+                    
+                    // Zerar subtotais para o novo mês/ano
+                    subtotalQtde = 0;
+                    subtotalValorTotal = 0;
+                }
+                
+                // Atualizar mês/ano atual
+                mesAnoAtual = item.MES_ANO;
+                
+                // Acumular valores para subtotal
+                subtotalQtde += parseFloat(item.QT_DIARIA_KM);
+                subtotalValorTotal += parseFloat(item.VL_TOTALITEM);
+                
+                // Acumular valores para total geral
+                totalGeralQtde += parseFloat(item.QT_DIARIA_KM);
+                totalGeralValorTotal += parseFloat(item.VL_TOTALITEM);
+                
+                // Adicionar linha de dados
+                html += `<tr>
+                    <td>${itemCount}</td>
+                    <td>${item.MES_ANO}</td>
+                    <td>${item.PERIODO}</td>
+                    <td>${item.VEICULO}</td>
+                    <td>${item.MOTORISTA}</td>
+                    <td class="text-end">${item.QT_DIARIA_KM}</td>
+                    <td class="text-end">R$ ${formatarValor(item.VL_DK)}</td>
+                    <td class="text-end">R$ ${formatarValor(item.VL_DIFERENCA)}</td>
+                    <td class="text-end">R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                    <td class="text-end">${item.KM_RODADO || ''}</td>
+                </tr>`;
+                
+                itemCount++;
+                
+                // Se for o último item, adicionar o subtotal final
+                if (index === data.length - 1) {
+                    html += `<tr class="subtotal-row">
+                        <td colspan="5" class="text-end">Subtotal ${mesAnoAtual}:</td>
+                        <td class="text-end">${subtotalQtde}</td>
+                        <td colspan="2"></td>
+                        <td class="text-end">R$ ${formatarValor(subtotalValorTotal)}</td>
+                        <td></td>
+                    </tr>`;
+                }
+            });
+            
+            // Adicionar linha de total geral
+            html += `<tr class="total-row">
+                <td colspan="5" class="text-end">Total Geral:</td>
+                <td class="text-end">${totalGeralQtde}</td>
+                <td colspan="2"></td>
+                <td class="text-end">R$ ${formatarValor(totalGeralValorTotal)}</td>
+                <td></td>
+            </tr>`;
+            
+            $('#tabela-relatorio').html(html);
+        }
+        
+        // Função para aplicar filtro por mês/ano
+        function aplicarFiltroMesAno() {
+            const filtroSelecionado = $('#filtroMesAnoRelatorio').val();
+            
+            if (filtroSelecionado === 'Todos') {
+                // Exibir todos os dados
+                exibirDadosRelatorio(dadosRelatorioCompletos);
+            } else {
+                // Filtrar os dados pelo mês/ano selecionado
+                const dadosFiltrados = dadosRelatorioCompletos.filter(item => item.MES_ANO === filtroSelecionado);
+                exibirDadosRelatorio(dadosFiltrados);
+            }
+        }
+        
+        // Função para formatar valores monetários
+        function formatarValor(valor) {
+            if (valor === null || valor === undefined) return '0,00';
+            return parseFloat(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+    </script>
+</body>
+</html>
