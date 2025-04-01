@@ -1477,6 +1477,39 @@ def api_locacoes_finalizadas(id_cl):
         app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/rel_locacao_analitico/<int:id_cl>')
+@login_required
+def get_rel_locacao_analitico(id_cl):
+    query = """
+        SELECT i.ID_ITEM, CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
+        CASE WHEN i.DT_INICIAL=i.DT_FINAL THEN i.DT_INICIAL
+        ELSE CONCAT(i.DT_INICIAL,' - ',i.DT_FINAL) END AS PERIODO,
+        CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, 
+        CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA,
+        i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
+        FROM TJ_CONTROLE_LOCACAO_ITENS i 
+        LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+        TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
+        WHERE e.ID_EMPENHO = i.ID_EMPENHO 
+        AND x.ID_MES = i.ID_MES 
+        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
+        AND i.FL_STATUS = 'F' 
+        AND i.ID_CL = %s
+        ORDER BY i.ID_EXERCICIO, i.ID_MES, i.DATA_INICIO, i.DATA_FIM
+    """
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute(query, (id_cl,))
+        items = cursor.fetchall()
+        cursor.close()
+        return jsonify(items)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/rel_locacao_analitico')
+@login_required
+def rel_locacao_analitico():
+    return render_template('rel_locacao_analitico.html')
 
 # @app.route('/api/locacoes_finalizadas/<int:id_cl>')
 # @login_required
