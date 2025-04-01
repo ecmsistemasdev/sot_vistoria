@@ -1268,6 +1268,39 @@ def api_saldo_diarias(id_cl):
         app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/dados_pls/<int:id_cl>')
+@login_required
+def api_dados_pls(id_cl):
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT CONCAT(m.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
+        COUNT(i.ID_ITEM) AS QTD, 
+        SUM(i.VL_TOTALITEM) AS VLTOTAL, i.COMBUSTIVEL
+        FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MES m
+        WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s
+        GROUP BY i.ID_EXERCICIO, i.ID_MES, i.COMBUSTIVEL
+        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC
+        """
+        cursor.execute(query, (id_cl,))
+        dadospls = cursor.fetchall()
+        
+        # Converter para dicionários
+        resultado = []
+        for pls in dadospls:
+            resultado.append({
+                'MES_ANO': pls[0],
+                'QTD': pls[1],
+                'VLTOTAL': float(pls[2]) if pls[2] else 0,
+                'COMBUSTIVEL': pls[3]
+            })
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/locacoes_transito/<int:id_cl>')
 @login_required
 def api_locacoes_transito(id_cl):
