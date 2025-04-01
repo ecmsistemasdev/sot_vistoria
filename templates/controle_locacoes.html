@@ -338,11 +338,20 @@
             </div>
         </div>
         
-        <!-- GroupBox - Locações Finalizadas -->
+        <!-- GroupBox - Locações Finalizadas (com filtro) -->
         <div class="row mb-3">
             <div class="col-12">
                 <div class="groupbox">
-                    <div class="groupbox-header">Locações Finalizadas</div>
+                    <div class="groupbox-header d-flex justify-content-between align-items-center">
+                        <span>Locações Finalizadas</span>
+                        <div class="d-flex align-items-center">
+                            <label for="filtroMesAno" class="me-2 mb-0">Filtro:</label>
+                            <select id="filtroMesAno" class="form-select form-select-sm" style="width: auto;">
+                                <option value="Todos">Todos</option>
+                                <!-- Opções carregadas via AJAX -->
+                            </select>
+                        </div>
+                    </div>
                     <div class="groupbox-body lista-grande">
                         <div class="table-responsive">
                             <table class="table table-sm table-hover">
@@ -389,6 +398,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
     <script>
+        // Variáveis globais
+        let processoIdSelecionado = null;
+        let locacoesFinalizadasCompletas = []; // Para armazenar todas as locações finalizadas
+        
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
             carregarProcessos();
@@ -398,6 +411,11 @@
                 // Aqui você irá adicionar a função posteriormente
                 console.log("Botão Nova Locação clicado");
                 alert("Funcionalidade em desenvolvimento");
+            });
+            
+            // Evento de mudança no filtro de mês/ano
+            $('#filtroMesAno').change(function() {
+                aplicarFiltroMesAno();
             });
         });
         
@@ -433,6 +451,7 @@
         // Função para selecionar um processo e carregar os dados relacionados
         function selecionarProcesso(id_cl) {
             console.log("Selecionando processo ID:", id_cl);
+            processoIdSelecionado = id_cl;
             
             // Carregar empenhos
             $.ajax({
@@ -464,7 +483,7 @@
                 }
             });
             
-            // Carregar saldo de diárias (nova funcionalidade)
+            // Carregar saldo de diárias
             $.ajax({
                 url: `/api/saldo_diarias/${id_cl}`,
                 type: 'GET',
@@ -535,35 +554,42 @@
                 }
             });
             
+            // Carregar opções de filtro para mês/ano
+            $.ajax({
+                url: `/api/meses_locacoes/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Opções de mês/ano carregadas:", data);
+                    let selectHtml = '<option value="Todos">Todos</option>';
+                    data.forEach(function(item) {
+                        selectHtml += `<option value="${item.MES_ANO}">${item.MES_ANO}</option>`;
+                    });
+                    $('#filtroMesAno').html(selectHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar opções de mês/ano:", error);
+                    $('#filtroMesAno').html('<option value="Todos">Todos</option>');
+                }
+            });
+            
             // Carregar locações finalizadas
+            carregarLocacoesFinalizadas(id_cl);
+        }
+        
+        // Função para carregar locações finalizadas
+        function carregarLocacoesFinalizadas(id_cl) {
             $.ajax({
                 url: `/api/locacoes_finalizadas/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
                 success: function(data) {
                     console.log("Locações finalizadas carregadas:", data);
-                    let html = '';
-                    if (data.length === 0) {
-                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação finalizada encontrada</td></tr>';
-                    } else {
-                        data.forEach(function(item) {
-                            html += `<tr>
-                                <td>${item.ID_ITEM}</td>
-                                <td>${item.MES_ANO}</td>
-                                <td>${item.DE_VEICULO}</td>
-                                <td>${item.DS_VEICULO_MOD}</td>
-                                <td>${formatarDataString(item.DT_INICIAL)}</td>
-                                <td>${formatarDataString(item.DT_FINAL)}</td>
-                                <td>${item.QT_DIARIA_KM}</td>
-                                <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
-                                <td>${item.MOTORISTA}</td>
-                                <td class="sticky-column">
-                                    <a href="javascript:void(0)" class="acao-btn btn-abrir">Abrir</a>
-                                </td>
-                            </tr>`;
-                        });
-                    }
-                    $('#tabela-finalizadas').html(html);
+                    // Armazenar os dados completos para filtrar depois
+                    locacoesFinalizadasCompletas = data;
+                    
+                    // Exibir todos os dados inicialmente
+                    exibirLocacoesFinalizadas(data);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar locações finalizadas:", error);
@@ -572,6 +598,46 @@
                     $('#tabela-finalizadas').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                 }
             });
+        }
+        
+        // Função para exibir locações finalizadas na tabela
+        function exibirLocacoesFinalizadas(data) {
+            let html = '';
+            if (data.length === 0) {
+                html = '<tr><td colspan="10" class="text-center">Nenhuma locação finalizada encontrada</td></tr>';
+            } else {
+                data.forEach(function(item) {
+                    html += `<tr>
+                        <td>${item.ID_ITEM}</td>
+                        <td>${item.MES_ANO}</td>
+                        <td>${item.DE_VEICULO}</td>
+                        <td>${item.DS_VEICULO_MOD}</td>
+                        <td>${formatarDataString(item.DT_INICIAL)}</td>
+                        <td>${formatarDataString(item.DT_FINAL)}</td>
+                        <td>${item.QT_DIARIA_KM}</td>
+                        <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                        <td>${item.MOTORISTA}</td>
+                        <td class="sticky-column">
+                            <a href="javascript:void(0)" class="acao-btn btn-abrir">Abrir</a>
+                        </td>
+                    </tr>`;
+                });
+            }
+            $('#tabela-finalizadas').html(html);
+        }
+        
+        // Função para aplicar filtro por mês/ano
+        function aplicarFiltroMesAno() {
+            const filtroSelecionado = $('#filtroMesAno').val();
+            
+            if (filtroSelecionado === 'Todos') {
+                // Exibir todos os dados
+                exibirLocacoesFinalizadas(locacoesFinalizadasCompletas);
+            } else {
+                // Filtrar os dados pelo mês/ano selecionado
+                const dadosFiltrados = locacoesFinalizadasCompletas.filter(item => item.MES_ANO === filtroSelecionado);
+                exibirLocacoesFinalizadas(dadosFiltrados);
+            }
         }
         
         // Função para formatar valores monetários
