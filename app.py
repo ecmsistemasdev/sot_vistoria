@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session
+from flask_mail import Mail, Message
 from functools import wraps
 import os
 from flask_mysqldb import MySQL
@@ -9,6 +10,19 @@ from io import BytesIO
 from pytz import timezone
 
 app = Flask(__name__)
+
+
+# Configuração do Flask-Mail
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')  # Substitua pelo seu servidor SMTP
+app.config['MAIL_PORT'] = os.getenv('MAIL_PORT') 
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME') 
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD') 
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+app.config['MAIL_USE_TLS'] = True 
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_MAX_EMAILS'] = None
+app.config['MAIL_TIMEOUT'] = 10  # segundos
+mail = Mail(app)
 
 # Configuração do MySQL
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
@@ -1559,10 +1573,33 @@ def listar_veiculos():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
-# Rota para listar motoristas
-@app.route('/api/lista_motorista')
+
+@app.route('/api/setores_loc')
 @login_required
-def listar_motoristas():
+def listar_setores_loc():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT SIGLA_SETOR FROM TJ_SETORES ORDER BY SIGLA_SETOR")
+               
+        items = cursor.fetchall()
+
+        setores = []
+        for item in items:
+            lista = {'SIGLA_SETOR': item[0]}
+            setores.append(lista)
+            
+        cursor.close()
+        return jsonify(setores)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+# Rota para listar motoristas
+@app.route('/api/lista_motorista_loc')
+@login_required
+def listar_motoristas_loc():
     try:
         cursor = mysql.connection.cursor()
         cursor.execute("""
@@ -1595,8 +1632,7 @@ def obter_proximo_id_item():
     
     ultimo_id = resultado[0] if resultado[0] else 0
     return ultimo_id + 1
-
-
+    
 
 # Rota para salvar nova locação
 @app.route('/api/nova_locacao', methods=['POST'])
@@ -1639,7 +1675,7 @@ def nova_locacao():
         usuario = session.get('usuario_id')
         
         # Verificar se o motorista tem CNH cadastrada
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor = mysql.connection.cursor()
         cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
         motorista_info = cursor.fetchone()
         
@@ -1781,9 +1817,7 @@ def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_fina
         # Enviar e-mail
         mail.send(msg)
         
-        # Registrar informações no banco de dados
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = mysql.connection.cursor()
         
         # Registrar na tabela TJ_EMAIL_LOCACAO
         sql_email = """
@@ -1801,9 +1835,7 @@ def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_fina
         """
         cursor.execute(sql_update, (id_item,))
         
-        conn.commit()
         cursor.close()
-        conn.close()
         
         return {"success": True, "message": "E-mail enviado com sucesso"}
     
