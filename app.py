@@ -1838,7 +1838,32 @@ Seção de Gestão Operacional do Transporte
         app.logger.error(f"Erro ao enviar email: {str(e)}")
         return False, str(e)
 
-
+@app.route('/api/download_cnh/<int:id_motorista>')
+@login_required
+def download_cnh(id_motorista):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
+            WHERE ID_MOTORISTA = %s
+        """, (id_motorista,))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        
+        if result and result[0]:
+            pdf_data = result[0]
+            filename = result[1] or f"cnh_motorista_{id_motorista}.pdf"
+            
+            response = make_response(pdf_data)
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+            return response
+        else:
+            return jsonify({'erro': 'PDF não encontrado'}), 404
+    except Exception as e:
+        print(f"Erro ao baixar PDF: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
 
 # def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, nome_arquivo_cnh):
 #     """
