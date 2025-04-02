@@ -1,1 +1,201 @@
+body {
+    padding-bottom: 80px; /* Espaço para o footer */
+    margin: 0;
+    overflow-x: hidden;
+}
+.groupbox {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.groupbox-header {
+    background-color: #f5f5f5;
+    padding: 5px 15px; /* Reduzido de 8px para 5px */
+    border-bottom: 1px solid #ddd;
+    font-weight: 600;
+    border-radius: 4px 4px 0 0;
+    font-size: 0.9rem;
+}
+.groupbox-body {
+    padding: 0; /* Removido o padding 10px;*/
+    overflow-x: auto;
+    height: calc(90px + 2rem);
+}
+.tabs-body {
+    padding: 0; /* Removido o padding */
+    overflow-x: auto;
+    height: calc(130px + 2rem);
+}
+.lista-grande {
+    height: 300px; /* Altura fixa para desktop calc(100vh - 450px); */ 
+    min-height: 250px;
+}
+.table-responsive {
+    height: 100%;
+    overflow-y: auto;
+}
+.acao-btn {
+    margin-bottom: 5px;
+    display: block;
+    text-align: center;
+}
+.btn-selecionar {
+    background-color: #0d6efd;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+.btn-abrir {
+    background-color: #198754;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+.btn-devolucao {
+    background-color: #dc3545;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+.btn-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+}        
+.sticky-column {
+    position: sticky;
+    right: 0;
+    background-color: #f8f9fa !important;
+    z-index: 2;
+    border-left: 1px solid #e0e0e0;
+}
 
+th.sticky-column {
+    position: sticky;
+    right: 0;
+    background-color: #9ecde2 !important;
+    z-index: 999;
+    border-left: 1px solid #e0e0e0;
+}
+
+thead {
+    z-index: 1000;
+}
+
+@media (max-width: 768px) {
+    .sticky-column {
+        position: sticky;
+        right: 0;
+        z-index: 2;
+    }
+    .groupbox-body {
+        height: calc(150px + 2rem);
+    }
+    .lista-grande {
+        height: calc(100vh - 350px);
+        min-height: 200px; /* 300px; */
+    }
+    .footer .container-fluid {
+        padding: 0 10px;
+    }
+}
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.05);
+}
+th {
+    position: sticky;
+    top: 0;
+    background-color: #9ecde2 !important;
+    z-index: 998;
+    font-size: 0.8rem;
+}
+.table {
+    font-size: 0.8rem;
+    margin-bottom: 0; /* Removendo a margem inferior das tabelas */
+}
+td {
+    padding: 0.25rem 0.5rem !important;
+    vertical-align: middle;
+}
+.table-sm td, .table-sm th {
+    padding: 0.2rem 0.5rem;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #fff;
+    border-top: 1px solid #ddd;
+    padding: 15px 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    height: auto;
+    display: flex;
+    align-items: center;
+    z-index: 1000;
+}
+
+.footer .container-fluid {
+    width: 100%;
+    padding: 0px 15px 0 15px;
+}
+
+.footer .d-flex {
+    width: 100%;
+}
+
+/* Estilos ajustados para as guias (tabs) */
+.nav-tabs {
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 0; /* Removida a margem inferior */
+    font-size: 0.85rem;
+    background-color: #f5f5f5;
+    padding-top: 5px;
+    padding-left: 5px;
+    border-radius: 4px 4px 0 0;
+}
+
+.nav-tabs .nav-link {
+    padding: 0.3rem 0.8rem;
+    margin-bottom: -1px;
+    border: 1px solid transparent;
+    border-top-left-radius: 0.25rem;
+    border-top-right-radius: 0.25rem;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #fff;
+    border-color: #ddd #ddd #fff;
+}
+
+.tab-content {
+    background-color: #fff;
+    padding: 0; /* Removido o padding */
+    height: calc(100% - 32px); /* Ajuste para considerar a altura das tabs */
+    overflow: hidden;
+}
+
+.tab-pane {
+    height: 100%;
+    overflow: hidden;
+}
+
+.tab-pane .table-responsive {
+    height: 100%;
+    overflow-y: auto;
+    border-top: 0;
+}
+
+@media print {
+    .footer {
+        display: none; /* Ocultar no modo impressão */
+    }
+}
