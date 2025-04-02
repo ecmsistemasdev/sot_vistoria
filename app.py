@@ -1601,7 +1601,10 @@ def listar_setores_loc():
 @login_required
 def listar_motoristas_loc():
     try:
+        print("Iniciando consulta à lista de motoristas")
         cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, NU_TELEFONE, 
             FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
@@ -1609,23 +1612,32 @@ def listar_motoristas_loc():
         """)
         
         results = cursor.fetchall()
+        print(f"Quantidade de resultados encontrados: {len(results)}")
         
-        print('DADOS:::')
-        print(results)
+        if len(results) > 0:
+            print(f"Primeiro registro: ID={results[0][0]}, Nome={results[0][1]}")
         
         motoristas = []
-        for row in results:
-            motoristas.append({
-                'ID_MOTORISTA': row[0],
-                'NM_MOTORISTA': row[1],
-                'NU_TELEFONE': row[2],
-                'FILE_PDF': row[3],
-                'NOME_ARQUIVO': row[4]
-            })
-            
+        for i, row in enumerate(results):
+            try:
+                # Verificar se FILE_PDF é None antes de processar
+                file_pdf = row[3] if row[3] is not None else None
+                
+                motorista = {
+                    'ID_MOTORISTA': row[0],
+                    'NM_MOTORISTA': row[1],
+                    'NU_TELEFONE': row[2],
+                    'FILE_PDF': file_pdf is not None,  # Apenas indicar presença, não enviar arquivo
+                    'NOME_ARQUIVO': row[4]
+                }
+                motoristas.append(motorista)
+            except Exception as row_error:
+                print(f"Erro ao processar linha {i}: {str(row_error)}")
+        
         cursor.close()
         return jsonify(motoristas)
     except Exception as e:
+        print(f"ERRO COMPLETO: {str(e)}")
         return jsonify({'erro': str(e)}), 500
 
 # Rota para obter o próximo ID_ITEM
