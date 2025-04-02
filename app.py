@@ -1750,109 +1750,190 @@ def nova_locacao():
 
 
 def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, nome_arquivo_cnh):
-    """
-    Função para enviar e-mail de locação de veículo
-    
-    Args:
-        id_item (int): ID da locação
-        nm_motorista (str): Nome do motorista
-        nu_telefone (str): Telefone do motorista
-        dt_inicial (str): Data inicial no formato DD/MM/YYYY
-        dt_final (str): Data final no formato DD/MM/YYYY
-        hr_inicial (str): Hora inicial no formato HH:MM
-        de_veiculo (str): Descrição do veículo
-        nome_arquivo_cnh (str): Nome do arquivo da CNH do motorista
-    
-    Returns:
-        dict: Dicionário com resultado do envio
-    """
     try:
-        # Definir saudação com base na hora atual
-        from datetime import datetime
+        # Obter hora atual para saudação
         hora_atual = datetime.now().hour
-        saudacao = "Bom dia" if hora_atual < 12 else "Boa tarde" if hora_atual < 18 else "Boa noite"
+        saudacao = "Bom dia" if 5 <= hora_atual < 12 else "Boa tarde" if 12 <= hora_atual < 18 else "Boa noite"
         
-        # Obter informações do usuário da sessão
-        nome_usuario = session.get('usuario_nome')
-        usuario_id = session.get('usuario_id')
+        # Obter nome do usuário da sessão
+        nome_usuario = session.get('usuario_nome', 'Administrador')
         
-        # Configurar destinatários
-        destinatarios = [
-            "atendimentopvh@rovemalocadora.com.br",
-            "atendimento02@rovemalocadora.com.br", 
-            "Carmem@rovemalocadora.com.br"
-        ]
-        
-        # Configurar assunto
+        # Formatação do assunto
         assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
         
-        # Corpo do e-mail
-        corpo_email = f'''
-        {saudacao},
+        # Corpo do email
+        corpo = f'''{saudacao},
 
-        Prezados, solicito locação de veículo conforme informações abaixo:
+Prezados, solicito locação de veículo conforme informações abaixo:
 
-            Período: {dt_inicial} ({hr_inicial}) a {dt_final}
-            Veículo: {de_veiculo} ou Similar
-            Condutor: {nm_motorista} - Telefone {nu_telefone}
+    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+    Veículo: {de_veiculo} ou Similar
+    Condutor: {nm_motorista} - Telefone {nu_telefone}
 
-        Segue anexo CNH do condutor.
+Segue anexo CNH do condutor.
 
-        Atenciosamente,
+Atenciosamente,
 
-        {nome_usuario}
-        Tribunal de Justiça do Estado de Rondônia
-        Seção de Gestão Operacional do Transporte
-        (69) 3309-6229/6227
-        '''
+{nome_usuario}
+Tribunal de Justiça do Estado de Rondônia
+Seção de Gestão Operacional do Transporte
+(69) 3309-6229/6227'''
         
         # Criar mensagem
-        from flask_mail import Message
         msg = Message(
             subject=assunto,
-            recipients=destinatarios,
-            body=corpo_email,
-            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+            recipients=["naicm12@gmail.com", "elienai@tjro.jus.br"],
+            body=corpo,
+            sender=("ECM Sistemas", "ecmsistemasdeveloper@gmail.com")
         )
         
-        # Anexar arquivo CNH
-        import os
-        caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo_cnh)
-        with app.open_resource(caminho_arquivo) as fp:
-            msg.attach(nome_arquivo_cnh, "application/pdf", fp.read())
+        # Anexar CNH
+        if nome_arquivo_cnh:
+            with open(nome_arquivo_cnh, 'rb') as f:
+                msg.attach('CNH_' + os.path.basename(nome_arquivo_cnh), 'application/pdf', f.read())
         
-        # Enviar e-mail
+        # Enviar email
         mail.send(msg)
         
+        # Registrar email no banco de dados
         cursor = mysql.connection.cursor()
         
-        # Registrar na tabela TJ_EMAIL_LOCACAO
-        sql_email = """
-        INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA)
-        VALUES (%s, %s, %s, %s, %s, NOW())
-        """
-        cursor.execute(
-            sql_email, 
-            (id_item, request.form.get('id_cl'), ', '.join(destinatarios), assunto, corpo_email)
-        )
+        # Formatação da data e hora atual
+        data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         
-        # Atualizar FL_EMAIL na tabela TJ_CONTROLE_LOCACAO_ITENS
-        sql_update = """
-        UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s
-        """
-        cursor.execute(sql_update, (id_item,))
+        # Obter ID_CL com base no ID_ITEM
+        cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
+        resultado = cursor.fetchone()
+        id_cl = resultado[0] if resultado else None
+        
+        if id_cl:
+            # Inserir na tabela de emails
+            cursor.execute(
+                "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
+                (id_item, id_cl, "naicm12@gmail.com, elienai@tjro.jus.br", assunto, corpo, data_hora_atual)
+            )
+            
+            # Atualizar flag de email na tabela de locações
+            cursor.execute(
+                "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
+                (id_item,)
+            )
+            
+            mysql.connection.commit()
         
         cursor.close()
-        
-        return {"success": True, "message": "E-mail enviado com sucesso"}
+        return True, None
     
     except Exception as e:
-        # Registrar erro
-        import traceback
-        app.logger.error(f"Erro ao enviar e-mail: {str(e)}")
-        app.logger.error(traceback.format_exc())
+        app.logger.error(f"Erro ao enviar email: {str(e)}")
+        return False, str(e)
+
+
+
+# def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, nome_arquivo_cnh):
+#     """
+#     Função para enviar e-mail de locação de veículo
+    
+#     Args:
+#         id_item (int): ID da locação
+#         nm_motorista (str): Nome do motorista
+#         nu_telefone (str): Telefone do motorista
+#         dt_inicial (str): Data inicial no formato DD/MM/YYYY
+#         dt_final (str): Data final no formato DD/MM/YYYY
+#         hr_inicial (str): Hora inicial no formato HH:MM
+#         de_veiculo (str): Descrição do veículo
+#         nome_arquivo_cnh (str): Nome do arquivo da CNH do motorista
+    
+#     Returns:
+#         dict: Dicionário com resultado do envio
+#     """
+#     try:
+#         # Definir saudação com base na hora atual
+#         from datetime import datetime
+#         hora_atual = datetime.now().hour
+#         saudacao = "Bom dia" if hora_atual < 12 else "Boa tarde" if hora_atual < 18 else "Boa noite"
         
-        return {"success": False, "message": str(e)}
+#         # Obter informações do usuário da sessão
+#         nome_usuario = session.get('usuario_nome')
+#         usuario_id = session.get('usuario_id')
+        
+#         # Configurar destinatários
+#         destinatarios = [
+#             "atendimentopvh@rovemalocadora.com.br",
+#             "atendimento02@rovemalocadora.com.br", 
+#             "Carmem@rovemalocadora.com.br"
+#         ]
+        
+#         # Configurar assunto
+#         assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
+        
+#         # Corpo do e-mail
+#         corpo_email = f'''
+#         {saudacao},
+
+#         Prezados, solicito locação de veículo conforme informações abaixo:
+
+#             Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+#             Veículo: {de_veiculo} ou Similar
+#             Condutor: {nm_motorista} - Telefone {nu_telefone}
+
+#         Segue anexo CNH do condutor.
+
+#         Atenciosamente,
+
+#         {nome_usuario}
+#         Tribunal de Justiça do Estado de Rondônia
+#         Seção de Gestão Operacional do Transporte
+#         (69) 3309-6229/6227
+#         '''
+        
+#         # Criar mensagem
+#         from flask_mail import Message
+#         msg = Message(
+#             subject=assunto,
+#             recipients=destinatarios,
+#             body=corpo_email,
+#             sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+#         )
+        
+#         # Anexar arquivo CNH
+#         import os
+#         caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo_cnh)
+#         with app.open_resource(caminho_arquivo) as fp:
+#             msg.attach(nome_arquivo_cnh, "application/pdf", fp.read())
+        
+#         # Enviar e-mail
+#         mail.send(msg)
+        
+#         cursor = mysql.connection.cursor()
+        
+#         # Registrar na tabela TJ_EMAIL_LOCACAO
+#         sql_email = """
+#         INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA)
+#         VALUES (%s, %s, %s, %s, %s, NOW())
+#         """
+#         cursor.execute(
+#             sql_email, 
+#             (id_item, request.form.get('id_cl'), ', '.join(destinatarios), assunto, corpo_email)
+#         )
+        
+#         # Atualizar FL_EMAIL na tabela TJ_CONTROLE_LOCACAO_ITENS
+#         sql_update = """
+#         UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s
+#         """
+#         cursor.execute(sql_update, (id_item,))
+        
+#         cursor.close()
+        
+#         return {"success": True, "message": "E-mail enviado com sucesso"}
+    
+#     except Exception as e:
+#         # Registrar erro
+#         import traceback
+#         app.logger.error(f"Erro ao enviar e-mail: {str(e)}")
+#         app.logger.error(traceback.format_exc())
+        
+#         return {"success": False, "message": str(e)}
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
