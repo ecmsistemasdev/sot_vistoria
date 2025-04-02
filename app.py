@@ -1608,8 +1608,15 @@ def listar_motoristas_loc():
             WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA
         """)
         
+        # Fetch results only once
+        results = cursor.fetchall()
+        
+        # Print for debugging if needed
+        print('DADOS:::')
+        print(results)
+        
         motoristas = []
-        for row in cursor.fetchall():
+        for row in results:
             motoristas.append({
                 'ID_MOTORISTA': row[0],
                 'NM_MOTORISTA': row[1],
