@@ -199,3 +199,35 @@ td {
         display: none; /* Ocultar no modo impressão */
     }
 }
+
+.modal-header.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+.modal-header.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+.modal-header.bg-success {
+    background-color: #198754 !important;
+}
+
+#formNovaLocacao .form-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.2rem;
+}
+
+#arquivoCnhDiv {
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+}
+
+
