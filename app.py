@@ -1608,10 +1608,8 @@ def listar_motoristas_loc():
             WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA
         """)
         
-        # Fetch results only once
         results = cursor.fetchall()
         
-        # Print for debugging if needed
         print('DADOS:::')
         print(results)
         
