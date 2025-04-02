@@ -225,6 +225,135 @@
         </div>
     </div>
 
+    <!-- Modal Nova Locação -->
+    <div class="modal fade" id="modalNovaLocacao" tabindex="-1" aria-labelledby="modalNovaLocacaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalNovaLocacaoLabel">Nova Locação</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formNovaLocacao" class="row g-3">
+                        <div class="col-md-12">
+                            <label for="setorSolicitante" class="form-label small">Setor Solicitante</label>
+                            <select class="form-select form-select-sm" id="setorSolicitante" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="objetivo" class="form-label small">Objetivo</label>
+                            <input type="text" class="form-control form-control-sm" id="objetivo" maxlength="300" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="veiculo" class="form-label small">Veículo</label>
+                            <select class="form-select form-select-sm" id="veiculo" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="valorDiaria" class="form-label small">Valor Diária</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorDiaria" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="motorista" class="form-label small">Motorista</label>
+                            <select class="form-select form-select-sm" id="motorista" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="dataInicio" class="form-label small">Data Início</label>
+                            <input type="date" class="form-control form-control-sm" id="dataInicio" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="dataFim" class="form-label small">Data Fim</label>
+                            <input type="date" class="form-control form-control-sm" id="dataFim" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="horaInicio" class="form-label small">Hora Início</label>
+                            <input type="time" class="form-control form-control-sm" id="horaInicio" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="qtdDiarias" class="form-label small">Qtd. Diárias</label>
+                            <input type="number" class="form-control form-control-sm" id="qtdDiarias" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="valorTotal" class="form-label small">Valor Total</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorTotal" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="numSei" class="form-label small">Número SEI</label>
+                            <input type="text" class="form-control form-control-sm" id="numSei" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="observacoes" class="form-label small">Observações</label>
+                            <textarea class="form-control form-control-sm" id="observacoes" rows="3" maxlength="200"></textarea>
+                            <div class="text-end">
+                                <small><span id="charCount">0</span>/200</small>
+                            </div>
+                        </div>
+                        <div id="arquivoCnhDiv" class="col-md-12 d-none">
+                            <label for="arquivoCnh" class="form-label small">Arquivo CNH</label>
+                            <input type="file" class="form-control form-control-sm" id="arquivoCnh" accept=".pdf">
+                            <div class="text-danger small mt-1">É necessário anexar a CNH do motorista para prosseguir.</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm" id="btnSalvarLocacao">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal CNH Não Encontrada -->
+    <div class="modal fade" id="modalCnhNaoEncontrada" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Atenção</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>CNH do motorista não encontrada no sistema.</p>
+                    <p>Por favor, anexe o arquivo da CNH para prosseguir.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Sucesso -->
+    <div class="modal fade" id="modalSucesso" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Sucesso</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="mensagemSucesso">
+                    <!-- Mensagem será inserida via JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
@@ -232,16 +361,254 @@
         // Variáveis globais
         let processoIdSelecionado = null;
         let locacoesFinalizadasCompletas = []; // Para armazenar todas as locações finalizadas
+        let motoristasLista = [];
+        let veiculosLista = [];
+        let arquivoCnh = null;
         
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
             carregarProcessos();
+            // Atualizar valor da diária quando selecionar veículo
+            $('#veiculo').change(function() {
+                const veiculoId = $(this).val();
+                const veiculoSelecionado = veiculosLista.find(v => v.ID_VEICULO_LOC == veiculoId);
+                
+                if (veiculoSelecionado) {
+                    $('#valorDiaria').val(veiculoSelecionado.VL_DIARIA_KM.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                    calcularDiariasEValores();
+                } else {
+                    $('#valorDiaria').val('');
+                    $('#valorTotal').val('');
+                }
+            });
+            
+            // Recalcular diárias quando alterar datas
+            $('#dataInicio, #dataFim').change(function() {
+                calcularDiariasEValores();
+            });
+            
+            // Contador de caracteres para observações
+            $('#observacoes').on('input', function() {
+                const caracteres = $(this).val().length;
+                $('#charCount').text(caracteres);
+            });
+            
+            // Máscara para o número SEI
+            $('#numSei').on('input', function() {
+                let value = $(this).val().replace(/\D/g, '');
+                
+                if (value.length <= 7) {
+                    value = value.replace(/^(\d{0,7})/, "$1");
+                } else if (value.length <= 9) {
+                    value = value.replace(/^(\d{7})(\d{0,2})/, "$1-$2");
+                } else if (value.length <= 13) {
+                    value = value.replace(/^(\d{7})(\d{2})(\d{0,1})(\d{0,2})(\d{0,2})/, "$1-$2.$3.$4.$5");
+                } else if (value.length <= 17) {
+                    value = value.replace(/^(\d{7})(\d{2})(\d{1})(\d{2})(\d{2})(\d{0,4})/, "$1-$2.$3.$4.$5.$6");
+                } else {
+                    value = value.replace(/^(\d{7})(\d{2})(\d{1})(\d{2})(\d{2})(\d{4})/, "$1-$2.$3.$4.$5.$6");
+                }
+                
+                $(this).val(value);
+            });
+            
+            // Verificar CNH do motorista
+            $('#motorista').change(function() {
+                const motoristaId = $(this).val();
+                if (!motoristaId) return;
+                
+                const motoristaSelecionado = motoristasLista.find(m => m.ID_MOTORISTA == motoristaId);
+                
+                if (motoristaSelecionado && !motoristaSelecionado.FILE_PDF) {
+                    $('#arquivoCnhDiv').removeClass('d-none');
+                    const modalCnhNaoEncontrada = new bootstrap.Modal(document.getElementById('modalCnhNaoEncontrada'));
+                    modalCnhNaoEncontrada.show();
+                } else {
+                    $('#arquivoCnhDiv').addClass('d-none');
+                }
+            });
+            
+            // Capturar arquivo CNH quando selecionado
+            $('#arquivoCnh').change(function(e) {
+                arquivoCnh = e.target.files[0];
+            });
+
+            // Função para carregar locações em trânsito - Atualizada para recarregar após salvar
+            function carregarLocacoesTransito(id_cl) {
+                $.ajax({
+                    url: `/api/locacoes_transito/${id_cl}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Locações em trânsito carregadas:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                        } else {
+                            data.forEach(function(item) {
+                                html += `<tr>
+                                    <td>${item.ID_ITEM}</td>
+                                    <td>${item.MES_ANO}</td>
+                                    <td>${item.DE_VEICULO}</td>
+                                    <td>${item.DS_VEICULO_MOD}</td>
+                                    <td>${formatarDataString(item.DT_INICIAL)}</td>
+                                    <td>${formatarDataString(item.DT_FINAL)}</td>
+                                    <td>${item.QT_DIARIA_KM}</td>
+                                    <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                                    <td>${item.MOTORISTA}</td>
+                                    <td class="sticky-column">
+                                        <div class="d-flex justify-content-around">
+                                            <a href="javascript:void(0)" class="btn btn-sm btn-primary" title="Abrir">
+                                                <i class="fas fa-folder-open"></i>
+                                            </a>
+                                            <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução">
+                                                <i class="fas fa-undo-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-transito').html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar locações em trânsito:", error);
+                        console.error("Status:", xhr.status);
+                        console.error("Resposta:", xhr.responseText);
+                        $('#tabela-transito').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    }
+                });
+            }
+
+
+            
+            // Salvar locação
+            $('#btnSalvarLocacao').click(function() {
+                // Validar formulário
+                if (!validarFormulario()) {
+                    return;
+                }
+                
+                // Mostrar loader ou spinner
+                $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
+                
+                // Verificar se precisa de arquivo CNH
+                const motoristaId = $('#motorista').val();
+                const motoristaSelecionado = motoristasLista.find(m => m.ID_MOTORISTA == motoristaId);
+                
+                if (!motoristaSelecionado.FILE_PDF && !arquivoCnh) {
+                    alert("É necessário anexar a CNH do motorista.");
+                    $(this).prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    return;
+                }
+                
+                // Preparar dados para envio
+                const formData = new FormData();
+                formData.append('id_cl', processoIdSelecionado);
+                formData.append('setor_solicitante', $('#setorSolicitante').val());
+                formData.append('objetivo', $('#objetivo').val());
+                formData.append('id_veiculo_loc', $('#veiculo').val());
+                formData.append('id_motorista', $('#motorista').val());
+                formData.append('data_inicio', $('#dataInicio').val());
+                formData.append('data_fim', $('#dataFim').val());
+                formData.append('hora_inicio', $('#horaInicio').val());
+                formData.append('qt_diaria_km', $('#qtdDiarias').val());
+                formData.append('vl_dk', parseFloat($('#valorDiaria').val().replace('.', '').replace(',', '.')));
+                formData.append('vl_totalitem', parseFloat($('#valorTotal').val().replace('.', '').replace(',', '.')));
+                formData.append('nu_sei', $('#numSei').val());
+                formData.append('obs', $('#observacoes').val());
+                
+                if (arquivoCnh) {
+                    formData.append('arquivo_cnh', arquivoCnh);
+                }
+                
+                // Enviar dados para API
+                $.ajax({
+                    url: '/api/nova_locacao',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        console.log("Resposta:", response);
+                        
+                        // Mostrar mensagem de sucesso
+                        let mensagem = "Locação registrada com sucesso!";
+                        if (response.email_enviado) {
+                            mensagem += " E-mail enviado com sucesso.";
+                        } else if (response.erro_email) {
+                            mensagem += " A locação foi registrada, mas ocorreu um erro ao enviar o e-mail: " + response.erro_email;
+                        }
+                        
+                        $('#mensagemSucesso').text(mensagem);
+                        
+                        // Fechar modal de locação
+                        $('#modalNovaLocacao').modal('hide');
+                        
+                        // Mostrar modal de sucesso
+                        const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+                        modalSucesso.show();
+                        
+                        // Reativar o footer quando o modal fechar
+                        $('.footer').removeClass('d-none');
+                        
+                        // Recarregar locações em trânsito
+                        carregarLocacoesTransito(processoIdSelecionado);
+                        
+                        // Reset botão salvar
+                        $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao salvar locação:", error);
+                        console.error("Resposta:", xhr.responseText);
+                        
+                        alert("Erro ao salvar locação: " + (xhr.responseJSON && xhr.responseJSON.erro ? xhr.responseJSON.erro : error));
+                        
+                        // Reset botão salvar
+                        $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    }
+                });
+            });
+
+            // Fechar modal event
+            $('#modalNovaLocacao').on('hidden.bs.modal', function () {
+                // Reativar o footer quando o modal fechar
+                $('.footer').removeClass('d-none');
+            });          
             
             // Ação do botão Nova Locação
             $('#btnNovaLocacao').click(function() {
-                // Aqui você irá adicionar a função posteriormente
-                console.log("Botão Nova Locação clicado");
-                alert("Funcionalidade em desenvolvimento");
+                if (!processoIdSelecionado) {
+                    alert("Por favor, selecione um processo de locação primeiro.");
+                    return;
+                }
+                
+                // Esconder o footer quando o modal estiver aberto
+                $('.footer').addClass('d-none');
+                
+                // Resetar o formulário
+                $('#formNovaLocacao')[0].reset();
+                $('#arquivoCnhDiv').addClass('d-none');
+                arquivoCnh = null;
+                
+                // Configurar data atual
+                const hoje = new Date();
+                const dataFormatada = hoje.toISOString().split('T')[0];
+                $('#dataInicio').val(dataFormatada);
+                $('#dataFim').val(dataFormatada);
+                $('#horaInicio').val('07:00');
+                
+                // Carregar dados necessários
+                carregarSetores();
+                carregarMotoristas();
+                carregarVeiculos(processoIdSelecionado);
+                
+                // Calcular diárias inicialmente (como as datas são iguais, será 1)
+                calcularDiariasEValores();
+                
+                // Abrir o modal
+                const modalNovaLocacao = new bootstrap.Modal(document.getElementById('modalNovaLocacao'));
+                modalNovaLocacao.show();
             });
             
             // Evento de mudança no filtro de mês/ano
@@ -257,6 +624,93 @@
                 }
             });
         });
+
+        // Função para carregar setores
+        function carregarSetores() {
+            $.ajax({
+                url: '/api/setores_loc',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    let html = '<option value="">Selecione...</option>';
+                    data.forEach(function(item) {
+                        html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+                    });
+                    $('#setorSolicitante').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar setores:", error);
+                    alert("Erro ao carregar lista de setores.");
+                }
+            });
+        }
+        
+        // Função para carregar motoristas
+        function carregarMotoristas() {
+            $.ajax({
+                url: '/api/lista_motorista_loc',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    motoristasLista = data;
+                    let html = '<option value="">Selecione...</option>';
+                    data.forEach(function(item) {
+                        html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
+                    });
+                    $('#motorista').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar motoristas:", error);
+                    alert("Erro ao carregar lista de motoristas.");
+                }
+            });
+        }
+        
+        // Função para carregar veículos
+        function carregarVeiculos(id_cl) {
+            $.ajax({
+                url: `/api/lista_veiculo?id_cl=${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    veiculosLista = data;
+                    let html = '<option value="">Selecione...</option>';
+                    data.forEach(function(item) {
+                        html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
+                    });
+                    $('#veiculo').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar veículos:", error);
+                    alert("Erro ao carregar lista de veículos.");
+                }
+            });
+        }
+        
+        // Calcular diárias e valores
+        function calcularDiariasEValores() {
+            const dataInicio = new Date($('#dataInicio').val());
+            const dataFim = new Date($('#dataFim').val());
+            
+            if (!isNaN(dataInicio.getTime()) && !isNaN(dataFim.getTime())) {
+                // Diferença em dias
+                const diffTime = dataFim.getTime() - dataInicio.getTime();
+                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                // Se for o mesmo dia ou diferença negativa, consideramos como 1 diária
+                if (diffDays <= 0) {
+                    diffDays = 1;
+                }
+                
+                $('#qtdDiarias').val(diffDays);
+                
+                // Calcular valor total
+                const valorDiaria = $('#valorDiaria').val().replace('.', '').replace(',', '.') || 0;
+                const valorTotal = diffDays * parseFloat(valorDiaria);
+                
+                $('#valorTotal').val(valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            }
+        }   
         
         // Função para carregar processos de locação
         function carregarProcessos() {
@@ -328,6 +782,52 @@
                     $('#tabela-empenhos').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                 }
             });
+
+            // Função para validar o formulário
+            function validarFormulario() {
+                if (!$('#setorSolicitante').val()) {
+                    alert("Por favor, selecione o setor solicitante.");
+                    return false;
+                }
+                
+                if (!$('#objetivo').val()) {
+                    alert("Por favor, informe o objetivo da locação.");
+                    return false;
+                }
+                
+                if (!$('#veiculo').val()) {
+                    alert("Por favor, selecione um veículo.");
+                    return false;
+                }
+                
+                if (!$('#motorista').val()) {
+                    alert("Por favor, selecione um motorista.");
+                    return false;
+                }
+                
+                if (!$('#dataInicio').val()) {
+                    alert("Por favor, informe a data de início.");
+                    return false;
+                }
+                
+                if (!$('#dataFim').val()) {
+                    alert("Por favor, informe a data de fim.");
+                    return false;
+                }
+                
+                if (!$('#horaInicio').val()) {
+                    alert("Por favor, informe a hora de início.");
+                    return false;
+                }
+                
+                if (!$('#numSei').val() || !$('#numSei').val().match(/^\d{7}-\d{2}\.\d{1}\.\d{2}\.\d{2}\.\d{4}$/)) {
+                    alert("Por favor, informe um número SEI válido no formato 0000000-00.0.00.0000.");
+                    return false;
+                }
+                
+                return true;
+            }
+            
             
             // Carregar saldo de diárias
             $.ajax({
