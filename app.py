@@ -1867,7 +1867,7 @@ Seção de Gestão Operacional do Transporte
             # Inserir na tabela de emails
             cursor.execute(
                 "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
-                (id_item, id_cl, "naicm12@gmail.com, elienai@tjro.jus.br", assunto, corpo, data_hora_atual)
+                (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo, data_hora_atual)
             )
             
             # Atualizar flag de email na tabela de locações
