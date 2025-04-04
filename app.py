@@ -938,10 +938,9 @@ def detalhe_motorista(id_motorista):
         cursor = mysql.connection.cursor()
         query = """
         SELECT 
-            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
-            ORDEM_LISTA, SIGLA_SETOR, CAT_CNH, 
-            DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
-            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO
+            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, ORDEM_LISTA, 
+            SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
+            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO, EMAIL
         FROM TJ_MOTORISTA 
         WHERE ID_MOTORISTA = %s
         """
@@ -963,7 +962,8 @@ def detalhe_motorista(id_motorista):
                 'obs_motorista': result[9],
                 'ativo': result[10],
                 'tipo_cadastro_desc': result[11],
-                'nome_arquivo': result[12]
+                'nome_arquivo': result[12],
+                'email': result[13]
             }
             return jsonify(motorista)
         else:
@@ -1000,6 +1000,7 @@ def cadastrar_motorista():
         ultima_atualizacao = request.form.get('ultima_atualizacao')
         nu_telefone = request.form.get('nu_telefone')
         obs_motorista = request.form.get('obs_motorista', '')
+        email = request.form.get('email', '')
         
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
 
@@ -1022,15 +1023,15 @@ def cadastrar_motorista():
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, 
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
             NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, DT_TRANSACAO, 
-            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s)
+            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s)
         """
         
         cursor.execute(query, (
             novo_id, cad_motorista, nm_motorista, tipo_cadastro_desc, 
             sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
             nu_telefone, obs_motorista, session.get('usuario_id'), 
-            dt_transacao, file_blob, nome_arquivo, tipo_cadastro
+            dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email
         ))
         
         mysql.connection.commit()
@@ -1067,7 +1068,9 @@ def atualizar_motorista():
         ultima_atualizacao = request.form.get('ultima_atualizacao')
         nu_telefone = request.form.get('nu_telefone')
         obs_motorista = request.form.get('obs_motorista', '')
+        email = request.form.get('email', '')
         ativo = 'S' if request.form.get('ativo') == 'on' else 'N'
+        
 
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
 
@@ -1094,7 +1097,7 @@ def atualizar_motorista():
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
                 ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, 
-                FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s
+                FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s, EMAIL = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1102,7 +1105,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                dt_transacao, file_blob, nome_arquivo, tipo_cadastro, id_motorista
+                dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email, id_motorista
             ))
         else:
             # Update without changing file
@@ -1111,7 +1114,7 @@ def atualizar_motorista():
             SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
-                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, ORDEM_LISTA = %s
+                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, ORDEM_LISTA = %s, EMAIL = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1119,7 +1122,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                dt_transacao, tipo_cadastro, id_motorista
+                dt_transacao, tipo_cadastro, email, id_motorista
             ))
         
         mysql.connection.commit()
