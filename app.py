@@ -12,7 +12,6 @@ from pytz import timezone
 
 app = Flask(__name__)
 
-
 # Configuração do Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')  # Substitua pelo seu servidor SMTP
 app.config['MAIL_PORT'] = os.getenv('MAIL_PORT') 
@@ -1778,11 +1777,16 @@ def nova_locacao():
         veiculo_info = cursor.fetchone()
         de_veiculo = veiculo_info['DE_VEICULO']
         
+        # Verificar se o motorista tem Email cadastrado
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("SELECT EMAIL FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
+        motorista_email = cursor.fetchone()        
+        
         # Enviar e-mail para a empresa locadora
         email_enviado, erro_email = enviar_email_locacao(
             id_item, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
             dt_inicial, dt_final, hr_inicial, de_veiculo, obs,
-            nome_arquivo_cnh, file_pdf  # Passando o conteúdo do PDF
+            nome_arquivo_cnh, motorista_email, file_pdf  # Passando o conteúdo do PDF
         )
         
         response_data = {
@@ -1805,7 +1809,7 @@ def nova_locacao():
         }), 500
 
 
-def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, file_pdf_content=None):
+def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
     try:
         # Obter hora atual para saudação
         hora_atual = datetime.now().hour
@@ -1862,6 +1866,49 @@ Seção de Gestão Operacional do Transporte
         cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
         resultado = cursor.fetchone()
         id_cl = resultado['ID_CL'] if resultado else None
+
+        ### Email para o motorista
+        if email_mot:
+            hora_atual = datetime.now().hour
+            saudacao = "Bom dia" if 5 <= hora_atual < 12 else "Boa tarde" if 12 <= hora_atual < 18 else "Boa noite"
+        
+            # Obter nome do usuário da sessão
+            nome_usuario = session.get('usuario_nome', 'Administrador')
+        
+            # Formatação do assunto
+            assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
+        
+            # Corpo do email
+            corpo = f'''{saudacao},
+
+Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
+
+    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+    Veículo: {de_veiculo} ou Similar
+    Condutor: {nm_motorista} - Telefone {nu_telefone}
+
+{obs}
+Necessário
+Atenciosamente,
+
+{nome_usuario}
+Tribunal de Justiça do Estado de Rondônia
+Seção de Gestão Operacional do Transporte
+(69) 3309-6229/6227
+
+(Não precisa responder este e-mail)'''
+            # Criar mensagem
+            msg = Message(
+                subject=assunto,
+                recipients=[{email_mot}],
+                body=corpo,
+                sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+            )
+        
+            # Enviar email
+            mail.send(msg)
+        
+        ##  FIM enviar email para o motorista
         
         if id_cl:
             # Inserir na tabela de emails
