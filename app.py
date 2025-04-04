@@ -1837,9 +1837,9 @@ Seção de Gestão Operacional do Transporte
         # Criar mensagem
         msg = Message(
             subject=assunto,
-            recipients=["naicm12@gmail.com", "elienai@tjro.jus.br"],
+            recipients=["Carmem@rovemalocadora.com.br", "atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br"],
             body=corpo,
-            sender=("ECM Sistemas", "ecmsistemasdeveloper@gmail.com")
+            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
         )
         
         # Anexar CNH se disponível
