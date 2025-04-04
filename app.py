@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session
+from flask import Flask, render_template, request, make_response, redirect, url_for, flash, jsonify, send_file, session
 from flask_mail import Mail, Message
 from functools import wraps
 import os
 from flask_mysqldb import MySQL
+import MySQLdb.cursors
 import uuid
 import base64
 from datetime import datetime
@@ -83,6 +84,7 @@ def autenticar():
         # Usuário encontrado e senha correta
         session['usuario_logado'] = True
         session['usuario_id'] = usuario[0]
+        session['usuario_login'] = login
         session['usuario_nome'] = usuario[1]
         session['nivel_acesso'] = usuario[2]
         
@@ -90,6 +92,7 @@ def autenticar():
         return jsonify({
             'sucesso': True,
             'usuario_id': usuario[0],
+            'usuario_login': login,
             'usuario_nome': usuario[1],
             'nivel_acesso': usuario[2]
         })
@@ -1640,6 +1643,40 @@ def listar_motoristas_loc():
         print(f"ERRO COMPLETO: {str(e)}")
         return jsonify({'erro': str(e)}), 500
 
+@app.route('/api/empenhos_loc')
+@login_required
+def api_empenhos_loc():
+    try:
+
+        id_cl = request.args.get('id_cl')
+        if not id_cl:
+            return jsonify({'erro': 'ID_CL não fornecido'}), 400
+
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT ID_EMPENHO, NU_EMPENHO
+        FROM TJ_CONTROLE_LOCACAO_EMPENHOS
+        WHERE ATIVO = 'S'
+        AND ID_CL = %s
+        """
+        cursor.execute(query, (id_cl,))
+        empenhos = cursor.fetchall()
+        
+        # Converter para dicionários
+        resultado = []
+        for empenho in empenhos:
+            resultado.append({
+                'ID_EMPENHO': empenho[0],
+                'NU_EMPENHO': empenho[1]
+            })
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 # Rota para obter o próximo ID_ITEM
 def obter_proximo_id_item():
     cursor = mysql.connection.cursor()
@@ -1651,12 +1688,13 @@ def obter_proximo_id_item():
     return ultimo_id + 1
     
 
-# Rota para salvar nova locação
 @app.route('/api/nova_locacao', methods=['POST'])
+@login_required
 def nova_locacao():
     try:
         # Obter dados do formulário
         id_cl = request.form.get('id_cl')
+        id_empenho = request.form.get('empenho')
         setor_solicitante = request.form.get('setor_solicitante')
         objetivo = request.form.get('objetivo')
         id_veiculo_loc = request.form.get('id_veiculo_loc')
@@ -1689,67 +1727,72 @@ def nova_locacao():
         hr_inicial = hora_inicio
         
         # Obter ID do usuário da sessão
-        usuario = session.get('usuario_id')
+        usuario = session.get('usuario_login')
         
         # Verificar se o motorista tem CNH cadastrada
-        cursor = mysql.connection.cursor()
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
         motorista_info = cursor.fetchone()
         
         # Verificar se é necessário salvar a CNH
-        file_pdf = motorista_info['FILE_PDF']
-        nome_arquivo_cnh = motorista_info['NOME_ARQUIVO']
+        file_pdf = motorista_info['FILE_PDF'] if motorista_info['FILE_PDF'] else None
+        nome_arquivo_cnh = motorista_info['NOME_ARQUIVO'] if motorista_info['NOME_ARQUIVO'] else None
         
         if not file_pdf and 'file_cnh' in request.files:
             file_cnh = request.files['file_cnh']
             
-            if file_cnh.filename != '':
-                # Salvar o arquivo
-                # (Código real para salvar o arquivo depende da implementação específica)
-                # Aqui estamos assumindo que o arquivo será salvo e o FILE_PDF será atualizado
-                file_pdf = True
+            if file_cnh and file_cnh.filename != '':
+                # Salvar o conteúdo do arquivo
+                file_content = file_cnh.read()
                 nome_arquivo_cnh = file_cnh.filename
                 
                 # Atualizar o motorista com o arquivo da CNH
                 cursor.execute(
                     "UPDATE TJ_MOTORISTA SET FILE_PDF = %s, NOME_ARQUIVO = %s WHERE ID_MOTORISTA = %s",
-                    (file_pdf, nome_arquivo_cnh, id_motorista)
+                    (file_content, nome_arquivo_cnh, id_motorista)
                 )
                 mysql.connection.commit()
+                file_pdf = file_content
         
         # Inserir na tabela TJ_CONTROLE_LOCACAO_ITENS
         cursor.execute("""
             INSERT INTO TJ_CONTROLE_LOCACAO_ITENS (
-                ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, 
-                ID_VEICULO_LOC, ID_MOTORISTA, DATA_INICIO, DATA_FIM, HORA_INICIO, 
+                ID_ITEM, ID_CL, ID_EXERCICIO, ID_EMPENHO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, 
+                ID_VEICULO_LOC, DS_VEICULO_MOD, ID_MOTORISTA, DATA_INICIO, DATA_FIM, HORA_INICIO, 
                 QT_DIARIA_KM, VL_DK, VL_SUBTOTAL, VL_TOTALITEM, NU_SEI, FL_EMAIL, 
                 OBS, FL_STATUS, USUARIO, DT_INICIAL, DT_FINAL, HR_INICIAL
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, '',%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            id_item, id_cl, id_exercicio, setor_solicitante, objetivo, id_mes, 
+            id_item, id_cl, id_exercicio, id_empenho, setor_solicitante, objetivo, id_mes, 
             id_veiculo_loc, id_motorista, data_inicio, data_fim, hora_inicio, 
             qt_diaria_km, vl_dk, vl_totalitem, vl_totalitem, nu_sei, 'N', 
             obs, 'T', usuario, dt_inicial, dt_final, hr_inicial
         ))
         mysql.connection.commit()
         
-        # Obter informações do veículo
+        # Obter informações do veículo - IMPORTANTE: Também usar dictionary=True aqui
         cursor.execute("SELECT DE_VEICULO FROM TJ_VEICULO_LOCACAO WHERE ID_VEICULO_LOC = %s", (id_veiculo_loc,))
         veiculo_info = cursor.fetchone()
         de_veiculo = veiculo_info['DE_VEICULO']
         
         # Enviar e-mail para a empresa locadora
-        email_enviado = enviar_email_locacao(
+        email_enviado, erro_email = enviar_email_locacao(
             id_item, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
-            dt_inicial, dt_final, hr_inicial, de_veiculo,
-            nome_arquivo_cnh
+            dt_inicial, dt_final, hr_inicial, de_veiculo, obs,
+            nome_arquivo_cnh, file_pdf  # Passando o conteúdo do PDF
         )
         
-        return jsonify({
+        response_data = {
             'sucesso': True,
             'email_enviado': email_enviado,
             'mensagem': 'Locação cadastrada com sucesso!'
-        })
+        }
+        
+        if not email_enviado and erro_email:
+            response_data['erro_email'] = erro_email
+            
+        cursor.close()
+        return jsonify(response_data)
         
     except Exception as e:
         print(f"Erro ao cadastrar locação: {str(e)}")
@@ -1759,7 +1802,7 @@ def nova_locacao():
         }), 500
 
 
-def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, nome_arquivo_cnh):
+def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, file_pdf_content=None):
     try:
         # Obter hora atual para saudação
         hora_atual = datetime.now().hour
@@ -1780,6 +1823,8 @@ Prezados, solicito locação de veículo conforme informações abaixo:
     Veículo: {de_veiculo} ou Similar
     Condutor: {nm_motorista} - Telefone {nu_telefone}
 
+{obs}
+    
 Segue anexo CNH do condutor.
 
 Atenciosamente,
@@ -1797,16 +1842,15 @@ Seção de Gestão Operacional do Transporte
             sender=("ECM Sistemas", "ecmsistemasdeveloper@gmail.com")
         )
         
-        # Anexar CNH
-        if nome_arquivo_cnh:
-            with open(nome_arquivo_cnh, 'rb') as f:
-                msg.attach('CNH_' + os.path.basename(nome_arquivo_cnh), 'application/pdf', f.read())
+        # Anexar CNH se disponível
+        if file_pdf_content and nome_arquivo_cnh:
+            msg.attach(f'CNH_{nome_arquivo_cnh}', 'application/pdf', file_pdf_content)
         
         # Enviar email
         mail.send(msg)
         
         # Registrar email no banco de dados
-        cursor = mysql.connection.cursor()
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # IMPORTANTE: Use dictionary=True aqui também
         
         # Formatação da data e hora atual
         data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -1814,7 +1858,7 @@ Seção de Gestão Operacional do Transporte
         # Obter ID_CL com base no ID_ITEM
         cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
         resultado = cursor.fetchone()
-        id_cl = resultado[0] if resultado else None
+        id_cl = resultado['ID_CL'] if resultado else None
         
         if id_cl:
             # Inserir na tabela de emails
@@ -1838,11 +1882,12 @@ Seção de Gestão Operacional do Transporte
         app.logger.error(f"Erro ao enviar email: {str(e)}")
         return False, str(e)
 
-@app.route('/api/download_cnh/<int:id_motorista>')
+
+@app.route('/api/download_cnh_loc/<int:id_motorista>')
 @login_required
-def download_cnh(id_motorista):
+def download_cnh_loc(id_motorista):
     try:
-        cursor = mysql.connection.cursor()
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # IMPORTANTE: Use dictionary=True aqui também
         cursor.execute("""
             SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
             WHERE ID_MOTORISTA = %s
@@ -1851,9 +1896,9 @@ def download_cnh(id_motorista):
         result = cursor.fetchone()
         cursor.close()
         
-        if result and result[0]:
-            pdf_data = result[0]
-            filename = result[1] or f"cnh_motorista_{id_motorista}.pdf"
+        if result and result['FILE_PDF']:  # Acesso usando chave string
+            pdf_data = result['FILE_PDF']
+            filename = result['NOME_ARQUIVO'] or f"cnh_motorista_{id_motorista}.pdf"
             
             response = make_response(pdf_data)
             response.headers['Content-Type'] = 'application/pdf'
@@ -1864,6 +1909,7 @@ def download_cnh(id_motorista):
     except Exception as e:
         print(f"Erro ao baixar PDF: {str(e)}")
         return jsonify({'erro': str(e)}), 500
+    
 
 # def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, nome_arquivo_cnh):
 #     """
