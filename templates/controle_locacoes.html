@@ -235,15 +235,25 @@
                 </div>
                 <div class="modal-body">
                     <form id="formNovaLocacao" class="row g-3">
-                        <div class="col-md-12">
+                        <div class="col-md-6">
+                            <label for="empenholoc" class="form-label small">Empenho</label>
+                            <select class="form-select form-select-sm" id="empenholoc" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
                             <label for="setorSolicitante" class="form-label small">Setor Solicitante</label>
                             <select class="form-select form-select-sm" id="setorSolicitante" required>
                                 <option value="">Selecione...</option>
                             </select>
                         </div>
-                        <div class="col-md-12">
+                        <div class="col-md-8">
                             <label for="objetivo" class="form-label small">Objetivo</label>
                             <input type="text" class="form-control form-control-sm" id="objetivo" maxlength="300" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="numSei" class="form-label small">Número SEI</label>
+                            <input type="text" class="form-control form-control-sm" id="numSei" maxlength="25" required>
                         </div>
                         <div class="col-md-6">
                             <label for="veiculo" class="form-label small">Veículo</label>
@@ -252,13 +262,6 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="valorDiaria" class="form-label small">Valor Diária</label>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text">R$</span>
-                                <input type="text" class="form-control form-control-sm" id="valorDiaria" readonly>
-                            </div>
-                        </div>
-                        <div class="col-md-12">
                             <label for="motorista" class="form-label small">Motorista</label>
                             <select class="form-select form-select-sm" id="motorista" required>
                                 <option value="">Selecione...</option>
@@ -281,15 +284,18 @@
                             <input type="number" class="form-control form-control-sm" id="qtdDiarias" readonly>
                         </div>
                         <div class="col-md-4">
+                            <label for="valorDiaria" class="form-label small">Valor Diária</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorDiaria" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <label for="valorTotal" class="form-label small">Valor Total</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
                                 <input type="text" class="form-control form-control-sm" id="valorTotal" readonly>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="numSei" class="form-label small">Número SEI</label>
-                            <input type="text" class="form-control form-control-sm" id="numSei" required>
                         </div>
                         <div class="col-md-12">
                             <label for="observacoes" class="form-label small">Observações</label>
@@ -363,6 +369,7 @@
         let locacoesFinalizadasCompletas = []; // Para armazenar todas as locações finalizadas
         let motoristasLista = [];
         let veiculosLista = [];
+        let empenhoLista = [];
         let arquivoCnh = null;
         
         // Carregar lista de processos ao iniciar a página
@@ -397,17 +404,25 @@
             $('#numSei').on('input', function() {
                 let value = $(this).val().replace(/\D/g, '');
                 
-                if (value.length <= 7) {
-                    value = value.replace(/^(\d{0,7})/, "$1");
-                } else if (value.length <= 9) {
-                    value = value.replace(/^(\d{7})(\d{0,2})/, "$1-$2");
-                } else if (value.length <= 13) {
-                    value = value.replace(/^(\d{7})(\d{2})(\d{0,1})(\d{0,2})(\d{0,2})/, "$1-$2.$3.$4.$5");
-                } else if (value.length <= 17) {
-                    value = value.replace(/^(\d{7})(\d{2})(\d{1})(\d{2})(\d{2})(\d{0,4})/, "$1-$2.$3.$4.$5.$6");
-                } else {
-                    value = value.replace(/^(\d{7})(\d{2})(\d{1})(\d{2})(\d{2})(\d{4})/, "$1-$2.$3.$4.$5.$6");
-                }
+                // if (value.length <= 7) {
+                //     value = value.replace(/^(\d{0,7})/, "$1");
+                // } else if (value.length <= 9) {
+                //     value = value.replace(/^(\d{7})(\d{0,2})/, "$1-$2");
+                // } else if (value.length <= 13) {
+                //     value = value.replace(/^(\d{7})(\d{2})(\d{0,1})(\d{0,2})(\d{0,2})/, "$1-$2.$3.$4.$5");
+                // } else if (value.length <= 17) {
+                //     value = value.replace(/^(\d{7})(\d{2})(\d{1})(\d{2})(\d{2})(\d{0,4})/, "$1-$2.$3.$4.$5.$6");
+                // } else {
+                //     value = value.replace(/^(\d{7})(\d{2})(\d{1})(\d{2})(\d{2})(\d{4})/, "$1-$2.$3.$4.$5.$6");
+                // }
+
+                if (value.length > 13) {
+                    value = `${value.substring(0, 7)}-${value.substring(7, 9)}.${value.substring(9, 13)}.${value.substring(13, 14)}.${value.substring(14, 16)}.${value.substring(16)}`;
+                } else if (value.length > 9) {
+                    value = `${value.substring(0, 7)}-${value.substring(7, 9)}.${value.substring(9)}`;
+                } else if (value.length > 7) {
+                    value = `${value.substring(0, 7)}-${value.substring(7)}`;
+                }                
                 
                 $(this).val(value);
             });
@@ -480,8 +495,6 @@
                 });
             }
 
-
-            
             // Salvar locação
             $('#btnSalvarLocacao').click(function() {
                 // Validar formulário
@@ -496,7 +509,7 @@
                 const motoristaId = $('#motorista').val();
                 const motoristaSelecionado = motoristasLista.find(m => m.ID_MOTORISTA == motoristaId);
                 
-                if (!motoristaSelecionado.FILE_PDF && !arquivoCnh) {
+                if (!motoristaSelecionado.FILE_PDF && !$('#arquivoCnh')[0].files[0]) {
                     alert("É necessário anexar a CNH do motorista.");
                     $(this).prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
                     return;
@@ -505,6 +518,7 @@
                 // Preparar dados para envio
                 const formData = new FormData();
                 formData.append('id_cl', processoIdSelecionado);
+                formData.append('empenho', $('#empenholoc').val());
                 formData.append('setor_solicitante', $('#setorSolicitante').val());
                 formData.append('objetivo', $('#objetivo').val());
                 formData.append('id_veiculo_loc', $('#veiculo').val());
@@ -513,14 +527,24 @@
                 formData.append('data_fim', $('#dataFim').val());
                 formData.append('hora_inicio', $('#horaInicio').val());
                 formData.append('qt_diaria_km', $('#qtdDiarias').val());
-                formData.append('vl_dk', parseFloat($('#valorDiaria').val().replace('.', '').replace(',', '.')));
-                formData.append('vl_totalitem', parseFloat($('#valorTotal').val().replace('.', '').replace(',', '.')));
+                
+                // Corrigir formatação dos valores decimais
+                const valorDiaria = $('#valorDiaria').val().replace(/\./g, '').replace(',', '.');
+                const valorTotal = $('#valorTotal').val().replace(/\./g, '').replace(',', '.');
+                
+                formData.append('vl_dk', valorDiaria);
+                formData.append('vl_totalitem', valorTotal);
                 formData.append('nu_sei', $('#numSei').val());
                 formData.append('obs', $('#observacoes').val());
                 
-                if (arquivoCnh) {
-                    formData.append('arquivo_cnh', arquivoCnh);
+                // Anexar arquivo da CNH se necessário
+                if (!motoristaSelecionado.FILE_PDF && $('#arquivoCnh')[0].files[0]) {
+                    // Importante: corrigir o nome do campo para 'file_cnh' conforme esperado pelo backend
+                    formData.append('file_cnh', $('#arquivoCnh')[0].files[0]);
                 }
+                
+                // Log para verificar os dados enviados
+                console.log("Enviando dados para API:", processoIdSelecionado);
                 
                 // Enviar dados para API
                 $.ajax({
@@ -552,8 +576,10 @@
                         // Reativar o footer quando o modal fechar
                         $('.footer').removeClass('d-none');
                         
-                        // Recarregar locações em trânsito
-                        carregarLocacoesTransito(processoIdSelecionado);
+                        // Recarregar locações em trânsito se a função existir
+                        if (typeof carregarLocacoesTransito === 'function') {
+                            carregarLocacoesTransito(processoIdSelecionado);
+                        }
                         
                         // Reset botão salvar
                         $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
@@ -562,7 +588,16 @@
                         console.error("Erro ao salvar locação:", error);
                         console.error("Resposta:", xhr.responseText);
                         
-                        alert("Erro ao salvar locação: " + (xhr.responseJSON && xhr.responseJSON.erro ? xhr.responseJSON.erro : error));
+                        let mensagemErro = "Erro ao salvar locação";
+                        if (xhr.responseJSON && xhr.responseJSON.mensagem) {
+                            mensagemErro += ": " + xhr.responseJSON.mensagem;
+                        } else if (xhr.statusText) {
+                            mensagemErro += ": " + xhr.statusText;
+                        } else {
+                            mensagemErro += ": " + error;
+                        }
+                        
+                        alert(mensagemErro);
                         
                         // Reset botão salvar
                         $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
@@ -592,13 +627,22 @@
                 arquivoCnh = null;
                 
                 // Configurar data atual
+                // const hoje = new Date() + 1;
+                // const dataFormatada = hoje.toISOString().split('T')[0];
+                // $('#dataInicio').val(dataFormatada);
+                // $('#dataFim').val(dataFormatada);
+                // $('#horaInicio').val('07:00');
+                
                 const hoje = new Date();
-                const dataFormatada = hoje.toISOString().split('T')[0];
+                const amanha = new Date(hoje);
+                amanha.setDate(hoje.getDate() + 1);
+                const dataFormatada = amanha.toISOString().split('T')[0];
                 $('#dataInicio').val(dataFormatada);
                 $('#dataFim').val(dataFormatada);
                 $('#horaInicio').val('07:00');
-                
+
                 // Carregar dados necessários
+                carregarEmpenhos(processoIdSelecionado);
                 carregarSetores();
                 carregarMotoristas();
                 carregarVeiculos(processoIdSelecionado);
@@ -666,6 +710,27 @@
             });
         }
         
+        // Função para carregar empenhos
+        function carregarEmpenhos(id_cl) {
+            $.ajax({
+                url: `/api/empenhos_loc?id_cl=${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    empenhoLista = data;
+                    let html = '<option value="">Selecione...</option>';
+                    data.forEach(function(item) {
+                        html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
+                    });
+                    $('#empenholoc').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar empenhos:", error);
+                    alert("Erro ao carregar lista de empenhos.");
+                }
+            });
+        }
+
         // Função para carregar veículos
         function carregarVeiculos(id_cl) {
             $.ajax({
@@ -741,6 +806,61 @@
             });
         }
         
+        // Função para validar o formulário
+        function validarFormulario() {
+            if (!$('#setorSolicitante').val()) {
+                alert("Por favor, selecione o setor solicitante.");
+                return false;
+            }
+            
+            if (!$('#objetivo').val()) {
+                alert("Por favor, informe o objetivo da locação.");
+                return false;
+            }
+            
+            if (!$('#veiculo').val()) {
+                alert("Por favor, selecione um veículo.");
+                return false;
+            }
+            
+            if (!$('#motorista').val()) {
+                alert("Por favor, selecione um motorista.");
+                return false;
+            }
+            
+            if (!$('#dataInicio').val()) {
+                alert("Por favor, informe a data de início.");
+                return false;
+            }
+            
+            if (!$('#dataFim').val()) {
+                alert("Por favor, informe a data de fim.");
+                return false;
+            }
+            
+            if (!$('#horaInicio').val()) {
+                alert("Por favor, informe a hora de início.");
+                return false;
+            }
+            
+            // if (!$('#numSei').val() || !$('#numSei').val().match(/^\d{7}-\d{2}\.\d{1}\.\d{2}\.\d{2}\.\d{4}$/)) {
+            //     alert("Por favor, informe um número SEI válido no formato 0000000-00.0.00.0000.");
+            //     return false;
+            // }
+            
+            // Verificar se as datas são válidas
+            const dataInicio = new Date($('#dataInicio').val());
+            const dataFim = new Date($('#dataFim').val());
+            
+            if (dataFim < dataInicio) {
+                alert("A data final não pode ser anterior à data inicial!");
+                return false;
+            }
+                            
+            return true;
+        }
+                
+        
         // Função para selecionar um processo e carregar os dados relacionados
         function selecionarProcesso(id_cl) {
             console.log("Selecionando processo ID:", id_cl);
@@ -782,52 +902,6 @@
                     $('#tabela-empenhos').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                 }
             });
-
-            // Função para validar o formulário
-            function validarFormulario() {
-                if (!$('#setorSolicitante').val()) {
-                    alert("Por favor, selecione o setor solicitante.");
-                    return false;
-                }
-                
-                if (!$('#objetivo').val()) {
-                    alert("Por favor, informe o objetivo da locação.");
-                    return false;
-                }
-                
-                if (!$('#veiculo').val()) {
-                    alert("Por favor, selecione um veículo.");
-                    return false;
-                }
-                
-                if (!$('#motorista').val()) {
-                    alert("Por favor, selecione um motorista.");
-                    return false;
-                }
-                
-                if (!$('#dataInicio').val()) {
-                    alert("Por favor, informe a data de início.");
-                    return false;
-                }
-                
-                if (!$('#dataFim').val()) {
-                    alert("Por favor, informe a data de fim.");
-                    return false;
-                }
-                
-                if (!$('#horaInicio').val()) {
-                    alert("Por favor, informe a hora de início.");
-                    return false;
-                }
-                
-                if (!$('#numSei').val() || !$('#numSei').val().match(/^\d{7}-\d{2}\.\d{1}\.\d{2}\.\d{2}\.\d{4}$/)) {
-                    alert("Por favor, informe um número SEI válido no formato 0000000-00.0.00.0000.");
-                    return false;
-                }
-                
-                return true;
-            }
-            
             
             // Carregar saldo de diárias
             $.ajax({
