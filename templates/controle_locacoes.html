@@ -328,81 +328,73 @@
     
     <!-- adicionado 07/04/2025 -->
     
-    <!-- Modal Lança Devolução de Locação -->
+    <!-- Modal Devolução de Locação -->
     <div class="modal fade" id="modalDevolucaoLocacao" tabindex="-1" aria-labelledby="modalDevolucaoLocacaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="modalDevolucaoLocacaoLabel">Devolução Locação</h5>
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="modalDevolucaoLocacaoLabel">Devolução de Locação</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="formDevolucaoLocacao" class="row g-3">
+                        <input type="hidden" id="idItemDev">
+                        <input type="hidden" id="valorSubTotalDev">
+                        
                         <div class="col-md-6">
-                            <label for="empenholocDev" class="form-label small">Empenho</label>
-                            <select class="form-select form-select-sm" id="empenholocDev" required>
-                                <option value="">Selecione...</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="setorSolicitanteDev" class="form-label small">Setor Solicitante</label>
-                            <select class="form-select form-select-sm" id="setorSolicitanteDev" required>
-                                <option value="">Selecione...</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="numSeiDev" class="form-label small">Número SEI</label>
-                            <input type="text" class="form-control form-control-sm" id="numSeiDev" maxlength="25" required>
-                        </div>
-                        <div class="col-md-8">
                             <label for="motoristaDev" class="form-label small">Motorista</label>
-                            <input type="text" class="form-control form-control-sm" id="motoristaDev" maxlength="25" readonly>
+                            <input type="text" class="form-control form-control-sm" id="motoristaDev" readonly>
                         </div>
                         <div class="col-md-6">
                             <label for="veiculoDev" class="form-label small">Veículo</label>
-                            <select class="form-select form-select-sm" id="veiculoDev" required>
-                                <option value="">Selecione...</option>
-                            </select>
+                            <input type="text" class="form-control form-control-sm" id="veiculoDev" readonly>
                         </div>
-                        <div class="col-md-6">
-                            <label for="veiculoModeloDev" class="form-label small">Modelo Veículo</label>
-                            <input type="text" class="form-control form-control-sm" id="veiculoModeloDev" maxlength="25" required>
+                        <div class="col-md-8">
+                            <label for="veiculoModeloDev" class="form-label small">Modelo do Veículo</label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control form-control-sm" id="veiculoModeloDev">
+                                <div id="sugestoesModeloVeiculo" class="position-absolute w-100 bg-white border rounded shadow-sm" style="z-index: 1000; max-height: 200px; overflow-y: auto; display: none;"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="numSeiDev" class="form-label small">Número SEI</label>
+                            <input type="text" class="form-control form-control-sm" id="numSeiDev" readonly>
                         </div>
                         <div class="col-md-3">
                             <label for="dataInicioDev" class="form-label small">Data Início</label>
-                            <input type="date" class="form-control form-control-sm" id="dataInicioDev" required>
+                            <input type="date" class="form-control form-control-sm" id="dataInicioDev" readonly>
                         </div>
                         <div class="col-md-3">
                             <label for="horaInicioDev" class="form-label small">Hora Início</label>
-                            <input type="time" class="form-control form-control-sm" id="horaInicioDev" required>
-                        </div>                        
+                            <input type="time" class="form-control form-control-sm" id="horaInicioDev" readonly>
+                        </div>
                         <div class="col-md-3">
-                            <label for="dataFimDev" class="form-label small">Data Fim</label>
+                            <label for="dataFimDev" class="form-label small">Data Devolução</label>
                             <input type="date" class="form-control form-control-sm" id="dataFimDev" required>
                         </div>
                         <div class="col-md-3">
-                            <label for="horaFimDev" class="form-label small">Hora Dev.</label>
+                            <label for="horaFimDev" class="form-label small">Hora Devolução</label>
                             <input type="time" class="form-control form-control-sm" id="horaFimDev" required>
-                        </div>                        
-                        <div class="col-md-3">
-                            <label for="qtdDiariasDev" class="form-label small">Qtd. Diárias</label>
-                            <input type="number" class="form-control form-control-sm" id="qtdDiariasDev" readonly>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
+                            <label for="qtdDiariaDev" class="form-label small">Qtd. Diárias</label>
+                            <input type="number" class="form-control form-control-sm" id="qtdDiariaDev" step="0.1">
+                        </div>
+                        <div class="col-md-4">
                             <label for="valorDiariaDev" class="form-label small">Valor Diária</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
                                 <input type="text" class="form-control form-control-sm" id="valorDiariaDev" readonly>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <label for="valorDifDev" class="form-label small">Valor Dif.</label>
+                        <div class="col-md-4">
+                            <label for="valorDifDev" class="form-label small">Valor Diferença (Horas Extras)</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
-                                <input type="text" class="form-control form-control-sm" id="valorDifDev" readonly>
+                                <input type="text" class="form-control form-control-sm" id="valorDifDev">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="valorTotalDev" class="form-label small">Valor Total</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
@@ -411,7 +403,7 @@
                         </div>
                         <div class="col-md-12">
                             <label for="observacoesDev" class="form-label small">Observações</label>
-                            <textarea class="form-control form-control-sm" id="observacoesDev" rows="2" maxlength="200"></textarea>
+                            <textarea class="form-control form-control-sm" id="observacoesDev" rows="3" maxlength="200"></textarea>
                             <div class="text-end">
                                 <small><span id="charCountDev">0</span>/200</small>
                             </div>
@@ -422,15 +414,13 @@
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </button>
-                    <button type="button" class="btn btn-success btn-sm" id="btnSalvarLocacaoDev">
-                        <i class="fas fa-save"></i> Salvar
+                    <button type="button" class="btn btn-success btn-sm" id="btnSalvarDevolucao">
+                        <i class="fas fa-save"></i> Salvar Devolução
                     </button>
                 </div>
             </div>
         </div>
     </div>
-
-
 
     <!--  fim - adicionado 07/05/2025 -->
     
@@ -483,6 +473,21 @@
         let empenhoLista = [];
         let arquivoCnh = null;
         
+        const TOLERANCIA_HORAS = 2; // 2 horas de tolerância
+        const FRACAO_HORA_EXTRA = 0.1; // 1/10 do valor da diária por hora extra
+
+        // Função para formatar valores monetários para exibição
+        function formatarValorMonetario(valor) {
+            if (valor === null || valor === undefined) return '0,00';
+            return parseFloat(valor).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+        
+        // Função para converter valor formatado para número
+        function converterParaNumero(valor) {
+            if (!valor) return 0;
+            return parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+        }
+
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
             carregarProcessos();
@@ -790,8 +795,188 @@
                     alert("Por favor, selecione um processo de locação primeiro.");
                 }
             });
-        });
 
+            // Busca de modelos de veículos
+            $('#veiculoModeloDev').on('input', function() {
+                const termo = $(this).val().trim();
+                if (termo.length >= 4) {
+                    $.ajax({
+                        url: `/api/busca_modelos_veiculos?termo=${encodeURIComponent(termo)}`,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            let html = '';
+                            if (data.length > 0) {
+                                data.forEach(function(modelo) {
+                                    html += `<div class="p-2 border-bottom modelo-sugestao" style="cursor: pointer;">${modelo}</div>`;
+                                });
+                                $('#sugestoesModeloVeiculo').html(html).show();
+                                
+                                // Adicionar evento de clique às sugestões
+                                $('.modelo-sugestao').click(function() {
+                                    $('#veiculoModeloDev').val($(this).text());
+                                    $('#sugestoesModeloVeiculo').hide();
+                                });
+                            } else {
+                                $('#sugestoesModeloVeiculo').hide();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Erro ao buscar modelos de veículos:", error);
+                            $('#sugestoesModeloVeiculo').hide();
+                        }
+                    });
+                } else {
+                    $('#sugestoesModeloVeiculo').hide();
+                }
+            });
+
+            // Fechar sugestões ao clicar fora
+            $(document).click(function(e) {
+                if (!$(e.target).closest('#veiculoModeloDev, #sugestoesModeloVeiculo').length) {
+                    $('#sugestoesModeloVeiculo').hide();
+                }
+            });
+            
+            // Contador de caracteres para observações
+            $('#observacoesDev').on('input', function() {
+                const caracteres = $(this).val().length;
+                $('#charCountDev').text(caracteres);
+            });
+
+            // Botão de devolução na tabela de locações em trânsito
+            $(document).on('click', '#tabela-transito .btn-danger', function() {
+                const tr = $(this).closest('tr');
+                const idItem = tr.find('td:first').text();
+                
+                // Carregar dados da locação
+                $.ajax({
+                    url: `/api/locacao_item/${idItem}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Dados da locação carregados:", data);
+                        
+                        // Preencher o formulário de devolução
+                        $('#idItemDev').val(idItem);
+                        $('#motoristaDev').val(data.nome_motorista);
+                        $('#veiculoDev').val($('#tabela-transito tr:has(td:contains(' + idItem + '):first-child) td:eq(2)').text());
+                        $('#veiculoModeloDev').val($('#tabela-transito tr:has(td:contains(' + idItem + '):first-child) td:eq(3)').text());
+                        $('#numSeiDev').val(data.nu_sei);
+                        
+                        // Datas e horas
+                        $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
+                        $('#horaInicioDev').val(data.hora_inicio);
+                        
+                        // Configurar data e hora atual para devolução
+                        const agora = new Date();
+                        const dataAtual = agora.toISOString().split('T')[0];
+                        const horaAtual = agora.getHours().toString().padStart(2, '0') + ':' + 
+                                         agora.getMinutes().toString().padStart(2, '0');
+                        
+                        $('#dataFimDev').val(dataAtual);
+                        $('#horaFimDev').val(horaAtual);
+                        
+                        // Valores
+                        $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria));
+                        $('#qtdDiariaDev').val(data.qt_diarias);
+                        $('#valorDifDev').val(formatarValorMonetario(data.valor_diferenca || 0));
+                        $('#valorSubTotalDev').val(data.valor_subtotal);
+                        $('#valorTotalDev').val(formatarValorMonetario(data.valor_total));
+                        
+                        // Calcular diárias e valores iniciais
+                        calcularDiariasEValoresDev();
+                        
+                        // Abrir modal
+                        const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
+                        modalDevolucaoLocacao.show();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar dados da locação:", error);
+                        alert("Erro ao carregar dados da locação. Verifique o console para mais detalhes.");
+                    }
+                });
+            });
+
+            // Recalcular diárias e valores ao alterar datas e horas
+            $('#dataFimDev, #horaFimDev, #qtdDiariaDev, #valorDifDev').on('change input', function() {
+                calcularDiariasEValoresDev();
+            });
+            
+            // Botão salvar devolução
+            $('#btnSalvarDevolucao').click(function() {
+                // Validar formulário
+                if (!validarFormularioDevolucao()) {
+                    return;
+                }
+                
+                // Mostrar loader
+                $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
+                
+                const idItem = $('#idItemDev').val();
+                const formData = new FormData();
+                
+                // Adicionar dados ao FormData
+                formData.append('data_fim', $('#dataFimDev').val());
+                formData.append('hora_fim', $('#horaFimDev').val());
+                formData.append('qt_diarias', $('#qtdDiariaDev').val());
+                formData.append('valor_diferenca', converterParaNumero($('#valorDifDev').val()));
+                formData.append('valor_subtotal', $('#valorSubTotalDev').val());
+                formData.append('valor_total', converterParaNumero($('#valorTotalDev').val()));
+                formData.append('veiculo_modelo', $('#veiculoModeloDev').val());
+                
+                // Enviar dados para API
+                $.ajax({
+                    url: `/api/salvar_devolucao/${idItem}`,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        console.log("Resposta:", response);
+                        
+                        // Mostrar mensagem de sucesso
+                        $('#mensagemSucesso').text("Devolução registrada com sucesso!");
+                        
+                        // Fechar modal de devolução
+                        $('#modalDevolucaoLocacao').modal('hide');
+                        
+                        // Mostrar modal de sucesso
+                        const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+                        modalSucesso.show();
+                        
+                        // Recarregar locações em trânsito
+                        if (processoIdSelecionado) {
+                            carregarLocacoesTransito(processoIdSelecionado);
+                            carregarLocacoesFinalizadas(processoIdSelecionado);
+                        }
+                        
+                        // Reset botão salvar
+                        $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao salvar devolução:", error);
+                        console.error("Resposta:", xhr.responseText);
+                        
+                        let mensagemErro = "Erro ao salvar devolução";
+                        if (xhr.responseJSON && xhr.responseJSON.erro) {
+                            mensagemErro += ": " + xhr.responseJSON.erro;
+                        } else if (xhr.statusText) {
+                            mensagemErro += ": " + xhr.statusText;
+                        } else {
+                            mensagemErro += ": " + error;
+                        }
+                        
+                        alert(mensagemErro);
+                        
+                        // Reset botão salvar
+                        $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
+                    }
+                });
+            });            
+            
+        });
+        
         // Função para carregar setores  - Form Nova Locação
         function carregarSetores() {
             $.ajax({
@@ -986,6 +1171,127 @@
             return true;
         }
                 
+        // Função para validar o formulário de devolução
+        function validarFormularioDevolucao() {
+            if (!$('#dataFimDev').val()) {
+                alert("Por favor, informe a data de devolução.");
+                return false;
+            }
+            
+            if (!$('#horaFimDev').val()) {
+                alert("Por favor, informe a hora de devolução.");
+                return false;
+            }
+            
+            if (!$('#veiculoModeloDev').val()) {
+                alert("Por favor, informe o modelo do veículo.");
+                return false;
+            }
+            
+            // Verificar se as datas são válidas
+            const dataInicio = new Date($('#dataInicioDev').val() + 'T' + $('#horaInicioDev').val());
+            const dataFim = new Date($('#dataFimDev').val() + 'T' + $('#horaFimDev').val());
+            
+            if (dataFim < dataInicio) {
+                alert("A data/hora de devolução não pode ser anterior à data/hora de início!");
+                return false;
+            }
+            
+            return true;
+        }      
+
+        // Função para calcular diárias e valores na devolução
+        function calcularDiariasEValoresDev() {
+            // Obtém as datas e horas de início e fim
+            const dataInicio = new Date($('#dataInicioDev').val() + 'T' + $('#horaInicioDev').val());
+            const dataFim = new Date($('#dataFimDev').val() + 'T' + $('#horaFimDev').val());
+            
+            if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
+                return; // Datas inválidas
+            }
+            
+            // Se o usuário já alterou manualmente o valor das diárias, respeitar esse valor
+            if (document.activeElement !== document.getElementById('qtdDiariaDev')) {
+                // Calcular a diferença em milissegundos
+                const diffMs = dataFim - dataInicio;
+                
+                // Converter para horas
+                const diffHoras = diffMs / (1000 * 60 * 60);
+                
+                // Calcular diárias (24 horas = 1 diária)
+                let diarias = Math.floor(diffHoras / 24);
+                
+                // Calcular horas excedentes
+                const horasExcedentes = diffHoras % 24;
+                
+                // Se tiver horas excedentes além da tolerância, calcular o valor adicional
+                if (horasExcedentes > TOLERANCIA_HORAS) {
+                    // Adicionar horas extras convertidas em fração de diária
+                    const horasExtras = horasExcedentes - TOLERANCIA_HORAS;
+                    
+                    // Cada hora extra vale 1/10 do valor da diária
+                    const fracaoHorasExtras = Math.ceil(horasExtras) * FRACAO_HORA_EXTRA;
+                    
+                    // Se a fração passar de 1, considerar uma diária completa
+                    if (fracaoHorasExtras >= 1) {
+                        diarias += 1;
+                        $('#valorDifDev').val('0,00');
+                    } else {
+                        // Atualizar o campo de diárias e calcular o valor da diferença (horas extras)
+                        const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
+                        const valorDiferenca = valorDiaria * fracaoHorasExtras;
+                        
+                        $('#valorDifDev').val(formatarValorMonetario(valorDiferenca));
+                    }
+                } else {
+                    // Sem horas extras
+                    $('#valorDifDev').val('0,00');
+                }
+                
+                // Garantir no mínimo 1 diária
+                diarias = Math.max(1, diarias);
+                $('#qtdDiariaDev').val(diarias);
+            }
+            
+            // Calcular valor total
+            const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
+            const qtdDiarias = parseFloat($('#qtdDiariaDev').val());
+            const valorDiferenca = converterParaNumero($('#valorDifDev').val());
+            
+            const valorSubTotal = valorDiaria * qtdDiarias;
+            const valorTotal = valorSubTotal + valorDiferenca;
+            
+            // Armazenar valor subtotal em campo hidden
+            $('#valorSubTotalDev').val(valorSubTotal);
+            
+            // Atualizar campos na interface
+            $('#valorTotalDev').val(formatarValorMonetario(valorTotal));
+        }
+
+        // Função para formatar data para input (YYYY-MM-DD)
+        function formatarDataParaInput(dataStr) {
+            if (!dataStr) return '';
+            
+            try {
+                // Se for uma string no formato dd/mm/yyyy
+                const partesData = dataStr.split('/');
+                if (partesData.length === 3) {
+                    return `${partesData[2]}-${partesData[1]}-${partesData[0]}`;
+                }
+                
+                // Se for uma string ISO ou outro formato reconhecido pelo construtor Date
+                const data = new Date(dataStr);
+                if (!isNaN(data.getTime())) {
+                    return data.toISOString().split('T')[0];
+                }
+                
+                return '';
+            } catch (e) {
+                console.error("Erro ao converter data para input:", e);
+                return '';
+            }
+        }
+        
         
         // Função para selecionar um processo e carregar os dados relacionados
         function selecionarProcesso(id_cl) {
