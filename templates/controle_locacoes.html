@@ -768,6 +768,12 @@
             
             // Ação do botão Nova Locação
             $('#btnTeste').click(function() {
+
+                carregarEmpenhos(processoIdSelecionado);
+                carregarSetores();
+                //carregarMotoristas();
+                carregarVeiculos(processoIdSelecionado);
+                
                 const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
                 modalDevolucaoLocacao.show();
             });
@@ -786,7 +792,7 @@
             });
         });
 
-        // Função para carregar setores
+        // Função para carregar setores  - Form Nova Locação
         function carregarSetores() {
             $.ajax({
                 url: '/api/setores_loc',
@@ -798,6 +804,7 @@
                         html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
                     });
                     $('#setorSolicitante').html(html);
+                    $('#setorSolicitanteDev').html(html);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar setores:", error);
@@ -806,7 +813,7 @@
             });
         }
         
-        // Função para carregar motoristas
+        // Função para carregar motoristas - Form Nova Locação
         function carregarMotoristas() {
             $.ajax({
                 url: '/api/lista_motorista_loc',
@@ -827,7 +834,7 @@
             });
         }
         
-        // Função para carregar empenhos
+        // Função para carregar empenhos - Form Nova Locação
         function carregarEmpenhos(id_cl) {
             $.ajax({
                 url: `/api/empenhos_loc?id_cl=${id_cl}`,
@@ -840,6 +847,7 @@
                         html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
                     });
                     $('#empenholoc').html(html);
+                    $('#empenholocDev').html(html);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar empenhos:", error);
@@ -848,7 +856,7 @@
             });
         }
 
-        // Função para carregar veículos
+        // Função para carregar veículos - Form Nova Locação
         function carregarVeiculos(id_cl) {
             $.ajax({
                 url: `/api/lista_veiculo?id_cl=${id_cl}`,
@@ -861,6 +869,7 @@
                         html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
                     });
                     $('#veiculo').html(html);
+                    $('#veiculoDev').html(html);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar veículos:", error);
