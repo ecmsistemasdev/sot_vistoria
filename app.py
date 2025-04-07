@@ -1970,7 +1970,7 @@ def locacao_item(iditem):
         
         print("Executando consulta SQL")
         cursor.execute("""
-            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.ID_EMPENHO, 
+            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO, 
             i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, 
             i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI,  
             i.DATA_INICIO, i.DATA_FIM, i.HORA_INICIO, i.HORA_FIM
@@ -1988,7 +1988,7 @@ def locacao_item(iditem):
                 'setor_solicitante': result[2],
                 'objetivo': result[3],
                 'id_empenho': result[4],
-                'id_veiculo': result[5],
+                'id_veiculo_loc': result[5],
                 'id_motorista': result[6],
                 'nome_motorista': result[7],
                 'qt_diarias': result[8],
@@ -1999,7 +1999,8 @@ def locacao_item(iditem):
                 'nu_sei': result[13],
                 'dt_inicio': result[14],
                 'dt_fim': result[15],
-                'hora_inicio' result[16]
+                'hora_inicio': result[16],
+                'hora_fim': result[17] if len(result) > 17 else None
             }
             return jsonify(itens)
         else:
@@ -2007,6 +2008,65 @@ def locacao_item(iditem):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+
+@app.route('/api/busca_modelos_veiculos')
+@login_required
+def busca_modelos_veiculos():
+    try:
+        termo = request.args.get('termo', '')
+        if len(termo) < 4:
+            return jsonify([])
+            
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT DISTINCT DS_VEICULO_MOD 
+            FROM TJ_CONTROLE_LOCACAO_ITENS
+            WHERE DS_VEICULO_MOD LIKE %s
+            LIMIT 10
+        """, (f'%{termo}%',))
+        
+        result = cursor.fetchall()
+        cursor.close()
+        
+        modelos = [row[0] for row in result]
+        return jsonify(modelos)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+@app.route('/api/salvar_devolucao/<int:iditem>', methods=['POST'])
+@login_required
+def salvar_devolucao(iditem):
+    try:
+        data = request.form
+        
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
+            DATA_FIM = %s,
+            HORA_FIM = %s,
+            QT_DIARIA_KM = %s,
+            VL_DIFERENCA = %s,
+            VL_SUBTOTAL = %s,
+            VL_TOTALITEM = %s,
+            DS_VEICULO_MOD = %s,
+            STATUS = 'F'
+            WHERE ID_ITEM = %s
+        """, (
+            data.get('data_fim'),
+            data.get('hora_fim'),
+            data.get('qt_diarias'),
+            data.get('valor_diferenca'),
+            data.get('valor_subtotal'),
+            data.get('valor_total'),
+            data.get('veiculo_modelo'),
+            iditem
+        ))
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'mensagem': 'Devolução registrada com sucesso!'})
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
 
 
 if __name__ == '__main__':
