@@ -217,6 +217,9 @@
                     <button id="btnRelatorioAnalitico" class="btn btn-info">
                         <i class="fas fa-file-alt"></i> Relatório Analítico
                     </button>
+                    <button id="btnTeste" class="btn btn-info">
+                        <i class="fas fa-file-alt"></i> Teste
+                    </button>
                 </div>
                 <button id="btnVoltar" class="btn btn-secondary" onclick="window.location.href='/';">
                     <i class="fas fa-arrow-left"></i> Voltar
@@ -764,60 +767,12 @@
                 const modalNovaLocacao = new bootstrap.Modal(document.getElementById('modalNovaLocacao'));
                 modalNovaLocacao.show();
             });
-
-            // Fechar modal event
-            $('#modalNovaLocacao').on('hidden.bs.modal', function () {
-                // Reativar o footer quando o modal fechar
-                $('.footer').removeClass('d-none');
-            });          
             
             // Ação do botão Nova Locação
-            $('#btnNovaLocacao').click(function() {
-                if (!processoIdSelecionado) {
-                    alert("Por favor, selecione um processo de locação primeiro.");
-                    return;
-                }
-                
-                // Esconder o footer quando o modal estiver aberto
-                $('.footer').addClass('d-none');
-                
-                // Resetar o formulário
-                $('#formNovaLocacao')[0].reset();
-                $('#arquivoCnhDiv').addClass('d-none');
-                arquivoCnh = null;
-                
-                // Configurar data atual
-                // const hoje = new Date() + 1;
-                // const dataFormatada = hoje.toISOString().split('T')[0];
-                // $('#dataInicio').val(dataFormatada);
-                // $('#dataFim').val(dataFormatada);
-                // $('#horaInicio').val('07:00');
-                
-                const hoje = new Date();
-                const amanha = new Date(hoje);
-                amanha.setDate(hoje.getDate() + 1);
-                const dataFormatada = amanha.toISOString().split('T')[0];
-                $('#dataInicio').val(dataFormatada);
-                $('#dataFim').val(dataFormatada);
-                $('#horaInicio').val('07:00');
-
-                // Carregar dados necessários
-                carregarEmpenhos(processoIdSelecionado);
-                carregarSetores();
-                carregarMotoristas();
-                carregarVeiculos(processoIdSelecionado);
-                
-                // Calcular diárias inicialmente (como as datas são iguais, será 1)
-                calcularDiariasEValores();
-                
-                // Abrir o modal
-                const modalNovaLocacao = new bootstrap.Modal(document.getElementById('modalNovaLocacao'));
-                modalNovaLocacao.show();
+            $('#btnTeste').click(function() {            
+                modalDevolucaoLocacao.show();
             });
-
-
-            
-            
+                
             // Evento de mudança no filtro de mês/ano
             $('#filtroMesAno').change(function() {
                 aplicarFiltroMesAno();
