@@ -1961,6 +1961,38 @@ def download_cnh_loc(id_motorista):
         return jsonify({'erro': str(e)}), 500
     
 
+@app.route('/api/locacao_item/<int:iditem>')
+@login_required
+def locacao_item(iditem):
+    try:
+        print("Iniciando consulta à Locação Item")
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO, 
+            i.ID_VEICULO_LOC, i.DS_VEICULO_MOD, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, 
+            i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, i.KM_RODADO, 
+            i.COMBUSTIVEL, i.OBS_DEV, i.DATA_INICIO, i.DATA_FIM, i.HORA_INICIO, i.HORA_FIM
+            FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m
+            WHERE m.ID_MOTORISTA = i.ID_MOTORISTA
+            AND i.ID_ITEM = %s
+        """, (iditem,))
+        
+        results = cursor.fetchall()
+    
+        if results:
+            print(f"ID Item: {results[0]}")
+        
+        cursor.close()
+        return jsonify(results)
+    except Exception as e:
+        print(f"ERRO COMPLETO: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
+
+
+
+
 # def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, nome_arquivo_cnh):
 #     """
 #     Função para enviar e-mail de locação de veículo
