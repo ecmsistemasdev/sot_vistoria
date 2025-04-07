@@ -1970,24 +1970,41 @@ def locacao_item(iditem):
         
         print("Executando consulta SQL")
         cursor.execute("""
-            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO, 
-            i.ID_VEICULO_LOC, i.DS_VEICULO_MOD, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, 
-            i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, i.KM_RODADO, 
-            i.COMBUSTIVEL, i.OBS_DEV, i.DATA_INICIO, i.DATA_FIM, i.HORA_INICIO, i.HORA_FIM
+            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.ID_EMPENHO, 
+            i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, 
+            i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI,  
+            i.DATA_INICIO, i.DATA_FIM, i.HORA_INICIO, i.HORA_FIM
             FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m
             WHERE m.ID_MOTORISTA = i.ID_MOTORISTA
             AND i.ID_ITEM = %s
         """, (iditem,))
-        
-        results = cursor.fetchall()
-    
-        if results:
-            print(f"ID Item: {results[0]}")
-        
+        result = cursor.fetchone()
         cursor.close()
-        return jsonify(results)
+        
+        if result:
+            itens = {
+                'id_exercicio': result[0],
+                'id_mes': result[1],
+                'setor_solicitante': result[2],
+                'objetivo': result[3],
+                'id_empenho': result[4],
+                'id_veiculo': result[5],
+                'id_motorista': result[6],
+                'nome_motorista': result[7],
+                'qt_diarias': result[8],
+                'valor_diaria': result[9],
+                'valor_subtotal': result[10],
+                'valor_diferenca': result[11],
+                'valor_total': result[12],
+                'nu_sei': result[13],
+                'dt_inicio': result[14],
+                'dt_fim': result[15],
+                'hora_inicio' result[16]
+            }
+            return jsonify(itens)
+        else:
+            return jsonify({'erro': 'Locação não encontrada'}), 404
     except Exception as e:
-        print(f"ERRO COMPLETO: {str(e)}")
         return jsonify({'erro': str(e)}), 500
 
 
