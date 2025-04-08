@@ -876,22 +876,23 @@
             $(document).on('click', '#tabela-transito .btn-danger', function() {
                 const tr = $(this).closest('tr');
                 const idItem = tr.find('td:first').text();
+                const self = this;
                 
                 // Mostrar um indicador de carregamento
-                $(this).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                $(self).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
 
-                // Carregar dados da locação
+                // Primeiro, carregar os dados da locação
                 $.ajax({
                     url: `/api/locacao_item/${idItem}`,
                     type: 'GET',
                     dataType: 'json',
                     success: function(data) {
                         console.log("Dados da locação carregados:", data);
-
-                        // Armazenar os valores para uso posterior
+                        
+                        // Guardar os dados para uso posterior
                         const itemData = data;
                         
-                        // Verificar campos ocultos
+                        // Configurar campos ocultos
                         if (!$('#idItemDev').length) {
                             $('#formDevolucaoLocacao').append('<input type="hidden" id="idItemDev">');
                         }
@@ -899,9 +900,8 @@
                             $('#formDevolucaoLocacao').append('<input type="hidden" id="valorSubTotalDev">');
                         }
                         
-                        // Preencher os campos que não dependem de dropdowns
+                        // Preencher os campos de texto imediatamente
                         $('#idItemDev').val(idItem);
-                        $('#motoristaDev').val(data.nome_motorista);
                         $('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
                         $('#numSeiDev').val(data.nu_sei);
                         $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
@@ -914,120 +914,33 @@
                         $('#valorSubTotalDev').val(data.valor_subtotal || 0);
                         $('#valorTotalDev').val(formatarValorMonetario(data.valor_total || 0));
                         
-                        // Contar quantos carregamentos foram concluídos
-                        let carregamentosCompletos = 0;
-                        const totalCarregamentos = 3; // Empenhos, Setores e Veículos
+                        // SOLUÇÃO 1: Chamar as funções existentes para carregar os selects
+                        carregarEmpenhos(processoIdSelecionado);
+                        carregarSetores();
+                        carregarMotoristas();
+                        carregarVeiculos(processoIdSelecionado);
                         
-                        function verificarCarregamentoCompleto() {
-                            carregamentosCompletos++;
+                        // Esperar um pequeno intervalo para garantir que os dropdowns foram populados
+                        setTimeout(function() {
+                            // Agora definir os valores selecionados
+                            $('#empenholocDev').val(itemData.id_empenho);
+                            $('#setorSolicitanteDev').val(itemData.setor_solicitante);
+                            $('#motoristaDev').val(data.id_motorista);
+                            $('#veiculoDev').val(itemData.id_veiculo_loc);
                             
-                            // Se todos os dropdowns foram carregados
-                            if (carregamentosCompletos === totalCarregamentos) {
-                                // Definir os valores selecionados nos dropdowns
-                                $('#empenholocDev').val(itemData.id_empenho);
-                                $('#setorSolicitanteDev').val(itemData.setor_solicitante);
-                                $('#veiculoDev').val(itemData.id_veiculo_loc);
-                                
-                                // Calcular diárias e valores
-                                calcularDiariasEValoresDev();
-                                
-                                // Restaurar o botão e abrir modal
-                                $('#tabela-transito .btn-danger').html('<i class="fas fa-undo-alt"></i>');
-                                const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
-                                modalDevolucaoLocacao.show();
-                            }
-                        }
-                        
-                        // Iniciar carregamentos em paralelo
-                        
-                        // Carregar empenhos
-                        $.ajax({
-                            url: `/api/empenhos_loc?id_cl=${id_cl}`,
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function(data) {
-                                empenhoLista = data;
-                                let html = '<option value="">Selecione...</option>';
-                                data.forEach(function(item) {
-                                    html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
-                                });
-                                $('#empenholocDev').html(html);
-                                verificarCarregamentoCompleto();
-                            },
-                            error: function(xhr, status, error) {
-                                console.error("Erro ao carregar empenhos:", error);
-                                verificarCarregamentoCompleto(); // Continuar mesmo com erro
-                            }
-                        });
-
-
-                        
-                        // Carregar setores
-                        $.ajax({
-                            url: '/api/setores_loc',
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function(data) {
-                                let html = '<option value="">Selecione...</option>';
-                                data.forEach(function(item) {
-                                    html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
-                                });
-                                $('#setorSolicitanteDev').html(html);
-                                verificarCarregamentoCompleto();
-                            },
-                            error: function(xhr, status, error) {
-                                console.error("Erro ao carregar setores:", error);
-                                verificarCarregamentoCompleto(); // Continuar mesmo com erro
-                            }
-                        });
-
-                        // Carregar motoristas
-                        $.ajax({
-                            url: '/api/lista_motorista_loc',
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function(data) {
-                                motoristasLista = data;
-                                let html = '<option value="">Selecione...</option>';
-                                data.forEach(function(item) {
-                                    html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
-                                });
-                                $('#motoristaDev').html(html);
-                                verificarCarregamentoCompleto();
-                            },
-                            error: function(xhr, status, error) {
-                                console.error("Erro ao carregar motoristas:", error);
-                                verificarCarregamentoCompleto(); // Continuar mesmo com erro
-                            }
-                        });
-
-                        // Carregar veículos
-                        $.ajax({
-                            url: `/api/lista_veiculo?id_cl=${id_cl}`,
-                            type: 'GET',
-                            dataType: 'json',
-                            success: function(data) {
-                                veiculosLista = data;
-                                let html = '<option value="">Selecione...</option>';
-                                data.forEach(function(item) {
-                                    html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
-                                });
-                                $('#veiculoDev').html(html);
-                                verificarCarregamentoCompleto();
-                            },
-                            error: function(xhr, status, error) {
-                                console.error("Erro ao carregar veículos:", error);
-                                verificarCarregamentoCompleto(); // Continuar mesmo com erro
-                            }
-                        });
-
-
-
+                            // Calcular diárias e valores
+                            calcularDiariasEValoresDev();
+                            
+                            // Restaurar o botão e abrir o modal
+                            $(self).html('<i class="fas fa-undo-alt"></i>');
+                            const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
+                            modalDevolucaoLocacao.show();
+                        }, 1000); // Esperar 1 segundo
                     },
                     error: function(xhr, status, error) {
                         console.error("Erro ao carregar dados da locação:", error);
                         alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
-                        $('#tabela-transito .btn-danger').html('<i class="fas fa-undo-alt"></i>');
+                        $(self).html('<i class="fas fa-undo-alt"></i>');
                     }
                 });
             });
@@ -1145,6 +1058,7 @@
                         html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
                     });
                     $('#motorista').html(html);
+                    $('#motoristaDev').html(html);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar motoristas:", error);
