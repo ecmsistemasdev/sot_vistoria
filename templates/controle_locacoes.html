@@ -409,6 +409,11 @@
                                 <input type="text" class="form-control form-control-sm" id="valorTotalDev" readonly>
                             </div>
                         </div>
+                        $('#formDevolucaoLocacao').append(`
+                            <div id="sugestoesModeloVeiculo" class="position-absolute bg-white border shadow-sm" 
+                                style="z-index: 9999; display: none; width: 100%; max-height: 200px; overflow-y: auto;">
+                            </div>
+                        `);                        
                         <div class="col-md-12">
                             <label for="observacoesDev" class="form-label small">Observações</label>
                             <textarea class="form-control form-control-sm" id="observacoesDev" rows="2" maxlength="200"></textarea>
@@ -493,7 +498,16 @@
         // Função para converter valor formatado para número
         function converterParaNumero(valor) {
             if (!valor) return 0;
-            return parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+            
+            // Se já for um número, retornar ele mesmo
+            if (typeof valor === 'number') return valor;
+            
+            // Se for string, remover formatação
+            if (typeof valor === 'string') {
+                return parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0;
+            }
+            
+            return 0;
         }
 
         // Carregar lista de processos ao iniciar a página
@@ -857,6 +871,9 @@
                 const tr = $(this).closest('tr');
                 const idItem = tr.find('td:first').text();
                 
+                // Mostrar um indicador de carregamento
+                $(this).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+
                 // Carregar dados da locação
                 $.ajax({
                     url: `/api/locacao_item/${idItem}`,
@@ -869,47 +886,64 @@
                         carregarSetores();
                         //carregarMotoristas();
                         carregarVeiculos(processoIdSelecionado);
-                                
+
+                        // Adicionar campo oculto para o ID do item
+                        if (!$('#idItemDev').length) {
+                            $('#formDevolucaoLocacao').append('<input type="hidden" id="idItemDev">');
+                        }
+                        if (!$('#valorSubTotalDev').length) {
+                            $('#formDevolucaoLocacao').append('<input type="hidden" id="valorSubTotalDev">');
+                        }                        
+
+
+                        // Adicionar campo oculto para o ID do item
+                        if (!$('#idItemDev').length) {
+                            $('#formDevolucaoLocacao').append('<input type="hidden" id="idItemDev">');
+                        }
+                        if (!$('#valorSubTotalDev').length) {
+                            $('#formDevolucaoLocacao').append('<input type="hidden" id="valorSubTotalDev">');
+                        }
+                        
                         // Preencher o formulário de devolução
                         $('#idItemDev').val(idItem);
+                        
+                        // Selecionando os valores em dropdowns
                         $('#empenholocDev').val(data.id_empenho);
                         $('#setorSolicitanteDev').val(data.setor_solicitante);
-                        $('#motoristaDev').val(data.nome_motorista);
                         $('#veiculoDev').val(data.id_veiculo_loc);
-                        //$('#veiculoDev').val($('#tabela-transito tr:has(td:contains(' + idItem + '):first-child) td:eq(2)').text());
-                        $('#veiculoModeloDev').val($('#tabela-transito tr:has(td:contains(' + idItem + '):first-child) td:eq(3)').text());
+                        
+                        // Preenchendo campos texto
+                        $('#motoristaDev').val(data.nome_motorista);
+                        $('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
                         $('#numSeiDev').val(data.nu_sei);
                         
                         // Datas e horas
                         $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
-                        $('#horaInicioDev').val(data.hora_inicio);
+                        $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
                         
-                        // Configurar data e hora atual para devolução
-                        //const agora = new Date();
-                        //const dataAtual = agora.toISOString().split('T')[0];
-                        //const horaAtual = agora.getHours().toString().padStart(2, '0') + ':' + 
-                        //                 agora.getMinutes().toString().padStart(2, '0');
+                        $('#dataFimDev').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
+                        // Define a hora atual como hora de devolução padrão
+                        $('#horaFimDev').val(new Date().toTimeString().substring(0, 5));
                         
-                        $('#dataFimDev').val(formatarDataParaInput(data.dt_fim));
-                        //$('#horaFimDev').val(''');
-                        
-                        // Valores
-                        $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria));
-                        $('#qtdDiariaDev').val(data.qt_diarias);
+                        // Valores - com verificação de valores nulos
+                        $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria || 0));
+                        $('#qtdDiariasDev').val(data.qt_diarias || 0); // CORRIGIDO: era qtdDiariaDev, agora é qtdDiariasDev
                         $('#valorDifDev').val(formatarValorMonetario(data.valor_diferenca || 0));
-                        $('#valorSubTotalDev').val(data.valor_subtotal);
-                        $('#valorTotalDev').val(formatarValorMonetario(data.valor_total));
+                        $('#valorSubTotalDev').val(data.valor_subtotal || 0);
+                        $('#valorTotalDev').val(formatarValorMonetario(data.valor_total || 0));
                         
                         // Calcular diárias e valores iniciais
                         calcularDiariasEValoresDev();
                         
-                        // Abrir modal
+                        // Restaurar o botão e abrir modal
+                        $('#tabela-transito .btn-danger').html('<i class="fas fa-undo-alt"></i>');
                         const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
                         modalDevolucaoLocacao.show();
                     },
                     error: function(xhr, status, error) {
                         console.error("Erro ao carregar dados da locação:", error);
-                        alert("Erro ao carregar dados da locação. Verifique o console para mais detalhes.");
+                        alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
+                        $('#tabela-transito .btn-danger').html('<i class="fas fa-undo-alt"></i>');
                     }
                 });
             });
@@ -1216,18 +1250,21 @@
             return true;
         }      
 
-        // Função para calcular diárias e valores na devolução
+        // Corrija a função de cálculo de diárias e valores para devolução
         function calcularDiariasEValoresDev() {
             // Obtém as datas e horas de início e fim
-            const dataInicio = new Date($('#dataInicioDev').val() + 'T' + $('#horaInicioDev').val());
-            const dataFim = new Date($('#dataFimDev').val() + 'T' + $('#horaFimDev').val());
+            const dataInicio = new Date($('#dataInicioDev').val() + 'T' + $('#horaInicioDev').val() + ':00');
+            const dataFim = new Date($('#dataFimDev').val() + 'T' + $('#horaFimDev').val() + ':00');
+            
+            console.log("Calculando diárias:", dataInicio, dataFim);
             
             if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
+                console.error("Datas inválidas:", $('#dataInicioDev').val(), $('#horaInicioDev').val(), $('#dataFimDev').val(), $('#horaFimDev').val());
                 return; // Datas inválidas
             }
             
             // Se o usuário já alterou manualmente o valor das diárias, respeitar esse valor
-            if (document.activeElement !== document.getElementById('qtdDiariaDev')) {
+            if (document.activeElement !== document.getElementById('qtdDiariasDev')) { // CORRIGIDO
                 // Calcular a diferença em milissegundos
                 const diffMs = dataFim - dataInicio;
                 
@@ -1266,16 +1303,20 @@
                 
                 // Garantir no mínimo 1 diária
                 diarias = Math.max(1, diarias);
-                $('#qtdDiariaDev').val(diarias);
+                $('#qtdDiariasDev').val(diarias); // CORRIGIDO
             }
             
             // Calcular valor total
             const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
-            const qtdDiarias = parseFloat($('#qtdDiariaDev').val());
+            const qtdDiarias = parseFloat($('#qtdDiariasDev').val() || 0); // CORRIGIDO
             const valorDiferenca = converterParaNumero($('#valorDifDev').val());
+            
+            console.log("Valores para cálculo:", valorDiaria, qtdDiarias, valorDiferenca);
             
             const valorSubTotal = valorDiaria * qtdDiarias;
             const valorTotal = valorSubTotal + valorDiferenca;
+            
+            console.log("Valores calculados:", valorSubTotal, valorTotal);
             
             // Armazenar valor subtotal em campo hidden
             $('#valorSubTotalDev').val(valorSubTotal);
@@ -1283,6 +1324,7 @@
             // Atualizar campos na interface
             $('#valorTotalDev').val(formatarValorMonetario(valorTotal));
         }
+
 
         // Função para formatar data para input (YYYY-MM-DD)
         function formatarDataParaInput(dataStr) {
