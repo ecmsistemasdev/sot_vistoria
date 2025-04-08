@@ -511,38 +511,38 @@
             return 0;
         }
 
-        // // Quando o campo recebe foco, ajusta a largura da lista de sugestões
-        // $("#veiculoModeloDev").on("focus", function() {
-        //     const inputWidth = $(this).outerWidth();
-        //     $("#sugestoesModeloVeiculo").css("width", inputWidth + "px");
-        // });        
+        // Quando o campo recebe foco, ajusta a largura da lista de sugestões
+        $("#veiculoModeloDev").on("focus", function() {
+            const inputWidth = $(this).outerWidth();
+            $("#sugestoesModeloVeiculo").css("width", inputWidth + "px");
+        });        
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
-            const ajustarLarguraSugestoes = function() {
-                const inputWidth = $('#veiculoModeloDev').outerWidth();
-                const inputOffset = $('#veiculoModeloDev').offset();
+            // const ajustarLarguraSugestoes = function() {
+            //     const inputWidth = $('#veiculoModeloDev').outerWidth();
+            //     const inputOffset = $('#veiculoModeloDev').offset();
                 
-                $('#sugestoesModeloVeiculo').css({
-                    'width': inputWidth + 'px',
-                    'left': inputOffset.left + 'px'
-                });
-            };
+            //     $('#sugestoesModeloVeiculo').css({
+            //         'width': inputWidth + 'px',
+            //         'left': inputOffset.left + 'px'
+            //     });
+            // };
             
-            // Ajustar quando o campo recebe foco
-            $('#veiculoModeloDev').on('focus', ajustarLarguraSugestoes);
+            // // Ajustar quando o campo recebe foco
+            // $('#veiculoModeloDev').on('focus', ajustarLarguraSugestoes);
             
-            // Ajustar quando a janela é redimensionada
-            $(window).on('resize', function() {
-                if ($('#sugestoesModeloVeiculo').is(':visible')) {
-                    ajustarLarguraSugestoes();
-                }
-            });
+            // // Ajustar quando a janela é redimensionada
+            // $(window).on('resize', function() {
+            //     if ($('#sugestoesModeloVeiculo').is(':visible')) {
+            //         ajustarLarguraSugestoes();
+            //     }
+            // });
             
-            // Ajustar quando o modal é aberto
-            $('#modalDevolucaoLocacao').on('shown.bs.modal', function() {
-                ajustarLarguraSugestoes();
-            });            
+            // // Ajustar quando o modal é aberto
+            // $('#modalDevolucaoLocacao').on('shown.bs.modal', function() {
+            //     ajustarLarguraSugestoes();
+            // });            
 
 
 
@@ -914,28 +914,83 @@
                         $('#valorSubTotalDev').val(data.valor_subtotal || 0);
                         $('#valorTotalDev').val(formatarValorMonetario(data.valor_total || 0));
                         
-                        // SOLUÇÃO 1: Chamar as funções existentes para carregar os selects
-                        carregarEmpenhos(processoIdSelecionado);
-                        carregarSetores();
-                        carregarMotoristas();
-                        carregarVeiculos(processoIdSelecionado);
+                        // Abrir o modal primeiro para que possamos monitorar os selects
+                        const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
+                        modalDevolucaoLocacao.show();
                         
-                        // Esperar um pequeno intervalo para garantir que os dropdowns foram populados
+                        // Restaurar o botão
+                        $(self).html('<i class="fas fa-undo-alt"></i>');
+                        
+                        // Monitorar mudanças nos selects para definir os valores corretos
+                        
+                        // Para o select de empenhos
+                        const observerEmpenho = new MutationObserver(function() {
+                            if ($('#empenholocDev option').length > 1) {
+                                $('#empenholocDev').val(itemData.id_empenho);
+                                observerEmpenho.disconnect();
+                            }
+                        });
+                        
+                        observerEmpenho.observe(document.getElementById('empenholocDev'), {
+                            childList: true,
+                            subtree: true
+                        });
+                        
+                        // Para o select de setores
+                        const observerSetor = new MutationObserver(function() {
+                            if ($('#setorSolicitanteDev option').length > 1) {
+                                $('#setorSolicitanteDev').val(itemData.setor_solicitante);
+                                observerSetor.disconnect();
+                            }
+                        });
+                        
+                        observerSetor.observe(document.getElementById('setorSolicitanteDev'), {
+                            childList: true,
+                            subtree: true
+                        });
+                        
+                        // Para o select de veículos
+                        const observerMotorista = new MutationObserver(function() {
+                            if ($('#motoristaDev option').length > 1) {
+                                $('#motoristaDev').val(itemData.id_motorista);
+                                observerMotorista.disconnect();
+                            }
+                        });
+                        
+                        observerMotorista.observe(document.getElementById('motoristaDev'), {
+                            childList: true,
+                            subtree: true
+                        });
+
+
+                        // Para o select de veículos
+                        const observerVeiculo = new MutationObserver(function() {
+                            if ($('#veiculoDev option').length > 1) {
+                                $('#veiculoDev').val(itemData.id_veiculo_loc);
+                                observerVeiculo.disconnect();
+                            }
+                        });
+                        
+                        observerVeiculo.observe(document.getElementById('veiculoDev'), {
+                            childList: true,
+                            subtree: true
+                        });
+                        
+                        // Iniciar os carregamentos após configurar os observers
+                        carregarEmpenhosDev(processoIdSelecionado);
+                        carregarSetoresDev();
+                        carregarProcessos();
+                        carregarMotoristasDev();
+                        carregarVeiculosDev(processoIdSelecionado);
+                        
+                        // Em caso de falha, tentar novamente depois de um tempo
                         setTimeout(function() {
-                            // Agora definir os valores selecionados
                             $('#empenholocDev').val(itemData.id_empenho);
                             $('#setorSolicitanteDev').val(itemData.setor_solicitante);
-                            $('#motoristaDev').val(data.id_motorista);
+                            $('#motoristaDev').val(itemData.id_motorista);
                             $('#veiculoDev').val(itemData.id_veiculo_loc);
-                            
-                            // Calcular diárias e valores
                             calcularDiariasEValoresDev();
-                            
-                            // Restaurar o botão e abrir o modal
-                            $(self).html('<i class="fas fa-undo-alt"></i>');
-                            const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
-                            modalDevolucaoLocacao.show();
-                        }, 1000); // Esperar 1 segundo
+                        }, 2000); // Esperar 2 segundos como fallback
                     },
                     error: function(xhr, status, error) {
                         console.error("Erro ao carregar dados da locação:", error);
@@ -1036,7 +1091,6 @@
                         html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
                     });
                     $('#setorSolicitante').html(html);
-                    $('#setorSolicitanteDev').html(html);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar setores:", error);
@@ -1058,7 +1112,6 @@
                         html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
                     });
                     $('#motorista').html(html);
-                    $('#motoristaDev').html(html);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar motoristas:", error);
@@ -1080,7 +1133,6 @@
                         html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
                     });
                     $('#empenholoc').html(html);
-                    $('#empenholocDev').html(html);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar empenhos:", error);
@@ -1102,7 +1154,6 @@
                         html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
                     });
                     $('#veiculo').html(html);
-                    $('#veiculoDev').html(html);
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar veículos:", error);
@@ -1111,6 +1162,89 @@
             });
         }
         
+        // Função para carregar setores  - Form Devolução Locação
+        function carregarSetoresDev() {
+            $.ajax({
+                url: '/api/setores_loc',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    let html = '<option value="">Selecione...</option>';
+                    data.forEach(function(item) {
+                        html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+                    });
+                    $('#setorSolicitanteDev').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar setores:", error);
+                    alert("Erro ao carregar lista de setores.");
+                }
+            });
+        }
+        
+        // Função para carregar motoristas - Form Devolução Locação
+        function carregarMotoristasDev() {
+            $.ajax({
+                url: '/api/lista_motorista_loc',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    motoristasLista = data;
+                    let html = '<option value="">Selecione...</option>';
+                    data.forEach(function(item) {
+                        html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
+                    });
+                    $('#motoristaDev').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar motoristas:", error);
+                    alert("Erro ao carregar lista de motoristas.");
+                }
+            });
+        }
+        
+        // Função para carregar empenhos - Form Devolução Locação
+        function carregarEmpenhosDev(id_cl) {
+            $.ajax({
+                url: `/api/empenhos_loc?id_cl=${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    empenhoLista = data;
+                    let html = '<option value="">Selecione...</option>';
+                    data.forEach(function(item) {
+                        html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
+                    });
+                    $('#empenholocDev').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar empenhos:", error);
+                    alert("Erro ao carregar lista de empenhos.");
+                }
+            });
+        }
+
+        // Função para carregar veículos - Form Devolução Locação
+        function carregarVeiculosDev(id_cl) {
+            $.ajax({
+                url: `/api/lista_veiculo?id_cl=${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    veiculosLista = data;
+                    let html = '<option value="">Selecione...</option>';
+                    data.forEach(function(item) {
+                        html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
+                    });
+                    $('#veiculoDev').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar veículos:", error);
+                    alert("Erro ao carregar lista de veículos.");
+                }
+            });
+        }
+
         // Calcular diárias e valores
         function calcularDiariasEValores() {
             const dataInicio = new Date($('#dataInicio').val());
