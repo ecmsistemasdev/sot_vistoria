@@ -350,6 +350,10 @@
                                 <option value="">Selecione...</option>
                             </select>
                         </div>
+                        <div class="col-md-12">
+                            <label for="objetivoDev" class="form-label small">Objetivo</label>
+                            <input type="text" class="form-control form-control-sm" id="objetivoDev" maxlength="300" required>
+                        </div>                        
                         <div class="col-md-4">
                             <label for="numSeiDev" class="form-label small">Número SEI</label>
                             <input type="text" class="form-control form-control-sm" id="numSeiDev" maxlength="25" required>
@@ -519,32 +523,6 @@
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
-            // const ajustarLarguraSugestoes = function() {
-            //     const inputWidth = $('#veiculoModeloDev').outerWidth();
-            //     const inputOffset = $('#veiculoModeloDev').offset();
-                
-            //     $('#sugestoesModeloVeiculo').css({
-            //         'width': inputWidth + 'px',
-            //         'left': inputOffset.left + 'px'
-            //     });
-            // };
-            
-            // // Ajustar quando o campo recebe foco
-            // $('#veiculoModeloDev').on('focus', ajustarLarguraSugestoes);
-            
-            // // Ajustar quando a janela é redimensionada
-            // $(window).on('resize', function() {
-            //     if ($('#sugestoesModeloVeiculo').is(':visible')) {
-            //         ajustarLarguraSugestoes();
-            //     }
-            // });
-            
-            // // Ajustar quando o modal é aberto
-            // $('#modalDevolucaoLocacao').on('shown.bs.modal', function() {
-            //     ajustarLarguraSugestoes();
-            // });            
-
-
 
             carregarProcessos();
                     
@@ -903,6 +881,7 @@
                         // Preencher os campos de texto imediatamente
                         $('#idItemDev').val(idItem);
                         $('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
+                        $('#objetivoDev').val(data.nu_sei);
                         $('#numSeiDev').val(data.nu_sei);
                         $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
                         $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
@@ -1019,7 +998,13 @@
                 const formData = new FormData();
                 
                 // Adicionar dados ao FormData
+                formData.append('objetivo', $('#objetivoDev').val());
+                formData.append('id_veiculo', $('#veiculoDev').val());
+                formData.append('id_motorista', $('#motoristaDev').val());
+                formData.append('setor_solicitante', $('#setorSolicitanteDev').val());
+                formData.append('data_inicio', $('#dataInicioDev').val());
                 formData.append('data_fim', $('#dataFimDev').val());
+                formData.append('hora_inicio', $('#horaInicioDev').val());
                 formData.append('hora_fim', $('#horaFimDev').val());
                 formData.append('qt_diarias', $('#qtdDiariaDev').val());
                 formData.append('valor_diferenca', converterParaNumero($('#valorDifDev').val()));
