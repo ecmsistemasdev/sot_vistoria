@@ -2005,9 +2005,9 @@ def locacao_item(iditem):
             return jsonify(itens)
         else:
             print(f"Locação com ID {iditem} não encontrada")
-            return jsonify({'erro': 'Locação não encontrada'}), 404
+            return jsonify({'erro': 'Locação não encontrada'}), 400
     except Exception as e:
-        return jsonify({'erro': str(e)}), 500
+        return jsonify({'erro': str(e)}), 500        
 
 @app.route('/api/busca_modelos_veiculos')
 @login_required
