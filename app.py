@@ -1961,6 +1961,55 @@ def download_cnh_loc(id_motorista):
         return jsonify({'erro': str(e)}), 500
     
 
+#@app.route('/api/locacao_item/<int:iditem>')
+#@login_required
+#def locacao_item(iditem):
+#    try:
+#        print(f"Iniciando consulta à Locação Item para ID: {iditem}")
+#        cursor = mysql.connection.cursor()
+#        
+#        print("Executando consulta SQL")
+#        cursor.execute("""
+#            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO,  
+#            i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, 
+#            i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI,  
+#            i.DATA_INICIO, i.DATA_FIM, i.HORA_INICIO, i.HORA_FIM
+#            FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m
+#            WHERE m.ID_MOTORISTA = i.ID_MOTORISTA
+#            AND i.ID_ITEM = %s
+#        """, (iditem,))
+#        result = cursor.fetchone()
+#        cursor.close()
+#        
+#        if result:
+#            itens = {
+#                'id_exercicio': result[0],
+#               'id_mes': result[1],
+#                'setor_solicitante': result[2],
+#                'objetivo': result[3],
+#                'id_empenho': result[4],
+#                'id_veiculo_loc': result[5],
+#                'id_motorista': result[6],
+#                'nome_motorista': result[7],
+#                'qt_diarias': result[8],
+#                'valor_diaria': result[9],
+#                'valor_subtotal': result[10],
+#                'valor_diferenca': result[11],
+#                'valor_total': result[12],
+#                'nu_sei': result[13],
+#                'dt_inicio': result[14],
+#                'dt_fim': result[15],
+#                'hora_inicio': result[16],
+#                'hora_fim': result[17] if len(result) > 17 else None
+#            }
+#            return jsonify(itens)
+#        else:
+#            print(f"Locação com ID {iditem} não encontrada")
+#            return jsonify({'erro': 'Locação não encontrada'}), 400
+#    except Exception as e:
+#        return jsonify({'erro': str(e)}), 500     
+
+
 @app.route('/api/locacao_item/<int:iditem>')
 @login_required
 def locacao_item(iditem):
@@ -1970,7 +2019,7 @@ def locacao_item(iditem):
         
         print("Executando consulta SQL")
         cursor.execute("""
-            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO,  
+            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.ID_EMPENHO, 
             i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, 
             i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI,  
             i.DATA_INICIO, i.DATA_FIM, i.HORA_INICIO, i.HORA_FIM
@@ -1980,34 +2029,90 @@ def locacao_item(iditem):
         """, (iditem,))
         result = cursor.fetchone()
         cursor.close()
+        print(f"Dados: {result}")
         
         if result:
-            itens = {
-                'id_exercicio': result[0],
-                'id_mes': result[1],
-                'setor_solicitante': result[2],
-                'objetivo': result[3],
-                'id_empenho': result[4],
-                'id_veiculo_loc': result[5],
-                'id_motorista': result[6],
-                'nome_motorista': result[7],
-                'qt_diarias': result[8],
-                'valor_diaria': result[9],
-                'valor_subtotal': result[10],
-                'valor_diferenca': result[11],
-                'valor_total': result[12],
-                'nu_sei': result[13],
-                'dt_inicio': result[14],
-                'dt_fim': result[15],
-                'hora_inicio': result[16],
-                'hora_fim': result[17] if len(result) > 17 else None
-            }
-            return jsonify(itens)
+            print("Processando resultado...")
+            import datetime  # Certifique-se que está importado
+            
+            # Debug para cada campo antes da conversão
+            print(f"Tipos de dados dos campos:")
+            print(f"dt_inicio: {type(result[13])}, valor: {result[13]}")
+            print(f"dt_fim: {type(result[14])}, valor: {result[14]}")
+            print(f"hora_inicio: {type(result[15])}, valor: {result[15]}")
+            print(f"hora_fim: {type(result[16])}, valor: {result[16]}")
+            
+            try:
+                # Converter datas para string
+                print("Convertendo datas...")
+                dt_inicio = result[13].strftime('%Y-%m-%d') if result[13] and hasattr(result[13], 'strftime') else result[13]
+                dt_fim = result[14].strftime('%Y-%m-%d') if result[14] and hasattr(result[14], 'strftime') else result[14]
+                print(f"Datas convertidas: {dt_inicio}, {dt_fim}")
+                
+                # Converter tempos
+                print("Convertendo tempos...")
+                def format_timedelta(td):
+                    print(f"Formatando timedelta: {td}, tipo: {type(td)}")
+                    if td is None:
+                        return None
+                    if isinstance(td, datetime.timedelta):
+                        seconds = td.total_seconds()
+                        hours = int(seconds // 3600)
+                        minutes = int((seconds % 3600) // 60)
+                        secs = int(seconds % 60)
+                        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+                    if hasattr(td, 'strftime'):
+                        return td.strftime('%H:%M:%S')
+                    return str(td)
+                
+                hora_inicio = format_timedelta(result[15])
+                hora_fim = format_timedelta(result[16])
+                print(f"Tempos convertidos: {hora_inicio}, {hora_fim}")
+                
+                # Converter valores decimais
+                print("Convertendo valores...")
+                valor_diaria = float(result[8]) if result[8] is not None else None
+                valor_subtotal = float(result[9]) if result[9] is not None else None
+                valor_diferenca = float(result[10]) if result[10] is not None else None
+                valor_total = float(result[11]) if result[11] is not None else None
+                print("Valores convertidos com sucesso")
+                
+                itens = {
+                    'id_exercicio': result[0],
+                    'id_mes': result[1],
+                    'setor_solicitante': result[2],
+                    'id_empenho': result[3],
+                    'id_veiculo_loc': result[4],
+                    'id_motorista': result[5],
+                    'nome_motorista': result[6],
+                    'qt_diarias': float(result[7]) if result[7] is not None else None,
+                    'valor_diaria': valor_diaria,
+                    'valor_subtotal': valor_subtotal,
+                    'valor_diferenca': valor_diferenca,
+                    'valor_total': valor_total,
+                    'nu_sei': result[12],
+                    'dt_inicio': dt_inicio,
+                    'dt_fim': dt_fim,
+                    'hora_inicio': hora_inicio,
+                    'hora_fim': hora_fim
+                }
+                print("Dicionário itens criado com sucesso")
+                
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens)
+                return jsonify(itens)
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
         else:
             print(f"Locação com ID {iditem} não encontrada")
             return jsonify({'erro': 'Locação não encontrada'}), 400
     except Exception as e:
-        return jsonify({'erro': str(e)}), 500        
+        return jsonify({'erro': str(e)}), 500     
+
 
 @app.route('/api/busca_modelos_veiculos')
 @login_required
