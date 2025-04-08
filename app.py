@@ -2019,7 +2019,7 @@ def locacao_item(iditem):
         
         print("Executando consulta SQL")
         cursor.execute("""
-            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.ID_EMPENHO, 
+            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO, 
             i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, 
             i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI,  
             i.DATA_INICIO, i.DATA_FIM, i.HORA_INICIO, i.HORA_FIM
@@ -2071,26 +2071,27 @@ def locacao_item(iditem):
                 
                 # Converter valores decimais
                 print("Convertendo valores...")
-                valor_diaria = float(result[8]) if result[8] is not None else None
-                valor_subtotal = float(result[9]) if result[9] is not None else None
-                valor_diferenca = float(result[10]) if result[10] is not None else None
-                valor_total = float(result[11]) if result[11] is not None else None
+                valor_diaria = float(result[9]) if result[9] is not None else None
+                valor_subtotal = float(result[10]) if result[10] is not None else None
+                valor_diferenca = float(result[11]) if result[11] is not None else None
+                valor_total = float(result[12]) if result[12] is not None else None
                 print("Valores convertidos com sucesso")
                 
                 itens = {
                     'id_exercicio': result[0],
                     'id_mes': result[1],
                     'setor_solicitante': result[2],
-                    'id_empenho': result[3],
-                    'id_veiculo_loc': result[4],
-                    'id_motorista': result[5],
-                    'nome_motorista': result[6],
-                    'qt_diarias': float(result[7]) if result[7] is not None else None,
+                    'objetivo': result[3],
+                    'id_empenho': result[4],
+                    'id_veiculo_loc': result[5],
+                    'id_motorista': result[6],
+                    'nome_motorista': result[7],
+                    'qt_diarias': float(result[8]) if result[8] is not None else None,
                     'valor_diaria': valor_diaria,
                     'valor_subtotal': valor_subtotal,
                     'valor_diferenca': valor_diferenca,
                     'valor_total': valor_total,
-                    'nu_sei': result[12],
+                    'nu_sei': result[13],
                     'dt_inicio': dt_inicio,
                     'dt_fim': dt_fim,
                     'hora_inicio': hora_inicio,
@@ -2147,6 +2148,7 @@ def salvar_devolucao(iditem):
         cursor = mysql.connection.cursor()
         cursor.execute("""
             UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
+            OBJETIVO = %s,
             DATA_FIM = %s,
             HORA_FIM = %s,
             QT_DIARIA_KM = %s,
@@ -2157,6 +2159,7 @@ def salvar_devolucao(iditem):
             STATUS = 'F'
             WHERE ID_ITEM = %s
         """, (
+            data.get('objetivo'),
             data.get('data_fim'),
             data.get('hora_fim'),
             data.get('qt_diarias'),
