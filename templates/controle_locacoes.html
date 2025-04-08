@@ -338,63 +338,71 @@
                 </div>
                 <div class="modal-body">
                     <form id="formDevolucaoLocacao" class="row g-3">
-                        <input type="hidden" id="idItemDev">
-                        <input type="hidden" id="valorSubTotalDev">
-                        
                         <div class="col-md-6">
-                            <label for="motoristaDev" class="form-label small">Motorista</label>
-                            <input type="text" class="form-control form-control-sm" id="motoristaDev" readonly>
+                            <label for="empenholocDev" class="form-label small">Empenho</label>
+                            <select class="form-select form-select-sm" id="empenholocDev" required>
+                                <option value="">Selecione...</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="veiculoDev" class="form-label small">Veículo</label>
-                            <input type="text" class="form-control form-control-sm" id="veiculoDev" readonly>
-                        </div>
-                        <div class="col-md-8">
-                            <label for="veiculoModeloDev" class="form-label small">Modelo do Veículo</label>
-                            <div class="position-relative">
-                                <input type="text" class="form-control form-control-sm" id="veiculoModeloDev">
-                                <div id="sugestoesModeloVeiculo" class="position-absolute w-100 bg-white border rounded shadow-sm" style="z-index: 1000; max-height: 200px; overflow-y: auto; display: none;"></div>
-                            </div>
+                            <label for="setorSolicitanteDev" class="form-label small">Setor Solicitante</label>
+                            <select class="form-select form-select-sm" id="setorSolicitanteDev" required>
+                                <option value="">Selecione...</option>
+                            </select>
                         </div>
                         <div class="col-md-4">
                             <label for="numSeiDev" class="form-label small">Número SEI</label>
-                            <input type="text" class="form-control form-control-sm" id="numSeiDev" readonly>
+                            <input type="text" class="form-control form-control-sm" id="numSeiDev" maxlength="25" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="motoristaDev" class="form-label small">Motorista</label>
+                            <input type="text" class="form-control form-control-sm" id="motoristaDev" maxlength="25" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="veiculoDev" class="form-label small">Veículo</label>
+                            <select class="form-select form-select-sm" id="veiculoDev" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="veiculoModeloDev" class="form-label small">Modelo Veículo</label>
+                            <input type="text" class="form-control form-control-sm" id="veiculoModeloDev" maxlength="25" required>
                         </div>
                         <div class="col-md-3">
                             <label for="dataInicioDev" class="form-label small">Data Início</label>
-                            <input type="date" class="form-control form-control-sm" id="dataInicioDev" readonly>
+                            <input type="date" class="form-control form-control-sm" id="dataInicioDev" required>
                         </div>
                         <div class="col-md-3">
                             <label for="horaInicioDev" class="form-label small">Hora Início</label>
-                            <input type="time" class="form-control form-control-sm" id="horaInicioDev" readonly>
-                        </div>
+                            <input type="time" class="form-control form-control-sm" id="horaInicioDev" required>
+                        </div>                        
                         <div class="col-md-3">
-                            <label for="dataFimDev" class="form-label small">Data Devolução</label>
+                            <label for="dataFimDev" class="form-label small">Data Fim</label>
                             <input type="date" class="form-control form-control-sm" id="dataFimDev" required>
                         </div>
                         <div class="col-md-3">
-                            <label for="horaFimDev" class="form-label small">Hora Devolução</label>
+                            <label for="horaFimDev" class="form-label small">Hora Dev.</label>
                             <input type="time" class="form-control form-control-sm" id="horaFimDev" required>
+                        </div>                        
+                        <div class="col-md-3">
+                            <label for="qtdDiariasDev" class="form-label small">Qtd. Diárias</label>
+                            <input type="number" class="form-control form-control-sm" id="qtdDiariasDev" readonly>
                         </div>
-                        <div class="col-md-4">
-                            <label for="qtdDiariaDev" class="form-label small">Qtd. Diárias</label>
-                            <input type="number" class="form-control form-control-sm" id="qtdDiariaDev" step="0.1">
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="valorDiariaDev" class="form-label small">Valor Diária</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
                                 <input type="text" class="form-control form-control-sm" id="valorDiariaDev" readonly>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <label for="valorDifDev" class="form-label small">Valor Diferença (Horas Extras)</label>
+                        <div class="col-md-3">
+                            <label for="valorDifDev" class="form-label small">Valor Dif.</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
-                                <input type="text" class="form-control form-control-sm" id="valorDifDev">
+                                <input type="text" class="form-control form-control-sm" id="valorDifDev" readonly>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="valorTotalDev" class="form-label small">Valor Total</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
@@ -403,7 +411,7 @@
                         </div>
                         <div class="col-md-12">
                             <label for="observacoesDev" class="form-label small">Observações</label>
-                            <textarea class="form-control form-control-sm" id="observacoesDev" rows="3" maxlength="200"></textarea>
+                            <textarea class="form-control form-control-sm" id="observacoesDev" rows="2" maxlength="200"></textarea>
                             <div class="text-end">
                                 <small><span id="charCountDev">0</span>/200</small>
                             </div>
