@@ -872,8 +872,11 @@
                                 
                         // Preencher o formulário de devolução
                         $('#idItemDev').val(idItem);
+                        $('#empenholocDev').val(data.id_empenho);
+                        $('#setorSolicitanteDev').val(data.setor_solicitante);
                         $('#motoristaDev').val(data.nome_motorista);
-                        $('#veiculoDev').val($('#tabela-transito tr:has(td:contains(' + idItem + '):first-child) td:eq(2)').text());
+                        $('#veiculoDev').val(data.id_veiculo_loc);
+                        //$('#veiculoDev').val($('#tabela-transito tr:has(td:contains(' + idItem + '):first-child) td:eq(2)').text());
                         $('#veiculoModeloDev').val($('#tabela-transito tr:has(td:contains(' + idItem + '):first-child) td:eq(3)').text());
                         $('#numSeiDev').val(data.nu_sei);
                         
@@ -882,13 +885,13 @@
                         $('#horaInicioDev').val(data.hora_inicio);
                         
                         // Configurar data e hora atual para devolução
-                        const agora = new Date();
-                        const dataAtual = agora.toISOString().split('T')[0];
-                        const horaAtual = agora.getHours().toString().padStart(2, '0') + ':' + 
-                                         agora.getMinutes().toString().padStart(2, '0');
+                        //const agora = new Date();
+                        //const dataAtual = agora.toISOString().split('T')[0];
+                        //const horaAtual = agora.getHours().toString().padStart(2, '0') + ':' + 
+                        //                 agora.getMinutes().toString().padStart(2, '0');
                         
-                        $('#dataFimDev').val(dataAtual);
-                        $('#horaFimDev').val(horaAtual);
+                        $('#dataFimDev').val(formatarDataParaInput(data.dt_fim));
+                        //$('#horaFimDev').val(''');
                         
                         // Valores
                         $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria));
