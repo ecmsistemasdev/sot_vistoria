@@ -368,8 +368,8 @@
                             <label for="veiculoModeloDev" class="form-label small">Modelo Veículo</label>
                             <input type="text" class="form-control form-control-sm" id="veiculoModeloDev" maxlength="25" required>
                             <div id="sugestoesModeloVeiculo" class="position-absolute bg-white border shadow-sm" 
-                                style="z-index: 9999; display: none; width: 100%; max-height: 200px; overflow-y: auto;">
-                            </div>                     
+                                 style="z-index: 9999; display: none; width: calc(100% - 24px); max-height: 200px; overflow-y: auto;">
+                            </div>                   
                         </div>
                         <div class="col-md-3">
                             <label for="dataInicioDev" class="form-label small">Data Início</label>
@@ -507,6 +507,12 @@
             
             return 0;
         }
+
+        // Quando o campo recebe foco, ajusta a largura da lista de sugestões
+        $("#veiculoModeloDev").on("focus", function() {
+            const inputWidth = $(this).outerWidth();
+            $("#sugestoesModeloVeiculo").css("width", inputWidth + "px");
+        });
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
