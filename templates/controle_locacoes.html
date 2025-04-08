@@ -864,7 +864,12 @@
                     dataType: 'json',
                     success: function(data) {
                         console.log("Dados da locação carregados:", data);
-                        
+
+                        carregarEmpenhos(processoIdSelecionado);
+                        carregarSetores();
+                        //carregarMotoristas();
+                        carregarVeiculos(processoIdSelecionado);
+                                
                         // Preencher o formulário de devolução
                         $('#idItemDev').val(idItem);
                         $('#motoristaDev').val(data.nome_motorista);
