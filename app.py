@@ -550,7 +550,9 @@ def listar_vistorias():
     
     # Buscar vistorias em trânsito (Saidas não finalizadas)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+        v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -561,7 +563,9 @@ def listar_vistorias():
 
     # Buscar vistorias em Pendentes
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO,
+        v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -572,8 +576,10 @@ def listar_vistorias():
 
     # Buscar vistorias finalizadas (Saidas com devolução ou devoluções)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
-        v.DATA, v.TIPO, v.STATUS, v.OBS, (SELECT IDVISTORIA FROM VISTORIAS WHERE VISTORIA_SAIDA_ID = v.IDVISTORIA) AS ID_DEVOLUCAO
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+        v.DATA, v.TIPO, v.STATUS, v.OBS, 
+        (SELECT IDVISTORIA FROM VISTORIAS WHERE VISTORIA_SAIDA_ID = v.IDVISTORIA) AS ID_DEVOLUCAO
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -1336,7 +1342,7 @@ def api_locacoes_transito(id_cl):
            i.NU_SEI, i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
            CASE WHEN i.ID_MOTORISTA=0
            THEN CONCAT('*',i.NC_CONDUTOR,'*')
-           ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
+           ELSE m.NM_MOTORISTA END AS MOTORISTA, 
            i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
         FROM TJ_CONTROLE_LOCACAO_ITENS i
         LEFT JOIN TJ_MOTORISTA m
@@ -1436,7 +1442,7 @@ def api_locacoes_finalizadas(id_cl):
         i.DT_INICIAL, i.DT_FINAL, i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM, 
         i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, 
         i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
-        CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
+        CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE m.NM_MOTORISTA END AS MOTORISTA, 
         i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV 
         FROM TJ_CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
@@ -1821,7 +1827,7 @@ def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_fina
         # Formatação do assunto
         assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
         
-        # Corpo do email
+        # Corpo do email para a locadora
         corpo = f'''{saudacao},
 
 Prezados, solicito locação de veículo conforme informações abaixo:
@@ -1841,7 +1847,7 @@ Tribunal de Justiça do Estado de Rondônia
 Seção de Gestão Operacional do Transporte
 (69) 3309-6229/6227'''
         
-        # Criar mensagem
+        # Criar mensagem para a locadora
         msg = Message(
             subject=assunto,
             recipients=["Carmem@rovemalocadora.com.br", "atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br"],
@@ -1853,11 +1859,11 @@ Seção de Gestão Operacional do Transporte
         if file_pdf_content and nome_arquivo_cnh:
             msg.attach(f'CNH_{nome_arquivo_cnh}', 'application/pdf', file_pdf_content)
         
-        # Enviar email
+        # Enviar email para a locadora
         mail.send(msg)
         
         # Registrar email no banco de dados
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # IMPORTANTE: Use dictionary=True aqui também
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
         # Formatação da data e hora atual
         data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -1867,51 +1873,8 @@ Seção de Gestão Operacional do Transporte
         resultado = cursor.fetchone()
         id_cl = resultado['ID_CL'] if resultado else None
 
-        ### Email para o motorista
-        if email_mot:
-            hora_atual = datetime.now().hour
-            saudacao = "Bom dia" if 5 <= hora_atual < 12 else "Boa tarde" if 12 <= hora_atual < 18 else "Boa noite"
-        
-            # Obter nome do usuário da sessão
-            nome_usuario = session.get('usuario_nome', 'Administrador')
-        
-            # Formatação do assunto
-            assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
-        
-            # Corpo do email
-            corpo = f'''{saudacao},
-
-Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
-
-    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
-    Veículo: {de_veiculo} ou Similar
-    Condutor: {nm_motorista} - Telefone {nu_telefone}
-
-{obs}
-Necessário
-Atenciosamente,
-
-{nome_usuario}
-Tribunal de Justiça do Estado de Rondônia
-Seção de Gestão Operacional do Transporte
-(69) 3309-6229/6227
-
-(Não precisa responder este e-mail)'''
-            # Criar mensagem
-            msg = Message(
-                subject=assunto,
-                recipients=[{email_mot}],
-                body=corpo,
-                sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
-            )
-        
-            # Enviar email
-            mail.send(msg)
-        
-        ##  FIM enviar email para o motorista
-        
         if id_cl:
-            # Inserir na tabela de emails
+            # Inserir na tabela de emails (para o email da locadora)
             cursor.execute(
                 "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
                 (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo, data_hora_atual)
@@ -1924,6 +1887,46 @@ Seção de Gestão Operacional do Transporte
             )
             
             mysql.connection.commit()
+
+        # Agora enviar email para o motorista, se tiver email cadastrado
+        if email_mot:
+            try:
+                # Corpo do email para o motorista
+                corpo_motorista = f'''{saudacao},
+
+Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
+
+    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+    Veículo: {de_veiculo} ou Similar
+    Condutor: {nm_motorista} - Telefone {nu_telefone}
+
+{obs}
+
+Atenciosamente,
+
+{nome_usuario}
+Tribunal de Justiça do Estado de Rondônia
+Seção de Gestão Operacional do Transporte
+(69) 3309-6229/6227
+
+(Não precisa responder este e-mail)'''
+
+                # Criar mensagem para o motorista - CORREÇÃO AQUI
+                msg_motorista = Message(
+                    subject=assunto,
+                    recipients=[email_mot],  # Removendo as chaves incorretas
+                    body=corpo_motorista,
+                    sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+                )
+            
+                # Enviar email para o motorista
+                mail.send(msg_motorista)
+                app.logger.info(f"Email enviado para o motorista: {email_mot}")
+                
+            except Exception as e:
+                # Tratar erro específico do email do motorista, mas não interromper a função
+                app.logger.error(f"Erro ao enviar email para o motorista: {str(e)}")
+                # Não retornar aqui, pois o email para a locadora já foi enviado com sucesso
         
         cursor.close()
         return True, None
@@ -2037,16 +2040,16 @@ def locacao_item(iditem):
             
             # Debug para cada campo antes da conversão
             print(f"Tipos de dados dos campos:")
-            print(f"dt_inicio: {type(result[13])}, valor: {result[13]}")
-            print(f"dt_fim: {type(result[14])}, valor: {result[14]}")
-            print(f"hora_inicio: {type(result[15])}, valor: {result[15]}")
-            print(f"hora_fim: {type(result[16])}, valor: {result[16]}")
+            print(f"dt_inicio: {type(result[14])}, valor: {result[14]}")
+            print(f"dt_fim: {type(result[15])}, valor: {result[15]}")
+            print(f"hora_inicio: {type(result[16])}, valor: {result[16]}")
+            print(f"hora_fim: {type(result[17])}, valor: {result[17]}")
             
             try:
                 # Converter datas para string
                 print("Convertendo datas...")
-                dt_inicio = result[13].strftime('%Y-%m-%d') if result[13] and hasattr(result[13], 'strftime') else result[13]
-                dt_fim = result[14].strftime('%Y-%m-%d') if result[14] and hasattr(result[14], 'strftime') else result[14]
+                dt_inicio = result[14].strftime('%Y-%m-%d') if result[14] and hasattr(result[14], 'strftime') else result[14]
+                dt_fim = result[15].strftime('%Y-%m-%d') if result[15] and hasattr(result[15], 'strftime') else result[15]
                 print(f"Datas convertidas: {dt_inicio}, {dt_fim}")
                 
                 # Converter tempos
@@ -2065,8 +2068,8 @@ def locacao_item(iditem):
                         return td.strftime('%H:%M:%S')
                     return str(td)
                 
-                hora_inicio = format_timedelta(result[15])
-                hora_fim = format_timedelta(result[16])
+                hora_inicio = format_timedelta(result[16])
+                hora_fim = format_timedelta(result[17])
                 print(f"Tempos convertidos: {hora_inicio}, {hora_fim}")
                 
                 # Converter valores decimais
