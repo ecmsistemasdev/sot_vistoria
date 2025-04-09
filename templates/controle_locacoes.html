@@ -217,9 +217,6 @@
                     <button id="btnRelatorioAnalitico" class="btn btn-info">
                         <i class="fas fa-file-alt"></i> Relatório Analítico
                     </button>
-                    <button id="btnTeste">
-                        <i></i> Teste
-                    </button>
                 </div>
                 <button id="btnVoltar" class="btn btn-secondary" onclick="window.location.href='/';">
                     <i class="fas fa-arrow-left"></i> Voltar
@@ -479,6 +476,21 @@
         </div>
     </div>
     
+    <!-- ============== HTML DO MODAL DE CARREGAMENTO ============== -->
+    <div class="modal fade" id="modalCarregando" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered modal-sm">
+             <div class="modal-content">
+                 <div class="modal-body text-center p-4">
+                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                         <span class="visually-hidden">Carregando...</span>
+                     </div>
+                     <h5>Carregando dados</h5>
+                     <p class="mb-0">Por favor aguarde...</p>
+                 </div>
+             </div>
+         </div>
+     </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
@@ -520,6 +532,25 @@
             const inputWidth = $(this).outerWidth();
             $("#sugestoesModeloVeiculo").css("width", inputWidth + "px");
         });        
+
+        // Função para mostrar o modal de carregamento
+        function mostrarModalCarregando() {
+            const modalCarregando = new bootstrap.Modal(document.getElementById('modalCarregando'), {
+                backdrop: 'static',
+                keyboard: false
+            });
+            modalCarregando.show();
+        }
+
+        // Função para fechar o modal de carregamento
+        function fecharModalCarregando() {
+            const modalCarregandoEl = document.getElementById('modalCarregando');
+            const modalCarregando = bootstrap.Modal.getInstance(modalCarregandoEl);
+            if (modalCarregando) {
+                modalCarregando.hide();
+            }
+        }
+
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
@@ -758,6 +789,9 @@
                     return;
                 }
                 
+                // Mostrar modal de carregamento
+                mostrarModalCarregando();
+
                 // Esconder o footer quando o modal estiver aberto
                 $('.footer').addClass('d-none');
                 
@@ -775,18 +809,119 @@
                 $('#dataFim').val(dataFormatada);
                 $('#horaInicio').val('07:00');
 
-                // Carregar dados necessários
-                carregarEmpenhos(processoIdSelecionado);
-                carregarSetores();
-                carregarMotoristas();
-                carregarVeiculos(processoIdSelecionado);
+                // Contador para controlar carregamentos pendentes
+                let carregamentosPendentes = 4; // Quantidade de carregamentos assíncronos
+
+                function verificarCarregamentoCompleto() {
+                    carregamentosPendentes--;
+                    if (carregamentosPendentes <= 0) {
+                        // Todos os dados foram carregados
+                        fecharModalCarregando();
+                        
+                        // Calcular diárias inicialmente (como as datas são iguais, será 1)
+                        calcularDiariasEValores();
+                        
+                        // Abrir o modal principal apenas após todos os dados estarem carregados
+                        const modalNovaLocacao = new bootstrap.Modal(document.getElementById('modalNovaLocacao'));
+                        modalNovaLocacao.show();
+                    }
+                }
+
+                // Carregar empenhos com callback
+                $.ajax({
+                    url: `/api/empenhos_loc?id_cl=${processoIdSelecionado}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        empenhoLista = data;
+                        let html = '<option value="">Selecione...</option>';
+                        data.forEach(function(item) {
+                            html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
+                        });
+                        $('#empenholoc').html(html);
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar empenhos:", error);
+                        alert("Erro ao carregar lista de empenhos.");
+                        verificarCarregamentoCompleto();
+                    }
+                });
+                
+                // Carregar setores com callback
+                $.ajax({
+                    url: '/api/setores_loc',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        let html = '<option value="">Selecione...</option>';
+                        data.forEach(function(item) {
+                            html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+                        });
+                        $('#setorSolicitante').html(html);
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar setores:", error);
+                        alert("Erro ao carregar lista de setores.");
+                        verificarCarregamentoCompleto();
+                    }
+                });
+                
+                // Carregar motoristas com callback
+                $.ajax({
+                    url: '/api/lista_motorista_loc',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        motoristasLista = data;
+                        let html = '<option value="">Selecione...</option>';
+                        data.forEach(function(item) {
+                            html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
+                        });
+                        $('#motorista').html(html);
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar motoristas:", error);
+                        alert("Erro ao carregar lista de motoristas.");
+                        verificarCarregamentoCompleto();
+                    }
+                });
+                
+                // Carregar veículos com callback
+                $.ajax({
+                    url: `/api/lista_veiculo?id_cl=${processoIdSelecionado}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        veiculosLista = data;
+                        let html = '<option value="">Selecione...</option>';
+                        data.forEach(function(item) {
+                            html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
+                        });
+                        $('#veiculo').html(html);
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar veículos:", error);
+                        alert("Erro ao carregar lista de veículos.");
+                        verificarCarregamentoCompleto();
+                    }
+                });
+
+                // // Carregar dados necessários
+                // carregarEmpenhos(processoIdSelecionado);
+                // carregarSetores();
+                // carregarMotoristas();
+                // carregarVeiculos(processoIdSelecionado);
                 
                 // Calcular diárias inicialmente (como as datas são iguais, será 1)
-                calcularDiariasEValores();
+                // calcularDiariasEValores();
                 
-                // Abrir o modal
-                const modalNovaLocacao = new bootstrap.Modal(document.getElementById('modalNovaLocacao'));
-                modalNovaLocacao.show();
+                // // Abrir o modal
+                // const modalNovaLocacao = new bootstrap.Modal(document.getElementById('modalNovaLocacao'));
+                // modalNovaLocacao.show();
             });
                 
             // Evento de mudança no filtro de mês/ano
@@ -856,6 +991,9 @@
                 const idItem = tr.find('td:first').text();
                 const self = this;
                 
+                // Mostrar modal de carregamento
+                mostrarModalCarregando();
+                                
                 // Mostrar um indicador de carregamento
                 $(self).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
 
@@ -881,7 +1019,7 @@
                         // Preencher os campos de texto imediatamente
                         $('#idItemDev').val(idItem);
                         $('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
-                        $('#objetivoDev').val(data.nu_sei);
+                        $('#objetivoDev').val(data.objetivo);
                         $('#numSeiDev').val(data.nu_sei);
                         $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
                         $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
@@ -893,88 +1031,132 @@
                         $('#valorSubTotalDev').val(data.valor_subtotal || 0);
                         $('#valorTotalDev').val(formatarValorMonetario(data.valor_total || 0));
                         
-                        // Abrir o modal primeiro para que possamos monitorar os selects
-                        const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
-                        modalDevolucaoLocacao.show();
+                        // Contador para carregamentos pendentes
+                        let carregamentosPendentes = 5; // Número de carregamentos assíncronos
                         
-                        // Restaurar o botão
-                        $(self).html('<i class="fas fa-undo-alt"></i>');
-                        
-                        // Monitorar mudanças nos selects para definir os valores corretos
-                        
-                        // Para o select de empenhos
-                        const observerEmpenho = new MutationObserver(function() {
-                            if ($('#empenholocDev option').length > 1) {
+                        function verificarCarregamentoCompleto() {
+                            carregamentosPendentes--;
+                            console.log("Carregamentos pendentes:", carregamentosPendentes);
+                            if (carregamentosPendentes <= 0) {
+                                // Todos os dados foram carregados
+                                fecharModalCarregando();
+                                
+                                // Restaurar o botão
+                                $(self).html('<i class="fas fa-undo-alt"></i>');
+                                
+                                // Definir valores após carregamento
                                 $('#empenholocDev').val(itemData.id_empenho);
-                                observerEmpenho.disconnect();
-                            }
-                        });
-                        
-                        observerEmpenho.observe(document.getElementById('empenholocDev'), {
-                            childList: true,
-                            subtree: true
-                        });
-                        
-                        // Para o select de setores
-                        const observerSetor = new MutationObserver(function() {
-                            if ($('#setorSolicitanteDev option').length > 1) {
                                 $('#setorSolicitanteDev').val(itemData.setor_solicitante);
-                                observerSetor.disconnect();
-                            }
-                        });
-                        
-                        observerSetor.observe(document.getElementById('setorSolicitanteDev'), {
-                            childList: true,
-                            subtree: true
-                        });
-                        
-                        // Para o select de veículos
-                        const observerMotorista = new MutationObserver(function() {
-                            if ($('#motoristaDev option').length > 1) {
                                 $('#motoristaDev').val(itemData.id_motorista);
-                                observerMotorista.disconnect();
-                            }
-                        });
-                        
-                        observerMotorista.observe(document.getElementById('motoristaDev'), {
-                            childList: true,
-                            subtree: true
-                        });
-
-
-                        // Para o select de veículos
-                        const observerVeiculo = new MutationObserver(function() {
-                            if ($('#veiculoDev option').length > 1) {
                                 $('#veiculoDev').val(itemData.id_veiculo_loc);
-                                observerVeiculo.disconnect();
+                                
+                                // Calcular diárias
+                                calcularDiariasEValoresDev();
+                                
+                                // Abrir o modal
+                                const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
+                                modalDevolucaoLocacao.show();
+                            }
+                        }
+                        
+                        // Carregar empenhos
+                        $.ajax({
+                            url: `/api/empenhos_loc?id_cl=${processoIdSelecionado}`,
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                empenhoLista = data;
+                                let html = '<option value="">Selecione...</option>';
+                                data.forEach(function(item) {
+                                    html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
+                                });
+                                $('#empenholocDev').html(html);
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar empenhos:", error);
+                                verificarCarregamentoCompleto();
                             }
                         });
                         
-                        observerVeiculo.observe(document.getElementById('veiculoDev'), {
-                            childList: true,
-                            subtree: true
+                        // Carregar setores
+                        $.ajax({
+                            url: '/api/setores_loc',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                let html = '<option value="">Selecione...</option>';
+                                data.forEach(function(item) {
+                                    html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+                                });
+                                $('#setorSolicitanteDev').html(html);
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar setores:", error);
+                                verificarCarregamentoCompleto();
+                            }
                         });
                         
-                        // Iniciar os carregamentos após configurar os observers
-                        carregarEmpenhosDev(processoIdSelecionado);
-                        carregarSetoresDev();
-                        carregarProcessos();
-                        carregarMotoristasDev();
-                        carregarVeiculosDev(processoIdSelecionado);
+                        // Carregar processos
+                        $.ajax({
+                            url: '/api/processos_locacao',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar processos:", error);
+                                verificarCarregamentoCompleto();
+                            }
+                        });
                         
-                        // Em caso de falha, tentar novamente depois de um tempo
-                        setTimeout(function() {
-                            $('#empenholocDev').val(itemData.id_empenho);
-                            $('#setorSolicitanteDev').val(itemData.setor_solicitante);
-                            $('#motoristaDev').val(itemData.id_motorista);
-                            $('#veiculoDev').val(itemData.id_veiculo_loc);
-                            calcularDiariasEValoresDev();
-                        }, 2000); // Esperar 2 segundos como fallback
+                        // Carregar motoristas
+                        $.ajax({
+                            url: '/api/lista_motorista_loc',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                motoristasLista = data;
+                                let html = '<option value="">Selecione...</option>';
+                                data.forEach(function(item) {
+                                    html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
+                                });
+                                $('#motoristaDev').html(html);
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar motoristas:", error);
+                                verificarCarregamentoCompleto();
+                            }
+                        });
+                        
+                        // Carregar veículos
+                        $.ajax({
+                            url: `/api/lista_veiculo?id_cl=${processoIdSelecionado}`,
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                veiculosLista = data;
+                                let html = '<option value="">Selecione...</option>';
+                                data.forEach(function(item) {
+                                    html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
+                                });
+                                $('#veiculoDev').html(html);
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar veículos:", error);
+                                verificarCarregamentoCompleto();
+                            }
+                        });
                     },
                     error: function(xhr, status, error) {
                         console.error("Erro ao carregar dados da locação:", error);
                         alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
                         $(self).html('<i class="fas fa-undo-alt"></i>');
+                        fecharModalCarregando();
                     }
                 });
             });
