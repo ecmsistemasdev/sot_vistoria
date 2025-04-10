@@ -1639,6 +1639,16 @@
                 alert("Por favor, informe o modelo do veículo.");
                 return false;
             }
+
+            if (!$('#kmDev').val()) {
+                alert("Por favor, informe o Km rodado.");
+                return false;
+            }
+            
+            if (!$('#combustivelDev').val()) {
+                alert("Por favor, informe o tipo de combustível.");
+                return false;
+            }
             
             // Verificar se as datas são válidas
             const dataInicio = new Date($('#dataInicioDev').val() + 'T' + $('#horaInicioDev').val());
