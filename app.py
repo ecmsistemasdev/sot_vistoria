@@ -2253,10 +2253,8 @@ def editar_locacao(iditem):
             VL_SUBTOTAL = %s,
             VL_TOTALITEM = %s,
             DS_VEICULO_MOD = %s,
-            FL_STATUS = 'F',
-            KM_RODADO = %s,
             COMBUSTIVEL = %s,
-            OBS_DEV = %s
+            OBS = %s
             WHERE ID_ITEM = %s
         """, (
             data.get('objetivo'),
@@ -2274,15 +2272,14 @@ def editar_locacao(iditem):
             data.get('valor_subtotal'),
             data.get('valor_total'),
             data.get('veiculo_modelo'),
-            km_rodado,
             data.get('combustivel'),
-            data.get('obs_dev'),
+            data.get('obs'),
             iditem
         ))
         mysql.connection.commit()
         cursor.close()
         
-        return jsonify({'mensagem': 'Devolução registrada com sucesso!'})
+        return jsonify({'mensagem': 'Alteração registrada com sucesso!'})
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
