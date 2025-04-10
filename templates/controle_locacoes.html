@@ -362,18 +362,27 @@
                             </select>                            
                             <!-- <input type="text" class="form-control form-control-sm" id="motoristaDev" maxlength="25" readonly> -->
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="veiculoDev" class="form-label small">Veículo</label>
                             <select class="form-select form-select-sm" id="veiculoDev" required>
                                 <option value="">Selecione...</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="veiculoModeloDev" class="form-label small">Modelo Veículo</label>
                             <input type="text" class="form-control form-control-sm" id="veiculoModeloDev" maxlength="25" required>
                             <div id="sugestoesModeloVeiculo" class="position-absolute bg-white border shadow-sm" 
                                  style="z-index: 9999; display: none; width: calc(100% - 24px); max-height: 200px; overflow-y: auto;">
                             </div>                   
+                        </div>
+                        <div class="col-md-4">
+                            <label for="combustivelDev" class="form-label small">Combustível</label>
+                            <select class="form-select form-select-sm" id="combustivelDev" required>
+                                <option value="">Selecione...</option>
+                                <option value="GASOLINA">GASOLINA</option>
+                                <option value="ETANOL">ETANOL</option>
+                                <option value="DIESEL">DIESEL</option>
+                            </select>
                         </div>
                         <div class="col-md-3">
                             <label for="dataInicioDev" class="form-label small">Data Início</label>
@@ -391,22 +400,22 @@
                             <label for="horaFimDev" class="form-label small">Hora Dev.</label>
                             <input type="time" class="form-control form-control-sm" id="horaFimDev" required>
                         </div>                        
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="qtdDiariasDev" class="form-label small">Qtd. Diárias</label>
-                            <input type="number" class="form-control form-control-sm" id="qtdDiariasDev" readonly>
+                            <input type="number" class="form-control form-control-sm" id="qtdDiariasDev">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="valorDiariaDev" class="form-label small">Valor Diária</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
                                 <input type="text" class="form-control form-control-sm" id="valorDiariaDev" readonly>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="valorDifDev" class="form-label small">Valor Dif.</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
-                                <input type="text" class="form-control form-control-sm" id="valorDifDev" readonly>
+                                <input type="text" class="form-control form-control-sm" id="valorDifDev">
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -415,6 +424,10 @@
                                 <span class="input-group-text">R$</span>
                                 <input type="text" class="form-control form-control-sm" id="valorTotalDev" readonly>
                             </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="kmDev" class="form-label small">Km Rodado</label>
+                            <input type="number" class="form-control form-control-sm" id="kmDev" readonly>
                         </div>
                         <div class="col-md-12">
                             <label for="observacoesDev" class="form-label small">Observações</label>
@@ -598,6 +611,23 @@
                 $(this).val(value);
             });
             
+
+            // Máscara para o número SEI
+            $('#numSeiDev').on('input', function() {
+                let value = $(this).val().replace(/\D/g, '');
+                
+
+                if (value.length > 13) {
+                    value = `${value.substring(0, 7)}-${value.substring(7, 9)}.${value.substring(9, 13)}.${value.substring(13, 14)}.${value.substring(14, 16)}.${value.substring(16)}`;
+                } else if (value.length > 9) {
+                    value = `${value.substring(0, 7)}-${value.substring(7, 9)}.${value.substring(9)}`;
+                } else if (value.length > 7) {
+                    value = `${value.substring(0, 7)}-${value.substring(7)}`;
+                }                
+                
+                $(this).val(value);
+            });
+
             // Verificar CNH do motorista
             $('#motorista').change(function() {
                 const motoristaId = $(this).val();
@@ -698,6 +728,7 @@
                 formData.append('data_fim', $('#dataFim').val());
                 formData.append('hora_inicio', $('#horaInicio').val());
                 formData.append('qt_diaria_km', $('#qtdDiarias').val());
+                
                 
                 // Corrigir formatação dos valores decimais
                 const valorDiaria = $('#valorDiaria').val().replace(/\./g, '').replace(',', '.');
@@ -910,18 +941,6 @@
                     }
                 });
 
-                // // Carregar dados necessários
-                // carregarEmpenhos(processoIdSelecionado);
-                // carregarSetores();
-                // carregarMotoristas();
-                // carregarVeiculos(processoIdSelecionado);
-                
-                // Calcular diárias inicialmente (como as datas são iguais, será 1)
-                // calcularDiariasEValores();
-                
-                // // Abrir o modal
-                // const modalNovaLocacao = new bootstrap.Modal(document.getElementById('modalNovaLocacao'));
-                // modalNovaLocacao.show();
             });
                 
             // Evento de mudança no filtro de mês/ano
@@ -936,6 +955,44 @@
                     alert("Por favor, selecione um processo de locação primeiro.");
                 }
             });
+
+            const selectCombustivel = document.getElementById('combustivelDev');
+
+            function buscarCombustivel(modelo) {
+                // Faz uma requisição fetch para a API
+                $.ajax({
+                    url: '/api/busca_combustivel',
+                    type: 'GET',
+                    data: { termo: modelo },
+                    dataType: 'json',
+                    success: function(data) {
+                        // Verifica se retornou algum combustível
+                        if (data && data.length > 0) {
+                            // Pega o primeiro combustível da lista
+                            const combustivel = data[0];
+                            
+                            // Verifica se o combustível existe nas opções do select
+                            const opcoesExistentes = Array.from(selectCombustivel.options).map(opt => opt.value);
+                            
+                            if (opcoesExistentes.includes(combustivel)) {
+                                // Seleciona o combustível no dropdown
+                                $(selectCombustivel).val(combustivel);
+                            } else {
+                                console.warn('Combustível retornado não está nas opções do select:', combustivel);
+                                $(selectCombustivel).val('');
+                            }
+                        } else {
+                            // Sem resultados, reseta o select
+                            $(selectCombustivel).val('');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Erro ao buscar combustível:', error);
+                        $(selectCombustivel).val('');
+                    }
+                });
+            }
+
 
             // Busca de modelos de veículos
             $('#veiculoModeloDev').on('input', function() {
@@ -955,8 +1012,13 @@
                                 
                                 // Adicionar evento de clique às sugestões
                                 $('.modelo-sugestao').click(function() {
-                                    $('#veiculoModeloDev').val($(this).text());
+                                    const modeloSelecionado = $(this).text();
+                                    $('#veiculoModeloDev').val(modeloSelecionado);
                                     $('#sugestoesModeloVeiculo').hide();
+                                    
+                                    // Chamar a função buscarCombustivel para atualizar o select
+                                    buscarCombustivel(modeloSelecionado);
+
                                 });
                             } else {
                                 $('#sugestoesModeloVeiculo').hide();
@@ -1188,13 +1250,14 @@
                 formData.append('data_fim', $('#dataFimDev').val());
                 formData.append('hora_inicio', $('#horaInicioDev').val());
                 formData.append('hora_fim', $('#horaFimDev').val());
-                formData.append('qt_diarias', $('#qtdDiariaDev').val());
+                formData.append('qt_diarias', $('#qtdDiariasDev').val());
+                formData.append('km_rodado', $('#kmDev').val());
                 formData.append('valor_diferenca', converterParaNumero($('#valorDifDev').val()));
                 formData.append('valor_subtotal', $('#valorSubTotalDev').val());
                 formData.append('valor_total', converterParaNumero($('#valorTotalDev').val()));
                 formData.append('veiculo_modelo', $('#veiculoModeloDev').val());
-                
-                // Enviar dados para API
+                formData.append('combustivel', $('#combustivelDev').val());
+
                 $.ajax({
                     url: `/api/salvar_devolucao/${idItem}`,
                     type: 'POST',
@@ -1243,7 +1306,6 @@
                     }
                 });
             });            
-            
         });
         
         // Função para carregar setores  - Form Nova Locação
