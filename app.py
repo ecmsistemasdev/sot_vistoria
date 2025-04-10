@@ -2169,7 +2169,8 @@ def salvar_devolucao(iditem):
             DS_VEICULO_MOD = %s,
             FL_STATUS = 'F',
             KM_RODADO = %s,
-            COMBUSTIVEL = %s
+            COMBUSTIVEL = %s,
+            OBS_DEV = %s
             WHERE ID_ITEM = %s
         """, (
             data.get('objetivo'),
@@ -2189,6 +2190,7 @@ def salvar_devolucao(iditem):
             data.get('veiculo_modelo'),
             km_rodado,
             data.get('combustivel'),
+            data.get('obs_dev'),
             iditem
         ))
         mysql.connection.commit()
