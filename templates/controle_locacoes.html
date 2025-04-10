@@ -515,6 +515,8 @@
         let veiculosLista = [];
         let empenhoLista = [];
         let arquivoCnh = null;
+        let qtdDiariasEditadaManualmente = false;
+        let valorDifEditadoManualmente = false;
         
         const TOLERANCIA_HORAS = 2; // 2 horas de tolerância
         const FRACAO_HORA_EXTRA = 0.1; // 1/10 do valor da diária por hora extra
@@ -1228,20 +1230,43 @@
                 calcularDiariasEValoresDev();
             });
 
+            // Resetar flags quando mudar data/hora
+            $('#dataFimDev, #horaFimDev').on('change', function() {
+                qtdDiariasEditadaManualmente = false;
+                valorDifEditadoManualmente = false;
+                calcularDiariasEValoresDev();
+            });            
+
+            // Marcadores para edição manual dos campos de diárias e diferença
+            $('#qtdDiariasDev').on('input', function() {
+                qtdDiariasEditadaManualmente = true;
+                calcularDiariasEValoresDev();
+            });
+            
+            $('#valorDifDev').on('input', function() {
+                valorDifEditadoManualmente = true;
+                calcularDiariasEValoresDev();
+            });
+
+            
             // Para o campo de valor diferença, formatar como valor monetário ao perder foco
             $('#valorDifDev').on('blur', function() {
-                const valor = converterParaNumero($(this).val());
-                $(this).val(formatarValorMonetario(valor));
-                calcularDiariasEValoresDev();
+                if (valorDifEditadoManualmente) {
+                    const valor = converterParaNumero($(this).val());
+                    $(this).val(formatarValorMonetario(valor));
+                    calcularDiariasEValoresDev();
+                }
             });
             
             // Para o campo de quantidade de diárias, garantir valor mínimo de 1 ao perder foco
             $('#qtdDiariasDev').on('blur', function() {
-                const valor = parseFloat($(this).val()) || 0;
-                if (valor < 1) {
-                    $(this).val(1);
+                if (qtdDiariasEditadaManualmente) {
+                    const valor = parseFloat($(this).val()) || 0;
+                    if (valor < 1) {
+                        $(this).val(1);
+                    }
+                    calcularDiariasEValoresDev();
                 }
-                calcularDiariasEValoresDev();
             });
             
             // Botão salvar devolução
@@ -1640,12 +1665,17 @@
                 return; // Datas inválidas
             }
             
-            // Verificar qual campo está tendo foco atualmente
+            // Identificar qual campo disparou o evento
             const campoAtivo = document.activeElement ? document.activeElement.id : null;
-            const alteracaoManual = campoAtivo === 'qtdDiariasDev' || campoAtivo === 'valorDifDev';
             
-            // Se NÃO estiver editando manualmente os campos de diárias ou diferença
-            if (!alteracaoManual) {
+            // Se for mudança de data/hora e não houver edição manual, recalcular tudo
+            if ((campoAtivo === 'dataFimDev' || campoAtivo === 'horaFimDev') && 
+                !qtdDiariasEditadaManualmente && !valorDifEditadoManualmente) {
+                
+                // Resetar bandeiras quando data/hora mudar
+                qtdDiariasEditadaManualmente = false;
+                valorDifEditadoManualmente = false;
+                
                 // Calcular a diferença em milissegundos
                 const diffMs = dataFim - dataInicio;
                 
@@ -1706,7 +1736,6 @@
             $('#valorTotalDev').val(formatarValorMonetario(valorTotal));
         }
 
-
         // Função para formatar data para input (YYYY-MM-DD)
         function formatarDataParaInput(dataStr) {
             if (!dataStr) return '';
@@ -1730,7 +1759,6 @@
                 return '';
             }
         }
-        
         
         // Função para selecionar um processo e carregar os dados relacionados
         function selecionarProcesso(id_cl) {
