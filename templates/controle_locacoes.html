@@ -1302,6 +1302,7 @@
                 formData.append('valor_total', converterParaNumero($('#valorTotalDev').val()));
                 formData.append('veiculo_modelo', $('#veiculoModeloDev').val());
                 formData.append('combustivel', $('#combustivelDev').val());
+                formData.append('obs_dev', $('#observacoesDev').val());
 
                 $.ajax({
                     url: `/api/salvar_devolucao/${idItem}`,
