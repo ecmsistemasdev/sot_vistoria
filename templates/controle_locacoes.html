@@ -322,9 +322,7 @@
             </div>
         </div>
     </div>
-    
-    <!-- adicionado 07/04/2025 -->
-    
+        
     <!-- Modal Devolução de Locação -->
     <div class="modal fade" id="modalDevolucaoLocacao" tabindex="-1" aria-labelledby="modalDevolucaoLocacaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -450,8 +448,131 @@
         </div>
     </div>
 
-    <!--  fim - adicionado 07/05/2025 -->
-    
+    <!-- Modal Detalhes da Locação -->
+    <div class="modal fade" id="modalEditarLocacao" tabindex="-1" aria-labelledby="modalEditarLocacaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="modalDevolucaoLocacaoLabel">Detalhes da Locação</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEditarLocacao" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="empenholocEdt" class="form-label small">Empenho</label>
+                            <select class="form-select form-select-sm" id="empenholocEdt" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="setorSolicitanteEdt" class="form-label small">Setor Solicitante</label>
+                            <select class="form-select form-select-sm" id="setorSolicitanteEdt" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="objetivoEdt" class="form-label small">Objetivo</label>
+                            <input type="text" class="form-control form-control-sm" id="objetivoEdt" maxlength="300" required>
+                        </div>                        
+                        <div class="col-md-4">
+                            <label for="numSeiEdt" class="form-label small">Número SEI</label>
+                            <input type="text" class="form-control form-control-sm" id="numSeiEdt" maxlength="25" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="motoristaEdt" class="form-label small">Motorista</label>
+                            <select class="form-select form-select-sm" id="motoristaEdt" required>
+                                <option value="">Selecione...</option>
+                            </select>                            
+                        </div>
+                        <div class="col-md-4">
+                            <label for="veiculoEdt" class="form-label small">Veículo</label>
+                            <select class="form-select form-select-sm" id="veiculoEdt" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="veiculoModeloEdt" class="form-label small">Modelo Veículo</label>
+                            <input type="text" class="form-control form-control-sm uppercase" id="veiculoModeloEdt" maxlength="35" required>
+                            <div id="sugestoesModeloVeiculoEdt" class="position-absolute bg-white border shadow-sm" 
+                                 style="z-index: 9999; display: none; width: calc(100% - 24px); max-height: 200px; overflow-y: auto;">
+                            </div>                   
+                        </div>
+                        <div class="col-md-4">
+                            <label for="combustivelEdt" class="form-label small">Combustível</label>
+                            <select class="form-select form-select-sm" id="combustivelEdt" required>
+                                <option value="">Selecione...</option>
+                                <option value="GASOLINA">GASOLINA</option>
+                                <option value="ETANOL">ETANOL</option>
+                                <option value="DIESEL">DIESEL</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dataInicioEdt" class="form-label small">Data Início</label>
+                            <input type="date" class="form-control form-control-sm" id="dataInicioEdt" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="horaInicioEdt" class="form-label small">Hora Início</label>
+                            <input type="time" class="form-control form-control-sm" id="horaInicioEdt" required>
+                        </div>                        
+                        <div class="col-md-3">
+                            <label for="dataFimEdt" class="form-label small">Data Fim</label>
+                            <input type="date" class="form-control form-control-sm" id="dataFimEdt" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="horaFimEdt" class="form-label small">Hora Dev.</label>
+                            <input type="time" class="form-control form-control-sm" id="horaFimEdt" required>
+                        </div>                        
+                        <div class="col-md-2">
+                            <label for="qtdDiariasEdt" class="form-label small">Qtd. Diárias</label>
+                            <input type="number" class="form-control form-control-sm" id="qtdDiariasEdt">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="valorDiariaEdt" class="form-label small">Valor Diária</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorDiariaEdt" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="valorDifEdt" class="form-label small">Valor Dif.</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorDifEdt">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="valorTotalEdt" class="form-label small">Valor Total</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorTotalEdt" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="kmEdt" class="form-label small">Km Rodado</label>
+                            <input type="number" class="form-control form-control-sm" id="kmEdt">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="observacoesEdt" class="form-label small">Observações</label>
+                            <textarea class="form-control form-control-sm" id="observacoesEdt" rows="2" maxlength="200"></textarea>
+                            <div class="text-end">
+                                <small><span id="charCountDev">0</span>/200</small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm" id="btnSalvarEdt">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>    
+
+
     <!-- Modal CNH Não Encontrada -->
     <div class="modal fade" id="modalCnhNaoEncontrada" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm">
@@ -1351,7 +1472,233 @@
                         $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
                     }
                 });
+            });
+            
+            /// ********** NOVO ***********   //////////
+            // Botão de abrir na tabela de locações em trânsito
+            $(document).on('click', '#tabela-transito .btn-primary', function() {
+                const tr = $(this).closest('tr');
+                const idItem = tr.find('td:first').text();
+                const self = this;
+                
+                // Mostrar modal de carregamento
+                mostrarModalCarregando();
+                                
+                // Mostrar um indicador de carregamento
+                $(self).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+
+                // Primeiro, carregar os dados da locação
+                $.ajax({
+                    url: `/api/locacao_item/${idItem}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Dados da locação carregados:", data);
+                        
+                        // Guardar os dados para uso posterior
+                        const itemData = data;
+                        
+                        // Configurar campos ocultos
+                        if (!$('#idItemEdt').length) {
+                            $('#formEditarLocacao').append('<input type="hidden" id="idItemEdt">');
+                        }
+                        if (!$('#valorSubTotalEdt').length) {
+                            $('#formEditarLocacao').append('<input type="hidden" id="valorSubTotalEdt">');
+                        }
+                        
+                        // Preencher os campos de texto imediatamente
+                        $('#idItemEdt').val(idItem);
+                        $('#veiculoModeloEdt').val(tr.find('td:eq(3)').text());
+                        $('#objetivoEdt').val(data.objetivo);
+                        $('#numSeiEdt').val(data.nu_sei);
+                        $('#dataInicioEdt').val(formatarDataParaInput(data.dt_inicio));
+                        $('#horaInicioEdt').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
+                        $('#dataFimEdt').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
+                        $('#horaFimEdt').val(new Date().toTimeString().substring(0, 5));
+                        $('#valorDiariaEdt').val(formatarValorMonetario(data.valor_diaria || 0));
+                        $('#qtdDiariasEdt').val(data.qt_diarias || 0);
+                        $('#valorDifEdt').val(formatarValorMonetario(data.valor_diferenca || 0));
+                        $('#valorSubTotalEdt').val(data.valor_subtotal || 0);
+                        $('#valorTotalEdt').val(formatarValorMonetario(data.valor_total || 0));
+                        
+                        // Contador para carregamentos pendentes
+                        let carregamentosPendentes = 5; // Número de carregamentos assíncronos
+                        
+                        function verificarCarregamentoCompleto() {
+                            carregamentosPendentes--;
+                            console.log("Carregamentos pendentes:", carregamentosPendentes);
+                            if (carregamentosPendentes <= 0) {
+                                // Todos os dados foram carregados
+                                fecharModalCarregando();
+                                
+                                // Restaurar o botão
+                                $(self).html('<i class="fas fa-undo-alt"></i>');
+                                
+                                // Definir valores após carregamento
+                                $('#empenholocEdt').val(itemData.id_empenho);
+                                $('#setorSolicitanteEdt').val(itemData.setor_solicitante);
+                                $('#motoristaEdt').val(itemData.id_motorista);
+                                $('#veiculoEdt').val(itemData.id_veiculo_loc);
+                                
+                                // Calcular diárias
+                                calcularDiariasEValoresDev();
+                                
+                                // Abrir o modal
+                                const modalEditarLocacao = new bootstrap.Modal(document.getElementById('modalEditarLocacao'));
+                                modalEditarLocacao.show();
+                            }
+                        }
+                        
+                        // Carregar empenhos
+                        $.ajax({
+                            url: `/api/empenhos_loc?id_cl=${processoIdSelecionado}`,
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                empenhoLista = data;
+                                let html = '<option value="">Selecione...</option>';
+                                data.forEach(function(item) {
+                                    html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
+                                });
+                                $('#empenholocEdt').html(html);
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar empenhos:", error);
+                                verificarCarregamentoCompleto();
+                            }
+                        });
+                        
+                        // Carregar setores
+                        $.ajax({
+                            url: '/api/setores_loc',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                let html = '<option value="">Selecione...</option>';
+                                data.forEach(function(item) {
+                                    html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+                                });
+                                $('#setorSolicitanteEdt').html(html);
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar setores:", error);
+                                verificarCarregamentoCompleto();
+                            }
+                        });
+                        
+                        // Carregar processos
+                        $.ajax({
+                            url: '/api/processos_locacao',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar processos:", error);
+                                verificarCarregamentoCompleto();
+                            }
+                        });
+                        
+                        // Carregar motoristas
+                        $.ajax({
+                            url: '/api/lista_motorista_loc',
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                motoristasLista = data;
+                                let html = '<option value="">Selecione...</option>';
+                                data.forEach(function(item) {
+                                    html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
+                                });
+                                $('#motoristaEdt').html(html);
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar motoristas:", error);
+                                verificarCarregamentoCompleto();
+                            }
+                        });
+                        
+                        // Carregar veículos
+                        $.ajax({
+                            url: `/api/lista_veiculo?id_cl=${processoIdSelecionado}`,
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(data) {
+                                veiculosLista = data;
+                                let html = '<option value="">Selecione...</option>';
+                                data.forEach(function(item) {
+                                    html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
+                                });
+                                $('#veiculoEdt').html(html);
+                                verificarCarregamentoCompleto();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error("Erro ao carregar veículos:", error);
+                                verificarCarregamentoCompleto();
+                            }
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar dados da locação:", error);
+                        alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
+                        $(self).html('<i class="fas fa-undo-alt"></i>');
+                        fecharModalCarregando();
+                    }
+                });
+            });
+
+            // Recalcular diárias e valores ao alterar datas e horas
+            $('#dataFimEdt, #horaFimEdt, #qtdDiariasEdt, #valorDifEdt').on('change input', function() {
+                calcularDiariasEValoresDev();
+            });
+
+            // Resetar flags quando mudar data/hora
+            $('#dataFimEdt, #horaFimEdt').on('change', function() {
+                qtdDiariasEditadaManualmente = false;
+                valorDifEditadoManualmente = false;
+                calcularDiariasEValoresDev();
             });            
+
+            // Marcadores para edição manual dos campos de diárias e diferença
+            $('#qtdDiariasEdt').on('input', function() {
+                qtdDiariasEditadaManualmente = true;
+                calcularDiariasEValoresDev();
+            });
+            
+            $('#valorDifEdt').on('input', function() {
+                valorDifEditadoManualmente = true;
+                calcularDiariasEValoresDev();
+            });
+
+            
+            // Para o campo de valor diferença, formatar como valor monetário ao perder foco
+            $('#valorDifEdt').on('blur', function() {
+                if (valorDifEditadoManualmente) {
+                    const valor = converterParaNumero($(this).val());
+                    $(this).val(formatarValorMonetario(valor));
+                    calcularDiariasEValoresDev();
+                }
+            });
+            
+            // Para o campo de quantidade de diárias, garantir valor mínimo de 1 ao perder foco
+            $('#qtdDiariasEdt').on('blur', function() {
+                if (qtdDiariasEditadaManualmente) {
+                    const valor = parseFloat($(this).val()) || 0;
+                    if (valor < 1) {
+                        $(this).val(1);
+                    }
+                    calcularDiariasEValoresDev();
+                }
+            });
+            
+            //////
+
+
+
         });
         
         // Função para carregar setores  - Form Nova Locação
@@ -1751,6 +2098,91 @@
             $('#valorTotalDev').val(formatarValorMonetario(valorTotal));
         }
 
+        // Calcular diárias e valores para devolução
+        function calcularDiariasEValoresEdt() {
+            // Obtém as datas e horas de início e fim
+            const dataInicio = new Date($('#dataInicioEdt').val() + 'T' + $('#horaInicioEdt').val() + ':00');
+            const dataFim = new Date($('#dataFimEdt').val() + 'T' + $('#horaFimEdt').val() + ':00');
+            
+            console.log("Calculando diárias:", dataInicio, dataFim);
+            
+            if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
+                console.error("Datas inválidas:", $('#dataInicioEdt').val(), $('#horaInicioEdt').val(), $('#dataFimEdt').val(), $('#horaFimEdt').val());
+                return; // Datas inválidas
+            }
+            
+            // Identificar qual campo disparou o evento
+            const campoAtivo = document.activeElement ? document.activeElement.id : null;
+            
+            // Se for mudança de data/hora e não houver edição manual, recalcular tudo
+            if ((campoAtivo === 'dataFimEdt' || campoAtivo === 'horaFimEdt') && 
+                !qtdDiariasEditadaManualmente && !valorDifEditadoManualmente) {
+                
+                // Resetar bandeiras quando data/hora mudar
+                qtdDiariasEditadaManualmente = false;
+                valorDifEditadoManualmente = false;
+                
+                // Calcular a diferença em milissegundos
+                const diffMs = dataFim - dataInicio;
+                
+                // Converter para horas
+                const diffHoras = diffMs / (1000 * 60 * 60);
+                
+                // Calcular diárias (24 horas = 1 diária)
+                let diarias = Math.floor(diffHoras / 24);
+                
+                // Calcular horas excedentes
+                const horasExcedentes = diffHoras % 24;
+                
+                // Se tiver horas excedentes além da tolerância, calcular o valor adicional
+                if (horasExcedentes > TOLERANCIA_HORAS) {
+                    // Adicionar horas extras convertidas em fração de diária
+                    const horasExtras = horasExcedentes - TOLERANCIA_HORAS;
+                    
+                    // Cada hora extra vale 1/10 do valor da diária
+                    const fracaoHorasExtras = Math.ceil(horasExtras) * FRACAO_HORA_EXTRA;
+                    
+                    // Se a fração passar de 1, considerar uma diária completa
+                    if (fracaoHorasExtras >= 1) {
+                        diarias += 1;
+                        $('#valorDifEdt').val('0,00');
+                    } else {
+                        // Atualizar o campo de diárias e calcular o valor da diferença (horas extras)
+                        const valorDiaria = converterParaNumero($('#valorDiariaEdt').val());
+                        const valorDiferenca = valorDiaria * fracaoHorasExtras;
+                        
+                        $('#valorDifEdt').val(formatarValorMonetario(valorDiferenca));
+                    }
+                } else {
+                    // Sem horas extras
+                    $('#valorDifEdt').val('0,00');
+                }
+                
+                // Garantir no mínimo 1 diária
+                diarias = Math.max(1, diarias);
+                $('#qtdDiariasEdt').val(diarias);
+            }
+            
+            // Calcular valor total (sempre recalcular, independente de qual campo foi editado)
+            const valorDiaria = converterParaNumero($('#valorDiariaEdt').val());
+            const qtdDiarias = parseFloat($('#qtdDiariasEdt').val() || 0);
+            const valorDiferenca = converterParaNumero($('#valorDifEdt').val());
+            
+            console.log("Valores para cálculo:", valorDiaria, qtdDiarias, valorDiferenca);
+            
+            const valorSubTotal = valorDiaria * qtdDiarias;
+            const valorTotal = valorSubTotal + valorDiferenca;
+            
+            console.log("Valores calculados:", valorSubTotal, valorTotal);
+            
+            // Armazenar valor subtotal em campo hidden
+            $('#valorSubTotalEdt').val(valorSubTotal);
+            
+            // Atualizar campos na interface
+            $('#valorTotalEdt').val(formatarValorMonetario(valorTotal));
+        }
+
+
         // Função para formatar data para input (YYYY-MM-DD)
         function formatarDataParaInput(dataStr) {
             if (!dataStr) return '';
@@ -2007,49 +2439,7 @@
                 }
             });
         }
-
-        // Função para carregar locações finalizadas quando houver alterações
-        function carregarLocacoesFinalizadas(id_cl) {
-            $.ajax({
-                url: `/api/locacoes_finalizadas/${id_cl}`,
-                type: 'GET',
-                dataType: 'json',
-                success: function(data) {
-                    console.log("Locações finalizadas carregadas:", data);
-                    // Armazenar os dados completos para filtrar depois
-                    locacoesFinalizadasCompletas = data;
-                    let html = '';
-                    if (data.length === 0) {
-                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação finalizada encontrada</td></tr>';
-                    } else {
-                        data.forEach(function(item) {
-                            html += `<tr>
-                                <td>${item.ID_ITEM}</td>
-                                <td>${item.MES_ANO}</td>
-                                <td>${item.DE_VEICULO}</td>
-                                <td>${item.DS_VEICULO_MOD}</td>
-                                <td>${formatarDataString(item.DT_INICIAL)}</td>
-                                <td>${formatarDataString(item.DT_FINAL)}</td>
-                                <td>${item.QT_DIARIA_KM}</td>
-                                <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
-                                <td>${item.MOTORISTA}</td>
-                                <td class="sticky-column">
-                                    <a href="javascript:void(0)" class="acao-btn btn-abrir">Visualizar</a>
-                                </td>
-                            </tr>`;
-                        });
-                    }
-                    $('#tabela-finalizadas').html(html);                    
-
-                },
-                error: function(xhr, status, error) {
-                    console.error("Erro ao carregar locações finalizadas:", error);
-                    console.error("Status:", xhr.status);
-                    console.error("Resposta:", xhr.responseText);
-                    $('#tabela-finalizadas').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
-                }
-            });
-        }
+        
                 
         // Função para aplicar filtro por mês/ano
         function aplicarFiltroMesAno() {
