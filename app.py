@@ -2201,6 +2201,92 @@ def salvar_devolucao(iditem):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+@app.route('/api/editar_locacao/<int:iditem>', methods=['POST'])
+@login_required
+def editar_locacao(iditem):
+    try:
+        data = request.form
+        data_inicio = data.get('data_inicio')
+        data_fim = data.get('data_fim')
+        hora_inicio = data.get('hora_inicio')
+        hora_fim = data.get('hora_fim')
+        qt_diarias = data.get('qt_diarias')
+        km_rodado = data.get('km_rodado')
+        
+        #qt_diarias = float(data.get('qt_diarias', 0))
+
+        # Converter data_inicio e data_fim para objetos datetime
+        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
+        
+        # Extrair ano e mês da data de fim
+        id_exercicio = data_fim_obj.year
+        id_mes = data_fim_obj.month
+        
+        # Converter data para o formato dd/mm/yyyy para os campos de string
+        dt_inicial = data_inicio_obj.strftime('%d/%m/%Y')
+        dt_final = data_fim_obj.strftime('%d/%m/%Y')
+        
+        # Converter hora para string no formato hh:mm
+        hr_inicial = hora_inicio
+        hr_final = hora_fim
+        
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
+            OBJETIVO = %s,
+            SETOR_SOLICITANTE = %s,
+            ID_VEICULO_LOC = %s,
+            ID_MOTORISTA = %s,
+            ID_EXERCICIO = %s,
+            ID_MES = %s,
+            DATA_INICIO = %s,
+            DATA_FIM = %s,
+            HORA_INICIO = %s,
+            HORA_FIM = %s,
+            DT_INICIAL = %s,
+            DT_FINAL = %s,
+            HR_INICIAL = %s,
+            HR_FINAL = %s,
+            QT_DIARIA_KM = %s,
+            VL_DIFERENCA = %s,
+            VL_SUBTOTAL = %s,
+            VL_TOTALITEM = %s,
+            DS_VEICULO_MOD = %s,
+            FL_STATUS = 'F',
+            KM_RODADO = %s,
+            COMBUSTIVEL = %s,
+            OBS_DEV = %s
+            WHERE ID_ITEM = %s
+        """, (
+            data.get('objetivo'),
+            data.get('setor_solicitante'),
+            data.get('id_veiculo'),
+            data.get('id_motorista'),
+            id_exercicio, id_mes,
+            data.get('data_inicio'),
+            data.get('data_fim'),
+            data.get('hora_inicio'),
+            data.get('hora_fim'),
+            dt_inicial, dt_final, hr_inicial, hr_final,
+            qt_diarias,
+            data.get('valor_diferenca'),
+            data.get('valor_subtotal'),
+            data.get('valor_total'),
+            data.get('veiculo_modelo'),
+            km_rodado,
+            data.get('combustivel'),
+            data.get('obs_dev'),
+            iditem
+        ))
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'mensagem': 'Devolução registrada com sucesso!'})
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
 @app.route('/api/locacao_item/<int:iditem>')
 @login_required
 def locacao_item(iditem):
