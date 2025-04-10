@@ -1778,6 +1778,9 @@
         function selecionarProcesso(id_cl) {
             console.log("Selecionando processo ID:", id_cl);
             processoIdSelecionado = id_cl;
+
+            // Mostrar modal de carregamento
+            mostrarModalCarregando();
             
             // Obter o nome do fornecedor a partir da tabela
             const fornecedorNome = $(`#tabela-processos tr:has(td:contains(${id_cl}):first-child) td:nth-child(3)`).text();
@@ -1785,6 +1788,17 @@
             // Armazenar no localStorage
             localStorage.setItem('fornecedorNome', fornecedorNome);
             console.log("Nome do fornecedor armazenado:", fornecedorNome);
+
+            // Contador para controlar carregamentos pendentes
+            let carregamentosPendentes = 6; // Quantidade de carregamentos assíncronos
+
+            function verificarCarregamentoCompleto() {
+                carregamentosPendentes--;
+                if (carregamentosPendentes <= 0) {
+                    // Todos os dados foram carregados
+                    fecharModalCarregando();
+                }
+            }
 
             // Carregar empenhos
             $.ajax({
@@ -1809,10 +1823,12 @@
                         });
                     }
                     $('#tabela-empenhos').html(html);
+                    verificarCarregamentoCompleto();
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar empenhos:", error);
                     $('#tabela-empenhos').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    verificarCarregamentoCompleto();                
                 }
             });
             
@@ -1841,10 +1857,12 @@
                         });
                     }
                     $('#tabela-saldo-diarias').html(html);
+                    verificarCarregamentoCompleto();
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar saldo de diárias:", error);
                     $('#tabela-saldo-diarias').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    verificarCarregamentoCompleto();
                 }
             });
 
@@ -1869,10 +1887,12 @@
                         });
                     }
                     $('#tabela-dados-pls').html(html);
+                    verificarCarregamentoCompleto();
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar saldo de diárias:", error);
                     $('#tabela-dados-pls').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    verificarCarregamentoCompleto();
                 }
             });            
             
@@ -1912,12 +1932,14 @@
                         });
                     }
                     $('#tabela-transito').html(html);
+                    verificarCarregamentoCompleto();
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar locações em trânsito:", error);
                     console.error("Status:", xhr.status);
                     console.error("Resposta:", xhr.responseText);
                     $('#tabela-transito').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    verificarCarregamentoCompleto();
                 }
             });
             
@@ -1933,10 +1955,12 @@
                         selectHtml += `<option value="${item.MES_ANO}">${item.MES_ANO}</option>`;
                     });
                     $('#filtroMesAno').html(selectHtml);
+                    verificarCarregamentoCompleto();
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar opções de mês/ano:", error);
                     $('#filtroMesAno').html('<option value="Todos">Todos</option>');
+                    verificarCarregamentoCompleto();
                 }
             });
             
@@ -1957,12 +1981,14 @@
                     
                     // Exibir todos os dados inicialmente
                     exibirLocacoesFinalizadas(data);
+                    verificarCarregamentoCompleto();
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar locações finalizadas:", error);
                     console.error("Status:", xhr.status);
                     console.error("Resposta:", xhr.responseText);
                     $('#tabela-finalizadas').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    verificarCarregamentoCompleto();
                 }
             });
         }
