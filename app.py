@@ -1976,7 +1976,7 @@ def locacao_item(iditem):
             SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO, 
             i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, i.VL_DK, 
             i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, i.DATA_INICIO, i.DATA_FIM, 
-            i.HORA_INICIO, i.HORA_FIM, i.DS_VEICULO_MOD, i.COMBUSTIVEL
+            i.HORA_INICIO, i.HORA_FIM, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.OBS
             FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m
             WHERE m.ID_MOTORISTA = i.ID_MOTORISTA
             AND i.ID_ITEM = %s
@@ -2051,7 +2051,8 @@ def locacao_item(iditem):
                     'hora_inicio': hora_inicio,
                     'hora_fim': hora_fim,
                     'veiculo_modelo': result[18],
-                    'combustivel': result[19]
+                    'combustivel': result[19],
+		    'obs': result[20]
                 }
                 print("Dicionário itens criado com sucesso")
                 
