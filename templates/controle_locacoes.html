@@ -1790,7 +1790,7 @@
             console.log("Nome do fornecedor armazenado:", fornecedorNome);
 
             // Contador para controlar carregamentos pendentes
-            let carregamentosPendentes = 5; // Quantidade de carregamentos assíncronos
+            let carregamentosPendentes = 6; // Quantidade de carregamentos assíncronos
 
             function verificarCarregamentoCompleto() {
                 carregamentosPendentes--;
@@ -1964,12 +1964,6 @@
                 }
             });
             
-            // Carregar locações finalizadas
-            carregarLocacoesFinalizadas(id_cl);
-        }
-        
-        // Função para carregar locações finalizadas
-        function carregarLocacoesFinalizadas(id_cl) {
             $.ajax({
                 url: `/api/locacoes_finalizadas/${id_cl}`,
                 type: 'GET',
@@ -1978,9 +1972,29 @@
                     console.log("Locações finalizadas carregadas:", data);
                     // Armazenar os dados completos para filtrar depois
                     locacoesFinalizadasCompletas = data;
-                    
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação finalizada encontrada</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.ID_ITEM}</td>
+                                <td>${item.MES_ANO}</td>
+                                <td>${item.DE_VEICULO}</td>
+                                <td>${item.DS_VEICULO_MOD}</td>
+                                <td>${formatarDataString(item.DT_INICIAL)}</td>
+                                <td>${formatarDataString(item.DT_FINAL)}</td>
+                                <td>${item.QT_DIARIA_KM}</td>
+                                <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                                <td>${item.MOTORISTA}</td>
+                                <td class="sticky-column">
+                                    <a href="javascript:void(0)" class="acao-btn btn-abrir">Visualizar</a>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-finalizadas').html(html);                    
                     // Exibir todos os dados inicialmente
-                    exibirLocacoesFinalizadas(data);
                     verificarCarregamentoCompleto();
                 },
                 error: function(xhr, status, error) {
@@ -1993,32 +2007,7 @@
             });
         }
         
-        // Função para exibir locações finalizadas na tabela
-        function exibirLocacoesFinalizadas(data) {
-            let html = '';
-            if (data.length === 0) {
-                html = '<tr><td colspan="10" class="text-center">Nenhuma locação finalizada encontrada</td></tr>';
-            } else {
-                data.forEach(function(item) {
-                    html += `<tr>
-                        <td>${item.ID_ITEM}</td>
-                        <td>${item.MES_ANO}</td>
-                        <td>${item.DE_VEICULO}</td>
-                        <td>${item.DS_VEICULO_MOD}</td>
-                        <td>${formatarDataString(item.DT_INICIAL)}</td>
-                        <td>${formatarDataString(item.DT_FINAL)}</td>
-                        <td>${item.QT_DIARIA_KM}</td>
-                        <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
-                        <td>${item.MOTORISTA}</td>
-                        <td class="sticky-column">
-                            <a href="javascript:void(0)" class="acao-btn btn-abrir">Visualizar</a>
-                        </td>
-                    </tr>`;
-                });
-            }
-            $('#tabela-finalizadas').html(html);
-        }
-        
+                
         // Função para aplicar filtro por mês/ano
         function aplicarFiltroMesAno() {
             const filtroSelecionado = $('#filtroMesAno').val();
