@@ -1003,7 +1003,7 @@
             // Busca de modelos de veículos
             $('#veiculoModeloDev').on('input', function() {
                 const termo = $(this).val().trim();
-                if (termo.length >= 4) {
+                if (termo.length >= 3) {
                     $.ajax({
                         url: `/api/busca_modelos_veiculos?termo=${encodeURIComponent(termo)}`,
                         type: 'GET',
