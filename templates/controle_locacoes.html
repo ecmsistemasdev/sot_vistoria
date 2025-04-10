@@ -453,7 +453,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-warning">
-                    <h5 class="modal-title" id="modalDevolucaoLocacaoLabel">Detalhes da Locação</h5>
+                    <h5 class="modal-title" id="modalDevolucaoLocacaoLabel">Editar Locação</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -506,34 +506,30 @@
                                 <option value="DIESEL">DIESEL</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="dataInicioEdt" class="form-label small">Data Início</label>
                             <input type="date" class="form-control form-control-sm" id="dataInicioEdt" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="horaInicioEdt" class="form-label small">Hora Início</label>
                             <input type="time" class="form-control form-control-sm" id="horaInicioEdt" required>
                         </div>                        
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label for="dataFimEdt" class="form-label small">Data Fim</label>
                             <input type="date" class="form-control form-control-sm" id="dataFimEdt" required>
                         </div>
                         <div class="col-md-3">
-                            <label for="horaFimEdt" class="form-label small">Hora Dev.</label>
-                            <input type="time" class="form-control form-control-sm" id="horaFimEdt" required>
-                        </div>                        
-                        <div class="col-md-2">
                             <label for="qtdDiariasEdt" class="form-label small">Qtd. Diárias</label>
                             <input type="number" class="form-control form-control-sm" id="qtdDiariasEdt">
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label for="valorDiariaEdt" class="form-label small">Valor Diária</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
                                 <input type="text" class="form-control form-control-sm" id="valorDiariaEdt" readonly>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
                             <label for="valorDifEdt" class="form-label small">Valor Dif.</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
@@ -546,10 +542,6 @@
                                 <span class="input-group-text">R$</span>
                                 <input type="text" class="form-control form-control-sm" id="valorTotalEdt" readonly>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="kmEdt" class="form-label small">Km Rodado</label>
-                            <input type="number" class="form-control form-control-sm" id="kmEdt">
                         </div>
                         <div class="col-md-12">
                             <label for="observacoesEdt" class="form-label small">Observações</label>
@@ -572,6 +564,113 @@
         </div>
     </div>    
 
+     <!-- Modal Visualiza Locação -->
+     <div class="modal fade" id="modalVisualizaLocacao" tabindex="-1" aria-labelledby="modalVisualizaLocacaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalVisualizaLocacaoLabel">Detalhes da Locação</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formVisualizaLocacao" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="empenholocVis" class="form-label small">Empenho</label>
+                            <input type="text" class="form-control form-control-sm" id="empenholocVis" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="setorSolicitanteVis" class="form-label small">Setor Solicitante</label>
+                            <input type="text" class="form-control form-control-sm" id="setorSolicitanteVis" readonly>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="objetivoVis" class="form-label small">Objetivo</label>
+                            <input type="text" class="form-control form-control-sm" id="objetivoVis" readonly>
+                        </div>                        
+                        <div class="col-md-4">
+                            <label for="numSeiVis" class="form-label small">Número SEI</label>
+                            <input type="text" class="form-control form-control-sm" id="numSeiVis" readonly>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="motoristaVis" class="form-label small">Motorista</label>
+                            <input type="text" class="form-control form-control-sm" id="motoristaVis" readonly>                          
+                        </div>
+                        <div class="col-md-4">
+                            <label for="veiculoVis" class="form-label small">Veículo</label>
+                            <input type="text" class="form-control form-control-sm" id="veiculoVis" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="veiculoModeloVis" class="form-label small">Modelo Veículo</label>
+                            <input type="text" class="form-control form-control-sm" id="veiculoModeloVis" readonly>                   
+                        </div>
+                        <div class="col-md-4">
+                            <label for="combustivelVis" class="form-label small">Combustível</label>
+                            <input type="text" class="form-control form-control-sm" id="empenholocVis" readonly>
+                            <select class="form-select form-select-sm" id="combustivelVis" required>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dataInicioVis" class="form-label small">Data Início</label>
+                            <input type="date" class="form-control form-control-sm" id="dataInicioVis" readonly>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="horaInicioVis" class="form-label small">Hora Início</label>
+                            <input type="time" class="form-control form-control-sm" id="horaInicioVis" readonly>
+                        </div>                        
+                        <div class="col-md-3">
+                            <label for="dataFimVis" class="form-label small">Data Fim</label>
+                            <input type="date" class="form-control form-control-sm" id="dataFimVis" readonly>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="horaFimVis" class="form-label small">Hora Dev.</label>
+                            <input type="time" class="form-control form-control-sm" id="horaFimVis" readonly>
+                        </div>                        
+                        <div class="col-md-2">
+                            <label for="qtdDiariasVis" class="form-label small">Qtd. Diárias</label>
+                            <input type="number" class="form-control form-control-sm" id="qtdDiariasVis" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="valorDiariaVis" class="form-label small">Valor Diária</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorDiariaVis" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="valorDifVis" class="form-label small">Valor Dif.</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorDifVis" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="valorTotalVis" class="form-label small">Valor Total</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" class="form-control form-control-sm" id="valorTotalVis" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="kmVis" class="form-label small">Km Rodado</label>
+                            <input type="number" class="form-control form-control-sm" id="kmVis" readonly>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="observacoesVis" class="form-label small">Observações da Locação</label>
+                            <textarea class="form-control form-control-sm" id="observacoesVis" rows="2" readonly></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="observacoesDevVis" class="form-label small">Observações da Devolução</label>
+                            <textarea class="form-control form-control-sm" id="observacoesDevVis" rows="2" readonly></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>       
 
     <!-- Modal CNH Não Encontrada -->
     <div class="modal fade" id="modalCnhNaoEncontrada" tabindex="-1" aria-hidden="true">
@@ -667,6 +766,11 @@
         $("#veiculoModeloDev").on("focus", function() {
             const inputWidth = $(this).outerWidth();
             $("#sugestoesModeloVeiculo").css("width", inputWidth + "px");
+        });        
+
+        $("#veiculoModeloEdt").on("focus", function() {
+            const inputWidth = $(this).outerWidth();
+            $("#sugestoesModeloVeiculoEdt").css("width", inputWidth + "px");
         });        
 
         // Função para mostrar o modal de carregamento
@@ -1120,8 +1224,7 @@
                 });
             }
 
-
-            // Busca de modelos de veículos
+            // Busca de modelos de veículos - Devolução
             $('#veiculoModeloDev').on('input', function() {
                 const termo = $(this).val().trim();
                 if (termo.length >= 3) {
@@ -1174,6 +1277,57 @@
                 $('#charCountDev').text(caracteres);
             });
 
+            ////
+
+            // Busca de modelos de veículos - Edição
+            $('#veiculoModeloEdt').on('input', function() {
+                const termo = $(this).val().trim();
+                if (termo.length >= 3) {
+                    $.ajax({
+                        url: `/api/busca_modelos_veiculos?termo=${encodeURIComponent(termo)}`,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            let html = '';
+                            if (data.length > 0) {
+                                data.forEach(function(modelo) {
+                                    html += `<div class="p-2 border-bottom modelo-sugestao" style="cursor: pointer;">${modelo}</div>`;
+                                });
+                                $('#sugestoesModeloVeiculoEdt').html(html).show();
+                                
+                                // Adicionar evento de clique às sugestões
+                                $('.modelo-sugestao').click(function() {
+                                    const modeloSelecionado = $(this).text();
+                                    $('#veiculoModeloDevEdt').val(modeloSelecionado);
+                                    $('#sugestoesModeloVeiculoEdt').hide();
+                                    
+                                    // Chamar a função buscarCombustivel para atualizar o select
+                                    buscarCombustivel(modeloSelecionado);
+
+                                });
+                            } else {
+                                $('#sugestoesModeloVeiculoEdt').hide();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Erro ao buscar modelos de veículos:", error);
+                            $('#sugestoesModeloVeiculoEdt').hide();
+                        }
+                    });
+                } else {
+                    $('#sugestoesModeloVeiculoEdt').hide();
+                }
+            });
+
+            // Fechar sugestões ao clicar fora
+            $(document).click(function(e) {
+                if (!$(e.target).closest('#veiculoModeloDev, #sugestoesModeloVeiculoEdt').length) {
+                    $('#sugestoesModeloVeiculoEdt').hide();
+                }
+            });
+            
+            ///
+
             // Botão de devolução na tabela de locações em trânsito
             $(document).on('click', '#tabela-transito .btn-danger', function() {
                 const tr = $(this).closest('tr');
@@ -1210,6 +1364,8 @@
                         $('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
                         $('#objetivoDev').val(data.objetivo);
                         $('#numSeiDev').val(data.nu_sei);
+                        $('#veiculoModeloDev').val(data.veículo_modelo);                        
+                        $('#combustivelDev').val(data.combustivel);
                         $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
                         $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
                         $('#dataFimDev').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
@@ -1511,16 +1667,18 @@
                         $('#veiculoModeloEdt').val(tr.find('td:eq(3)').text());
                         $('#objetivoEdt').val(data.objetivo);
                         $('#numSeiEdt').val(data.nu_sei);
+                        $('#veiculoModeloEdt').val(data.veículo_modelo);                        
+                        $('#combustivelEdt').val(data.combustivel);
                         $('#dataInicioEdt').val(formatarDataParaInput(data.dt_inicio));
                         $('#horaInicioEdt').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
                         $('#dataFimEdt').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
-                        $('#horaFimEdt').val(new Date().toTimeString().substring(0, 5));
                         $('#valorDiariaEdt').val(formatarValorMonetario(data.valor_diaria || 0));
                         $('#qtdDiariasEdt').val(data.qt_diarias || 0);
                         $('#valorDifEdt').val(formatarValorMonetario(data.valor_diferenca || 0));
                         $('#valorSubTotalEdt').val(data.valor_subtotal || 0);
                         $('#valorTotalEdt').val(formatarValorMonetario(data.valor_total || 0));
-                        
+                        $('#observacoesEdt').val(data.obs);
+
                         // Contador para carregamentos pendentes
                         let carregamentosPendentes = 5; // Número de carregamentos assíncronos
                         
@@ -1695,9 +1853,172 @@
                 }
             });
             
+             // Botão salvar Form Editar
+             $('#btnSalvarEdt').click(function() {
+                // Validar formulário
+                if (!validarFormularioEdicao()) {
+                    return;
+                }
+                
+                // Mostrar loader
+                $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
+                
+                const idItem = $('#idItemEdt').val();
+                const formData = new FormData();
+                
+                // Adicionar dados ao FormData
+                formData.append('objetivo', $('#objetivoEdt').val());
+                formData.append('setor_solicitante', $('#setorSolicitanteEdt').val());
+                formData.append('id_veiculo', $('#veiculoEdt').val());
+                formData.append('id_motorista', $('#motoristaEdt').val());
+                formData.append('data_inicio', $('#dataInicioEdt').val());
+                formData.append('data_fim', $('#dataFimEdt').val());
+                formData.append('hora_inicio', $('#horaInicioEdt').val());
+                formData.append('qt_diarias', $('#qtdDiariasEdt').val());
+                formData.append('valor_diferenca', converterParaNumero($('#valorDifEdt').val()));
+                formData.append('valor_subtotal', $('#valorSubTotalEdt').val());
+                formData.append('valor_total', converterParaNumero($('#valorTotalEdt').val()));
+                formData.append('veiculo_modelo', $('#veiculoModeloEdt').val());
+                formData.append('combustivel', $('#combustivelEdt').val());
+                formData.append('obs', $('#observacoesEdt').val());
+
+                $.ajax({
+                    url: `/api/editar_locacao/${idItem}`,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        console.log("Resposta:", response);
+                        
+                        // Mostrar mensagem de sucesso
+                        $('#mensagemSucesso').text("Registro alterado com sucesso!");
+                        
+                        // Fechar modal de devolução
+                        $('#modalEditarLocacao').modal('hide');
+                        
+                        // Mostrar modal de sucesso
+                        const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+                        modalSucesso.show();
+                        
+                        // Recarregar locações em trânsito
+                        if (processoIdSelecionado) {
+                            carregarLocacoesTransito(processoIdSelecionado);
+                        }
+                        
+                        // Reset botão salvar
+                        $('#btnSalvarEdt').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao salvar registro:", error);
+                        console.error("Resposta:", xhr.responseText);
+                        
+                        let mensagemErro = "Erro ao salvar registro";
+                        if (xhr.responseJSON && xhr.responseJSON.erro) {
+                            mensagemErro += ": " + xhr.responseJSON.erro;
+                        } else if (xhr.statusText) {
+                            mensagemErro += ": " + xhr.statusText;
+                        } else {
+                            mensagemErro += ": " + error;
+                        }
+                        
+                        alert(mensagemErro);
+                        
+                        // Reset botão salvar
+                        $('#btnSalvarEdt').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    }
+                });
+            });
+ 
+            // Botão de visualizar na tabela de locações em finalizada
+            $(document).on('click', '#tabela-finalizadas .btn-abrir', function() {
+                const tr = $(this).closest('tr');
+                const idItem = tr.find('td:first').text();
+                const self = this;
+                
+                // Mostrar modal de carregamento
+                mostrarModalCarregando();
+                                
+                // Mostrar um indicador de carregamento
+                $(self).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+
+                // Primeiro, carregar os dados da locação
+                $.ajax({
+                    url: `/api/locacao_visualiza/${idItem}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Dados da locação carregados:", data);
+                        
+                        // Guardar os dados para uso posterior
+                        const itemData = data;
+                        
+                        // Configurar campos ocultos
+                        if (!$('#idItemVis').length) {
+                            $('#formVisualizaLocacao').append('<input type="hidden" id="idItemVis">');
+                        }
+                        if (!$('#valorSubTotalVis').length) {
+                            $('#formDevolucaoLocacao').append('<input type="hidden" id="valorSubTotalVis">');
+                        }
+                        
+                        // Preencher os campos de texto imediatamente
+                        $('#idItemVis').val(idItem);
+                        $('#empenholocVis').val(data.nu_empenho);
+                        $('#setorSolicitanteVis').val(data.setor_solicitante);
+                        $('#objetivoVis').val(data.objetivo);
+                        $('#numSeiVis').val(data.nu_sei);
+                        $('#motoristaVis').val(data.nome_motorista);
+                        $('#veiculoVis').val(data.de_veiculo);
+                        $('#veiculoModeloVis').val(data.veiculo_modelo);
+                        $('#combustivelVis').val(data.combustivel);
+                        $('#dataInicioVis').val(formatarDataParaInput(data.dt_inicio));
+                        $('#horaInicioVis').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
+                        $('#dataFimVis').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
+                        $('#horaFimVis').val(new Date().toTimeString().substring(0, 5));
+                        $('#horaFimVis').val(data.hora_fim ? data.hora_fim.substring(0, 5) : '');
+                        $('#qtdDiariasVis').val(data.qt_diarias || 0);
+                        $('#valorDiariaVis').val(formatarValorMonetario(data.valor_diaria || 0));
+                        $('#valorDifVis').val(formatarValorMonetario(data.valor_diferenca || 0));
+                        $('#valorSubTotalVis').val(data.valor_subtotal || 0);
+                        $('#valorTotalVis').val(formatarValorMonetario(data.valor_total || 0));
+                        $('#kmVis').val(data.km_rodado || 0);
+                        $('#observacoesVis').val(data.obs);
+                        $('#observacoesDevVis').val(data.obs_dev);
+
+                        
+                        // Contador para carregamentos pendentes
+                        let carregamentosPendentes = 0; // Número de carregamentos assíncronos
+                        
+                        function verificarCarregamentoCompleto() {
+                            carregamentosPendentes--;
+                            console.log("Carregamentos pendentes:", carregamentosPendentes);
+                            if (carregamentosPendentes <= 0) {
+                                // Todos os dados foram carregados
+                                fecharModalCarregando();
+                                
+                                // Restaurar o botão
+                                $(self).html('<i class="fas fa-undo-alt"></i>');
+                                
+                                // Calcular diárias
+                                calcularDiariasEValoresDev();
+                                
+                                // Abrir o modal
+                                const modalVisualizaLocacao = new bootstrap.Modal(document.getElementById('modalVisualizaLocacao'));
+                                modalVisualizaLocacao.show();
+                            }
+                        }
+                        
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar dados da locação:", error);
+                        alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
+                        $(self).html('<i class="fas fa-undo-alt"></i>');
+                        fecharModalCarregando();
+                    }
+                });
+            });
+            
             //////
-
-
 
         });
         
@@ -1958,10 +2279,6 @@
                 return false;
             }
             
-            // if (!$('#numSei').val() || !$('#numSei').val().match(/^\d{7}-\d{2}\.\d{1}\.\d{2}\.\d{2}\.\d{4}$/)) {
-            //     alert("Por favor, informe um número SEI válido no formato 0000000-00.0.00.0000.");
-            //     return false;
-            // }
             
             // Verificar se as datas são válidas
             const dataInicio = new Date($('#dataInicio').val());
@@ -1977,6 +2294,26 @@
                 
         // Função para validar o formulário de devolução
         function validarFormularioDevolucao() {
+            if (!$('#setorSolicitanteDev').val()) {
+                alert("Por favor, selecione o setor solicitante.");
+                return false;
+            }
+            
+            if (!$('#objetivoDev').val()) {
+                alert("Por favor, informe o objetivo da locação.");
+                return false;
+            }
+            
+            if (!$('#veiculoDev').val()) {
+                alert("Por favor, selecione um veículo.");
+                return false;
+            }
+            
+            if (!$('#motoristaDev').val()) {
+                alert("Por favor, selecione um motorista.");
+                return false;
+            }
+
             if (!$('#dataFimDev').val()) {
                 alert("Por favor, informe a data de devolução.");
                 return false;
@@ -2013,6 +2350,48 @@
             
             return true;
         }      
+
+
+        // Função para validar o formulário de edição
+        function validarFormularioEdicao() {
+            if (!$('#setorSolicitanteEdt').val()) {
+                alert("Por favor, selecione o setor solicitante.");
+                return false;
+            }
+            
+            if (!$('#objetivoEdt').val()) {
+                alert("Por favor, informe o objetivo da locação.");
+                return false;
+            }
+            
+            if (!$('#veiculoEdt').val()) {
+                alert("Por favor, selecione um veículo.");
+                return false;
+            }
+            
+            if (!$('#motoristaEdt').val()) {
+                alert("Por favor, selecione um motorista.");
+                return false;
+            }           
+           
+            if (!$('#dataFimEdt').val()) {
+                alert("Por favor, informe a data de devolução.");
+                return false;
+            }
+            
+            
+            // Verificar se as datas são válidas
+            const dataInicio = new Date($('#dataInicioEdt').val());
+            const dataFim = new Date($('#dataFimEdt').val());
+            
+            if (dataFim < dataInicio) {
+                alert("A data/hora de devolução não pode ser anterior à data/hora de início!");
+                return false;
+            }
+            
+            return true;
+        }      
+
 
         // Calcular diárias e valores para devolução
         function calcularDiariasEValoresDev() {
