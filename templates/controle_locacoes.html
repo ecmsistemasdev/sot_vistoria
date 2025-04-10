@@ -1224,7 +1224,23 @@
             });
 
             // Recalcular diárias e valores ao alterar datas e horas
-            $('#dataFimDev, #horaFimDev, #qtdDiariaDev, #valorDifDev').on('change input', function() {
+            $('#dataFimDev, #horaFimDev, #qtdDiariasDev, #valorDifDev').on('change input', function() {
+                calcularDiariasEValoresDev();
+            });
+
+            // Para o campo de valor diferença, formatar como valor monetário ao perder foco
+            $('#valorDifDev').on('blur', function() {
+                const valor = converterParaNumero($(this).val());
+                $(this).val(formatarValorMonetario(valor));
+                calcularDiariasEValoresDev();
+            });
+            
+            // Para o campo de quantidade de diárias, garantir valor mínimo de 1 ao perder foco
+            $('#qtdDiariasDev').on('blur', function() {
+                const valor = parseFloat($(this).val()) || 0;
+                if (valor < 1) {
+                    $(this).val(1);
+                }
                 calcularDiariasEValoresDev();
             });
             
@@ -1611,7 +1627,7 @@
             return true;
         }      
 
-        // Corrija a função de cálculo de diárias e valores para devolução
+        // Calcular diárias e valores para devolução
         function calcularDiariasEValoresDev() {
             // Obtém as datas e horas de início e fim
             const dataInicio = new Date($('#dataInicioDev').val() + 'T' + $('#horaInicioDev').val() + ':00');
@@ -1624,8 +1640,12 @@
                 return; // Datas inválidas
             }
             
-            // Se o usuário já alterou manualmente o valor das diárias, respeitar esse valor
-            if (document.activeElement !== document.getElementById('qtdDiariasDev')) { // CORRIGIDO
+            // Verificar qual campo está tendo foco atualmente
+            const campoAtivo = document.activeElement ? document.activeElement.id : null;
+            const alteracaoManual = campoAtivo === 'qtdDiariasDev' || campoAtivo === 'valorDifDev';
+            
+            // Se NÃO estiver editando manualmente os campos de diárias ou diferença
+            if (!alteracaoManual) {
                 // Calcular a diferença em milissegundos
                 const diffMs = dataFim - dataInicio;
                 
@@ -1664,12 +1684,12 @@
                 
                 // Garantir no mínimo 1 diária
                 diarias = Math.max(1, diarias);
-                $('#qtdDiariasDev').val(diarias); // CORRIGIDO
+                $('#qtdDiariasDev').val(diarias);
             }
             
-            // Calcular valor total
+            // Calcular valor total (sempre recalcular, independente de qual campo foi editado)
             const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
-            const qtdDiarias = parseFloat($('#qtdDiariasDev').val() || 0); // CORRIGIDO
+            const qtdDiarias = parseFloat($('#qtdDiariasDev').val() || 0);
             const valorDiferenca = converterParaNumero($('#valorDifDev').val());
             
             console.log("Valores para cálculo:", valorDiaria, qtdDiarias, valorDiferenca);
