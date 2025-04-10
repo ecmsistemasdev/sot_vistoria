@@ -2284,9 +2284,9 @@ def editar_locacao(iditem):
         return jsonify({'erro': str(e)}), 500
 
 
-@app.route('/api/locacao_item/<int:iditem>')
+@app.route('/api/locacao_visualiza/<int:iditem>')
 @login_required
-def locacao_item(iditem):
+def locacao_visualiza(iditem):
     try:
         print(f"Iniciando consulta à Locação Item para ID: {iditem}")
         cursor = mysql.connection.cursor()
