@@ -370,7 +370,7 @@
                         </div>
                         <div class="col-md-4">
                             <label for="veiculoModeloDev" class="form-label small">Modelo Veículo</label>
-                            <input type="text" class="form-control form-control-sm" id="veiculoModeloDev" maxlength="35" onChange="javascript:this.value=this.value.toUpperCase();" required>
+                            <input type="text" class="form-control form-control-sm uppercase" id="veiculoModeloDev" maxlength="35" required>
                             <div id="sugestoesModeloVeiculo" class="position-absolute bg-white border shadow-sm" 
                                  style="z-index: 9999; display: none; width: calc(100% - 24px); max-height: 200px; overflow-y: auto;">
                             </div>                   
@@ -566,9 +566,13 @@
             }
         }
 
-
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
+
+  	        // Converter para maiúsculo os campos com classe uppercase
+            $('.uppercase').on('input', function() {
+                $(this).val($(this).val().toUpperCase());
+            });
 
             carregarProcessos();
                     
