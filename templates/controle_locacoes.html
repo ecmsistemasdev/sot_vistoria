@@ -1367,7 +1367,7 @@
                         $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
                         $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
                         $('#dataFimDev').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
-                        $('#horaFimDev').val(new Date().toTimeString().substring(0, 5));
+                        //$('#horaFimDev').val(new Date().toTimeString().substring(0, 5));
                         $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria || 0));
                         $('#qtdDiariasDev').val(data.qt_diarias || 0);
                         $('#valorDifDev').val(formatarValorMonetario(data.valor_diferenca || 0));
@@ -1972,7 +1972,6 @@
                         $('#dataInicioVis').val(formatarDataParaInput(data.dt_inicio));
                         $('#horaInicioVis').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
                         $('#dataFimVis').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
-                        $('#horaFimVis').val(new Date().toTimeString().substring(0, 5));
                         $('#horaFimVis').val(data.hora_fim ? data.hora_fim.substring(0, 5) : '');
                         $('#qtdDiariasVis').val(data.qt_diarias || 0);
                         $('#valorDiariaVis').val(formatarValorMonetario(data.valor_diaria || 0));
