@@ -470,7 +470,7 @@
                 const caracteres = $(this).val().length;
                 $('#charCount2').text(caracteres);
             });
-            
+         
             // Função para carregar Saida sem retorno do dia
             function carregarSaidaSemRetorno() {
                 $.ajax({
@@ -592,7 +592,6 @@
             }
 
 
-
             // // Salvar locação
             // $('#btnSalvarLocacao').click(function() {
             //     // Validar formulário
@@ -704,6 +703,10 @@
             //     });
             // });
 
+            carregarSaidaSemRetorno()
+            carregarRetornoDia()
+            carregarSaidasRetornoPendente()               
+            
             // Fechar modal event
             $('#modalNovaSaida').on('hidden.bs.modal', function () {
                 // Reativar o footer quando o modal fechar
