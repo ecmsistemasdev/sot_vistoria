@@ -2393,5 +2393,57 @@ def locacao_visualiza(iditem):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500     
 
+
+@app.route('/api/lista_setores_fluxo')
+@login_required
+def lista_setores_fluxo():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+        SELECT DISTINCT SETOR_SOLICITANTE 
+        FROM TJ_FLUXO_VEICULOS
+        ORDER BY SETOR_SOLICITANTE
+        """)
+               
+        items = cursor.fetchall()
+
+        setores = []
+        for item in items:
+            lista = {'SETOR_SOLICITANTE': item[0]}
+            setores.append(lista)
+            
+        cursor.close()
+        return jsonify(setores)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar setores: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/lista_destinos_fluxo')
+@login_required
+def lista_destinos_fluxo():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+        SELECT DISTINCT DESTINO 
+        FROM TJ_FLUXO_VEICULOS
+        ORDER BY DESTINO
+        """)
+               
+        items = cursor.fetchall()
+
+        setores = []
+        for item in items:
+            lista = {'SETOR_SOLICITANTE': item[0]}
+            setores.append(lista)
+            
+        cursor.close()
+        return jsonify(setores)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar setores: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
