@@ -358,6 +358,10 @@
         //     }
         // }
 
+        carregarSaidaSemRetorno()
+        carregarRetornoDia()
+        carregarSaidasRetornoPendente() 
+        
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
 
@@ -701,11 +705,7 @@
             //             $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
             //         }
             //     });
-            // });
-
-            carregarSaidaSemRetorno()
-            carregarRetornoDia()
-            carregarSaidasRetornoPendente()               
+            // });              
             
             // Fechar modal event
             $('#modalNovaSaida').on('hidden.bs.modal', function () {
