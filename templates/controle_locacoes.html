@@ -132,6 +132,16 @@
             </div>
         </div>
         
+        <div class="row splitter-row">
+            <div class="col-12">
+                <div class="splitter" id="splitter1">
+                    <div class="splitter-handle">
+                        <i class="fas fa-grip-lines"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- GroupBox - Locações em Trânsito -->
         <div class="row">
             <div class="col-12">
@@ -163,7 +173,17 @@
                 </div>
             </div>
         </div>
-        
+
+        <div class="row splitter-row">
+            <div class="col-12">
+                <div class="splitter" id="splitter2">
+                    <div class="splitter-handle">
+                        <i class="fas fa-grip-lines"></i>
+                    </div>
+                </div>
+            </div>
+        </div>        
+
         <!-- GroupBox - Locações Finalizadas (com filtro) -->
         <div class="row mb-3">
             <div class="col-12">
@@ -791,6 +811,102 @@
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
+
+        // Configuração dos splitters
+        function setupSplitters() {
+            // Configurar o primeiro splitter (entre grupos superiores e Locações em Trânsito)
+            let isDragging1 = false;
+            let startY1 = 0;
+            let startHeight1 = 0;
+            
+            $('#splitter1').on('mousedown', function(e) {
+                e.preventDefault();
+                isDragging1 = true;
+                startY1 = e.pageY;
+                
+                // Alturas dos grupos superiores
+                const processosGroupbox = $('.groupbox').eq(0);
+                const empenhosGroupbox = $('.groupbox').eq(1);
+                startHeight1 = {
+                    processos: processosGroupbox.find('.groupbox-body').height(),
+                    empenhos: empenhosGroupbox.find('.tabs-body').height()
+                };
+                
+                $(document).on('mousemove', function(e) {
+                    if (!isDragging1) return;
+                    
+                    const deltaY = e.pageY - startY1;
+                    
+                    // Aplicar nova altura aos groupbox superiores
+                    processosGroupbox.find('.groupbox-body').height(Math.max(100, startHeight1.processos + deltaY));
+                    empenhosGroupbox.find('.tabs-body').height(Math.max(100, startHeight1.empenhos + deltaY));
+                });
+                
+                $(document).on('mouseup', function() {
+                    isDragging1 = false;
+                    $(document).off('mousemove');
+                    $(document).off('mouseup');
+                });
+            });
+            
+            // Configurar o segundo splitter (entre Locações em Trânsito e Locações Finalizadas)
+            let isDragging2 = false;
+            let startY2 = 0;
+            let startHeight2 = 0;
+            let startHeightFinalizadas = 0;
+            
+            $('#splitter2').on('mousedown', function(e) {
+                e.preventDefault();
+                isDragging2 = true;
+                startY2 = e.pageY;
+                
+                // Altura dos grupos relevantes
+                const transitoGroupbox = $('.groupbox').eq(2);
+                const finalizadasGroupbox = $('.groupbox').eq(3);
+                
+                startHeight2 = transitoGroupbox.find('.groupbox-body').height();
+                startHeightFinalizadas = finalizadasGroupbox.find('.groupbox-body').height();
+                
+                $(document).on('mousemove', function(e) {
+                    if (!isDragging2) return;
+                    
+                    const deltaY = e.pageY - startY2;
+                    
+                    // Permitir redução significativa - mínimo de apenas 50px
+                    const novaAlturaTransito = Math.max(50, startHeight2 + deltaY);
+                    
+                    // Aplicar nova altura ao groupbox de Locações em Trânsito
+                    transitoGroupbox.find('.groupbox-body').height(novaAlturaTransito);
+                    
+                    // Opcionalmente, ajustar o grupo de Locações Finalizadas para compensar
+                    // Isso criará um efeito de "push" em vez de apenas redimensionar um grupo
+                    finalizadasGroupbox.find('.groupbox-body').height(startHeightFinalizadas - deltaY);
+                });
+                
+                $(document).on('mouseup', function() {
+                    isDragging2 = false;
+                    $(document).off('mousemove');
+                    $(document).off('mouseup');
+                });
+            });
+            
+            // Definir alturas iniciais adequadas para os grupos
+            setTimeout(function() {
+                const alturaTransito = 200; // Altura inicial para Locações em Trânsito
+                const alturaFinalizadas = 300; // Altura inicial para Locações Finalizadas
+                
+                $('.groupbox').eq(2).find('.groupbox-body').height(alturaTransito);
+                $('.groupbox').eq(3).find('.groupbox-body').height(alturaFinalizadas);
+            }, 100);
+        }
+
+        // Chamar a configuração dos splitters quando a página estiver pronta
+        setupSplitters();
+
+        // Garantir que os splitters se ajustem quando a janela for redimensionada
+        $(window).on('resize', function() {
+            // Recalcular dimensões se necessário
+        });
 
   	        // Converter para maiúsculo os campos com classe uppercase
             $('.uppercase').on('input', function() {
