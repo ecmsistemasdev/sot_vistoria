@@ -2393,10 +2393,15 @@ def locacao_visualiza(iditem):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500     
 
-
-@app.route('/api/lista_setores_fluxo')
+@app.route('/fluxo_veiculos')
 @login_required
-def lista_setores_fluxo():
+def fluxo_veiculos():
+    return render_template('fluxo_veiculos.html')
+
+
+@app.route('/api/fluxo_lista_setores')
+@login_required
+def fluxo_lista_setores():
     try:
         cursor = mysql.connection.cursor()
         cursor.execute("""
@@ -2419,9 +2424,9 @@ def lista_setores_fluxo():
         app.logger.error(f"Erro ao buscar setores: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/lista_destinos_fluxo')
+@app.route('/api/fluxo_lista_destinos')
 @login_required
-def lista_destinos_fluxo():
+def fluxo_lista_destinos():
     try:
         cursor = mysql.connection.cursor()
         cursor.execute("""
@@ -2432,17 +2437,247 @@ def lista_destinos_fluxo():
                
         items = cursor.fetchall()
 
-        setores = []
+        destinos = []
         for item in items:
-            lista = {'SETOR_SOLICITANTE': item[0]}
-            setores.append(lista)
+            lista = {'DESTINO': item[0]}
+            destinos.append(lista)
             
         cursor.close()
-        return jsonify(setores)
+        return jsonify(destinos)
         
     except Exception as e:
         app.logger.error(f"Erro ao buscar setores: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/fluxo_lista_motorista')
+@login_required
+def fluxo_lista_motorista():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+        SELECT ID_MOTORISTA, NM_MOTORISTA 
+        FROM TJ_MOTORISTA WHERE ATIVO = 'S'
+        ORDER BY NM_MOTORISTA
+        """)
+               
+        items = cursor.fetchall()
+
+        motoristas = []
+        for item in items:
+            lista = {'ID_MOTORISTA': item[0],
+                     'NM_MOTORISTA': item[1]}
+            motoristas.append(lista)
+            
+        cursor.close()
+        return jsonify(motoristas)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar setores: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/fluxo_lista_veiculos')
+@login_required
+def fluxo_lista_veiculos():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+        SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO 
+        FROM TJ_VEICULO WHERE FL_ATENDIMENTO = 'S'
+        ORDER BY DS_MODELO
+        """)
+               
+        items = cursor.fetchall()
+
+        veiculos = []
+        for item in items:
+            lista = {'ID_VEICULO': item[0],
+                     'VEICULO': item[1]}
+            veiculos.append(lista)
+            
+        cursor.close()
+        return jsonify(veiculos)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar setores: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/fluxo_veiculo_saida_sem_retorno')
+@login_required
+def fluxo_veiculo_saida_sem_retorno():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
+                f.ID_VEICULO, f.ID_MOTORISTA, 
+                CASE WHEN f.ID_MOTORISTA=0 THEN 
+                f.NC_CONDUTOR ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v 
+                ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m 
+                ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE f.DATA_RETORNO IS NULL
+            AND f.DATA_SAIDA = CURDATE()
+            ORDER BY f.DATA_SAIDA, f.HORA_SAIDA
+        """)
+        result = cursor.fetchone()
+        cursor.close()
+        print(f"Dados: {result}")
+        
+        if result:
+            print("Processando resultado...")
+            
+            try:
+                itens = {
+                    'id_fluxo': result[0],
+                    'setor_solicitante': result[1],
+                    'destino': result[2],
+                    'veiculo': result[3],
+                    'id_veiculo': result[4],
+                    'id_motorista': result[5],
+                    'nome_motorista': result[6],
+                    'datahora_saida': result[7],
+                    'obs': result[8]
+                }
+                print("Dicionário itens criado com sucesso")
+                
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens)
+                return jsonify(itens)
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            return jsonify({'erro': 'Dados não encontrado'}), 400
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+@app.route('/api/fluxo_veiculo_retorno_dia')
+@login_required
+def fluxo_veiculo_retorno_dia():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
+                f.ID_VEICULO, f.ID_MOTORISTA, 
+                CASE WHEN f.ID_MOTORISTA=0 THEN 
+                f.NC_CONDUTOR ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, 
+                CONCAT(f.DT_RETORNO,' ',f.HR_RETORNO) AS RETORNO, f.OBS_RETORNO
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v 
+                ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m 
+                ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE f.DATA_RETORNO IS NOT NULL
+            AND f.DATA_RETORNO = CURDATE()
+            ORDER BY f.DATA_RETORNO, f.HORA_RETORNO
+        """)
+        result = cursor.fetchone()
+        cursor.close()
+        print(f"Dados: {result}")
+        
+        if result:
+            print("Processando resultado...")
+            
+            try:
+                itens = {
+                    'id_fluxo': result[0],
+                    'setor_solicitante': result[1],
+                    'destino': result[2],
+                    'veiculo': result[3],
+                    'id_veiculo': result[4],
+                    'id_motorista': result[5],
+                    'nome_motorista': result[6],
+                    'datahora_saida': result[7],
+                    'datahora_retorno': result[8],
+                    'obs': result[9]
+                }
+                print("Dicionário itens criado com sucesso")
+                
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens)
+                return jsonify(itens)
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            return jsonify({'erro': 'Dados não encontrado'}), 400
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
+@app.route('/api/fluxo_veiculo_saida_retorno_pendente')
+@login_required
+def fluxo_veiculo_saida_retorno_pendente():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
+                f.ID_VEICULO, f.ID_MOTORISTA, 
+                CASE WHEN f.ID_MOTORISTA=0 THEN 
+                f.NC_CONDUTOR ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v 
+                ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m 
+                ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE f.DATA_RETORNO IS NULL
+            AND f.DATA_SAIDA <> CURDATE()
+            ORDER BY f.DATA_SAIDA, f.HORA_SAIDA
+        """)
+        result = cursor.fetchone()
+        cursor.close()
+        print(f"Dados: {result}")
+        
+        if result:
+            print("Processando resultado...")
+            
+            try:
+                itens = {
+                    'id_fluxo': result[0],
+                    'setor_solicitante': result[1],
+                    'destino': result[2],
+                    'veiculo': result[3],
+                    'id_veiculo': result[4],
+                    'id_motorista': result[5],
+                    'nome_motorista': result[6],
+                    'datahora_saida': result[7],
+                    'obs': result[8]
+                }
+                print("Dicionário itens criado com sucesso")
+                
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens)
+                return jsonify(itens)
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            return jsonify({'erro': 'Dados não encontrado'}), 400
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
 
 
 if __name__ == '__main__':
