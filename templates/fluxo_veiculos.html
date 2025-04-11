@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Locações</title>
+    <link rel="stylesheet" href="/static/css/controle_locacoes.css">    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container-fluid mt-2">
+        <h4 class="mb-3">Movimentação de Veículos</h4>
+        
+        <!-- GroupBox - Saída de Veículo do dia -->
+        <div class="row">
+            <div class="col-12">
+                <div class="groupbox">
+                    <div class="groupbox-header">Saída de veículos do dia (Sem retorno)</div>
+                    <div class="groupbox-body lista-grande">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Setor Solicitante</th>
+                                        <th>Destino</th>
+                                        <th>Veículo</th>
+                                        <th>Motorista</th>
+                                        <th>Data/Hora Saída</th>
+                                        <th>Obs</th>
+                                        <th class="sticky-column">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-saida-sem-retorno-dia">
+                                    <!-- Dados carregados via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row splitter-row">
+            <div class="col-12">
+                <div class="splitter" id="splitter1">
+                    <div class="splitter-handle">
+                        <i class="fas fa-grip-lines"></i>
+                    </div>
+                </div>
+            </div>
+        </div>        
+        <!-- GroupBox - Retorno de Veículo do dia -->
+        <div class="row">
+            <div class="col-12">
+                <div class="groupbox">
+                    <div class="groupbox-header">Retorno de veículos do dia</div>
+                    <div class="groupbox-body lista-grande">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Setor Solicitante</th>
+                                        <th>Destino</th>
+                                        <th>Veículo</th>
+                                        <th>Motorista</th>
+                                        <th>Data/Hora Saída</th>
+                                        <th>Data/Hora Retorno</th>
+                                        <th>Obs</th>
+                                        <th class="sticky-column">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-retorno-dia">
+                                    <!-- Dados carregados via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row splitter-row">
+            <div class="col-12">
+                <div class="splitter" id="splitter2">
+                    <div class="splitter-handle">
+                        <i class="fas fa-grip-lines"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GroupBox - Saída de Veículo com retorno pendente -->
+        <div class="row">
+            <div class="col-12">
+                <div class="groupbox">
+                    <div class="groupbox-header">Saída de veículos pedentes de retorno</div>
+                    <div class="groupbox-body lista-grande">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Setor Solicitante</th>
+                                        <th>Destino</th>
+                                        <th>Veículo</th>
+                                        <th>Motorista</th>
+                                        <th>Data/Hora Saída</th>
+                                        <th>Obs</th>
+                                        <th class="sticky-column">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-saida-retorno-pendente">
+                                    <!-- Dados carregados via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>>
+
+    <!-- Footer (novo, baseado no footer da página de motoristas) -->
+    <div class="footer">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <button id="btnNovaSaida" class="btn btn-success me-2">
+                        <i class="fas fa-plus-circle"></i> Nova Saída
+                    </button>
+                    <button id="btnRelatorioAnalitico" class="btn btn-info">
+                        <i class="fas fa-file-alt"></i> Relatório Analítico
+                    </button>
+                </div>
+                <button id="btnVoltar" class="btn btn-secondary" onclick="window.location.href='/';">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nova Saida -->
+    <div class="modal fade" id="modalNovaSaida" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalNovaSaidaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalNovaSaidaLabel">Nova Saída</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formNovaSaida" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="setorSolicitante_saida" class="form-label small">Setor Solicitante</label>
+                            <input type="text" class="form-control form-control-sm uppercase" id="setorSolicitante_saida" maxlength="25" required>
+                            <div id="sugestoesSetor_saida" class="position-absolute bg-white border shadow-sm" 
+                                 style="z-index: 9999; display: none; width: calc(100% - 24px); max-height: 200px; overflow-y: auto;">
+                            </div>                             
+                        </div>
+                        <div class="col-md-6">
+                            <label for="destino_saida" class="form-label small">Destino</label>
+                            <input type="text" class="form-control form-control-sm uppercase" id="destino_saida" maxlength="25" required>
+                            <div id="sugestoesDestino_saida" class="position-absolute bg-white border shadow-sm" 
+                                 style="z-index: 9999; display: none; width: calc(100% - 24px); max-height: 200px; overflow-y: auto;">
+                            </div>                             
+                        </div>
+                        <div class="col-md-6">
+                            <label for="veiculo_saida" class="form-label small">Veículo</label>
+                            <select class="form-select form-select-sm" id="veiculo_saida" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="motorista_saida" class="form-label small">Motorista</label>
+                            <select class="form-select form-select-sm" id="motorista_saida" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                            <input type="text" class="form-control form-control-sm uppercase" id="motoristanaocad_saida" maxlength="50" style="display: none;">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="datasaida_saida" class="form-label small">Data Saída</label>
+                            <input type="date" class="form-control form-control-sm" id="datasaida_saida" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="horasaida_saida" class="form-label small">Hora Saída</label>
+                            <input type="time" class="form-control form-control-sm" id="horasaida_saida" required>
+                        </div>                        
+                        <div class="col-md-12">
+                            <label for="obs_saida" class="form-label small">Observações</label>
+                            <textarea class="form-control form-control-sm" id="obs_saida" rows="2" maxlength="100"></textarea>
+                            <div class="text-end">
+                                <small><span id="charCount">0</span>/100</small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm" id="btnSalvarSaida">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Retorno -->
+    <div class="modal fade" id="modalRetorno" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalRetornoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalRetornoLabel">Retorno de Veículo</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formRetorno" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="setorSolicitante_retorno" class="form-label small">Setor Solicitante</label>
+                            <input type="text" class="form-control form-control-sm uppercase" id="setorSolicitante_retorno" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="destino_retorno" class="form-label small">Destino</label>
+                            <input type="text" class="form-control form-control-sm uppercase" id="destino_retorno" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="veiculo_retorno" class="form-label small">Veículo</label>
+                            <input type="text" class="form-control form-control-sm uppercase" id="veiculo_retorno" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="motorista_retorno" class="form-label small">Motorista</label>
+                            <input type="text" class="form-control form-control-sm uppercase" id="motorista_retorno" readonly >
+                        </div>
+                        <div class="col-md-4">
+                            <label for="datasaida_retorno" class="form-label small">Data Saída</label>
+                            <input type="date" class="form-control form-control-sm" id="datasaida_retorno" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="horasaida_retorno" class="form-label small">Hora Saída</label>
+                            <input type="time" class="form-control form-control-sm" id="horasaida_retorno" readonly>
+                        </div>
+
+                        <hr>
+                        
+                        <div class="col-md-4">
+                            <label for="data_retorno" class="form-label small">Data Retorno</label>
+                            <input type="date" class="form-control form-control-sm" id="data_retorno" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="hora_retorno" class="form-label small">Hora Retorno</label>
+                            <input type="time" class="form-control form-control-sm" id="hora_retorno" readonly>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="obs_retorno" class="form-label small">Observações</label>
+                            <textarea class="form-control form-control-sm" id="obs_retorno" rows="2" maxlength="100"></textarea>
+                            <div class="text-end">
+                                <small><span id="charCount2">0</span>/100</small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm" id="btnSalvarSaida">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>    
+    
+    <!-- Modal de Sucesso -->
+    <div class="modal fade" id="modalSucesso" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Sucesso</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="mensagemSucesso">
+                    <!-- Mensagem será inserida via JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ============== HTML DO MODAL DE CARREGAMENTO ============== -->
+    <div class="modal fade" id="modalCarregando" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+         <div class="modal-dialog modal-dialog-centered modal-sm">
+             <div class="modal-content">
+                 <div class="modal-body text-center p-4">
+                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                         <span class="visually-hidden">Carregando...</span>
+                     </div>
+                     <h5>Carregando dados</h5>
+                     <p class="mb-0">Por favor aguarde...</p>
+                 </div>
+             </div>
+         </div>
+     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/js/all.min.js"></script>
+    <script>
+        // Variáveis globais
+        let motoristasLista = [];
+        let veiculosLista = [];
+        
+
+        document.getElementById('motorista_saida').addEventListener('change', function() {
+            var selectValue = this.value;
+            var inputElement = document.getElementById('motoristanaocad_saida');
+
+            if (selectValue === "0") {
+                inputElement.style.display = 'block';
+            } else {
+                inputElement.style.display = 'none';
+            }
+        });
+
+
+        // // Quando o campo recebe foco, ajusta a largura da lista de sugestões
+        // $("#veiculoModeloDev").on("focus", function() {
+        //     const inputWidth = $(this).outerWidth();
+        //     $("#sugestoesModeloVeiculo").css("width", inputWidth + "px");
+        // });        
+
+        // $("#veiculoModeloEdt").on("focus", function() {
+        //     const inputWidth = $(this).outerWidth();
+        //     $("#sugestoesModeloVeiculoEdt").css("width", inputWidth + "px");
+        // });        
+
+        // // Função para mostrar o modal de carregamento
+        // function mostrarModalCarregando() {
+        //     const modalCarregando = new bootstrap.Modal(document.getElementById('modalCarregando'), {
+        //         backdrop: 'static',
+        //         keyboard: false
+        //     });
+        //     modalCarregando.show();
+        // }
+
+        // // Função para fechar o modal de carregamento
+        // function fecharModalCarregando() {
+        //     const modalCarregandoEl = document.getElementById('modalCarregando');
+        //     const modalCarregando = bootstrap.Modal.getInstance(modalCarregandoEl);
+        //     if (modalCarregando) {
+        //         modalCarregando.hide();
+        //     }
+        // }
+
+        // Carregar lista de processos ao iniciar a página
+        $(document).ready(function() {
+
+            // Converter para maiúsculo os campos com classe uppercase
+              $('.uppercase').on('input', function() {
+                $(this).val($(this).val().toUpperCase());
+            });
+
+            // Configuração dos splitters
+            function setupSplitters() {
+                // Configurar o primeiro splitter (entre grupos superiores e Locações em Trânsito)
+                let isDragging1 = false;
+                let startY1 = 0;
+                let startHeight1 = 0;
+                
+                $('#splitter1').on('mousedown', function(e) {
+                    e.preventDefault();
+                    isDragging1 = true;
+                    startY1 = e.pageY;
+                    
+                    // Alturas dos grupos superiores
+                    const saidaGroupbox = $('.groupbox').eq(0);
+                    startHeight1 = {
+                        saidas: saidaGroupbox.find('.groupbox-body').height()
+                    };
+                    
+                    $(document).on('mousemove', function(e) {
+                        if (!isDragging1) return;
+                        
+                        const deltaY = e.pageY - startY1;
+                        
+                        // Aplicar nova altura aos groupbox superiores
+                        saidaGroupbox.find('.groupbox-body').height(Math.max(100, startHeight1.processos + deltaY));
+                    });
+                    
+                    $(document).on('mouseup', function() {
+                        isDragging1 = false;
+                        $(document).off('mousemove');
+                        $(document).off('mouseup');
+                    });
+                });
+                
+                // Configurar o segundo splitter (entre Locações em Trânsito e Locações Finalizadas)
+                let isDragging2 = false;
+                let startY2 = 0;
+                let startHeight2 = 0;
+                let startHeightFinalizadas = 0;
+                
+                $('#splitter2').on('mousedown', function(e) {
+                    e.preventDefault();
+                    isDragging2 = true;
+                    startY2 = e.pageY;
+                    
+                    // Altura dos grupos relevantes
+                    const retornoGroupbox = $('.groupbox').eq(1);
+                    const pendenteGroupbox = $('.groupbox').eq(2);
+                    
+                    startHeight2 = retornoGroupbox.find('.groupbox-body').height();
+                    startHeightPendente = pendenteGroupbox.find('.groupbox-body').height();
+                    
+                    $(document).on('mousemove', function(e) {
+                        if (!isDragging2) return;
+                        
+                        const deltaY = e.pageY - startY2;
+                        
+                        // Permitir redução significativa - mínimo de apenas 50px
+                        const novaAlturaRetorno = Math.max(50, startHeight2 + deltaY);
+                        
+                        // Aplicar nova altura ao groupbox de Locações em Trânsito
+                        retornoGroupbox.find('.groupbox-body').height(novaAlturaRetorno);
+                        
+                        // Opcionalmente, ajustar o grupo de Locações Finalizadas para compensar
+                        // Isso criará um efeito de "push" em vez de apenas redimensionar um grupo
+                        pendenteGroupbox.find('.groupbox-body').height(startHeightPendente - deltaY);
+                    });
+                    
+                    $(document).on('mouseup', function() {
+                        isDragging2 = false;
+                        $(document).off('mousemove');
+                        $(document).off('mouseup');
+                    });
+                });
+                
+                // Definir alturas iniciais adequadas para os grupos
+                setTimeout(function() {
+                    const alturaRetorno = 200; 
+                    const alturaPendente = 200; 
+                    
+                    $('.groupbox').eq(1).find('.groupbox-body').height(alturaRetorno);
+                    $('.groupbox').eq(2).find('.groupbox-body').height(alturaPendente);
+                }, 100);
+            }
+
+            // Chamar a configuração dos splitters quando a página estiver pronta
+            setupSplitters();
+
+            // Garantir que os splitters se ajustem quando a janela for redimensionada
+            $(window).on('resize', function() {
+                // Recalcular dimensões se necessário
+            });
+
+            
+            // Contador de caracteres para observações
+            $('#obs_saida').on('input', function() {
+                const caracteres = $(this).val().length;
+                $('#charCount').text(caracteres);
+            });
+            
+            $('#obs_retorno').on('input', function() {
+                const caracteres = $(this).val().length;
+                $('#charCount2').text(caracteres);
+            });
+            
+            // Função para carregar Saida sem retorno do dia
+            function carregarSaidaSemRetorno() {
+                $.ajax({
+                    url: `/api/fluxo_veiculo_saida_sem_retorno`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Saida de veículo sem retorno do dia carregadas:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                        } else {
+                            data.forEach(function(itens) {
+                                html += `<tr>
+                                    <td>${itens.id_fluxo}</td>
+                                    <td>${itens.setor_solicitante}</td>
+                                    <td>${itens.destino}</td>
+                                    <td>${itens.veiculo}</td>
+                                    <td>${itens.nome_motorista}</td>
+                                    <td>${itens.datahora_saida}</td>
+                                    <td>${itens.obs}</td>
+                                    <td class="sticky-column">
+                                        <div class="d-flex justify-content-around">
+                                            <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução">
+                                                <i class="fa-solid fa-car"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-saida-sem-retorno-dia').html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar locações em trânsito:", error);
+                        console.error("Status:", xhr.status);
+                        console.error("Resposta:", xhr.responseText);
+                        $('#tabela-saida-sem-retorno-dia').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    }
+                });
+            }
+
+            // Função para carregar saidas com Retornos no dia
+            function carregarRetornoDia() {
+                $.ajax({
+                    url: `/api/fluxo_veiculo_retorno_dia`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Retorno de veículo do dia carregadas:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                        } else {
+                            data.forEach(function(itens) {
+                                html += `<tr>
+                                    <td>${itens.id_fluxo}</td>
+                                    <td>${itens.setor_solicitante}</td>
+                                    <td>${itens.destino}</td>
+                                    <td>${itens.veiculo}</td>
+                                    <td>${itens.nome_motorista}</td>
+                                    <td>${itens.datahora_saida}</td>
+                                    <td>${itens.datahora_retorno}</td>
+                                    <td>${itens.obs}</td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-retorno-dia').html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar locações em trânsito:", error);
+                        console.error("Status:", xhr.status);
+                        console.error("Resposta:", xhr.responseText);
+                        $('#tabela-retorno-dia').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    }
+                });
+            }
+
+            // Função para carregar Saidas Pendentes
+            function carregarSaidasRetornoPendente() {
+                $.ajax({
+                    url: `/api/fluxo_veiculo_saida_retorno_pendente`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Saida de veículo sem retorno do dia carregadas:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                        } else {
+                            data.forEach(function(itens) {
+                                html += `<tr>
+                                    <td>${itens.id_fluxo}</td>
+                                    <td>${itens.setor_solicitante}</td>
+                                    <td>${itens.destino}</td>
+                                    <td>${itens.veiculo}</td>
+                                    <td>${itens.nome_motorista}</td>
+                                    <td>${itens.datahora_saida}</td>
+                                    <td>${itens.obs}</td>
+                                    <td class="sticky-column">
+                                        <div class="d-flex justify-content-around">
+                                            <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução">
+                                                <i class="fa-solid fa-car"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-saida-retorno-pendente').html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar locações em trânsito:", error);
+                        console.error("Status:", xhr.status);
+                        console.error("Resposta:", xhr.responseText);
+                        $('#tabela-saida-retorno-pendente').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    }
+                });
+            }
+
+
+
+            // // Salvar locação
+            // $('#btnSalvarLocacao').click(function() {
+            //     // Validar formulário
+            //     if (!validarFormulario()) {
+            //         return;
+            //     }
+                
+            //     // Mostrar loader ou spinner
+            //     $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
+                
+            //     // Verificar se precisa de arquivo CNH
+            //     const motoristaId = $('#motorista').val();
+            //     const motoristaSelecionado = motoristasLista.find(m => m.ID_MOTORISTA == motoristaId);
+                
+            //     if (!motoristaSelecionado.FILE_PDF && !$('#arquivoCnh')[0].files[0]) {
+            //         alert("É necessário anexar a CNH do motorista.");
+            //         $(this).prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+            //         return;
+            //     }
+                
+            //     // Preparar dados para envio
+            //     const formData = new FormData();
+            //     formData.append('id_cl', processoIdSelecionado);
+            //     formData.append('empenho', $('#empenholoc').val());
+            //     formData.append('setor_solicitante', $('#setorSolicitante').val());
+            //     formData.append('objetivo', $('#objetivo').val());
+            //     formData.append('id_veiculo_loc', $('#veiculo').val());
+            //     formData.append('id_motorista', $('#motorista').val());
+            //     formData.append('data_inicio', $('#dataInicio').val());
+            //     formData.append('data_fim', $('#dataFim').val());
+            //     formData.append('hora_inicio', $('#horaInicio').val());
+            //     formData.append('qt_diaria_km', $('#qtdDiarias').val());
+                
+                
+            //     // Corrigir formatação dos valores decimais
+            //     const valorDiaria = $('#valorDiaria').val().replace(/\./g, '').replace(',', '.');
+            //     const valorTotal = $('#valorTotal').val().replace(/\./g, '').replace(',', '.');
+                
+            //     formData.append('vl_dk', valorDiaria);
+            //     formData.append('vl_totalitem', valorTotal);
+            //     formData.append('nu_sei', $('#numSei').val());
+            //     formData.append('obs', $('#observacoes').val());
+                
+            //     // Anexar arquivo da CNH se necessário
+            //     if (!motoristaSelecionado.FILE_PDF && $('#arquivoCnh')[0].files[0]) {
+            //         // Importante: corrigir o nome do campo para 'file_cnh' conforme esperado pelo backend
+            //         formData.append('file_cnh', $('#arquivoCnh')[0].files[0]);
+            //     }
+                
+            //     // Log para verificar os dados enviados
+            //     console.log("Enviando dados para API:", processoIdSelecionado);
+                
+            //     // Enviar dados para API
+            //     $.ajax({
+            //         url: '/api/nova_locacao',
+            //         type: 'POST',
+            //         data: formData,
+            //         processData: false,
+            //         contentType: false,
+            //         success: function(response) {
+            //             console.log("Resposta:", response);
+                        
+            //             // Mostrar mensagem de sucesso
+            //             let mensagem = "Locação registrada com sucesso!";
+            //             if (response.email_enviado) {
+            //                 mensagem += " E-mail enviado com sucesso.";
+            //             } else if (response.erro_email) {
+            //                 mensagem += " A locação foi registrada, mas ocorreu um erro ao enviar o e-mail: " + response.erro_email;
+            //             }
+                        
+            //             $('#mensagemSucesso').text(mensagem);
+                        
+            //             // Fechar modal de locação
+            //             $('#modalNovaLocacao').modal('hide');
+                        
+            //             // Mostrar modal de sucesso
+            //             const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+            //             modalSucesso.show();
+                        
+            //             // Reativar o footer quando o modal fechar
+            //             $('.footer').removeClass('d-none');
+                        
+            //             // Recarregar locações em trânsito se a função existir
+            //             if (typeof carregarLocacoesTransito === 'function') {
+            //                 carregarLocacoesTransito(processoIdSelecionado);
+            //             }
+                        
+            //             // Reset botão salvar
+            //             $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+            //         },
+            //         error: function(xhr, status, error) {
+            //             console.error("Erro ao salvar locação:", error);
+            //             console.error("Resposta:", xhr.responseText);
+                        
+            //             let mensagemErro = "Erro ao salvar locação";
+            //             if (xhr.responseJSON && xhr.responseJSON.mensagem) {
+            //                 mensagemErro += ": " + xhr.responseJSON.mensagem;
+            //             } else if (xhr.statusText) {
+            //                 mensagemErro += ": " + xhr.statusText;
+            //             } else {
+            //                 mensagemErro += ": " + error;
+            //             }
+                        
+            //             alert(mensagemErro);
+                        
+            //             // Reset botão salvar
+            //             $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+            //         }
+            //     });
+            // });
+
+            // Fechar modal event
+            $('#modalNovaSaida').on('hidden.bs.modal', function () {
+                // Reativar o footer quando o modal fechar
+                $('.footer').removeClass('d-none');
+            });          
+            
+            // Ação do botão Nova Locação
+            $('#btnNovaSaida').click(function() {
+                
+                // Mostrar modal de carregamento
+                mostrarModalCarregando();
+
+                // Esconder o footer quando o modal estiver aberto
+                $('.footer').addClass('d-none');
+                
+                // Resetar o formulário
+                $('#formNovaSaida')[0].reset();
+                
+
+                // Contador para controlar carregamentos pendentes
+                let carregamentosPendentes = 2; // Quantidade de carregamentos assíncronos
+
+                function verificarCarregamentoCompleto() {
+                    carregamentosPendentes--;
+                    if (carregamentosPendentes <= 0) {
+                        // Todos os dados foram carregados
+                        fecharModalCarregando();
+                        
+                        // Calcular diárias inicialmente (como as datas são iguais, será 1)
+                        calcularDiariasEValores();
+                        
+                        // Abrir o modal principal apenas após todos os dados estarem carregados
+                        const modalNovaSaida = new bootstrap.Modal(document.getElementById('modalNovaSaida'));
+                        modalNovaSaida.show();
+                    }
+                }
+
+                // // Carregar setores com callback
+                // $.ajax({
+                //     url: '/api/fluxo_lista_setores',
+                //     type: 'GET',
+                //     dataType: 'json',
+                //     success: function(data) {
+                //         empenhoLista = data;
+                //         let html = '<option value="">Selecione...</option>';
+                //         data.forEach(function(lista) {
+                //             html += `<option value="${lista.SETOR_SOLICITANTE}">${lista.SETOR_SOLICITANTE}</option>`;
+                //         });
+                //         $('#setorSolicitante_saida').html(html);
+                //         verificarCarregamentoCompleto();
+                //     },
+                //     error: function(xhr, status, error) {
+                //         console.error("Erro ao carregar empenhos:", error);
+                //         alert("Erro ao carregar lista de empenhos.");
+                //         verificarCarregamentoCompleto();
+                //     }
+                // });
+                
+                // // Carregar destinos com callback
+                // $.ajax({
+                //     url: '/api/fluxo_lista_destinos',
+                //     type: 'GET',
+                //     dataType: 'json',
+                //     success: function(data) {
+                //         let html = '<option value="">Selecione...</option>';
+                //         data.forEach(function(lista) {
+                //             html += `<option value="${lista.DESTINO}">${lista.DESTINO}</option>`;
+                //         });
+                //         $('#destino_saida').html(html);
+                //         verificarCarregamentoCompleto();
+                //     },
+                //     error: function(xhr, status, error) {
+                //         console.error("Erro ao carregar setores:", error);
+                //         alert("Erro ao carregar lista de setores.");
+                //         verificarCarregamentoCompleto();
+                //     }
+                // });
+                
+                // Carregar motoristas com callback
+                $.ajax({
+                    url: '/api/fluxo_lista_motorista',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        motoristasLista = data;
+                        let html = '<option value="">Selecione...</option>';
+                        data.forEach(function(lista) {
+                            html += `<option value="${lista.ID_MOTORISTA}">${lista.NM_MOTORISTA}</option>`;
+                        });
+                        $('#motorista_saida').html(html);
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar motoristas:", error);
+                        alert("Erro ao carregar lista de motoristas.");
+                        verificarCarregamentoCompleto();
+                    }
+                });
+                
+                // Carregar veículos com callback
+                $.ajax({
+                    url: '/api/fluxo_lista_veiculos',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        veiculosLista = data;
+                        let html = '<option value="">Selecione...</option>';
+                        data.forEach(function(lista) {
+                            html += `<option value="${lista.ID_VEICULO}">${lista.VEICULO}</option>`;
+                        });
+                        $('#veiculo_saida').html(html);
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar veículos:", error);
+                        alert("Erro ao carregar lista de veículos.");
+                        verificarCarregamentoCompleto();
+                    }
+                });
+
+            });
+                
+            // // Fechar sugestões ao clicar fora
+            // $(document).click(function(e) {
+            //     if (!$(e.target).closest('#veiculoModeloDev, #sugestoesModeloVeiculo').length) {
+            //         $('#sugestoesModeloVeiculo').hide();
+            //     }
+            // });
+            
+            // Contador de caracteres para observações
+
+
+            // // Busca de modelos de veículos - Edição
+            // $('#veiculoModeloEdt').on('input', function() {
+            //     const termo = $(this).val().trim();
+            //     if (termo.length >= 3) {
+            //         $.ajax({
+            //             url: `/api/busca_modelos_veiculos?termo=${encodeURIComponent(termo)}`,
+            //             type: 'GET',
+            //             dataType: 'json',
+            //             success: function(data) {
+            //                 let html = '';
+            //                 if (data.length > 0) {
+            //                     data.forEach(function(modelo) {
+            //                         html += `<div class="p-2 border-bottom modelo-sugestao" style="cursor: pointer;">${modelo}</div>`;
+            //                     });
+            //                     $('#sugestoesModeloVeiculoEdt').html(html).show();
+                                
+            //                     // Adicionar evento de clique às sugestões
+            //                     $('.modelo-sugestao').click(function() {
+            //                         const modeloSelecionado = $(this).text();
+            //                         $('#veiculoModeloEdt').val(modeloSelecionado);
+            //                         $('#sugestoesModeloVeiculoEdt').hide();
+                                    
+            //                         // Chamar a função buscarCombustivel para atualizar o select
+            //                         buscarCombustivel(modeloSelecionado);
+
+            //                     });
+            //                 } else {
+            //                     $('#sugestoesModeloVeiculoEdt').hide();
+            //                 }
+            //             },
+            //             error: function(xhr, status, error) {
+            //                 console.error("Erro ao buscar modelos de veículos:", error);
+            //                 $('#sugestoesModeloVeiculoEdt').hide();
+            //             }
+            //         });
+            //     } else {
+            //         $('#sugestoesModeloVeiculoEdt').hide();
+            //     }
+            // });
+
+            // // Fechar sugestões ao clicar fora
+            // $(document).click(function(e) {
+            //     if (!$(e.target).closest('#veiculoModeloDev, #sugestoesModeloVeiculoEdt').length) {
+            //         $('#sugestoesModeloVeiculoEdt').hide();
+            //     }
+            // });
+            
+            ///
+
+            // // Botão de devolução na tabela de locações em trânsito
+            // $(document).on('click', '#tabela-transito .btn-danger', function() {
+            //     const tr = $(this).closest('tr');
+            //     const idItem = tr.find('td:first').text();
+            //     const self = this;
+                
+            //     // Mostrar modal de carregamento
+            //     mostrarModalCarregando();
+                                
+            //     // Mostrar um indicador de carregamento
+            //     $(self).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+
+            //     // Primeiro, carregar os dados da locação
+            //     $.ajax({
+            //         url: `/api/locacao_item/${idItem}`,
+            //         type: 'GET',
+            //         dataType: 'json',
+            //         success: function(data) {
+            //             console.log("Dados da locação carregados:", data);
+                        
+            //             // Guardar os dados para uso posterior
+            //             const itemData = data;
+                        
+            //             // Configurar campos ocultos
+            //             if (!$('#idItemDev').length) {
+            //                 $('#formDevolucaoLocacao').append('<input type="hidden" id="idItemDev">');
+            //             }
+            //             if (!$('#valorSubTotalDev').length) {
+            //                 $('#formDevolucaoLocacao').append('<input type="hidden" id="valorSubTotalDev">');
+            //             }
+                        
+            //             // Preencher os campos de texto imediatamente
+            //             $('#idItemDev').val(idItem);
+            //             $('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
+            //             $('#objetivoDev').val(data.objetivo);
+            //             $('#numSeiDev').val(data.nu_sei);
+            //             $('#veiculoModeloDev').val(data.veículo_modelo);                        
+            //             $('#combustivelDev').val(data.combustivel);
+            //             $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
+            //             $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
+            //             $('#dataFimDev').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
+            //             //$('#horaFimDev').val(new Date().toTimeString().substring(0, 5));
+            //             $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria || 0));
+            //             $('#qtdDiariasDev').val(data.qt_diarias || 0);
+            //             $('#valorDifDev').val(formatarValorMonetario(data.valor_diferenca || 0));
+            //             $('#valorSubTotalDev').val(data.valor_subtotal || 0);
+            //             $('#valorTotalDev').val(formatarValorMonetario(data.valor_total || 0));
+                        
+            //             // Contador para carregamentos pendentes
+            //             let carregamentosPendentes = 5; // Número de carregamentos assíncronos
+                        
+            //             function verificarCarregamentoCompleto() {
+            //                 carregamentosPendentes--;
+            //                 console.log("Carregamentos pendentes:", carregamentosPendentes);
+            //                 if (carregamentosPendentes <= 0) {
+            //                     // Todos os dados foram carregados
+            //                     fecharModalCarregando();
+                                
+            //                     // Restaurar o botão
+            //                     $(self).html('<i class="fas fa-arrow-right-to-bracket"></i>');
+                                
+            //                     // Definir valores após carregamento
+            //                     $('#empenholocDev').val(itemData.id_empenho);
+            //                     $('#setorSolicitanteDev').val(itemData.setor_solicitante);
+            //                     $('#motoristaDev').val(itemData.id_motorista);
+            //                     $('#veiculoDev').val(itemData.id_veiculo_loc);
+                                
+            //                     // Calcular diárias
+            //                     calcularDiariasEValoresDev();
+                                
+            //                     // Abrir o modal
+            //                     const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
+            //                     modalDevolucaoLocacao.show();
+            //                 }
+            //             }
+                        
+            //             // Carregar empenhos
+            //             $.ajax({
+            //                 url: `/api/empenhos_loc?id_cl=${processoIdSelecionado}`,
+            //                 type: 'GET',
+            //                 dataType: 'json',
+            //                 success: function(data) {
+            //                     empenhoLista = data;
+            //                     let html = '<option value="">Selecione...</option>';
+            //                     data.forEach(function(item) {
+            //                         html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
+            //                     });
+            //                     $('#empenholocDev').html(html);
+            //                     verificarCarregamentoCompleto();
+            //                 },
+            //                 error: function(xhr, status, error) {
+            //                     console.error("Erro ao carregar empenhos:", error);
+            //                     verificarCarregamentoCompleto();
+            //                 }
+            //             });
+                        
+            //             // Carregar setores
+            //             $.ajax({
+            //                 url: '/api/setores_loc',
+            //                 type: 'GET',
+            //                 dataType: 'json',
+            //                 success: function(data) {
+            //                     let html = '<option value="">Selecione...</option>';
+            //                     data.forEach(function(item) {
+            //                         html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+            //                     });
+            //                     $('#setorSolicitanteDev').html(html);
+            //                     verificarCarregamentoCompleto();
+            //                 },
+            //                 error: function(xhr, status, error) {
+            //                     console.error("Erro ao carregar setores:", error);
+            //                     verificarCarregamentoCompleto();
+            //                 }
+            //             });
+                        
+            //             // Carregar processos
+            //             $.ajax({
+            //                 url: '/api/processos_locacao',
+            //                 type: 'GET',
+            //                 dataType: 'json',
+            //                 success: function(data) {
+            //                     verificarCarregamentoCompleto();
+            //                 },
+            //                 error: function(xhr, status, error) {
+            //                     console.error("Erro ao carregar processos:", error);
+            //                     verificarCarregamentoCompleto();
+            //                 }
+            //             });
+                        
+            //             // Carregar motoristas
+            //             $.ajax({
+            //                 url: '/api/lista_motorista_loc',
+            //                 type: 'GET',
+            //                 dataType: 'json',
+            //                 success: function(data) {
+            //                     motoristasLista = data;
+            //                     let html = '<option value="">Selecione...</option>';
+            //                     data.forEach(function(item) {
+            //                         html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
+            //                     });
+            //                     $('#motoristaDev').html(html);
+            //                     verificarCarregamentoCompleto();
+            //                 },
+            //                 error: function(xhr, status, error) {
+            //                     console.error("Erro ao carregar motoristas:", error);
+            //                     verificarCarregamentoCompleto();
+            //                 }
+            //             });
+                        
+            //             // Carregar veículos
+            //             $.ajax({
+            //                 url: `/api/lista_veiculo?id_cl=${processoIdSelecionado}`,
+            //                 type: 'GET',
+            //                 dataType: 'json',
+            //                 success: function(data) {
+            //                     veiculosLista = data;
+            //                     let html = '<option value="">Selecione...</option>';
+            //                     data.forEach(function(item) {
+            //                         html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
+            //                     });
+            //                     $('#veiculoDev').html(html);
+            //                     verificarCarregamentoCompleto();
+            //                 },
+            //                 error: function(xhr, status, error) {
+            //                     console.error("Erro ao carregar veículos:", error);
+            //                     verificarCarregamentoCompleto();
+            //                 }
+            //             });
+            //         },
+            //         error: function(xhr, status, error) {
+            //             console.error("Erro ao carregar dados da locação:", error);
+            //             alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
+            //             $(self).html('<i class="fas fa-arrow-right-to-bracket"></i>');
+            //             fecharModalCarregando();
+            //         }
+            //     });
+            // });
+            
+            // // Botão salvar devolução
+            // $('#btnSalvarDevolucao').click(function() {
+            //     // Validar formulário
+            //     if (!validarFormularioDevolucao()) {
+            //         return;
+            //     }
+                
+            //     // Mostrar loader
+            //     $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
+                
+            //     const idItem = $('#idItemDev').val();
+            //     const formData = new FormData();
+                
+            //     // Adicionar dados ao FormData
+            //     formData.append('objetivo', $('#objetivoDev').val());
+            //     formData.append('id_veiculo', $('#veiculoDev').val());
+            //     formData.append('id_motorista', $('#motoristaDev').val());
+            //     formData.append('setor_solicitante', $('#setorSolicitanteDev').val());
+            //     formData.append('data_inicio', $('#dataInicioDev').val());
+            //     formData.append('data_fim', $('#dataFimDev').val());
+            //     formData.append('hora_inicio', $('#horaInicioDev').val());
+            //     formData.append('hora_fim', $('#horaFimDev').val());
+            //     formData.append('qt_diarias', $('#qtdDiariasDev').val());
+            //     formData.append('km_rodado', $('#kmDev').val());
+            //     formData.append('valor_diferenca', converterParaNumero($('#valorDifDev').val()));
+            //     formData.append('valor_subtotal', $('#valorSubTotalDev').val());
+            //     formData.append('valor_total', converterParaNumero($('#valorTotalDev').val()));
+            //     formData.append('veiculo_modelo', $('#veiculoModeloDev').val());
+            //     formData.append('combustivel', $('#combustivelDev').val());
+            //     formData.append('obs_dev', $('#observacoesDev').val());
+
+            //     $.ajax({
+            //         url: `/api/salvar_devolucao/${idItem}`,
+            //         type: 'POST',
+            //         data: formData,
+            //         processData: false,
+            //         contentType: false,
+            //         success: function(response) {
+            //             console.log("Resposta:", response);
+                        
+            //             // Mostrar mensagem de sucesso
+            //             $('#mensagemSucesso').text("Devolução registrada com sucesso!");
+                        
+            //             // Fechar modal de devolução
+            //             $('#modalDevolucaoLocacao').modal('hide');
+                        
+            //             // Mostrar modal de sucesso
+            //             const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+            //             modalSucesso.show();
+                        
+            //             // Recarregar locações em trânsito
+            //             if (processoIdSelecionado) {
+            //                 carregarLocacoesTransito(processoIdSelecionado);
+            //                 carregarLocacoesFinalizadas(processoIdSelecionado);
+            //             }
+                        
+            //             // Reset botão salvar
+            //             $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
+            //         },
+            //         error: function(xhr, status, error) {
+            //             console.error("Erro ao salvar devolução:", error);
+            //             console.error("Resposta:", xhr.responseText);
+                        
+            //             let mensagemErro = "Erro ao salvar devolução";
+            //             if (xhr.responseJSON && xhr.responseJSON.erro) {
+            //                 mensagemErro += ": " + xhr.responseJSON.erro;
+            //             } else if (xhr.statusText) {
+            //                 mensagemErro += ": " + xhr.statusText;
+            //             } else {
+            //                 mensagemErro += ": " + error;
+            //             }
+                        
+            //             alert(mensagemErro);
+                        
+            //             // Reset botão salvar
+            //             $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
+            //         }
+            //     });
+            // });
+            
+        });
+        
+        
+        // // Função para validar o formulário
+        // function validarFormulario() {
+        //     if (!$('#setorSolicitante').val()) {
+        //         alert("Por favor, selecione o setor solicitante.");
+        //         return false;
+        //     }
+            
+        //     if (!$('#objetivo').val()) {
+        //         alert("Por favor, informe o objetivo da locação.");
+        //         return false;
+        //     }
+            
+        //     if (!$('#veiculo').val()) {
+        //         alert("Por favor, selecione um veículo.");
+        //         return false;
+        //     }
+            
+        //     if (!$('#motorista').val()) {
+        //         alert("Por favor, selecione um motorista.");
+        //         return false;
+        //     }
+            
+        //     if (!$('#dataInicio').val()) {
+        //         alert("Por favor, informe a data de início.");
+        //         return false;
+        //     }
+            
+        //     if (!$('#dataFim').val()) {
+        //         alert("Por favor, informe a data de fim.");
+        //         return false;
+        //     }
+            
+        //     if (!$('#horaInicio').val()) {
+        //         alert("Por favor, informe a hora de início.");
+        //         return false;
+        //     }
+            
+            
+        //     // Verificar se as datas são válidas
+        //     const dataInicio = new Date($('#dataInicio').val());
+        //     const dataFim = new Date($('#dataFim').val());
+            
+        //     if (dataFim < dataInicio) {
+        //         alert("A data final não pode ser anterior à data inicial!");
+        //         return false;
+        //     }
+                            
+        //     return true;
+        // }
+                
+    </script>
+</body>
+</html>
