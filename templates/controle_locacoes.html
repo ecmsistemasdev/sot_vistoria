@@ -1049,6 +1049,96 @@
                         $('#tabela-transito').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                     }
                 });
+
+                // Carregar empenhos
+                $.ajax({
+                    url: `/api/empenhos/${id_cl}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Empenhos carregados:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="6" class="text-center">Nenhum empenho encontrado</td></tr>';
+                        } else {
+                            data.forEach(function(item) {
+                                html += `<tr>
+                                    <td>${item.NU_EMPENHO}</td>
+                                    <td>R$ ${formatarValor(item.VL_EMPENHO)}</td>
+                                    <td>R$ ${formatarValor(item.VL_DIARIAS)}</td>
+                                    <td>R$ ${formatarValor(item.VL_DIF)}</td>
+                                    <td>R$ ${formatarValor(item.VL_UTILIZADO)}</td>
+                                    <td>R$ ${formatarValor(item.VL_SALDO)}</td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-empenhos').html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar empenhos:", error);
+                        $('#tabela-empenhos').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar dados</td></tr>');              
+                    }
+                });
+                
+                // Carregar saldo de diárias
+                $.ajax({
+                    url: `/api/saldo_diarias/${id_cl}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Saldo de diárias carregado:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
+                        } else {
+                            data.forEach(function(item) {
+                                html += `<tr>
+                                    <td>${item.DE_VEICULO}</td>
+                                    <td>R$ ${formatarValor(item.VL_DIARIA_KM)}</td>
+                                    <td>${item.QT_DK}</td>
+                                    <td>${item.QT_UTILIZADO}</td>
+                                    <td>${item.QT_SALDO}</td>
+                                    <td>R$ ${formatarValor(item.VALOR_TOTAL)}</td>
+                                    <td>R$ ${formatarValor(item.VL_UTILIZADO)}</td>
+                                    <td>R$ ${formatarValor(item.VL_SALDO)}</td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-saldo-diarias').html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar saldo de diárias:", error);
+                        $('#tabela-saldo-diarias').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    }
+                });
+
+                // Carregar dados do PLS
+                $.ajax({
+                    url: `/api/dados_pls/${id_cl}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Dados do PLS carregado:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
+                        } else {
+                            data.forEach(function(item) {
+                                html += `<tr>
+                                    <td>${item.MES_ANO}</td>
+                                    <td>${item.QTD}</td>
+                                    <td>R$ ${formatarValor(item.VLTOTAL)}</td>
+                                    <td>${item.COMBUSTIVEL}</td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-dados-pls').html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar saldo de diárias:", error);
+                        $('#tabela-dados-pls').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    }
+                });
             }
 
             // Salvar locação
