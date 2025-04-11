@@ -226,7 +226,7 @@
     </div>
 
     <!-- Modal Nova Locação -->
-    <div class="modal fade" id="modalNovaLocacao" tabindex="-1" aria-labelledby="modalNovaLocacaoLabel" aria-hidden="true">
+    <div class="modal fade" id="modalNovaLocacao" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalNovaLocacaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
@@ -312,8 +312,8 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                        <i class="fas fa-arrow-left"></i> Voltar
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
                     </button>
                     <button type="button" class="btn btn-success btn-sm" id="btnSalvarLocacao">
                         <i class="fas fa-save"></i> Salvar
@@ -324,7 +324,7 @@
     </div>
         
     <!-- Modal Devolução de Locação -->
-    <div class="modal fade" id="modalDevolucaoLocacao" tabindex="-1" aria-labelledby="modalDevolucaoLocacaoLabel" aria-hidden="true">
+    <div class="modal fade" id="modalDevolucaoLocacao" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalDevolucaoLocacaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
@@ -437,8 +437,8 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                        <i class="fas fa-arrow-left"></i> Voltar
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
                     </button>
                     <button type="button" class="btn btn-success btn-sm" id="btnSalvarDevolucao">
                         <i class="fas fa-save"></i> Salvar Devolução
@@ -448,8 +448,8 @@
         </div>
     </div>
 
-    <!-- Modal Detalhes da Locação -->
-    <div class="modal fade" id="modalEditarLocacao" tabindex="-1" aria-labelledby="modalEditarLocacaoLabel" aria-hidden="true">
+    <!-- Modal Editar Locação -->
+    <div class="modal fade" id="modalEditarLocacao" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalEditarLocacaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-warning">
@@ -547,14 +547,14 @@
                             <label for="observacoesEdt" class="form-label small">Observações</label>
                             <textarea class="form-control form-control-sm" id="observacoesEdt" rows="2" maxlength="200"></textarea>
                             <div class="text-end">
-                                <small><span id="charCountDev">0</span>/200</small>
+                                <small><span id="charCountEdt">0</span>/200</small>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                        <i class="fas fa-arrow-left"></i> Voltar
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
                     </button>
                     <button type="button" class="btn btn-success btn-sm" id="btnSalvarEdt">
                         <i class="fas fa-save"></i> Salvar
@@ -565,7 +565,7 @@
     </div>    
 
      <!-- Modal Visualiza Locação -->
-     <div class="modal fade" id="modalVisualizaLocacao" tabindex="-1" aria-labelledby="modalVisualizaLocacaoLabel" aria-hidden="true">
+     <div class="modal fade" id="modalVisualizaLocacao" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalVisualizaLocacaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
@@ -662,8 +662,8 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                        <i class="fas fa-arrow-left"></i> Voltar
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times-circle"></i> Fechar
                     </button>
                 </div>
             </div>
@@ -824,6 +824,16 @@
                 $('#charCount').text(caracteres);
             });
             
+            $('#observacoesDev').on('input', function() {
+                const caracteres = $(this).val().length;
+                $('#charCountDev').text(caracteres);
+            });
+
+            $('#observacoesEdt').on('input', function() {
+                const caracteres = $(this).val().length;
+                $('#charCountEdt').text(caracteres);
+            });
+
             // Máscara para o número SEI
             $('#numSei').on('input', function() {
                 let value = $(this).val().replace(/\D/g, '');
@@ -1296,7 +1306,7 @@
                                 // Adicionar evento de clique às sugestões
                                 $('.modelo-sugestao').click(function() {
                                     const modeloSelecionado = $(this).text();
-                                    $('#veiculoModeloDevEdt').val(modeloSelecionado);
+                                    $('#veiculoModeloEdt').val(modeloSelecionado);
                                     $('#sugestoesModeloVeiculoEdt').hide();
                                     
                                     // Chamar a função buscarCombustivel para atualizar o select
@@ -1385,7 +1395,7 @@
                                 fecharModalCarregando();
                                 
                                 // Restaurar o botão
-                                $(self).html('<i class="fas fa-undo-alt"></i>');
+                                $(self).html('<i class="fas fa-arrow-right-to-bracket"></i>');
                                 
                                 // Definir valores após carregamento
                                 $('#empenholocDev').val(itemData.id_empenho);
@@ -1498,7 +1508,7 @@
                     error: function(xhr, status, error) {
                         console.error("Erro ao carregar dados da locação:", error);
                         alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
-                        $(self).html('<i class="fas fa-undo-alt"></i>');
+                        $(self).html('<i class="fas fa-arrow-right-to-bracket"></i>');
                         fecharModalCarregando();
                     }
                 });
@@ -1688,7 +1698,7 @@
                                 fecharModalCarregando();
                                 
                                 // Restaurar o botão
-                                $(self).html('<i class="fas fa-undo-alt"></i>');
+                                $(self).html('<i class="fas fa-folder-open"></i>');
                                 
                                 // Definir valores após carregamento
                                 $('#empenholocEdt').val(itemData.id_empenho);
@@ -1801,7 +1811,7 @@
                     error: function(xhr, status, error) {
                         console.error("Erro ao carregar dados da locação:", error);
                         alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
-                        $(self).html('<i class="fas fa-undo-alt"></i>');
+                        $(self).html('<i class="fas fa-folder-open"></i>');
                         fecharModalCarregando();
                     }
                 });
@@ -1994,7 +2004,7 @@
                                 fecharModalCarregando();
                                 
                                 // Restaurar o botão
-                                $(self).html('<i class="fas fa-undo-alt"></i>');
+                                $(self).html('<i class="fas fa-search"></i>');
                                 
                                 // Calcular diárias
                                 calcularDiariasEValoresDev();
@@ -2011,7 +2021,7 @@
                     error: function(xhr, status, error) {
                         console.error("Erro ao carregar dados da locação:", error);
                         alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
-                        $(self).html('<i class="fas fa-undo-alt"></i>');
+                        $(self).html('<i class="fas fa-search"></i>');
                         fecharModalCarregando();
                     }
                 });
@@ -2735,7 +2745,7 @@
                                             <i class="fas fa-folder-open"></i>
                                         </a>
                                         <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução">
-                                            <i class="fas fa-undo-alt"></i>
+                                            <i class="fas fa-arrow-right-to-bracket"></i>
                                         </a>
                                     </div>
                                 </td>
@@ -2799,7 +2809,11 @@
                                 <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
                                 <td>${item.MOTORISTA}</td>
                                 <td class="sticky-column">
-                                    <a href="javascript:void(0)" class="acao-btn btn-abrir">Visualizar</a>
+                                    <div class="d-flex justify-content-around">
+                                        <a href="javascript:void(0)" class="acao-btn btn-abrir" title="Visualizar">
+                                            <i class="fas fa-search"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>`;
                         });
