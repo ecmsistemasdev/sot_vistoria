@@ -69,7 +69,6 @@
                                         <th>Data/Hora Saída</th>
                                         <th>Data/Hora Retorno</th>
                                         <th>Obs</th>
-                                        <th class="sticky-column">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabela-retorno-dia">
@@ -334,11 +333,7 @@
             const inputWidth = $(this).outerWidth();
             $("#sugestoesSetor_saida").css("width", inputWidth + "px");
         });        
-
-        // $("#veiculoModeloEdt").on("focus", function() {
-        //     const inputWidth = $(this).outerWidth();
-        //     $("#sugestoesModeloVeiculoEdt").css("width", inputWidth + "px");
-        // });        
+      
 
         // Função para mostrar o modal de carregamento
         function mostrarModalCarregando() {
@@ -725,7 +720,6 @@
                 // Resetar o formulário
                 $('#formNovaSaida')[0].reset();
                 
-
                 // Contador para controlar carregamentos pendentes
                 let carregamentosPendentes = 2; // Quantidade de carregamentos assíncronos
 
@@ -735,8 +729,6 @@
                         // Todos os dados foram carregados
                         fecharModalCarregando();
                         
-                        // Calcular diárias inicialmente (como as datas são iguais, será 1)
-                        calcularDiariasEValores();
                         
                         // Abrir o modal principal apenas após todos os dados estarem carregados
                         const modalNovaSaida = new bootstrap.Modal(document.getElementById('modalNovaSaida'));
@@ -744,46 +736,6 @@
                     }
                 }
 
-                // // Carregar setores com callback
-                // $.ajax({
-                //     url: '/api/fluxo_lista_setores',
-                //     type: 'GET',
-                //     dataType: 'json',
-                //     success: function(data) {
-                //         empenhoLista = data;
-                //         let html = '<option value="">Selecione...</option>';
-                //         data.forEach(function(lista) {
-                //             html += `<option value="${lista.SETOR_SOLICITANTE}">${lista.SETOR_SOLICITANTE}</option>`;
-                //         });
-                //         $('#setorSolicitante_saida').html(html);
-                //         verificarCarregamentoCompleto();
-                //     },
-                //     error: function(xhr, status, error) {
-                //         console.error("Erro ao carregar empenhos:", error);
-                //         alert("Erro ao carregar lista de empenhos.");
-                //         verificarCarregamentoCompleto();
-                //     }
-                // });
-                
-                // // Carregar destinos com callback
-                // $.ajax({
-                //     url: '/api/fluxo_lista_destinos',
-                //     type: 'GET',
-                //     dataType: 'json',
-                //     success: function(data) {
-                //         let html = '<option value="">Selecione...</option>';
-                //         data.forEach(function(lista) {
-                //             html += `<option value="${lista.DESTINO}">${lista.DESTINO}</option>`;
-                //         });
-                //         $('#destino_saida').html(html);
-                //         verificarCarregamentoCompleto();
-                //     },
-                //     error: function(xhr, status, error) {
-                //         console.error("Erro ao carregar setores:", error);
-                //         alert("Erro ao carregar lista de setores.");
-                //         verificarCarregamentoCompleto();
-                //     }
-                // });
                 
                 // Carregar motoristas com callback
                 $.ajax({
