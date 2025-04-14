@@ -1789,7 +1789,7 @@ def nova_locacao():
         
         # Enviar e-mail para a empresa locadora
         email_enviado, erro_email = enviar_email_locacao(
-            id_item, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
+            id_item, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
             dt_inicial, dt_final, hr_inicial, de_veiculo, obs,
             nome_arquivo_cnh, motorista_email, file_pdf  # Passando o conteúdo do PDF
         )
