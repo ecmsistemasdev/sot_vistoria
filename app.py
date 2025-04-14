@@ -1814,7 +1814,7 @@ def nova_locacao():
         }), 500
 
 
-def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
+def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
     try:
         # Obter hora atual para saudação
         hora_atual = datetime.now().hour
@@ -1893,7 +1893,7 @@ Seção de Gestão Operacional do Transporte
                 # Corpo do email para o motorista
                 corpo_motorista = f'''{saudacao},
 
-Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
+Prezado(a) Usuário(a), em atenção ao Sei nº {sei}, foi solicitado locação de veículo conforme informações abaixo:
 
     Período: {dt_inicial} ({hr_inicial}) a {dt_final}
     Veículo: {de_veiculo} ou Similar
@@ -1903,12 +1903,11 @@ Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informaç�
 
 Atenciosamente,
 
-{nome_usuario}
+Seção de Gestão Operacional do Transporte - SEGEOP
 Tribunal de Justiça do Estado de Rondônia
-Seção de Gestão Operacional do Transporte
 (69) 3309-6229/6227
 
-(Não precisa responder este e-mail)'''
+(Não precisa responder este e-mail - envio automático pelo sistema SOTWeb)'''
 
                 # Criar mensagem para o motorista - CORREÇÃO AQUI
                 msg_motorista = Message(
