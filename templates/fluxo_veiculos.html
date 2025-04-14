@@ -329,34 +329,34 @@
         });
 
 
-        // // Quando o campo recebe foco, ajusta a largura da lista de sugestões
-        // $("#veiculoModeloDev").on("focus", function() {
-        //     const inputWidth = $(this).outerWidth();
-        //     $("#sugestoesModeloVeiculo").css("width", inputWidth + "px");
-        // });        
+        // Quando o campo recebe foco, ajusta a largura da lista de sugestões
+        $("#setor_saida").on("focus", function() {
+            const inputWidth = $(this).outerWidth();
+            $("#sugestoesSetor_saida").css("width", inputWidth + "px");
+        });        
 
         // $("#veiculoModeloEdt").on("focus", function() {
         //     const inputWidth = $(this).outerWidth();
         //     $("#sugestoesModeloVeiculoEdt").css("width", inputWidth + "px");
         // });        
 
-        // // Função para mostrar o modal de carregamento
-        // function mostrarModalCarregando() {
-        //     const modalCarregando = new bootstrap.Modal(document.getElementById('modalCarregando'), {
-        //         backdrop: 'static',
-        //         keyboard: false
-        //     });
-        //     modalCarregando.show();
-        // }
+        // Função para mostrar o modal de carregamento
+        function mostrarModalCarregando() {
+            const modalCarregando = new bootstrap.Modal(document.getElementById('modalCarregando'), {
+                backdrop: 'static',
+                keyboard: false
+            });
+            modalCarregando.show();
+        }
 
-        // // Função para fechar o modal de carregamento
-        // function fecharModalCarregando() {
-        //     const modalCarregandoEl = document.getElementById('modalCarregando');
-        //     const modalCarregando = bootstrap.Modal.getInstance(modalCarregandoEl);
-        //     if (modalCarregando) {
-        //         modalCarregando.hide();
-        //     }
-        // }
+        // Função para fechar o modal de carregamento
+        function fecharModalCarregando() {
+            const modalCarregandoEl = document.getElementById('modalCarregando');
+            const modalCarregando = bootstrap.Modal.getInstance(modalCarregandoEl);
+            if (modalCarregando) {
+                modalCarregando.hide();
+            }
+        }
 
         carregarSaidaSemRetorno()
         carregarRetornoDia()
@@ -828,63 +828,50 @@
                 });
 
             });
-                
-            // // Fechar sugestões ao clicar fora
-            // $(document).click(function(e) {
-            //     if (!$(e.target).closest('#veiculoModeloDev, #sugestoesModeloVeiculo').length) {
-            //         $('#sugestoesModeloVeiculo').hide();
-            //     }
-            // });
-            
-            // Contador de caracteres para observações
 
 
-            // // Busca de modelos de veículos - Edição
-            // $('#veiculoModeloEdt').on('input', function() {
-            //     const termo = $(this).val().trim();
-            //     if (termo.length >= 3) {
-            //         $.ajax({
-            //             url: `/api/busca_modelos_veiculos?termo=${encodeURIComponent(termo)}`,
-            //             type: 'GET',
-            //             dataType: 'json',
-            //             success: function(data) {
-            //                 let html = '';
-            //                 if (data.length > 0) {
-            //                     data.forEach(function(modelo) {
-            //                         html += `<div class="p-2 border-bottom modelo-sugestao" style="cursor: pointer;">${modelo}</div>`;
-            //                     });
-            //                     $('#sugestoesModeloVeiculoEdt').html(html).show();
+            // Busca de modelos de veículos - Edição
+            $('#setor_saida').on('input', function() {
+                const termo = $(this).val().trim();
+                if (termo.length >= 3) {
+                    $.ajax({
+                        url: `/api/fluxo_busca_setor?termo=${encodeURIComponent(termo)}`,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            let html = '';
+                            if (data.length > 0) {
+                                data.forEach(function(setores) {
+                                    html += `<div class="p-2 border-bottom modelo-sugestao" style="cursor: pointer;">${setores}</div>`;
+                                });
+                                $('#sugestoesSetor_saida').html(html).show();
                                 
-            //                     // Adicionar evento de clique às sugestões
-            //                     $('.modelo-sugestao').click(function() {
-            //                         const modeloSelecionado = $(this).text();
-            //                         $('#veiculoModeloEdt').val(modeloSelecionado);
-            //                         $('#sugestoesModeloVeiculoEdt').hide();
-                                    
-            //                         // Chamar a função buscarCombustivel para atualizar o select
-            //                         buscarCombustivel(modeloSelecionado);
+                                // Adicionar evento de clique às sugestões
+                                $('.modelo-sugestao').click(function() {
+                                    const setorSelecionado = $(this).text();
+                                    $('#setor_saida').val(setorSelecionado);
+                                    $('#sugestoesSetor_saida').hide();
+                                });
+                            } else {
+                                $('#sugestoesSetor_saida').hide();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Erro ao buscar setor:", error);
+                            $('#sugestoesSetor_saida').hide();
+                        }
+                    });
+                } else {
+                    $('#sugestoesSetor_saida').hide();
+                }
+            });
 
-            //                     });
-            //                 } else {
-            //                     $('#sugestoesModeloVeiculoEdt').hide();
-            //                 }
-            //             },
-            //             error: function(xhr, status, error) {
-            //                 console.error("Erro ao buscar modelos de veículos:", error);
-            //                 $('#sugestoesModeloVeiculoEdt').hide();
-            //             }
-            //         });
-            //     } else {
-            //         $('#sugestoesModeloVeiculoEdt').hide();
-            //     }
-            // });
-
-            // // Fechar sugestões ao clicar fora
-            // $(document).click(function(e) {
-            //     if (!$(e.target).closest('#veiculoModeloDev, #sugestoesModeloVeiculoEdt').length) {
-            //         $('#sugestoesModeloVeiculoEdt').hide();
-            //     }
-            // });
+            // Fechar sugestões ao clicar fora
+            $(document).click(function(e) {
+                if (!$(e.target).closest('#setor_saida, #sugestoesSetor_saida').length) {
+                    $('#sugestoesSetor_saida').hide();
+                }
+            });
             
             ///
 
