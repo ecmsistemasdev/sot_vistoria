@@ -2733,6 +2733,100 @@ def fluxo_veiculo_saida_retorno_pendente():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+@app.route('/api/fluxo_saida_item/<int:idfluxo>')
+@login_required
+def fluxo_saida_item(idfluxo):
+    try:
+        print(f"Iniciando consulta à Saida para ID: {idfluxo}")
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                f.ID_VEICULO, f.ID_MOTORISTA, f.DATA_SAIDA, f.HORA_SAIDA, 
+                f.DATA_RETORNO, f.HORA_RETORNO, f.OBS,
+                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO,  
+                CASE WHEN f.ID_MOTORISTA=0 THEN 
+                f.NC_CONDUTOR ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v 
+                ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m 
+                ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE f.ID_FLUXO = %s
+        """, (idfluxo,))
+        result = cursor.fetchone()
+        cursor.close()
+        print(f"Dados: {result}")
+        
+        if result:
+            print("Processando resultado...")
+            import datetime  # Certifique-se que está importado
+            
+            # Debug para cada campo antes da conversão
+            print(f"Tipos de dados dos campos:")
+            print(f"dt_saida: {type(result[5])}, valor: {result[5]}")
+            print(f"dt_retorno: {type(result[7])}, valor: {result[7]}")
+            print(f"hora_saida: {type(result[6])}, valor: {result[6]}")
+            print(f"hora_retorno: {type(result[8])}, valor: {result[8]}")
+            
+            try:
+                # Converter datas para string
+                print("Convertendo datas...")
+                dt_saida = result[5].strftime('%Y-%m-%d') if result[5] and hasattr(result[5], 'strftime') else result[5]
+                dt_retorno = result[7].strftime('%Y-%m-%d') if result[7] and hasattr(result[7], 'strftime') else result[7]
+                print(f"Datas convertidas: {dt_saida}, {dt_retorno}")
+                
+                # Converter tempos
+                print("Convertendo tempos...")
+                def format_timedelta(td):
+                    print(f"Formatando timedelta: {td}, tipo: {type(td)}")
+                    if td is None:
+                        return None
+                    if isinstance(td, datetime.timedelta):
+                        seconds = td.total_seconds()
+                        hours = int(seconds // 3600)
+                        minutes = int((seconds % 3600) // 60)
+                        secs = int(seconds % 60)
+                        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+                    if hasattr(td, 'strftime'):
+                        return td.strftime('%H:%M:%S')
+                    return str(td)
+                
+                hora_saida = format_timedelta(result[6])
+                hora_retorno = format_timedelta(result[8])
+                print(f"Tempos convertidos: {hora_saida, {hora_retorno}")              
+                
+                itens = {
+                    'id_fluxo': result[0],
+                    'setor_solicitante': result[1],
+                    'destino': result[2],
+                    'id_veiculo': result[3],
+                    'veiculo': result[10],
+                    'id_motorista': result[4],
+                    'nome_motorista': result[11],
+                    'dt_saida': dt_saida,
+                    'dt_retorno': dt_retorno,
+                    'hora_saida': hora_saida,
+                    'hora_retorno': hora_retorno,
+		            'obs': result[9]
+                }
+                print("Dicionário itens criado com sucesso")
+                
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens)
+                return jsonify(itens)
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            print(f"Locação com ID {idfluxo} não encontrada")
+            return jsonify({'erro': 'Locação não encontrada'}), 400
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
