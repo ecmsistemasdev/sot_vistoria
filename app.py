@@ -1789,7 +1789,7 @@ def nova_locacao():
         
         # Enviar e-mail para a empresa locadora
         email_enviado, erro_email = enviar_email_locacao(
-            id_item, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
+            id_item, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
             dt_inicial, dt_final, hr_inicial, de_veiculo, obs,
             nome_arquivo_cnh, motorista_email, file_pdf  # Passando o conteúdo do PDF
         )
@@ -1814,7 +1814,7 @@ def nova_locacao():
         }), 500
 
 
-def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
+def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
     try:
         # Obter hora atual para saudação
         hora_atual = datetime.now().hour
@@ -1893,7 +1893,7 @@ Seção de Gestão Operacional do Transporte
                 # Corpo do email para o motorista
                 corpo_motorista = f'''{saudacao},
 
-Prezado(a) Usuário(a), em atenção ao Sei nº {sei}, foi solicitado locação de veículo conforme informações abaixo:
+Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
 
     Período: {dt_inicial} ({hr_inicial}) a {dt_final}
     Veículo: {de_veiculo} ou Similar
@@ -1903,11 +1903,12 @@ Prezado(a) Usuário(a), em atenção ao Sei nº {sei}, foi solicitado locação 
 
 Atenciosamente,
 
-Seção de Gestão Operacional do Transporte - SEGEOP
+{nome_usuario}
 Tribunal de Justiça do Estado de Rondônia
+Seção de Gestão Operacional do Transporte
 (69) 3309-6229/6227
 
-(Não precisa responder este e-mail - envio automático pelo sistema SOTWeb)'''
+(Não precisa responder este e-mail)'''
 
                 # Criar mensagem para o motorista - CORREÇÃO AQUI
                 msg_motorista = Message(
@@ -2733,6 +2734,7 @@ def fluxo_veiculo_saida_retorno_pendente():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+
 @app.route('/api/fluxo_saida_item/<int:idfluxo>')
 @login_required
 def fluxo_saida_item(idfluxo):
@@ -2794,8 +2796,7 @@ def fluxo_saida_item(idfluxo):
                     return str(td)
                 
                 hora_saida = format_timedelta(result[6])
-                hora_retorno = format_timedelta(result[8])
-                print(f"Tempos convertidos: {hora_saida, {hora_retorno}")              
+                hora_retorno = format_timedelta(result[8])       
                 
                 itens = {
                     'id_fluxo': result[0],
@@ -2827,6 +2828,7 @@ def fluxo_saida_item(idfluxo):
             return jsonify({'erro': 'Locação não encontrada'}), 400
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
