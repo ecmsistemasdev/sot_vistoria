@@ -2505,7 +2505,7 @@ def fluxo_lista_motorista():
         cursor = mysql.connection.cursor()
         cursor.execute("""
         SELECT ID_MOTORISTA, NM_MOTORISTA 
-        FROM TJ_MOTORISTA WHERE ATIVO = 'S' WHERE ID_MOTORISTA <> 0
+        FROM TJ_MOTORISTA WHERE ATIVO = 'S' AND ID_MOTORISTA <> 0
         ORDER BY NM_MOTORISTA
         """)
                
