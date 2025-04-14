@@ -121,7 +121,7 @@
             </div>
         </div>
 
-    </div>>
+    </div>
 
     <!-- Footer (novo, baseado no footer da página de motoristas) -->
     <div class="footer">
@@ -456,11 +456,47 @@
             // Implementar lógica para carregar os dados do fluxo e abrir o modal
             console.log("Abrindo modal de retorno para ID:", idFluxo);
             // Aqui você faria uma requisição AJAX para buscar os dados do veículo
-            // e então preencheria o modal antes de exibi-lo
-            
-            // Exemplo:
-            // carregarDadosRetorno(idFluxo);
-            
+
+
+            // Primeiro, carregar os dados da locação
+            $.ajax({
+                url: `/api/fluxo_saida_item/${idFluxo}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Dados da locação carregados:", data);
+                    
+                    // Guardar os dados para uso posterior
+                    const itemData = data;
+                    
+                    // Configurar campos ocultos
+                    if (!$('#idfluxo').length) {
+                        $('#formRetorno').append('<input type="hidden" id="idfluxo">');
+                    }
+                    
+                    // Preencher os campos de texto imediatamente
+                    $('#idfluxo').val(idFluxo);
+                    $('#setorSolicitante_retorno').val(data.setor_solicitante);
+                    $('#destino_retorno').val(data.destino);
+                    $('#veiculo_retorno').val(data.veiculo); 
+                    $('#motorista_retorno').val(data.nome_motorista); 
+                    $('#datasaida_retorno').val(formatarDataParaInput(data.dt_saida || new Date().toISOString().split('T')[0]));
+                    $('#horasaida_retorno').val(data.hora_saida ? data.hora_saida.substring(0, 5) : '');                
+                    $('#data_retorno').val(new Date().toISOString().split('T')[0]);
+                    $('#hora_retorno').val(new Date().toTimeString().substring(0, 5));
+                    
+                    // Contador para carregamentos pendentes
+                
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar dados da locação:", error);
+                    alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
+                    $(self).html('<i class="fas fa-arrow-right-to-bracket"></i>');
+                    fecharModalCarregando();
+                }
+            });
+
+          
             const modalRetorno = new bootstrap.Modal(document.getElementById('modalRetorno'));
             modalRetorno.show();
         }     
@@ -493,6 +529,14 @@
                 const inputWidth = $(this).outerWidth();
                 $("#sugestoesSetor_saida").css("width", inputWidth + "px");
             });
+
+
+            // Quando o campo recebe foco, ajusta a largura da lista de sugestões
+            $("#destino_saida").on("focus", function() {
+                const inputWidth = $(this).outerWidth();
+                $("#sugestoesDestino_saida").css("width", inputWidth + "px");
+            });
+
 
             // Configuração dos splitters
             function setupSplitters() {
