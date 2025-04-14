@@ -315,25 +315,123 @@
         let motoristasLista = [];
         let veiculosLista = [];
         
+        // Declarando as funções no escopo global
+        function carregarSaidaSemRetorno() {
+            $.ajax({
+                url: `/api/fluxo_veiculo_saida_sem_retorno`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Saida de veículo sem retorno do dia carregadas:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                    } else {
+                        data.forEach(function(itens) {
+                            html += `<tr>
+                                <td>${itens.id_fluxo}</td>
+                                <td>${itens.setor_solicitante}</td>
+                                <td>${itens.destino}</td>
+                                <td>${itens.veiculo}</td>
+                                <td>${itens.nome_motorista}</td>
+                                <td>${itens.datahora_saida}</td>
+                                <td>${itens.obs}</td>
+                                <td class="sticky-column">
+                                    <div class="d-flex justify-content-around">
+                                        <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução" onclick="abrirModalRetorno(${itens.id_fluxo})">
+                                            <i class="fa-solid fa-car"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-saida-sem-retorno-dia').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar locações em trânsito:", error);
+                    console.error("Status:", xhr.status);
+                    console.error("Resposta:", xhr.responseText);
+                    $('#tabela-saida-sem-retorno-dia').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });
+        }
 
-        document.getElementById('motorista_saida').addEventListener('change', function() {
-            var selectValue = this.value;
-            var inputElement = document.getElementById('motoristanaocad_saida');
+        function carregarRetornoDia() {
+            $.ajax({
+                url: `/api/fluxo_veiculo_retorno_dia`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Retorno de veículo do dia carregadas:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                    } else {
+                        data.forEach(function(itens) {
+                            html += `<tr>
+                                <td>${itens.id_fluxo}</td>
+                                <td>${itens.setor_solicitante}</td>
+                                <td>${itens.destino}</td>
+                                <td>${itens.veiculo}</td>
+                                <td>${itens.nome_motorista}</td>
+                                <td>${itens.datahora_saida}</td>
+                                <td>${itens.datahora_retorno}</td>
+                                <td>${itens.obs}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-retorno-dia').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar locações em trânsito:", error);
+                    console.error("Status:", xhr.status);
+                    console.error("Resposta:", xhr.responseText);
+                    $('#tabela-retorno-dia').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });
+        }
 
-            if (selectValue === "0") {
-                inputElement.style.display = 'block';
-            } else {
-                inputElement.style.display = 'none';
-            }
-        });
-
-
-        // Quando o campo recebe foco, ajusta a largura da lista de sugestões
-        $("#setor_saida").on("focus", function() {
-            const inputWidth = $(this).outerWidth();
-            $("#sugestoesSetor_saida").css("width", inputWidth + "px");
-        });        
-      
+        function carregarSaidasRetornoPendente() {
+            $.ajax({
+                url: `/api/fluxo_veiculo_saida_retorno_pendente`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Saida de veículo sem retorno do dia carregadas:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                    } else {
+                        data.forEach(function(itens) {
+                            html += `<tr>
+                                <td>${itens.id_fluxo}</td>
+                                <td>${itens.setor_solicitante}</td>
+                                <td>${itens.destino}</td>
+                                <td>${itens.veiculo}</td>
+                                <td>${itens.nome_motorista}</td>
+                                <td>${itens.datahora_saida}</td>
+                                <td>${itens.obs}</td>
+                                <td class="sticky-column">
+                                    <div class="d-flex justify-content-around">
+                                        <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução" onclick="abrirModalRetorno(${itens.id_fluxo})">
+                                            <i class="fa-solid fa-car"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-saida-retorno-pendente').html(html);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar locações em trânsito:", error);
+                    console.error("Status:", xhr.status);
+                    console.error("Resposta:", xhr.responseText);
+                    $('#tabela-saida-retorno-pendente').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                }
+            });
+        }
 
         // Função para mostrar o modal de carregamento
         function mostrarModalCarregando() {
@@ -353,16 +451,47 @@
             }
         }
 
-        carregarSaidaSemRetorno()
-        carregarRetornoDia()
-        carregarSaidasRetornoPendente() 
-        
+        // Função para abrir o modal de retorno
+        function abrirModalRetorno(idFluxo) {
+            // Implementar lógica para carregar os dados do fluxo e abrir o modal
+            console.log("Abrindo modal de retorno para ID:", idFluxo);
+            // Aqui você faria uma requisição AJAX para buscar os dados do veículo
+            // e então preencheria o modal antes de exibi-lo
+            
+            // Exemplo:
+            // carregarDadosRetorno(idFluxo);
+            
+            const modalRetorno = new bootstrap.Modal(document.getElementById('modalRetorno'));
+            modalRetorno.show();
+        }     
+
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
+            // Agora chama as funções depois que o documento estiver pronto
+            carregarSaidaSemRetorno();
+            carregarRetornoDia();
+            carregarSaidasRetornoPendente();
 
             // Converter para maiúsculo os campos com classe uppercase
-              $('.uppercase').on('input', function() {
+            $('.uppercase').on('input', function() {
                 $(this).val($(this).val().toUpperCase());
+            });
+
+            document.getElementById('motorista_saida').addEventListener('change', function() {
+                var selectValue = this.value;
+                var inputElement = document.getElementById('motoristanaocad_saida');
+
+                if (selectValue === "0") {
+                    inputElement.style.display = 'block';
+                } else {
+                    inputElement.style.display = 'none';
+                }
+            });
+
+            // Quando o campo recebe foco, ajusta a largura da lista de sugestões
+            $("#setorSolicitante_saida").on("focus", function() {
+                const inputWidth = $(this).outerWidth();
+                $("#sugestoesSetor_saida").css("width", inputWidth + "px");
             });
 
             // Configuração dos splitters
@@ -389,7 +518,7 @@
                         const deltaY = e.pageY - startY1;
                         
                         // Aplicar nova altura aos groupbox superiores
-                        saidaGroupbox.find('.groupbox-body').height(Math.max(100, startHeight1.processos + deltaY));
+                        saidaGroupbox.find('.groupbox-body').height(Math.max(100, startHeight1.saidas + deltaY));
                     });
                     
                     $(document).on('mouseup', function() {
@@ -403,7 +532,7 @@
                 let isDragging2 = false;
                 let startY2 = 0;
                 let startHeight2 = 0;
-                let startHeightFinalizadas = 0;
+                let startHeightPendente = 0;
                 
                 $('#splitter2').on('mousedown', function(e) {
                     e.preventDefault();
@@ -430,7 +559,7 @@
                         
                         // Opcionalmente, ajustar o grupo de Locações Finalizadas para compensar
                         // Isso criará um efeito de "push" em vez de apenas redimensionar um grupo
-                        pendenteGroupbox.find('.groupbox-body').height(startHeightPendente - deltaY);
+                        pendenteGroupbox.find('.groupbox-body').height(Math.max(50, startHeightPendente - deltaY));
                     });
                     
                     $(document).on('mouseup', function() {
@@ -457,7 +586,6 @@
             $(window).on('resize', function() {
                 // Recalcular dimensões se necessário
             });
-
             
             // Contador de caracteres para observações
             $('#obs_saida').on('input', function() {
@@ -469,126 +597,203 @@
                 const caracteres = $(this).val().length;
                 $('#charCount2').text(caracteres);
             });
-         
-            // Função para carregar Saida sem retorno do dia
-            function carregarSaidaSemRetorno() {
-                $.ajax({
-                    url: `/api/fluxo_veiculo_saida_sem_retorno`,
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        console.log("Saida de veículo sem retorno do dia carregadas:", data);
-                        let html = '';
-                        if (data.length === 0) {
-                            html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
-                        } else {
-                            data.forEach(function(itens) {
-                                html += `<tr>
-                                    <td>${itens.id_fluxo}</td>
-                                    <td>${itens.setor_solicitante}</td>
-                                    <td>${itens.destino}</td>
-                                    <td>${itens.veiculo}</td>
-                                    <td>${itens.nome_motorista}</td>
-                                    <td>${itens.datahora_saida}</td>
-                                    <td>${itens.obs}</td>
-                                    <td class="sticky-column">
-                                        <div class="d-flex justify-content-around">
-                                            <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução">
-                                                <i class="fa-solid fa-car"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>`;
-                            });
-                        }
-                        $('#tabela-saida-sem-retorno-dia').html(html);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Erro ao carregar locações em trânsito:", error);
-                        console.error("Status:", xhr.status);
-                        console.error("Resposta:", xhr.responseText);
-                        $('#tabela-saida-sem-retorno-dia').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
-                    }
-                });
-            }
+            
+            // Fechar modal event
+            $('#modalNovaSaida').on('hidden.bs.modal', function() {
+                // Reativar o footer quando o modal fechar
+                $('.footer').removeClass('d-none');
+            });
+            
+            // Ação do botão Nova Saída
+            $('#btnNovaSaida').click(function() {
+                console.log("Botão Nova Saída clicado");
+                
+                // Mostrar modal de carregamento
+                mostrarModalCarregando();
 
-            // Função para carregar saidas com Retornos no dia
-            function carregarRetornoDia() {
-                $.ajax({
-                    url: `/api/fluxo_veiculo_retorno_dia`,
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        console.log("Retorno de veículo do dia carregadas:", data);
-                        let html = '';
-                        if (data.length === 0) {
-                            html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
-                        } else {
-                            data.forEach(function(itens) {
-                                html += `<tr>
-                                    <td>${itens.id_fluxo}</td>
-                                    <td>${itens.setor_solicitante}</td>
-                                    <td>${itens.destino}</td>
-                                    <td>${itens.veiculo}</td>
-                                    <td>${itens.nome_motorista}</td>
-                                    <td>${itens.datahora_saida}</td>
-                                    <td>${itens.datahora_retorno}</td>
-                                    <td>${itens.obs}</td>
-                                </tr>`;
-                            });
-                        }
-                        $('#tabela-retorno-dia').html(html);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Erro ao carregar locações em trânsito:", error);
-                        console.error("Status:", xhr.status);
-                        console.error("Resposta:", xhr.responseText);
-                        $('#tabela-retorno-dia').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
-                    }
-                });
-            }
+                // Esconder o footer quando o modal estiver aberto
+                $('.footer').addClass('d-none');
+                
+                // Resetar o formulário
+                $('#formNovaSaida')[0].reset();
+                
+                // Definir data atual para o campo de data
+                const dataAtual = new Date().toISOString().split('T')[0];
+                $('#datasaida_saida').val(dataAtual);
+                
+                // Definir hora atual para o campo de hora
+                const horaAtual = new Date().toTimeString().split(' ')[0].substring(0, 5);
+                $('#horasaida_saida').val(horaAtual);
+                
+                // Contador para controlar carregamentos pendentes
+                let carregamentosPendentes = 2; // Quantidade de carregamentos assíncronos
 
-            // Função para carregar Saidas Pendentes
-            function carregarSaidasRetornoPendente() {
+                function verificarCarregamentoCompleto() {
+                    carregamentosPendentes--;
+                    if (carregamentosPendentes <= 0) {
+                        // Todos os dados foram carregados
+                        fecharModalCarregando();
+                        
+                        // Abrir o modal principal apenas após todos os dados estarem carregados
+                        const modalNovaSaida = new bootstrap.Modal(document.getElementById('modalNovaSaida'));
+                        modalNovaSaida.show();
+                    }
+                }
+                
+                // Carregar motoristas com callback
                 $.ajax({
-                    url: `/api/fluxo_veiculo_saida_retorno_pendente`,
+                    url: '/api/fluxo_lista_motorista',
                     type: 'GET',
                     dataType: 'json',
                     success: function(data) {
-                        console.log("Saida de veículo sem retorno do dia carregadas:", data);
-                        let html = '';
-                        if (data.length === 0) {
-                            html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
-                        } else {
-                            data.forEach(function(itens) {
-                                html += `<tr>
-                                    <td>${itens.id_fluxo}</td>
-                                    <td>${itens.setor_solicitante}</td>
-                                    <td>${itens.destino}</td>
-                                    <td>${itens.veiculo}</td>
-                                    <td>${itens.nome_motorista}</td>
-                                    <td>${itens.datahora_saida}</td>
-                                    <td>${itens.obs}</td>
-                                    <td class="sticky-column">
-                                        <div class="d-flex justify-content-around">
-                                            <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução">
-                                                <i class="fa-solid fa-car"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>`;
-                            });
-                        }
-                        $('#tabela-saida-retorno-pendente').html(html);
+                        motoristasLista = data;
+                        let html = '<option value="">Selecione...</option>';
+                        html += '<option value="0">MOTORISTA NÃO CADASTRADO</option>';
+                        data.forEach(function(lista) {
+                            html += `<option value="${lista.ID_MOTORISTA}">${lista.NM_MOTORISTA}</option>`;
+                        });
+                        $('#motorista_saida').html(html);
+                        verificarCarregamentoCompleto();
                     },
                     error: function(xhr, status, error) {
-                        console.error("Erro ao carregar locações em trânsito:", error);
-                        console.error("Status:", xhr.status);
-                        console.error("Resposta:", xhr.responseText);
-                        $('#tabela-saida-retorno-pendente').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                        console.error("Erro ao carregar motoristas:", error);
+                        alert("Erro ao carregar lista de motoristas.");
+                        verificarCarregamentoCompleto();
                     }
                 });
-            }
+                
+                // Carregar veículos com callback
+                $.ajax({
+                    url: '/api/fluxo_lista_veiculos',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        veiculosLista = data;
+                        let html = '<option value="">Selecione...</option>';
+                        data.forEach(function(lista) {
+                            html += `<option value="${lista.ID_VEICULO}">${lista.VEICULO}</option>`;
+                        });
+                        $('#veiculo_saida').html(html);
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar veículos:", error);
+                        alert("Erro ao carregar lista de veículos.");
+                        verificarCarregamentoCompleto();
+                    }
+                });
+            });
+            
+            // Busca de setores
+            $('#setorSolicitante_saida').on('input', function() {
+                const termo = $(this).val().trim();
+                if (termo.length >= 3) {
+                    $.ajax({
+                        url: `/api/fluxo_busca_setor?termo=${encodeURIComponent(termo)}`,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            let html = '';
+                            if (data.length > 0) {
+                                data.forEach(function(setores) {
+                                    html += `<div class="p-2 border-bottom setor-sugestao" style="cursor: pointer;">${setores}</div>`;
+                                });
+                                $('#sugestoesSetor_saida').html(html).show();
+                                
+                                // Adicionar evento de clique às sugestões
+                                $('.setor-sugestao').click(function() {
+                                    const setorSelecionado = $(this).text();
+                                    $('#setorSolicitante_saida').val(setorSelecionado);
+                                    $('#sugestoesSetor_saida').hide();
+                                });
+                            } else {
+                                $('#sugestoesSetor_saida').hide();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Erro ao buscar setor:", error);
+                            $('#sugestoesSetor_saida').hide();
+                        }
+                    });
+                } else {
+                    $('#sugestoesSetor_saida').hide();
+                }
+            });
+
+            // Adicionar o mesmo comportamento para o campo de destino
+            $('#destino_saida').on('input', function() {
+                const termo = $(this).val().trim();
+                if (termo.length >= 3) {
+                    $.ajax({
+                        url: `/api/fluxo_busca_destino?termo=${encodeURIComponent(termo)}`,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            let html = '';
+                            if (data.length > 0) {
+                                data.forEach(function(destinos) {
+                                    html += `<div class="p-2 border-bottom destino-sugestao" style="cursor: pointer;">${destinos}</div>`;
+                                });
+                                $('#sugestoesDestino_saida').html(html).show();
+                                
+                                // Adicionar evento de clique às sugestões
+                                $('.destino-sugestao').click(function() {
+                                    const destinoSelecionado = $(this).text();
+                                    $('#destino_saida').val(destinoSelecionado);
+                                    $('#sugestoesDestino_saida').hide();
+                                });
+                            } else {
+                                $('#sugestoesDestino_saida').hide();
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Erro ao buscar destino:", error);
+                            $('#sugestoesDestino_saida').hide();
+                        }
+                    });
+                } else {
+                    $('#sugestoesDestino_saida').hide();
+                }
+            });
+
+            // Fechar sugestões ao clicar fora
+            $(document).click(function(e) {
+                if (!$(e.target).closest('#setorSolicitante_saida, #sugestoesSetor_saida').length) {
+                    $('#sugestoesSetor_saida').hide();
+                }
+                if (!$(e.target).closest('#destino_saida, #sugestoesDestino_saida').length) {
+                    $('#sugestoesDestino_saida').hide();
+                }
+            });
+            
+            // Adicionar evento para o botão Salvar Saída
+            $('#btnSalvarSaida').click(function() {
+                console.log("Botão Salvar Saída clicado");
+                
+                // Aqui você implementaria a lógica para salvar os dados
+                // ...
+                
+                // Mostrar modal de sucesso
+                $('#mensagemSucesso').html("Saída de veículo registrada com sucesso!");
+                const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+                modalSucesso.show();
+                
+                // Fechar o modal principal
+                const modalNovaSaida = bootstrap.Modal.getInstance(document.getElementById('modalNovaSaida'));
+                if (modalNovaSaida) {
+                    modalNovaSaida.hide();
+                }
+                
+                // Recarregar os dados
+                carregarSaidaSemRetorno();
+            });
+        });
+
+
+
+
+
+
 
 
             // // Salvar locação
@@ -702,128 +907,128 @@
             //     });
             // });              
             
-            // Fechar modal event
-            $('#modalNovaSaida').on('hidden.bs.modal', function () {
-                // Reativar o footer quando o modal fechar
-                $('.footer').removeClass('d-none');
-            });          
+            // // Fechar modal event
+            // $('#modalNovaSaida').on('hidden.bs.modal', function () {
+            //     // Reativar o footer quando o modal fechar
+            //     $('.footer').removeClass('d-none');
+            // });          
             
-            // Ação do botão Nova Locação
-            $('#btnNovaSaida').click(function() {
+            // // Ação do botão Nova Locação
+            // $('#btnNovaSaida').click(function() {
                 
-                // Mostrar modal de carregamento
-                mostrarModalCarregando();
+            //     // Mostrar modal de carregamento
+            //     mostrarModalCarregando();
 
-                // Esconder o footer quando o modal estiver aberto
-                $('.footer').addClass('d-none');
+            //     // Esconder o footer quando o modal estiver aberto
+            //     $('.footer').addClass('d-none');
                 
-                // Resetar o formulário
-                $('#formNovaSaida')[0].reset();
+            //     // Resetar o formulário
+            //     $('#formNovaSaida')[0].reset();
                 
-                // Contador para controlar carregamentos pendentes
-                let carregamentosPendentes = 2; // Quantidade de carregamentos assíncronos
+            //     // Contador para controlar carregamentos pendentes
+            //     let carregamentosPendentes = 2; // Quantidade de carregamentos assíncronos
 
-                function verificarCarregamentoCompleto() {
-                    carregamentosPendentes--;
-                    if (carregamentosPendentes <= 0) {
-                        // Todos os dados foram carregados
-                        fecharModalCarregando();
+            //     function verificarCarregamentoCompleto() {
+            //         carregamentosPendentes--;
+            //         if (carregamentosPendentes <= 0) {
+            //             // Todos os dados foram carregados
+            //             fecharModalCarregando();
                         
                         
-                        // Abrir o modal principal apenas após todos os dados estarem carregados
-                        const modalNovaSaida = new bootstrap.Modal(document.getElementById('modalNovaSaida'));
-                        modalNovaSaida.show();
-                    }
-                }
+            //             // Abrir o modal principal apenas após todos os dados estarem carregados
+            //             const modalNovaSaida = new bootstrap.Modal(document.getElementById('modalNovaSaida'));
+            //             modalNovaSaida.show();
+            //         }
+            //     }
 
                 
-                // Carregar motoristas com callback
-                $.ajax({
-                    url: '/api/fluxo_lista_motorista',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        motoristasLista = data;
-                        let html = '<option value="">Selecione...</option>';
-                        data.forEach(function(lista) {
-                            html += `<option value="${lista.ID_MOTORISTA}">${lista.NM_MOTORISTA}</option>`;
-                        });
-                        $('#motorista_saida').html(html);
-                        verificarCarregamentoCompleto();
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Erro ao carregar motoristas:", error);
-                        alert("Erro ao carregar lista de motoristas.");
-                        verificarCarregamentoCompleto();
-                    }
-                });
+            //     // Carregar motoristas com callback
+            //     $.ajax({
+            //         url: '/api/fluxo_lista_motorista',
+            //         type: 'GET',
+            //         dataType: 'json',
+            //         success: function(data) {
+            //             motoristasLista = data;
+            //             let html = '<option value="">Selecione...</option>';
+            //             data.forEach(function(lista) {
+            //                 html += `<option value="${lista.ID_MOTORISTA}">${lista.NM_MOTORISTA}</option>`;
+            //             });
+            //             $('#motorista_saida').html(html);
+            //             verificarCarregamentoCompleto();
+            //         },
+            //         error: function(xhr, status, error) {
+            //             console.error("Erro ao carregar motoristas:", error);
+            //             alert("Erro ao carregar lista de motoristas.");
+            //             verificarCarregamentoCompleto();
+            //         }
+            //     });
                 
-                // Carregar veículos com callback
-                $.ajax({
-                    url: '/api/fluxo_lista_veiculos',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        veiculosLista = data;
-                        let html = '<option value="">Selecione...</option>';
-                        data.forEach(function(lista) {
-                            html += `<option value="${lista.ID_VEICULO}">${lista.VEICULO}</option>`;
-                        });
-                        $('#veiculo_saida').html(html);
-                        verificarCarregamentoCompleto();
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Erro ao carregar veículos:", error);
-                        alert("Erro ao carregar lista de veículos.");
-                        verificarCarregamentoCompleto();
-                    }
-                });
+            //     // Carregar veículos com callback
+            //     $.ajax({
+            //         url: '/api/fluxo_lista_veiculos',
+            //         type: 'GET',
+            //         dataType: 'json',
+            //         success: function(data) {
+            //             veiculosLista = data;
+            //             let html = '<option value="">Selecione...</option>';
+            //             data.forEach(function(lista) {
+            //                 html += `<option value="${lista.ID_VEICULO}">${lista.VEICULO}</option>`;
+            //             });
+            //             $('#veiculo_saida').html(html);
+            //             verificarCarregamentoCompleto();
+            //         },
+            //         error: function(xhr, status, error) {
+            //             console.error("Erro ao carregar veículos:", error);
+            //             alert("Erro ao carregar lista de veículos.");
+            //             verificarCarregamentoCompleto();
+            //         }
+            //     });
 
-            });
+            // });
 
 
-            // Busca de modelos de veículos - Edição
-            $('#setor_saida').on('input', function() {
-                const termo = $(this).val().trim();
-                if (termo.length >= 3) {
-                    $.ajax({
-                        url: `/api/fluxo_busca_setor?termo=${encodeURIComponent(termo)}`,
-                        type: 'GET',
-                        dataType: 'json',
-                        success: function(data) {
-                            let html = '';
-                            if (data.length > 0) {
-                                data.forEach(function(setores) {
-                                    html += `<div class="p-2 border-bottom modelo-sugestao" style="cursor: pointer;">${setores}</div>`;
-                                });
-                                $('#sugestoesSetor_saida').html(html).show();
+            // // Busca de modelos de veículos - Edição
+            // $('#setor_saida').on('input', function() {
+            //     const termo = $(this).val().trim();
+            //     if (termo.length >= 3) {
+            //         $.ajax({
+            //             url: `/api/fluxo_busca_setor?termo=${encodeURIComponent(termo)}`,
+            //             type: 'GET',
+            //             dataType: 'json',
+            //             success: function(data) {
+            //                 let html = '';
+            //                 if (data.length > 0) {
+            //                     data.forEach(function(setores) {
+            //                         html += `<div class="p-2 border-bottom modelo-sugestao" style="cursor: pointer;">${setores}</div>`;
+            //                     });
+            //                     $('#sugestoesSetor_saida').html(html).show();
                                 
-                                // Adicionar evento de clique às sugestões
-                                $('.modelo-sugestao').click(function() {
-                                    const setorSelecionado = $(this).text();
-                                    $('#setor_saida').val(setorSelecionado);
-                                    $('#sugestoesSetor_saida').hide();
-                                });
-                            } else {
-                                $('#sugestoesSetor_saida').hide();
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            console.error("Erro ao buscar setor:", error);
-                            $('#sugestoesSetor_saida').hide();
-                        }
-                    });
-                } else {
-                    $('#sugestoesSetor_saida').hide();
-                }
-            });
+            //                     // Adicionar evento de clique às sugestões
+            //                     $('.modelo-sugestao').click(function() {
+            //                         const setorSelecionado = $(this).text();
+            //                         $('#setor_saida').val(setorSelecionado);
+            //                         $('#sugestoesSetor_saida').hide();
+            //                     });
+            //                 } else {
+            //                     $('#sugestoesSetor_saida').hide();
+            //                 }
+            //             },
+            //             error: function(xhr, status, error) {
+            //                 console.error("Erro ao buscar setor:", error);
+            //                 $('#sugestoesSetor_saida').hide();
+            //             }
+            //         });
+            //     } else {
+            //         $('#sugestoesSetor_saida').hide();
+            //     }
+            // });
 
-            // Fechar sugestões ao clicar fora
-            $(document).click(function(e) {
-                if (!$(e.target).closest('#setor_saida, #sugestoesSetor_saida').length) {
-                    $('#sugestoesSetor_saida').hide();
-                }
-            });
+            // // Fechar sugestões ao clicar fora
+            // $(document).click(function(e) {
+            //     if (!$(e.target).closest('#setor_saida, #sugestoesSetor_saida').length) {
+            //         $('#sugestoesSetor_saida').hide();
+            //     }
+            // });
             
             ///
 
