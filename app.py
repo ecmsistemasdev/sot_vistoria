@@ -2399,30 +2399,55 @@ def fluxo_veiculos():
     return render_template('fluxo_veiculos.html')
 
 
-@app.route('/api/fluxo_lista_setores')
+# @app.route('/api/fluxo_lista_setores')
+# @login_required
+# def fluxo_lista_setores():
+#     try:
+#         cursor = mysql.connection.cursor()
+#         cursor.execute("""
+#         SELECT DISTINCT SETOR_SOLICITANTE 
+#         FROM TJ_FLUXO_VEICULOS
+#         ORDER BY SETOR_SOLICITANTE
+#         """)
+               
+#         items = cursor.fetchall()
+
+#         setores = []
+#         for item in items:
+#             lista = {'SETOR_SOLICITANTE': item[0]}
+#             setores.append(lista)
+            
+#         cursor.close()
+#         return jsonify(setores)
+        
+#     except Exception as e:
+#         app.logger.error(f"Erro ao buscar setores: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
+    
+
+@app.route('/api/fluxo_busca_setor')
 @login_required
-def fluxo_lista_setores():
+def fluxo_busca_setor():
     try:
+        termo = request.args.get('termo', '')
+        if len(termo) < 3:
+            return jsonify([])
+            
         cursor = mysql.connection.cursor()
         cursor.execute("""
-        SELECT DISTINCT SETOR_SOLICITANTE 
-        FROM TJ_FLUXO_VEICULOS
-        ORDER BY SETOR_SOLICITANTE
-        """)
-               
-        items = cursor.fetchall()
-
-        setores = []
-        for item in items:
-            lista = {'SETOR_SOLICITANTE': item[0]}
-            setores.append(lista)
-            
-        cursor.close()
-        return jsonify(setores)
+            SELECT DISTINCT SETOR_SOLICITANTE 
+            FROM TJ_FLUXO_VEICULOS
+            WHERE SETOR_SOLICITANTE LIKE %s
+            ORDER BY SETOR_SOLICITANTE
+        """, (f'%{termo}%',))
         
+        result = cursor.fetchall()
+        cursor.close()
+        
+        setores = [row[0] for row in result]
+        return jsonify(setores)
     except Exception as e:
-        app.logger.error(f"Erro ao buscar setores: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'erro': str(e)}), 500    
 
 @app.route('/api/fluxo_lista_destinos')
 @login_required
