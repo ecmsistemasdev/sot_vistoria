@@ -2451,7 +2451,7 @@ def fluxo_busca_setor():
 
 @app.route('/api/fluxo_busca_destino')
 @login_required
-def fluxo_busca_setor():
+def fluxo_busca_destino():
     try:
         termo = request.args.get('termo', '')
         if len(termo) < 3:
