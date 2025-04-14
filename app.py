@@ -2550,30 +2550,33 @@ def fluxo_veiculo_saida_sem_retorno():
             AND f.DATA_SAIDA = CURDATE()
             ORDER BY f.DATA_SAIDA, f.HORA_SAIDA
         """)
-        result = cursor.fetchone()
+        results = cursor.fetchall()  # Altere para fetchall() para obter todos os registros
         cursor.close()
-        print(f"Dados: {result}")
+        print(f"Número de registros encontrados: {len(results)}")
         
-        if result:
-            print("Processando resultado...")
+        if results:
+            print("Processando resultados...")
+            itens_list = []
             
             try:
-                itens = {
-                    'id_fluxo': result[0],
-                    'setor_solicitante': result[1],
-                    'destino': result[2],
-                    'veiculo': result[3],
-                    'id_veiculo': result[4],
-                    'id_motorista': result[5],
-                    'nome_motorista': result[6],
-                    'datahora_saida': result[7],
-                    'obs': result[8]
-                }
-                print("Dicionário itens criado com sucesso")
+                for result in results:
+                    item = {
+                        'id_fluxo': result[0],
+                        'setor_solicitante': result[1],
+                        'destino': result[2],
+                        'veiculo': result[3],
+                        'id_veiculo': result[4],
+                        'id_motorista': result[5],
+                        'nome_motorista': result[6],
+                        'datahora_saida': result[7],
+                        'obs': result[8]
+                    }
+                    itens_list.append(item)
                 
+                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
                 # Debug - veja o que está sendo enviado
-                print("Enviando para o frontend:", itens)
-                return jsonify(itens)
+                print("Enviando para o frontend:", itens_list)
+                return jsonify(itens_list)  # Retorne a lista completa
             
             except Exception as e:
                 print(f"Erro durante processamento dos dados: {str(e)}")
@@ -2581,7 +2584,7 @@ def fluxo_veiculo_saida_sem_retorno():
                 traceback.print_exc()
                 return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
         else:
-            return jsonify({'erro': 'Dados não encontrado'}), 400
+            return jsonify([])  # Retorne lista vazia em vez de erro quando não houver dados
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
@@ -2609,31 +2612,32 @@ def fluxo_veiculo_retorno_dia():
             AND f.DATA_RETORNO = CURDATE()
             ORDER BY f.DATA_RETORNO, f.HORA_RETORNO
         """)
-        result = cursor.fetchone()
+        results = cursor.fetchall()  # Altere para fetchall()
         cursor.close()
-        print(f"Dados: {result}")
+        print(f"Número de registros encontrados: {len(results)}")
         
-        if result:
-            print("Processando resultado...")
+        if results:
+            print("Processando resultados...")
+            itens_list = []
             
             try:
-                itens = {
-                    'id_fluxo': result[0],
-                    'setor_solicitante': result[1],
-                    'destino': result[2],
-                    'veiculo': result[3],
-                    'id_veiculo': result[4],
-                    'id_motorista': result[5],
-                    'nome_motorista': result[6],
-                    'datahora_saida': result[7],
-                    'datahora_retorno': result[8],
-                    'obs': result[9]
-                }
-                print("Dicionário itens criado com sucesso")
+                for result in results:
+                    item = {
+                        'id_fluxo': result[0],
+                        'setor_solicitante': result[1],
+                        'destino': result[2],
+                        'veiculo': result[3],
+                        'id_veiculo': result[4],
+                        'id_motorista': result[5],
+                        'nome_motorista': result[6],
+                        'datahora_saida': result[7],
+                        'datahora_retorno': result[8],
+                        'obs': result[9]
+                    }
+                    itens_list.append(item)
                 
-                # Debug - veja o que está sendo enviado
-                print("Enviando para o frontend:", itens)
-                return jsonify(itens)
+                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
+                return jsonify(itens_list)  # Retorne a lista completa
             
             except Exception as e:
                 print(f"Erro durante processamento dos dados: {str(e)}")
@@ -2641,7 +2645,7 @@ def fluxo_veiculo_retorno_dia():
                 traceback.print_exc()
                 return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
         else:
-            return jsonify({'erro': 'Dados não encontrado'}), 400
+            return jsonify([])  # Retorne lista vazia
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
@@ -2669,30 +2673,31 @@ def fluxo_veiculo_saida_retorno_pendente():
             AND f.DATA_SAIDA <> CURDATE()
             ORDER BY f.DATA_SAIDA, f.HORA_SAIDA
         """)
-        result = cursor.fetchone()
+        results = cursor.fetchall()  # Altere para fetchall()
         cursor.close()
-        print(f"Dados: {result}")
+        print(f"Número de registros encontrados: {len(results)}")
         
-        if result:
-            print("Processando resultado...")
+        if results:
+            print("Processando resultados...")
+            itens_list = []
             
             try:
-                itens = {
-                    'id_fluxo': result[0],
-                    'setor_solicitante': result[1],
-                    'destino': result[2],
-                    'veiculo': result[3],
-                    'id_veiculo': result[4],
-                    'id_motorista': result[5],
-                    'nome_motorista': result[6],
-                    'datahora_saida': result[7],
-                    'obs': result[8]
-                }
-                print("Dicionário itens criado com sucesso")
+                for result in results:
+                    item = {
+                        'id_fluxo': result[0],
+                        'setor_solicitante': result[1],
+                        'destino': result[2],
+                        'veiculo': result[3],
+                        'id_veiculo': result[4],
+                        'id_motorista': result[5],
+                        'nome_motorista': result[6],
+                        'datahora_saida': result[7],
+                        'obs': result[8]
+                    }
+                    itens_list.append(item)
                 
-                # Debug - veja o que está sendo enviado
-                print("Enviando para o frontend:", itens)
-                return jsonify(itens)
+                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
+                return jsonify(itens_list)  # Retorne a lista completa
             
             except Exception as e:
                 print(f"Erro durante processamento dos dados: {str(e)}")
@@ -2700,7 +2705,7 @@ def fluxo_veiculo_saida_retorno_pendente():
                 traceback.print_exc()
                 return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
         else:
-            return jsonify({'erro': 'Dados não encontrado'}), 400
+            return jsonify([])  # Retorne lista vazia
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
