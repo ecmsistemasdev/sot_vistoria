@@ -2449,30 +2449,55 @@ def fluxo_busca_setor():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500    
 
-@app.route('/api/fluxo_lista_destinos')
+@app.route('/api/fluxo_busca_destino')
 @login_required
-def fluxo_lista_destinos():
+def fluxo_busca_setor():
     try:
+        termo = request.args.get('termo', '')
+        if len(termo) < 3:
+            return jsonify([])
+            
         cursor = mysql.connection.cursor()
         cursor.execute("""
-        SELECT DISTINCT DESTINO 
-        FROM TJ_FLUXO_VEICULOS
-        ORDER BY DESTINO
-        """)
-               
-        items = cursor.fetchall()
-
-        destinos = []
-        for item in items:
-            lista = {'DESTINO': item[0]}
-            destinos.append(lista)
-            
-        cursor.close()
-        return jsonify(destinos)
+            SELECT DISTINCT DESTINO 
+            FROM TJ_FLUXO_VEICULOS
+            WHERE DESTINO LIKE %s
+            ORDER BY DESTINO
+        """, (f'%{termo}%',))
         
+        result = cursor.fetchall()
+        cursor.close()
+        
+        destinos = [row[0] for row in result]
+        return jsonify(destinos)
     except Exception as e:
-        app.logger.error(f"Erro ao buscar setores: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'erro': str(e)}), 500    
+
+
+# @app.route('/api/fluxo_lista_destinos')
+# @login_required
+# def fluxo_lista_destinos():
+#     try:
+#         cursor = mysql.connection.cursor()
+#         cursor.execute("""
+#         SELECT DISTINCT DESTINO 
+#         FROM TJ_FLUXO_VEICULOS
+#         ORDER BY DESTINO
+#         """)
+               
+#         items = cursor.fetchall()
+
+#         destinos = []
+#         for item in items:
+#             lista = {'DESTINO': item[0]}
+#             destinos.append(lista)
+            
+#         cursor.close()
+#         return jsonify(destinos)
+        
+#     except Exception as e:
+#         app.logger.error(f"Erro ao buscar setores: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/fluxo_lista_motorista')
 @login_required
@@ -2481,7 +2506,7 @@ def fluxo_lista_motorista():
         cursor = mysql.connection.cursor()
         cursor.execute("""
         SELECT ID_MOTORISTA, NM_MOTORISTA 
-        FROM TJ_MOTORISTA WHERE ATIVO = 'S'
+        FROM TJ_MOTORISTA WHERE ATIVO = 'S' WHERE ID_MOTORISTA <> 0
         ORDER BY NM_MOTORISTA
         """)
                
@@ -2565,7 +2590,7 @@ def fluxo_veiculo_saida_sem_retorno():
                         'setor_solicitante': result[1],
                         'destino': result[2],
                         'veiculo': result[3],
-                        'id_veiculo': result[4],
+                        'id_veiculo': result[4],''
                         'id_motorista': result[5],
                         'nome_motorista': result[6],
                         'datahora_saida': result[7],
