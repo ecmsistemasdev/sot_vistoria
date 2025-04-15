@@ -296,6 +296,31 @@ td {
     color: #666;
 }
 
-.input-readonly {
-    rgb(191, 210, 211)
+.form-control[readonly] {
+    background-color: #f8f9fa; /* Cor de fundo cinza bem claro */
+    border-color: #ced4da; /* Borda suave */
+    color: #6c757d; /* Texto em cinza para indicar que não é editável */
+    cursor: default; /* Cursor padrão em vez de texto */
+    box-shadow: none; /* Remove qualquer sombra */
+}
+
+/* Adicionar uma borda sutil quando o campo recebe foco, mesmo sendo readonly */
+.form-control[readonly]:focus {
+    border-color: #adb5bd;
+    box-shadow: 0 0 0 0.1rem rgba(108, 117, 125, 0.1);
+}
+
+/* Variante com fundo mais colorido, se preferir */
+.form-control.bg-readonly {
+    background-color: #e9ecef; /* Cinza mais escuro */
+}
+
+/* Outra opção com tom azulado suave */
+.form-control.bg-readonly-blue {
+    background-color: #e7f1ff; /* Azul bem claro */
+}
+
+/* Opção com tom esverdeado suave */
+.form-control.bg-readonly-green {
+    background-color: #e8f5e9; /* Verde bem claro */
 }
