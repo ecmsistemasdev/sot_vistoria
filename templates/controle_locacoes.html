@@ -573,6 +573,9 @@
                     </form>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-danger btn-sm" id="btnExcluirLocacao">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>                    
                     <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
@@ -584,8 +587,8 @@
         </div>
     </div>    
 
-     <!-- Modal Visualiza Locação -->
-     <div class="modal fade" id="modalVisualizaLocacao" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalVisualizaLocacaoLabel" aria-hidden="true">
+    <!-- Modal Visualiza Locação -->
+    <div class="modal fade" id="modalVisualizaLocacao" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalVisualizaLocacaoLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
@@ -726,6 +729,28 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal fade" id="modalConfirmacaoExclusao" tabindex="-1" aria-labelledby="modalConfirmacaoExclusaoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="modalConfirmacaoExclusaoLabel">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir esta locação?</p>
+                    <p class="small text-danger"><strong>Atenção:</strong> Esta ação não poderá ser desfeita!</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="btnConfirmarExclusao">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>  
     
     <!-- ============== HTML DO MODAL DE CARREGAMENTO ============== -->
     <div class="modal fade" id="modalCarregando" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
@@ -755,6 +780,7 @@
         let arquivoCnh = null;
         let qtdDiariasEditadaManualmente = false;
         let valorDifEditadoManualmente = false;
+        let idLocacaoAtual;
         
         const TOLERANCIA_HORAS = 2; // 2 horas de tolerância
         const FRACAO_HORA_EXTRA = 0.1; // 1/10 do valor da diária por hora extra
@@ -807,6 +833,17 @@
             if (modalCarregando) {
                 modalCarregando.hide();
             }
+        }
+
+        // Função para abrir o modal de edição (assumindo que você já tem algo semelhante)
+        function abrirModalEditar(idLocacao) {
+            idLocacaoAtual = idLocacao;
+            
+            // Aqui você carregaria os dados da locação para o modal de edição
+            // ...
+
+            // Abre o modal de edição
+            $('#modalEditarLocacao').modal('show');
         }
 
         // Carregar lista de processos ao iniciar a página
@@ -2233,10 +2270,77 @@
                 });
             });
 
-            //////
+            // Evento de clique no botão de excluir locação
+            $(document).on('click', '#btnExcluirLocacao', function() {
+                // Fecha o modal de edição
+                $('#modalEditarLocacao').modal('hide');
+                
+                // Abre o modal de confirmação de exclusão
+                $('#modalConfirmacaoExclusao').modal('show');
+            });
+
+            // Evento de clique no botão de confirmar exclusão
+            $(document).on('click', '#btnConfirmarExclusao', function() {
+                // Desabilita o botão para evitar cliques múltiplos
+                $(this).prop('disabled', true);
+                $(this).html('<i class="fas fa-spinner fa-spin"></i> Excluindo...');
+                
+                // Faz a requisição AJAX para excluir a locação
+                $.ajax({
+                    url: `api/excluir_locacao/${idLocacaoAtual}`,
+                    type: 'DELETE',
+                    success: function(response) {
+                        // Fecha o modal de confirmação
+                        $('#modalConfirmacaoExclusao').modal('hide');
+                        
+                        // Exibe mensagem de sucesso
+                        Swal.fire({
+                            title: 'Sucesso!',
+                            text: 'Locação excluída com sucesso.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            // Recarregar locações em trânsito se a função existir
+                            if (typeof carregarLocacoesTransito === 'function') {
+                                carregarLocacoesTransito(processoIdSelecionado);
+                            }
+
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        // Reativa o botão
+                        $('#btnConfirmarExclusao').prop('disabled', false);
+                        $('#btnConfirmarExclusao').html('<i class="fas fa-trash"></i> Excluir');
+                        
+                        // Exibe mensagem de erro
+                        Swal.fire({
+                            title: 'Erro!',
+                            text: 'Não foi possível excluir a locação. ' + (xhr.responseJSON?.message || error),
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            });
+
+            // Se o modal de edição for fechado, limpa o ID atual da locação
+            $('#modalEditarLocacao').on('hidden.bs.modal', function() {
+                idLocacaoAtual = null;
+            });
+
+            // Se o modal de confirmação for fechado, reativa o botão de confirmar exclusão
+            $('#modalConfirmacaoExclusao').on('hidden.bs.modal', function() {
+                $('#btnConfirmarExclusao').prop('disabled', false);
+                $('#btnConfirmarExclusao').html('<i class="fas fa-trash"></i> Excluir');
+                
+                // Se o modal de edição ainda estiver aberto, mostra-o novamente
+                if (idLocacaoAtual) {
+                    $('#modalEditarLocacao').modal('show');
+                }
+            });
 
         });
-        
+
         // Função para carregar setores  - Form Nova Locação
         function carregarSetores() {
             $.ajax({
