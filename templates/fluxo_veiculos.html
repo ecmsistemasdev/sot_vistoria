@@ -518,7 +518,53 @@
           
             const modalRetorno = new bootstrap.Modal(document.getElementById('modalRetorno'));
             modalRetorno.show();
-        }     
+        }
+
+        // Função para validar o formulário
+        function validarFormularioSaida() {
+            if (!$('#setorSolicitante_saida').val()) {
+                alert("Por favor, selecione o setor solicitante.");
+                return false;
+            }
+            
+            if (!$('#destino_saida').val()) {
+                alert("Por favor, informe o destino.");
+                return false;
+            }
+            
+            if (!$('#veiculo_saida').val()) {
+                alert("Por favor, selecione um veículo.");
+                return false;
+            }
+            
+            if (!$('#motorista_saida').val()) {
+                alert("Por favor, selecione um motorista.");
+                return false;
+            }
+            
+            if (!$('#datasaida_saida').val()) {
+                alert("Por favor, informe a data de saída.");
+                return false;
+            }
+            
+            if (!$('#horasaida_saida').val()) {
+                alert("Por favor, informe a hora de saida.");
+                return false;
+            }
+            
+            // Verificar se é necessário o nome do motorista não cadastrado
+            const idMotorista = $('#motorista_saida').val();
+            
+            if (idMotorista == 0 || idMotorista === '0') {
+                if (!$('#motoristanaocad_saida').val()) {
+                    alert("Por favor, informe o nome do motorista.");
+                    return false;
+                }
+            }
+                            
+            return true;
+        }    
+
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
@@ -832,23 +878,91 @@
             // Adicionar evento para o botão Salvar Saída
             $('#btnSalvarSaida').click(function() {
                 console.log("Botão Salvar Saída clicado");
+                // Validar formulário
+                if (!validarFormularioSaida()) {
+                    return;
+                }                
                 
-                // Aqui você implementaria a lógica para salvar os dados
-                // ...
-                
-                // Mostrar modal de sucesso
-                $('#mensagemSucesso').html("Saída de veículo registrada com sucesso!");
-                const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
-                modalSucesso.show();
-                
-                // Fechar o modal principal
-                const modalNovaSaida = bootstrap.Modal.getInstance(document.getElementById('modalNovaSaida'));
-                if (modalNovaSaida) {
-                    modalNovaSaida.hide();
-                }
-                
-                // Recarregar os dados
-                carregarSaidaSemRetorno();
+
+                $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
+
+
+                // Preparar dados para envio
+                const formData = new FormData();
+                formData.append('setorSolicitante_saida', $('#setorSolicitante_saida').val());
+                formData.append('destino_saida', $('#destino_saida').val());
+                formData.append('veiculo_saida', $('#veiculo_saida').val());
+                formData.append('motorista_saida', $('#motorista_saida').val());
+                formData.append('motoristanaocad_saida', $('#motoristanaocad_saida').val());
+                formData.append('datasaida_saida', $('#datasaida_saida').val());
+                formData.append('horasaida_saida', $('#horasaida_saida').val());
+                formData.append('obs_saida', $('#obs_saida').val());
+            
+                // Enviar dados para API
+                $.ajax({
+                    url: '/api/fluxo_nova_saida',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        console.log("Resposta:", response);
+                        
+                        // Mostrar mensagem de sucesso
+                        let mensagem = "Saída registrada com sucesso!";
+                        
+                        $('#mensagemSucesso').text(mensagem);
+                        
+                        // Fechar modal de locação
+                        $('#modalNovaSaida').modal('hide');
+                        
+                        // Mostrar modal de sucesso
+                        $('#mensagemSucesso').html("Saída de veículo registrada com sucesso!");
+                        const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+                        modalSucesso.show();
+                        
+                        // Reativar o footer quando o modal fechar
+                        $('.footer').removeClass('d-none');
+                        
+                        // Recarregar locações em trânsito se a função existir
+                        if (typeof carregarLocacoesTransito === 'function') {
+                            carregarLocacoesTransito(processoIdSelecionado);
+                        }
+                        
+                        
+                        // Fechar o modal principal
+                        const modalNovaSaida = bootstrap.Modal.getInstance(document.getElementById('modalNovaSaida'));
+                        if (modalNovaSaida) {
+                            modalNovaSaida.hide();
+                        }
+                        
+                        // Recarregar os dados
+                        carregarSaidaSemRetorno();
+
+
+                        // Reset botão salvar
+                        $('#btnSalvarSaida').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao salvar saída:", error);
+                        console.error("Resposta:", xhr.responseText);
+                        
+                        let mensagemErro = "Erro ao salvar saída";
+                        if (xhr.responseJSON && xhr.responseJSON.mensagem) {
+                            mensagemErro += ": " + xhr.responseJSON.mensagem;
+                        } else if (xhr.statusText) {
+                            mensagemErro += ": " + xhr.statusText;
+                        } else {
+                            mensagemErro += ": " + error;
+                        }
+                        
+                        alert(mensagemErro);
+                        
+                        // Reset botão salvar
+                        $('#btnSalvarSaida').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    }
+                });
+
             });
         });
 
