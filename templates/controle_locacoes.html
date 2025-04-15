@@ -1584,8 +1584,6 @@
                 const tr = $(this).closest('tr');
                 const idItem = tr.find('td:first').text();
                 const self = this;
-                
-                idLocacaoAtual = idItem;
 
                 // Mostrar modal de carregamento
                 mostrarModalCarregando();
@@ -1935,6 +1933,8 @@
                         // Contador para carregamentos pendentes
                         let carregamentosPendentes = 5; // Número de carregamentos assíncronos
                         
+                        idLocacaoAtual = idItem;
+
                         function verificarCarregamentoCompleto() {
                             carregamentosPendentes--;
                             console.log("Carregamentos pendentes:", carregamentosPendentes);
@@ -2284,8 +2284,13 @@
             // Evento de clique no botão de confirmar exclusão
             $(document).on('click', '#btnConfirmarExclusao', function() {
                 // Desabilita o botão para evitar cliques múltiplos
+                
+                const idItem = $('#idItemEdt').val();
+                idLocacaoAtual = idItem;
+
                 $(this).prop('disabled', true);
                 $(this).html('<i class="fas fa-spinner fa-spin"></i> Excluindo...');
+                
                 
                 // Faz a requisição AJAX para excluir a locação
                 $.ajax({
