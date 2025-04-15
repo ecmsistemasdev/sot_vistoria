@@ -2873,6 +2873,75 @@ def fluxo_saida_item(idfluxo):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+# Rota para obter o próximo ID_ITEM
+def obter_proximo_id_fluxo():
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT MAX(ID_FLUXO) FROM TJ_FLUXO_VEICULOS")
+    resultado = cursor.fetchone()
+    cursor.close()
+    
+    ultimo_id = resultado[0] if resultado[0] else 0
+    return ultimo_id + 1
+
+
+@app.route('/api/fluxo_nova_saida', methods=['POST'])
+@login_required
+def fluxo_nova_saida():
+    try:
+        setor_solicitante = request.form.get('setorSolicitante_saida')
+        destino = request.form.get('destino_saida')
+        id_veiculo = request.form.get('veiculo_saida')
+        id_motorista = request.form.get('motorista_saida')
+        motorista_nc = request.form.get('motoristanaocad_saida')
+        data_saida = request.form.get('datasaida_saida')
+        hora_saida = request.form.get('horasaida_saida')
+        obs_saida = request.form.get('obs_saida')
+        
+        # Obter o próximo ID_ITEM
+        id_fluxo = obter_proximo_id_fluxo()
+        
+        # Converter data_inicio e data_fim para objetos datetime
+        data_saida_obj = datetime.strptime(data_saida, '%Y-%m-%d')
+        
+        # Converter data para o formato dd/mm/yyyy para os campos de string
+        dt_saida = data_saida_obj.strftime('%d/%m/%Y')
+        
+        # Converter hora para string no formato hh:mm
+        hr_saida = hora_saida
+        
+        # Obter ID do usuário da sessão
+        usuario = session.get('usuario_login')
+
+        cursor = mysql.connection.cursor() 
+        # Inserir na tabela TJ_FLUXO_VEICULOS
+        cursor.execute("""
+            INSERT INTO TJ_FLUXO_VEICULOS (
+                ID_FLUXO, ID_VEICULO, DT_SAIDA, HR_SAIDA, SETOR_SOLICITANTE, DESTINO, 
+                ID_MOTORISTA, NC_CONDUTOR, OBS, FL_STATUS, USUARIO_SAIDA, DATA_SAIDA, HORA_SAIDA
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (id_fluxo, id_veiculo, dt_saida, hr_saida, setor_solicitante, destino, 
+              id_motorista, motorista_nc, obs_saida, 'S', usuario, data_saida, hora_saida        
+        ))
+
+        mysql.connection.commit()
+              
+        response_data = {
+            'sucesso': True,
+            'mensagem': 'Saida registrada com sucesso!'
+        }
+             
+        cursor.close()
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Erro ao : {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
