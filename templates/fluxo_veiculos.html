@@ -325,7 +325,7 @@
                     console.log("Saida de veículo sem retorno do dia carregadas:", data);
                     let html = '';
                     if (data.length === 0) {
-                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma saída pendente de retorno pra esta data</td></tr>';
                     } else {
                         data.forEach(function(itens) {
                             html += `<tr>
@@ -366,7 +366,7 @@
                     console.log("Retorno de veículo do dia carregadas:", data);
                     let html = '';
                     if (data.length === 0) {
-                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                        html = '<tr><td colspan="10" class="text-center">Nenhum retorno diário registrado até o momento</td></tr>';
                     } else {
                         data.forEach(function(itens) {
                             html += `<tr>
@@ -401,7 +401,7 @@
                     console.log("Saida de veículo sem retorno do dia carregadas:", data);
                     let html = '';
                     if (data.length === 0) {
-                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma saída pendente de retorno.</td></tr>';
                     } else {
                         data.forEach(function(itens) {
                             html += `<tr>
@@ -967,247 +967,6 @@
         });
 
 
-
-
-
-
-
-
-            // // Salvar locação
-            // $('#btnSalvarLocacao').click(function() {
-            //     // Validar formulário
-            //     if (!validarFormulario()) {
-            //         return;
-            //     }
-                
-            //     // Mostrar loader ou spinner
-            //     $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
-                
-            //     // Verificar se precisa de arquivo CNH
-            //     const motoristaId = $('#motorista').val();
-            //     const motoristaSelecionado = motoristasLista.find(m => m.ID_MOTORISTA == motoristaId);
-                
-            //     if (!motoristaSelecionado.FILE_PDF && !$('#arquivoCnh')[0].files[0]) {
-            //         alert("É necessário anexar a CNH do motorista.");
-            //         $(this).prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
-            //         return;
-            //     }
-                
-            //     // Preparar dados para envio
-            //     const formData = new FormData();
-            //     formData.append('id_cl', processoIdSelecionado);
-            //     formData.append('empenho', $('#empenholoc').val());
-            //     formData.append('setor_solicitante', $('#setorSolicitante').val());
-            //     formData.append('objetivo', $('#objetivo').val());
-            //     formData.append('id_veiculo_loc', $('#veiculo').val());
-            //     formData.append('id_motorista', $('#motorista').val());
-            //     formData.append('data_inicio', $('#dataInicio').val());
-            //     formData.append('data_fim', $('#dataFim').val());
-            //     formData.append('hora_inicio', $('#horaInicio').val());
-            //     formData.append('qt_diaria_km', $('#qtdDiarias').val());
-                
-                
-            //     // Corrigir formatação dos valores decimais
-            //     const valorDiaria = $('#valorDiaria').val().replace(/\./g, '').replace(',', '.');
-            //     const valorTotal = $('#valorTotal').val().replace(/\./g, '').replace(',', '.');
-                
-            //     formData.append('vl_dk', valorDiaria);
-            //     formData.append('vl_totalitem', valorTotal);
-            //     formData.append('nu_sei', $('#numSei').val());
-            //     formData.append('obs', $('#observacoes').val());
-                
-            //     // Anexar arquivo da CNH se necessário
-            //     if (!motoristaSelecionado.FILE_PDF && $('#arquivoCnh')[0].files[0]) {
-            //         // Importante: corrigir o nome do campo para 'file_cnh' conforme esperado pelo backend
-            //         formData.append('file_cnh', $('#arquivoCnh')[0].files[0]);
-            //     }
-                
-            //     // Log para verificar os dados enviados
-            //     console.log("Enviando dados para API:", processoIdSelecionado);
-                
-            //     // Enviar dados para API
-            //     $.ajax({
-            //         url: '/api/nova_locacao',
-            //         type: 'POST',
-            //         data: formData,
-            //         processData: false,
-            //         contentType: false,
-            //         success: function(response) {
-            //             console.log("Resposta:", response);
-                        
-            //             // Mostrar mensagem de sucesso
-            //             let mensagem = "Locação registrada com sucesso!";
-            //             if (response.email_enviado) {
-            //                 mensagem += " E-mail enviado com sucesso.";
-            //             } else if (response.erro_email) {
-            //                 mensagem += " A locação foi registrada, mas ocorreu um erro ao enviar o e-mail: " + response.erro_email;
-            //             }
-                        
-            //             $('#mensagemSucesso').text(mensagem);
-                        
-            //             // Fechar modal de locação
-            //             $('#modalNovaLocacao').modal('hide');
-                        
-            //             // Mostrar modal de sucesso
-            //             const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
-            //             modalSucesso.show();
-                        
-            //             // Reativar o footer quando o modal fechar
-            //             $('.footer').removeClass('d-none');
-                        
-            //             // Recarregar locações em trânsito se a função existir
-            //             if (typeof carregarLocacoesTransito === 'function') {
-            //                 carregarLocacoesTransito(processoIdSelecionado);
-            //             }
-                        
-            //             // Reset botão salvar
-            //             $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
-            //         },
-            //         error: function(xhr, status, error) {
-            //             console.error("Erro ao salvar locação:", error);
-            //             console.error("Resposta:", xhr.responseText);
-                        
-            //             let mensagemErro = "Erro ao salvar locação";
-            //             if (xhr.responseJSON && xhr.responseJSON.mensagem) {
-            //                 mensagemErro += ": " + xhr.responseJSON.mensagem;
-            //             } else if (xhr.statusText) {
-            //                 mensagemErro += ": " + xhr.statusText;
-            //             } else {
-            //                 mensagemErro += ": " + error;
-            //             }
-                        
-            //             alert(mensagemErro);
-                        
-            //             // Reset botão salvar
-            //             $('#btnSalvarLocacao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
-            //         }
-            //     });
-            // });              
-            
-            // // Fechar modal event
-            // $('#modalNovaSaida').on('hidden.bs.modal', function () {
-            //     // Reativar o footer quando o modal fechar
-            //     $('.footer').removeClass('d-none');
-            // });          
-            
-            // // Ação do botão Nova Locação
-            // $('#btnNovaSaida').click(function() {
-                
-            //     // Mostrar modal de carregamento
-            //     mostrarModalCarregando();
-
-            //     // Esconder o footer quando o modal estiver aberto
-            //     $('.footer').addClass('d-none');
-                
-            //     // Resetar o formulário
-            //     $('#formNovaSaida')[0].reset();
-                
-            //     // Contador para controlar carregamentos pendentes
-            //     let carregamentosPendentes = 2; // Quantidade de carregamentos assíncronos
-
-            //     function verificarCarregamentoCompleto() {
-            //         carregamentosPendentes--;
-            //         if (carregamentosPendentes <= 0) {
-            //             // Todos os dados foram carregados
-            //             fecharModalCarregando();
-                        
-                        
-            //             // Abrir o modal principal apenas após todos os dados estarem carregados
-            //             const modalNovaSaida = new bootstrap.Modal(document.getElementById('modalNovaSaida'));
-            //             modalNovaSaida.show();
-            //         }
-            //     }
-
-                
-            //     // Carregar motoristas com callback
-            //     $.ajax({
-            //         url: '/api/fluxo_lista_motorista',
-            //         type: 'GET',
-            //         dataType: 'json',
-            //         success: function(data) {
-            //             motoristasLista = data;
-            //             let html = '<option value="">Selecione...</option>';
-            //             data.forEach(function(lista) {
-            //                 html += `<option value="${lista.ID_MOTORISTA}">${lista.NM_MOTORISTA}</option>`;
-            //             });
-            //             $('#motorista_saida').html(html);
-            //             verificarCarregamentoCompleto();
-            //         },
-            //         error: function(xhr, status, error) {
-            //             console.error("Erro ao carregar motoristas:", error);
-            //             alert("Erro ao carregar lista de motoristas.");
-            //             verificarCarregamentoCompleto();
-            //         }
-            //     });
-                
-            //     // Carregar veículos com callback
-            //     $.ajax({
-            //         url: '/api/fluxo_lista_veiculos',
-            //         type: 'GET',
-            //         dataType: 'json',
-            //         success: function(data) {
-            //             veiculosLista = data;
-            //             let html = '<option value="">Selecione...</option>';
-            //             data.forEach(function(lista) {
-            //                 html += `<option value="${lista.ID_VEICULO}">${lista.VEICULO}</option>`;
-            //             });
-            //             $('#veiculo_saida').html(html);
-            //             verificarCarregamentoCompleto();
-            //         },
-            //         error: function(xhr, status, error) {
-            //             console.error("Erro ao carregar veículos:", error);
-            //             alert("Erro ao carregar lista de veículos.");
-            //             verificarCarregamentoCompleto();
-            //         }
-            //     });
-
-            // });
-
-
-            // // Busca de modelos de veículos - Edição
-            // $('#setor_saida').on('input', function() {
-            //     const termo = $(this).val().trim();
-            //     if (termo.length >= 3) {
-            //         $.ajax({
-            //             url: `/api/fluxo_busca_setor?termo=${encodeURIComponent(termo)}`,
-            //             type: 'GET',
-            //             dataType: 'json',
-            //             success: function(data) {
-            //                 let html = '';
-            //                 if (data.length > 0) {
-            //                     data.forEach(function(setores) {
-            //                         html += `<div class="p-2 border-bottom modelo-sugestao" style="cursor: pointer;">${setores}</div>`;
-            //                     });
-            //                     $('#sugestoesSetor_saida').html(html).show();
-                                
-            //                     // Adicionar evento de clique às sugestões
-            //                     $('.modelo-sugestao').click(function() {
-            //                         const setorSelecionado = $(this).text();
-            //                         $('#setor_saida').val(setorSelecionado);
-            //                         $('#sugestoesSetor_saida').hide();
-            //                     });
-            //                 } else {
-            //                     $('#sugestoesSetor_saida').hide();
-            //                 }
-            //             },
-            //             error: function(xhr, status, error) {
-            //                 console.error("Erro ao buscar setor:", error);
-            //                 $('#sugestoesSetor_saida').hide();
-            //             }
-            //         });
-            //     } else {
-            //         $('#sugestoesSetor_saida').hide();
-            //     }
-            // });
-
-            // // Fechar sugestões ao clicar fora
-            // $(document).click(function(e) {
-            //     if (!$(e.target).closest('#setor_saida, #sugestoesSetor_saida').length) {
-            //         $('#sugestoesSetor_saida').hide();
-            //     }
-            // });
-            
-            ///
 
             // // Botão de devolução na tabela de locações em trânsito
             // $(document).on('click', '#tabela-transito .btn-danger', function() {
