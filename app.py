@@ -1963,6 +1963,50 @@ def download_cnh_loc(id_motorista):
         return jsonify({'erro': str(e)}), 500
     
 
+@app.route('/api/excluir_locacao/<int:iditem>', methods=['DELETE'])
+@login_required
+def excluir_locacao(iditem):
+    try:
+        # Verificar se o item existe antes de excluir
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("SELECT ID_ITEM FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (iditem,))
+        item = cursor.fetchone()
+        
+        if not item:
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Item não encontrado'
+            }), 404
+        
+        # Exclui os emails relacionados
+        cursor.execute("""
+            DELETE FROM TJ_EMAIL_LOCACAO
+            WHERE ID_ITEM = %s
+        """, (iditem,))
+        
+        # Exclui a locação
+        cursor.execute("""
+            DELETE FROM TJ_CONTROLE_LOCACAO_ITENS
+            WHERE ID_ITEM = %s
+        """, (iditem,))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Locação excluída com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao excluir locação: {str(e)}")
+        mysql.connection.rollback()
+        return jsonify({
+            'sucesso': False,
+            'mensagem': f'Erro ao excluir locação: {str(e)}'
+        }), 500
+
+
 @app.route('/api/locacao_item/<int:iditem>')
 @login_required
 def locacao_item(iditem):
