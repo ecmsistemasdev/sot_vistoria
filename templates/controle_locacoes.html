@@ -836,15 +836,15 @@
         }
 
         // Função para abrir o modal de edição (assumindo que você já tem algo semelhante)
-        function abrirModalEditar(idLocacao) {
-            idLocacaoAtual = idLocacao;
+        //function abrirModalEditar(idLocacao) {
+        //    idLocacaoAtual = idLocacao;
             
             // Aqui você carregaria os dados da locação para o modal de edição
             // ...
 
             // Abre o modal de edição
-            $('#modalEditarLocacao').modal('show');
-        }
+        //    $('#modalEditarLocacao').modal('show');
+        //}
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
@@ -1585,6 +1585,8 @@
                 const idItem = tr.find('td:first').text();
                 const self = this;
                 
+                idLocacaoAtual = idItem;
+
                 // Mostrar modal de carregamento
                 mostrarModalCarregando();
                                 
