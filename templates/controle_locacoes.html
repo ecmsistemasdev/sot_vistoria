@@ -2330,21 +2330,21 @@
                 });
             });
 
-            // Se o modal de edição for fechado, limpa o ID atual da locação
-            $('#modalEditarLocacao').on('hidden.bs.modal', function() {
-                idLocacaoAtual = null;
-            });
+            // // Se o modal de edição for fechado, limpa o ID atual da locação
+            // $('#modalEditarLocacao').on('hidden.bs.modal', function() {
+            //     idLocacaoAtual = null;
+            // });
 
-            // Se o modal de confirmação for fechado, reativa o botão de confirmar exclusão
-            $('#modalConfirmacaoExclusao').on('hidden.bs.modal', function() {
-                $('#btnConfirmarExclusao').prop('disabled', false);
-                $('#btnConfirmarExclusao').html('<i class="fas fa-trash"></i> Excluir');
+            // // Se o modal de confirmação for fechado, reativa o botão de confirmar exclusão
+            // $('#modalConfirmacaoExclusao').on('hidden.bs.modal', function() {
+            //     $('#btnConfirmarExclusao').prop('disabled', false);
+            //     $('#btnConfirmarExclusao').html('<i class="fas fa-trash"></i> Excluir');
                 
-                // Se o modal de edição ainda estiver aberto, mostra-o novamente
-                if (idLocacaoAtual) {
-                    $('#modalEditarLocacao').modal('show');
-                }
-            });
+            //     // Se o modal de edição ainda estiver aberto, mostra-o novamente
+            //     if (idLocacaoAtual) {
+            //         $('#modalEditarLocacao').modal('show');
+            //     }
+            // });
 
         });
 
