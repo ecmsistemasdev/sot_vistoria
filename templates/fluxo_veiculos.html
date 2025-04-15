@@ -247,11 +247,11 @@
                         
                         <div class="col-md-4">
                             <label for="data_retorno" class="form-label small">Data Retorno</label>
-                            <input type="date" class="form-control form-control-sm" id="data_retorno" readonly>
+                            <input type="date" class="form-control form-control-sm" id="data_retorno" required>
                         </div>
                         <div class="col-md-4">
                             <label for="hora_retorno" class="form-label small">Hora Retorno</label>
-                            <input type="time" class="form-control form-control-sm" id="hora_retorno" readonly>
+                            <input type="time" class="form-control form-control-sm" id="hora_retorno" required>
                         </div>
                         <div class="col-md-12">
                             <label for="obs_retorno" class="form-label small">Observações</label>
@@ -451,6 +451,23 @@
             }
         }
 
+        // Primeiro, vamos definir a função formatarDataParaInput que está faltando
+        function formatarDataParaInput(dataString) {
+            // Se a data já estiver no formato YYYY-MM-DD, retorna ela mesma
+            if (dataString && dataString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return dataString;
+            }
+            
+            // Caso contrário, tenta converter a data para o formato adequado
+            try {
+                const data = new Date(dataString);
+                return data.toISOString().split('T')[0];
+            } catch (e) {
+                console.error("Erro ao formatar data:", e);
+                return '';
+            }
+        }
+
         // Função para abrir o modal de retorno
         function abrirModalRetorno(idFluxo) {
             // Implementar lógica para carregar os dados do fluxo e abrir o modal
@@ -466,27 +483,29 @@
                 success: function(data) {
                     console.log("Dados da locação carregados:", data);
                     
-                    // Guardar os dados para uso posterior
-                    const itemData = data;
-                    
-                    // Configurar campos ocultos
-                    if (!$('#idfluxo').length) {
-                        $('#formRetorno').append('<input type="hidden" id="idfluxo">');
-                    }
-                    
-                    // Preencher os campos de texto imediatamente
+                    // Preencher os campos de texto
                     $('#idfluxo').val(idFluxo);
                     $('#setorSolicitante_retorno').val(data.setor_solicitante);
                     $('#destino_retorno').val(data.destino);
                     $('#veiculo_retorno').val(data.veiculo); 
-                    $('#motorista_retorno').val(data.nome_motorista); 
-                    $('#datasaida_retorno').val(formatarDataParaInput(data.dt_saida || new Date().toISOString().split('T')[0]));
-                    $('#horasaida_retorno').val(data.hora_saida ? data.hora_saida.substring(0, 5) : '');                
+                    $('#motorista_retorno').val(data.nome_motorista);
+                    
+                    // Tratamento específico para os campos de data e hora
+                    if (data.dt_saida) {
+                        $('#datasaida_retorno').val(data.dt_saida);
+                    }
+                    
+                    if (data.hora_saida) {
+                        // Para campos time, precisamos apenas dos primeiros 5 caracteres (HH:MM)
+                        $('#horasaida_retorno').val(data.hora_saida.substring(0, 5));
+                    }
+                    
+                    // Definindo a data e hora atual para os campos de retorno se estiverem vazios
                     $('#data_retorno').val(new Date().toISOString().split('T')[0]);
+                    
                     $('#hora_retorno').val(new Date().toTimeString().substring(0, 5));
                     
-                    // Contador para carregamentos pendentes
-                
+                    console.log("Campos preenchidos com sucesso");
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar dados da locação:", error);
