@@ -2941,6 +2941,58 @@ def fluxo_nova_saida():
         }), 500
 
 
+@app.route('/api/fluxo_lanca_retorno/<int:idfluxo>', methods=['POST'])
+@login_required
+def fluxo_lanca_retorno(idfluxo):
+    try:
+        data_retorno = request.form.get('data_retorno')
+        hora_retorno = request.form.get('hora_retorno')
+        obs_retorno = request.form.get('obs_retorno')
+        
+        # Converter data_inicio e data_fim para objetos datetime
+        data_retorno_obj = datetime.strptime(data_retorno, '%Y-%m-%d')
+        
+        # Converter data para o formato dd/mm/yyyy para os campos de string
+        dt_retorno = data_retorno_obj.strftime('%d/%m/%Y')
+        
+        # Converter hora para string no formato hh:mm
+        hr_retorno = hora_retorno
+        
+        # Obter ID do usuário da sessão
+        usuario = session.get('usuario_login')
+
+        cursor = mysql.connection.cursor() 
+        # Inserir na tabela TJ_FLUXO_VEICULOS
+        cursor.execute("""
+            UPDATE TJ_FLUXO_VEICULOS SET
+                DT_RETORNO = %s,
+                HR_RETORNO = %s,
+                DATA_RETORNO = %s,
+                HORA_RETORNO = %s,
+                FL_STATUS = %s,
+                USUARIO_CHEGADA = %s,
+                OBS_RETORNO = %s
+            WHERE ID_FLUXO = %s
+        """, (dt_retorno, hr_retorno, data_retorno, hora_retorno, 
+              'R', usuario, obs_retorno, idfluxo        
+        ))
+
+        mysql.connection.commit()
+              
+        response_data = {
+            'sucesso': True,
+            'mensagem': 'Retorno registrado com sucesso!'
+        }
+             
+        cursor.close()
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Erro ao : {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
 
 
 if __name__ == '__main__':
