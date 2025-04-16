@@ -3034,5 +3034,170 @@ def busca_motorista():
         return jsonify({'erro': str(e)}), 500
 
 
+@app.route('/veiculos_frota')
+@login_required
+def veiculos_frota():
+    return render_template('veiculos_frota.html')
+	
+@app.route('/api/veiculos', methods=['GET'])
+def listar_veiculos():
+    filtro = request.args.get('filtro', '')
+    
+    cursor = mysql.connection.cursor()
+    
+    if filtro:
+        # Busca pelo modelo ou placa
+        query = """
+        SELECT * FROM TJ_VEICULO 
+        WHERE NU_PLACA LIKE %s OR DS_MODELO LIKE %s
+        ORDER BY ID_VEICULO DESC
+        """
+        cursor.execute(query, (f'%{filtro}%', f'%{filtro}%'))
+    else:
+        # Busca todos
+        query = "SELECT * FROM TJ_VEICULO ORDER BY ID_VEICULO DESC"
+        cursor.execute(query)
+    
+    veiculos = []
+    columns = [column[0] for column in cursor.description]
+    
+    for row in cursor.fetchall():
+        veiculos.append(dict(zip(columns, row)))
+    
+    cursor.close()
+    return jsonify(veiculos)
+
+@app.route('/api/veiculos/<int:id>', methods=['GET'])
+def obter_veiculo(id):
+    cursor = mysql.connection.cursor()
+    
+    query = "SELECT * FROM TJ_VEICULO WHERE ID_VEICULO = %s"
+    cursor.execute(query, (id,))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        return jsonify({"erro": "Veículo não encontrado"}), 404
+    
+    columns = [column[0] for column in cursor.description]
+    veiculo = dict(zip(columns, row))
+    
+    cursor.close()
+    return jsonify(veiculo)
+
+@app.route('/api/veiculos/cadastrar', methods=['POST'])
+def cadastrar_veiculo():
+    dados = request.json
+    
+    cursor = mysql.connection.cursor()
+    
+    try:
+        query = """
+        INSERT INTO TJ_VEICULO (
+            NU_PLACA, ID_CATEGORIA, MARCA, DS_MODELO, ANO_FABMOD, 
+            ORIGEM_VEICULO, PROPRIEDADE, COMBUSTIVEL, OBS, 
+            ATIVO, FL_ATENDIMENTO, USUARIO
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(query, (
+            dados['nu_placa'],
+            dados['id_categoria'],
+            dados['marca'],
+            dados['ds_modelo'],
+            dados['ano_fabmod'],
+            dados['origem_veiculo'],
+            dados['propriedade'],
+            dados['combustivel'],
+            dados['obs'],
+            dados['ativo'],
+            dados['fl_atendimento'],
+            dados['usuario']
+        ))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            "sucesso": True, 
+            "mensagem": "Veículo cadastrado com sucesso", 
+            "id": cursor.lastrowid
+        })
+    
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({"sucesso": False, "mensagem": str(e)})
+    
+    finally:
+        cursor.close()
+@app.route('/api/veiculos/atualizar', methods=['POST'])
+def atualizar_veiculo():
+    dados = request.json
+    
+    cursor = mysql.connection.cursor()
+    
+    try:
+        query = """
+        UPDATE TJ_VEICULO 
+        SET NU_PLACA = %s,
+            ID_CATEGORIA = %s,
+            MARCA = %s,
+            DS_MODELO = %s,
+            ANO_FABMOD = %s,
+            ORIGEM_VEICULO = %s,
+            PROPRIEDADE = %s,
+            COMBUSTIVEL = %s,
+            OBS = %s,
+            ATIVO = %s,
+            FL_ATENDIMENTO = %s,
+            USUARIO = %s
+        WHERE ID_VEICULO = %s
+        """
+        
+        cursor.execute(query, (
+            dados['nu_placa'],
+            dados['id_categoria'],
+            dados['marca'],
+            dados['ds_modelo'],
+            dados['ano_fabmod'],
+            dados['origem_veiculo'],
+            dados['propriedade'],
+            dados['combustivel'],
+            dados['obs'],
+            dados['ativo'],
+            dados['fl_atendimento'],
+            dados['usuario'],
+            dados['id_veiculo']
+        ))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            "sucesso": True, 
+            "mensagem": "Veículo atualizado com sucesso"
+        })
+    
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({"sucesso": False, "mensagem": str(e)})
+    
+    finally:
+        cursor.close()
+
+@app.route('/api/categorias_veiculos', methods=['GET'])
+def listar_categorias():
+    cursor = mysql.connection.cursor()
+    
+    cursor.execute("SELECT * FROM TJ_CATEGORIA_VEICULO ORDER BY DS_CAT_VEICULO")
+    
+    categorias = []
+    columns = [column[0] for column in cursor.description]
+    
+    for row in cursor.fetchall():
+        categorias.append(dict(zip(columns, row)))
+    
+    cursor.close()
+    return jsonify(categorias)
+	
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
