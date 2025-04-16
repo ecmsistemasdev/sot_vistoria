@@ -3083,7 +3083,7 @@ def listar_veiculos():
         return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
 
 
-@app.route('/api/veiculos_frota/<int:id>', methods=['GET'])
+@app.route('/api/obter_veiculo/<int:id>', methods=['GET'])
 @login_required
 def obter_veiculo(id):
     try:
