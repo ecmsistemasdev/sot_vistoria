@@ -211,8 +211,8 @@
             
             <div class="mb-4">
                 <label for="observacoes" class="form-label">Observações Gerais</label>
-                <textarea class="form-control" id="observacoes" name="observacoes" maxlength="150" rows="3" placeholder="Digite observações gerais sobre a vistoria (máx. 150 caracteres)"></textarea>
-                <div class="form-text"><span id="char-count">0</span>/150 caracteres</div>
+                <textarea class="form-control" id="observacoes" name="observacoes" maxlength="1000" rows="3" placeholder="Digite observações gerais sobre a vistoria (máx. 1000 caracteres)"></textarea>
+                <div class="form-text"><span id="char-count">0</span>/1000 caracteres</div>
             </div>
                                     
             <div class="fixed-footer">
@@ -286,7 +286,7 @@
                     document.getElementById('char-count').textContent = charCount;
                     
                     // Mudar a cor se estiver próximo do limite
-                    if (charCount > 130) {
+                    if (charCount > 980) {
                         document.getElementById('char-count').style.color = 'red';
                     } else {
                         document.getElementById('char-count').style.color = '';
