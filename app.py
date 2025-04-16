@@ -2608,7 +2608,7 @@ def fluxo_veiculo_saida_sem_retorno():
                 CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
                 f.ID_VEICULO, f.ID_MOTORISTA, 
                 CASE WHEN f.ID_MOTORISTA=0 THEN 
-                f.NC_CONDUTOR ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
@@ -2669,7 +2669,7 @@ def fluxo_veiculo_retorno_dia():
                 CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
                 f.ID_VEICULO, f.ID_MOTORISTA, 
                 CASE WHEN f.ID_MOTORISTA=0 THEN 
-                f.NC_CONDUTOR ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, 
                 CONCAT(f.DT_RETORNO,' ',f.HR_RETORNO) AS RETORNO, f.OBS_RETORNO
             FROM TJ_FLUXO_VEICULOS f
@@ -2731,7 +2731,7 @@ def fluxo_veiculo_saida_retorno_pendente():
                 CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
                 f.ID_VEICULO, f.ID_MOTORISTA, 
                 CASE WHEN f.ID_MOTORISTA=0 THEN 
-                f.NC_CONDUTOR ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
@@ -2793,7 +2793,7 @@ def fluxo_saida_item(idfluxo):
                 f.DATA_RETORNO, f.HORA_RETORNO, f.OBS,
                 CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO,  
                 CASE WHEN f.ID_MOTORISTA=0 THEN 
-                f.NC_CONDUTOR ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA
+                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
