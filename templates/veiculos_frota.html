@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
+    <title>SOT - Cadastro de Veículos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 80px; /* Espaço para o footer */
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 80px); /* Altura da viewport menos o footer */
+        }
+        
+        .header-section {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 100;
+            padding-top: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .table-container {
+            overflow-y: auto;
+            max-height: calc(100vh - 250px); /* Altura ajustável conforme necessário */
+            margin-bottom: 20px;
+        }
+        
+        .table-header {
+            position: sticky;
+            top: 0;
+            background-color: #9ecde2;
+            z-index: 10;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+            padding: 15px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            height: auto;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .footer .container-fluid {
+            width: 100%;
+            padding: 0px 235px 0 235px;
+        }
+        
+        .footer .d-flex {
+            width: 100%;
+        }
+        
+        @media print {
+            .footer {
+                display: none; /* Ocultar no modo impressão */
+            }
+        }
+        
+        .form-title {
+            background-color: #4a90e2;
+            color: white;
+            padding: 5px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        #cadastroForm {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .veiculo-inativo {
+            color: #888888 !important;
+            font-style: italic;
+        }
+        
+        /* Para garantir que todos os elementos dentro da linha fiquem cinzas */
+        .veiculo-inativo td, 
+        .veiculo-inativo span, 
+        .veiculo-inativo a {
+            color: #888888 !important;
+        }
+        
+        /* Manter o botão visível mas menos destacado */
+        .veiculo-inativo .btn-info {
+            opacity: 0.7;
+        }
+
+        /* Ajustes para mobile */
+        @media (max-width: 768px) {
+            .footer .container-fluid {
+                padding: 0 10px;
+            }
+            
+            .footer .d-flex {
+                justify-content: space-between !important;
+                width: 100%;
+            }
+            
+            .footer .btn {
+                font-size: 0.85rem;
+                padding: 0.375rem 0.5rem;
+            }
+            
+            .table-container {
+                max-height: calc(100vh - 230px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header Section (Sempre visível) -->
+        <div class="header-section">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12 text-center mb-3">
+                        <h2>Cadastro de Veículos da Frota</h2>
+                    </div>
+                </div>
+
+                <!-- Pesquisa -->
+                <div class="row mb-3" id="secaoPesquisa">
+                    <div class="col-md-6 offset-md-3">
+                        <div class="input-group">
+                            <input type="text" id="pesquisaVeiculo" class="form-control" placeholder="Pesquisar por Placa ou Modelo">
+                            <button class="btn btn-primary" type="button" id="botaoPesquisar">
+                                <i class="fas fa-search"></i> Pesquisar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo principal -->
+        <div class="container-fluid">
+            <!-- Tabela de Veículos -->
+            <div class="row" id="secaoTabela">
+                <div class="col-md-10 offset-md-1">
+                    <div class="table-container">
+                        <table class="table table-striped" id="tabelaVeiculos">
+                            <thead class="table-header">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Placa</th>
+                                    <th>Marca/Modelo</th>
+                                    <th>Categoria</th>
+                                    <th>Ano</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoTabela">
+                                <!-- Linhas serão preenchidas dinamicamente via JavaScript/fetch -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulário de Cadastro (inicialmente oculto) -->
+            <div class="row" id="secaoCadastro" style="display:none;">
+                <div class="col-md-8 offset-md-2">
+                    <form id="cadastroForm">
+                        <input type="hidden" id="idVeiculo" name="id_veiculo">
+                        <div class="form-title text-center">
+                            <h5>Cadastro de Veículo</h5>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="nuPlaca" class="form-label">Placa</label>
+                                <input type="text" class="form-control text-uppercase" id="nuPlaca" name="nu_placa" 
+                                       placeholder="AAA0A00" maxlength="8" required>
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label for="idCategoria" class="form-label">Categoria</label>
+                                <select class="form-select" id="idCategoria" name="id_categoria" required>
+                                    <!-- Preenchido dinamicamente via JS/fetch -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="marca" class="form-label">Marca</label>
+                                <input type="text" class="form-control" id="marca" name="marca" required maxlength="30">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="dsModelo" class="form-label">Modelo</label>
+                                <input type="text" class="form-control" id="dsModelo" name="ds_modelo" required maxlength="35">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="anoFabmod" class="form-label">Ano Fabricação/Modelo</label>
+                                <input type="text" class="form-control" id="anoFabmod" name="ano_fabmod" 
+                                       placeholder="0000/0000" maxlength="9" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="origemVeiculo" class="form-label">Origem</label>
+                                <input type="text" class="form-control" id="origemVeiculo" name="origem_veiculo" maxlength="20">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="propriedade" class="form-label">Propriedade</label>
+                                <input type="text" class="form-control" id="propriedade" name="propriedade" maxlength="30">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="combustivel" class="form-label">Combustível</label>
+                                <input type="text" class="form-control" id="combustivel" name="combustivel" maxlength="25">
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label for="obs" class="form-label">Observações</label>
+                                <input type="text" class="form-control" id="obs" name="obs" maxlength="100">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="ativo" name="ativo" checked>
+                                    <label class="form-check-label" for="ativo">
+                                        Ativo
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="flAtendimento" name="fl_atendimento">
+                                    <label class="form-check-label" for="flAtendimento">
+                                        Disponível para Atendimento
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer for Main View -->
+    <div class="footer" id="mainFooter">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <button id="btnNovoRegistroFooter" class="btn btn-success">
+                    <i class="fas fa-plus-circle bnt-novo"></i> Novo Registro
+                </button>
+                <button id="btnVoltarFooter" class="btn btn-secondary" onclick="window.location.href='/';">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer para formulário (inicialmente oculto) -->
+    <div class="footer" id="formFooter" style="display:none;">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <button id="btnSalvarVeiculo" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+                <button id="btnCancelar" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Máscaras
+            $('#anoFabmod').mask('0000/0000');
+            $('#nuPlaca').mask('AAA0A00').css('text-transform', 'uppercase');
+
+            // Carregar categorias de veículos
+            function carregarCategorias() {
+                fetch('/api/categorias_veiculos')
+                    .then(response => response.json())
+                    .then(data => {
+                        const selectCategoria = $('#idCategoria');
+                        selectCategoria.empty();
+                        selectCategoria.append('<option value="">Selecione a Categoria</option>');
+                        data.forEach(categoria => {
+                            selectCategoria.append(`<option value="${categoria.id_cat_veiculo}">${categoria.ds_cat_veiculo}</option>`);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar categorias:', error);
+                        alert('Erro ao carregar categorias de veículos');
+                    });
+            }
+            carregarCategorias();
+
+            // Update event listeners to handle both section and footer buttons
+            $('#btnNovoRegistro, #btnNovoRegistroFooter').click(function() {
+                $('#secaoPesquisa, #secaoTabela, #mainFooter').hide();
+                $('#secaoCadastro, #formFooter').show();
+                $('#idVeiculo').val('');
+                $('#cadastroForm')[0].reset();
+                // Define valores padrão
+                $('#ativo').prop('checked', true);
+                $('#flAtendimento').prop('checked', false);
+            });
+
+            // Botão Cancelar / Voltar
+            $('#btnCancelar, #btnVoltarFooter').click(function() {
+                $('#secaoCadastro, #formFooter').hide();
+                $('#secaoPesquisa, #secaoTabela, #mainFooter').show();
+                carregarVeiculos();
+            });
+
+            // Carregar veículos
+            function carregarVeiculos(filtro = '') {
+                fetch(`/api/veiculos?filtro=${encodeURIComponent(filtro)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const corpoTabela = $('#corpoTabela');
+                        corpoTabela.empty();
+                        
+                        // Objeto para armazenar categorias por ID
+                        const categoriasMap = {};
+                        
+                        // Primeiro, carregamos as categorias
+                        fetch('/api/categorias_veiculos')
+                            .then(response => response.json())
+                            .then(categorias => {
+                                // Mapeia as categorias por ID
+                                categorias.forEach(cat => {
+                                    categoriasMap[cat.id_cat_veiculo] = cat.ds_cat_veiculo;
+                                });
+                                
+                                // Agora podemos preencher a tabela
+                                data.forEach(veiculo => {
+                                    // Obtém o nome da categoria
+                                    const categoriaDesc = categoriasMap[veiculo.id_categoria] || 'Não definida';
+                                    
+                                    // Verifica se o veículo está ativo
+                                    const classeInativo = veiculo.ativo !== 'S' ? 'veiculo-inativo' : '';
+                                    
+                                    corpoTabela.append(`
+                                        <tr class="${classeInativo}">
+                                            <td>${veiculo.id_veiculo}</td>
+                                            <td>${veiculo.nu_placa}</td>
+                                            <td>${veiculo.marca} / ${veiculo.ds_modelo}</td>
+                                            <td>${categoriaDesc}</td>
+                                            <td>${veiculo.ano_fabmod}</td>
+                                            <td>
+                                                <a href="#" class="btn btn-sm btn-info btnEditar" 
+                                                data-id="${veiculo.id_veiculo}">
+                                                    <i class="fas fa-edit"></i> Editar
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    `);
+                                });
+                            });
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar veículos:', error);
+                        alert('Erro ao carregar veículos');
+                    });
+            }
+            carregarVeiculos();
+
+            // Pesquisar veículos
+            $('#botaoPesquisar').click(function() {
+                const filtro = $('#pesquisaVeiculo').val();
+                carregarVeiculos(filtro);
+            });
+
+            // Pesquisar ao pressionar Enter
+            $('#pesquisaVeiculo').on('keypress', function(e) {
+                if (e.which === 13) {
+                    const filtro = $(this).val();
+                    carregarVeiculos(filtro);
+                }
+            });
+
+            // Editar veículo
+            $(document).on('click', '.btnEditar', function(e) {
+                e.preventDefault();
+                const idVeiculo = $(this).data('id');
+                
+                fetch(`/api/veiculos/${idVeiculo}`)
+                    .then(response => response.json())
+                    .then(veiculo => {
+                        $('#secaoPesquisa, #secaoTabela, #mainFooter').hide();
+                        $('#secaoCadastro, #formFooter').show();
+
+                        // Preencher formulário
+                        $('#idVeiculo').val(veiculo.id_veiculo);
+                        $('#nuPlaca').val(veiculo.nu_placa);
+                        $('#idCategoria').val(veiculo.id_categoria);
+                        $('#marca').val(veiculo.marca);
+                        $('#dsModelo').val(veiculo.ds_modelo);
+                        $('#anoFabmod').val(veiculo.ano_fabmod);
+                        $('#origemVeiculo').val(veiculo.origem_veiculo);
+                        $('#propriedade').val(veiculo.propriedade);
+                        $('#combustivel').val(veiculo.combustivel);
+                        $('#obs').val(veiculo.obs);
+                        
+                        // Checkboxes
+                        $('#ativo').prop('checked', veiculo.ativo === 'S');
+                        $('#flAtendimento').prop('checked', veiculo.fl_atendimento === 'S');
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar veículo para edição:', error);
+                        alert('Erro ao carregar dados do veículo');
+                    });
+            });
+
+            // Enviar formulário
+            $('#btnSalvarVeiculo').click(function(e) {
+                e.preventDefault();
+                
+                // Criar objeto com os dados do formulário
+                const formData = {
+                    id_veiculo: $('#idVeiculo').val(),
+                    nu_placa: $('#nuPlaca').val().toUpperCase(),
+                    id_categoria: $('#idCategoria').val(),
+                    marca: $('#marca').val(),
+                    ds_modelo: $('#dsModelo').val(),
+                    ano_fabmod: $('#anoFabmod').val(),
+                    origem_veiculo: $('#origemVeiculo').val(),
+                    propriedade: $('#propriedade').val(),
+                    combustivel: $('#combustivel').val(),
+                    obs: $('#obs').val(),
+                    ativo: $('#ativo').prop('checked') ? 'S' : 'N',
+                    fl_atendimento: $('#flAtendimento').prop('checked') ? 'S' : 'N',
+                    usuario: 'SISTEMA' // Ajustar conforme necessário
+                };
+                
+                const url = formData.id_veiculo 
+                    ? '/api/veiculos/atualizar' 
+                    : '/api/veiculos/cadastrar';
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.sucesso) {
+                        alert('Veículo salvo com sucesso!');
+                        $('#secaoCadastro, #formFooter').hide();
+                        $('#secaoPesquisa, #secaoTabela, #mainFooter').show();
+                        carregarVeiculos();
+                    } else {
+                        alert('Erro ao salvar veículo: ' + result.mensagem);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao processar a solicitação.');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
