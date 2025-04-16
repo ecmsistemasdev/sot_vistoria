@@ -908,9 +908,11 @@ def listar_motoristas():
         if nome:
             query = """
             SELECT 
-                ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
+                ID_MOTORISTA, CAD_MOTORISTA,
+		CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
+                ELSE CONCAT(NM_MOTORISTA,' (INATIVO) ') END AS MOTORISTA,
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
             FROM TJ_MOTORISTA 
             WHERE ID_MOTORISTA > 0
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
@@ -920,16 +922,18 @@ def listar_motoristas():
         else:
             query = """
             SELECT 
-                ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
+                ID_MOTORISTA, CAD_MOTORISTA, 
+                CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
+                ELSE CONCAT(NM_MOTORISTA,' (INATIVO) ') END AS MOTORISTA, 
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
             FROM TJ_MOTORISTA
             WHERE ID_MOTORISTA > 0
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
         
-        columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf']
+        columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo']
         motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
         cursor.close()
         return jsonify(motoristas)
