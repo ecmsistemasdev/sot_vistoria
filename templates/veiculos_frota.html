@@ -345,49 +345,34 @@
                         const corpoTabela = $('#corpoTabela');
                         corpoTabela.empty();
                         
-                        // Objeto para armazenar categorias por ID
-                        const categoriasMap = {};
-                        
-                        // Primeiro, carregamos as categorias
-                        fetch('/api/categorias_veiculos')
-                            .then(response => response.json())
-                            .then(categorias => {
-                                // Mapeia as categorias por ID
-                                categorias.forEach(cat => {
-                                    categoriasMap[cat.id_cat_veiculo] = cat.ds_cat_veiculo;
-                                });
-                                
-                                // Agora podemos preencher a tabela
-                                data.forEach(veiculo => {
-                                    // Obtém o nome da categoria
-                                    const categoriaDesc = categoriasMap[veiculo.id_categoria] || 'Não definida';
-                                    
-                                    // Verifica se o veículo está ativo
-                                    const classeInativo = veiculo.ativo !== 'S' ? 'veiculo-inativo' : '';
-                                    
-                                    corpoTabela.append(`
-                                        <tr class="${classeInativo}">
-                                            <td>${veiculo.id_veiculo}</td>
-                                            <td>${veiculo.nu_placa}</td>
-                                            <td>${veiculo.marca} / ${veiculo.ds_modelo}</td>
-                                            <td>${categoriaDesc}</td>
-                                            <td>${veiculo.ano_fabmod}</td>
-                                            <td>
-                                                <a href="#" class="btn btn-sm btn-info btnEditar" 
-                                                data-id="${veiculo.id_veiculo}">
-                                                    <i class="fas fa-edit"></i> Editar
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    `);
-                                });
-                            });
+                        // Agora podemos preencher a tabela diretamente com os dados do join
+                        data.forEach(veiculo => {
+                            // Verifica se o veículo está ativo
+                            const classeInativo = veiculo.ativo !== 'S' ? 'veiculo-inativo' : '';
+                            
+                            corpoTabela.append(`
+                                <tr class="${classeInativo}">
+                                    <td>${veiculo.id_veiculo}</td>
+                                    <td>${veiculo.nu_placa}</td>
+                                    <td>${veiculo.marca} / ${veiculo.ds_modelo}</td>
+                                    <td>${veiculo.ds_cat_veiculo || 'Não definida'}</td>
+                                    <td>${veiculo.ano_fabmod}</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-info btnEditar" 
+                                        data-id="${veiculo.id_veiculo}">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </a>
+                                    </td>
+                                </tr>
+                            `);
+                        });
                     })
                     .catch(error => {
                         console.error('Erro ao carregar veículos:', error);
                         alert('Erro ao carregar veículos');
                     });
             }
+            
             carregarVeiculos();
 
             // Pesquisar veículos
