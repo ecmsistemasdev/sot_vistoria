@@ -2995,5 +2995,38 @@ def fluxo_lanca_retorno(idfluxo):
         }), 500
 
 
+@app.route('/api/busca_motorista')
+@login_required
+def busca_motorista():
+    try:
+        nome = request.args.get('nome', '')
+        cursor = mysql.connection.cursor()
+        
+        if nome:
+            query = """
+            SELECT ID_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
+            FROM TJ_MOTORISTA 
+            WHERE ID_MOTORISTA > 0
+            AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
+            ORDER BY NM_MOTORISTA
+            """
+            cursor.execute(query, (f'%{nome}%',))
+        else:
+            query = """
+            SELECT ID_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
+            FROM TJ_MOTORISTA
+            WHERE ID_MOTORISTA > 0 
+            ORDER BY NM_MOTORISTA
+            """
+            cursor.execute(query)
+        
+        columns = ['id_motorista', 'nm_motorista', 'sigla_setor']
+        motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify(motoristas)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
