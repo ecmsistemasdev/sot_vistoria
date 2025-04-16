@@ -910,7 +910,7 @@ def listar_motoristas():
             SELECT 
                 ID_MOTORISTA, CAD_MOTORISTA,
 		CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
-                ELSE CONCAT(NM_MOTORISTA,' (INATIVO) ') END AS MOTORISTA,
+                ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
                 FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
             FROM TJ_MOTORISTA 
@@ -924,7 +924,7 @@ def listar_motoristas():
             SELECT 
                 ID_MOTORISTA, CAD_MOTORISTA, 
                 CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
-                ELSE CONCAT(NM_MOTORISTA,' (INATIVO) ') END AS MOTORISTA, 
+                ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA, 
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
                 FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
             FROM TJ_MOTORISTA
