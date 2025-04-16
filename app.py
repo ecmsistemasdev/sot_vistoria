@@ -3161,10 +3161,13 @@ def cadastrar_veiculo():
         cursor.close()
         
         return jsonify({'sucesso': True, 'id_veiculo': novo_id})
-        
+    
     except Exception as e:
-        mysql.connection.rollback()
-        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
+        print(f"Erro ao : {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
 
 
 @app.route('/api/veiculos/atualizar', methods=['POST'])
@@ -3224,8 +3227,11 @@ def atualizar_veiculo():
         return jsonify({'sucesso': True, 'mensagem': 'Veículo atualizado com sucesso'})
         
     except Exception as e:
-        mysql.connection.rollback()
-        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
+        print(f"Erro ao : {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
 
 
 @app.route('/api/categorias_veiculos', methods=['GET'])
