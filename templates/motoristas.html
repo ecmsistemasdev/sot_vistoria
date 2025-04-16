@@ -93,6 +93,22 @@
             margin-top: 5px;
             color: #6c757d;
         }
+        .motorista-inativo {
+            color: #888888 !important;
+            font-style: italic;
+        }
+        
+        /* Para garantir que todos os elementos dentro da linha fiquem cinzas */
+        .motorista-inativo td, 
+        .motorista-inativo span, 
+        .motorista-inativo a {
+            color: #888888 !important;
+        }
+        
+        /* Manter o botão visível mas menos destacado */
+        .motorista-inativo .btn-info {
+            opacity: 0.7;
+        }
 
         /* Ajustes para mobile */
         @media (max-width: 768px) {
@@ -370,8 +386,11 @@
                                 ? '<span class="badge bg-success">CNH ANEXADA</span>' 
                                 : '<span class="badge bg-secondary">SEM ARQUIVO</span>';
                             
+                            // Verifica se o motorista está ativo
+                            const classeInativo = motorista.ativo !== 'S' ? 'motorista-inativo' : '';
+                            
                             corpoTabela.append(`
-                                <tr>
+                                <tr class="${classeInativo}">
                                     <td>${motorista.id_motorista}</td>
                                     <td>${motorista.cad_motorista}</td>
                                     <td>${motorista.nm_motorista}</td>
