@@ -3041,7 +3041,7 @@ def veiculos_frota():
 	
 @app.route('/api/veiculos', methods=['GET'])
 @login_required
-def listar_veiculos():
+def lista_veiculos():
     try:
         filtro = request.args.get('filtro', '')
         
