@@ -3040,34 +3040,46 @@ def veiculos_frota():
     return render_template('veiculos_frota.html')
 	
 @app.route('/api/veiculos', methods=['GET'])
+@login_required
 def listar_veiculos():
     filtro = request.args.get('filtro', '')
     
     cursor = mysql.connection.cursor()
     
-    if filtro:
-        # Busca pelo modelo ou placa
-        query = """
-        SELECT * FROM TJ_VEICULO 
-        WHERE NU_PLACA LIKE %s OR DS_MODELO LIKE %s
-        ORDER BY ID_VEICULO DESC
-        """
-        cursor.execute(query, (f'%{filtro}%', f'%{filtro}%'))
-    else:
-        # Busca todos
-        query = "SELECT * FROM TJ_VEICULO ORDER BY ID_VEICULO DESC"
-        cursor.execute(query)
+    try:
+        if filtro:
+            # Busca pelo modelo ou placa
+            query = """
+            SELECT * FROM TJ_VEICULO 
+            WHERE NU_PLACA LIKE %s OR DS_MODELO LIKE %s
+            ORDER BY ID_VEICULO DESC
+            """
+            cursor.execute(query, (f'%{filtro}%', f'%{filtro}%'))
+        else:
+            # Busca todos
+            query = "SELECT * FROM TJ_VEICULO ORDER BY ID_VEICULO DESC"
+            cursor.execute(query)
+        
+        veiculos = []
+        columns = [column[0] for column in cursor.description]
+        
+        for row in cursor.fetchall():
+            veiculo = {}
+            for idx, col_name in enumerate(columns):
+                veiculo[col_name.lower()] = row[idx]
+            veiculos.append(veiculo)
+        
+        return jsonify(veiculos)
     
-    veiculos = []
-    columns = [column[0] for column in cursor.description]
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
     
-    for row in cursor.fetchall():
-        veiculos.append(dict(zip(columns, row)))
-    
-    cursor.close()
-    return jsonify(veiculos)
+    finally:
+        cursor.close()
+
 
 @app.route('/api/veiculos/<int:id>', methods=['GET'])
+@login_required
 def obter_veiculo(id):
     cursor = mysql.connection.cursor()
     
@@ -3086,6 +3098,7 @@ def obter_veiculo(id):
     return jsonify(veiculo)
 
 @app.route('/api/veiculos/cadastrar', methods=['POST'])
+@login_required
 def cadastrar_veiculo():
     dados = request.json
     
@@ -3117,10 +3130,14 @@ def cadastrar_veiculo():
         
         mysql.connection.commit()
         
+        # Maneira mais segura de obter o ID inserido
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        ultimo_id = cursor.fetchone()[0]
+        
         return jsonify({
             "sucesso": True, 
             "mensagem": "Veículo cadastrado com sucesso", 
-            "id": cursor.lastrowid
+            "id": ultimo_id
         })
     
     except Exception as e:
@@ -3129,7 +3146,10 @@ def cadastrar_veiculo():
     
     finally:
         cursor.close()
+
+
 @app.route('/api/veiculos/atualizar', methods=['POST'])
+@login_required
 def atualizar_veiculo():
     dados = request.json
     
@@ -3183,7 +3203,9 @@ def atualizar_veiculo():
     finally:
         cursor.close()
 
+
 @app.route('/api/categorias_veiculos', methods=['GET'])
+@login_required
 def listar_categorias():
     cursor = mysql.connection.cursor()
     
