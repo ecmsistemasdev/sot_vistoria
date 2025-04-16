@@ -3004,7 +3004,7 @@ def busca_motorista():
         
         if nome:
             query = """
-            SELECT ID_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
+            SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
             FROM TJ_MOTORISTA 
             WHERE ID_MOTORISTA > 0
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
@@ -3013,14 +3013,14 @@ def busca_motorista():
             cursor.execute(query, (f'%{nome}%',))
         else:
             query = """
-            SELECT ID_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
+            SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
             FROM TJ_MOTORISTA
             WHERE ID_MOTORISTA > 0 
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
         
-        columns = ['id_motorista', 'nm_motorista', 'sigla_setor']
+        columns = ['id_motorista', 'matricula', 'nm_motorista', 'sigla_setor']
         motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
         cursor.close()
         return jsonify(motoristas)
