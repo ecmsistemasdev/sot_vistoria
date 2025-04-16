@@ -3042,22 +3042,29 @@ def veiculos_frota():
 @app.route('/api/veiculos', methods=['GET'])
 @login_required
 def listar_veiculos():
-    filtro = request.args.get('filtro', '')
-    
-    cursor = mysql.connection.cursor()
-    
     try:
+        filtro = request.args.get('filtro', '')
+        
+        cursor = mysql.connection.cursor()
+        
         if filtro:
             # Busca pelo modelo ou placa
             query = """
-            SELECT * FROM TJ_VEICULO 
-            WHERE NU_PLACA LIKE %s OR DS_MODELO LIKE %s
-            ORDER BY ID_VEICULO DESC
+            SELECT v.*, c.DS_CAT_VEICULO 
+            FROM TJ_VEICULO v
+            LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+            WHERE v.NU_PLACA LIKE %s OR v.DS_MODELO LIKE %s OR v.MARCA LIKE %s
+            ORDER BY v.ID_VEICULO DESC
             """
-            cursor.execute(query, (f'%{filtro}%', f'%{filtro}%'))
+            cursor.execute(query, (f'%{filtro}%', f'%{filtro}%', f'%{filtro}%'))
         else:
             # Busca todos
-            query = "SELECT * FROM TJ_VEICULO ORDER BY ID_VEICULO DESC"
+            query = """
+            SELECT v.*, c.DS_CAT_VEICULO 
+            FROM TJ_VEICULO v
+            LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+            ORDER BY v.ID_VEICULO DESC
+            """
             cursor.execute(query)
         
         veiculos = []
@@ -3065,100 +3072,130 @@ def listar_veiculos():
         
         for row in cursor.fetchall():
             veiculo = {}
-            for idx, col_name in enumerate(columns):
-                veiculo[col_name.lower()] = row[idx]
+            for i, col in enumerate(columns):
+                veiculo[col.lower()] = row[i]
             veiculos.append(veiculo)
         
+        cursor.close()
         return jsonify(veiculos)
     
     except Exception as e:
-        return jsonify({"erro": str(e)}), 500
-    
-    finally:
-        cursor.close()
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
 
 
 @app.route('/api/veiculos/<int:id>', methods=['GET'])
 @login_required
 def obter_veiculo(id):
-    cursor = mysql.connection.cursor()
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+        SELECT v.*, c.DS_CAT_VEICULO 
+        FROM TJ_VEICULO v
+        LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+        WHERE v.ID_VEICULO = %s
+        """
+        cursor.execute(query, (id,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({"erro": "Veículo não encontrado"}), 404
+        
+        columns = [column[0] for column in cursor.description]
+        veiculo = {}
+        for i, col in enumerate(columns):
+            veiculo[col.lower()] = row[i]
+        
+        cursor.close()
+        return jsonify(veiculo)
     
-    query = "SELECT * FROM TJ_VEICULO WHERE ID_VEICULO = %s"
-    cursor.execute(query, (id,))
+    except Exception as e:
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
     
-    row = cursor.fetchone()
-    
-    if not row:
-        return jsonify({"erro": "Veículo não encontrado"}), 404
-    
-    columns = [column[0] for column in cursor.description]
-    veiculo = dict(zip(columns, row))
-    
-    cursor.close()
-    return jsonify(veiculo)
 
 @app.route('/api/veiculos/cadastrar', methods=['POST'])
 @login_required
 def cadastrar_veiculo():
-    dados = request.json
-    
-    cursor = mysql.connection.cursor()
-    
     try:
+        cursor = mysql.connection.cursor()
+        
+        # Get last ID and increment
+        cursor.execute("SELECT COALESCE(MAX(ID_VEICULO), 0) + 1 FROM TJ_VEICULO")
+        novo_id = cursor.fetchone()[0]
+
+        # Form data
+        nu_placa = request.json.get('nu_placa', '').upper()
+        id_categoria = request.json.get('id_categoria')
+        marca = request.json.get('marca', '')
+        ds_modelo = request.json.get('ds_modelo', '')
+        ano_fabmod = request.json.get('ano_fabmod', '')
+        origem_veiculo = request.json.get('origem_veiculo', '')
+        propriedade = request.json.get('propriedade', '')
+        combustivel = request.json.get('combustivel', '')
+        obs = request.json.get('obs', '')
+        ativo = request.json.get('ativo', 'S')
+        fl_atendimento = request.json.get('fl_atendimento', 'N')
+        usuario = session.get('usuario_id')
+
+        # Get current timestamp in Manaus timezone
+        manaus_tz = timezone('America/Manaus')
+        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+
+        # Insert query
         query = """
         INSERT INTO TJ_VEICULO (
-            NU_PLACA, ID_CATEGORIA, MARCA, DS_MODELO, ANO_FABMOD, 
-            ORIGEM_VEICULO, PROPRIEDADE, COMBUSTIVEL, OBS, 
-            ATIVO, FL_ATENDIMENTO, USUARIO
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ID_VEICULO, NU_PLACA, ID_CATEGORIA, MARCA, DS_MODELO, 
+            ANO_FABMOD, ORIGEM_VEICULO, PROPRIEDADE, COMBUSTIVEL, 
+            OBS, ATIVO, FL_ATENDIMENTO, USUARIO, DT_TRANSACAO
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         cursor.execute(query, (
-            dados['nu_placa'],
-            dados['id_categoria'],
-            dados['marca'],
-            dados['ds_modelo'],
-            dados['ano_fabmod'],
-            dados['origem_veiculo'],
-            dados['propriedade'],
-            dados['combustivel'],
-            dados['obs'],
-            dados['ativo'],
-            dados['fl_atendimento'],
-            dados['usuario']
+            novo_id, nu_placa, id_categoria, marca, ds_modelo, 
+            ano_fabmod, origem_veiculo, propriedade, combustivel, 
+            obs, ativo, fl_atendimento, usuario, dt_transacao
         ))
         
         mysql.connection.commit()
+        cursor.close()
         
-        # Maneira mais segura de obter o ID inserido
-        cursor.execute("SELECT LAST_INSERT_ID()")
-        ultimo_id = cursor.fetchone()[0]
+        return jsonify({'sucesso': True, 'id_veiculo': novo_id})
         
-        return jsonify({
-            "sucesso": True, 
-            "mensagem": "Veículo cadastrado com sucesso", 
-            "id": ultimo_id
-        })
-    
     except Exception as e:
         mysql.connection.rollback()
-        return jsonify({"sucesso": False, "mensagem": str(e)})
-    
-    finally:
-        cursor.close()
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
 
 
 @app.route('/api/veiculos/atualizar', methods=['POST'])
 @login_required
 def atualizar_veiculo():
-    dados = request.json
-    
-    cursor = mysql.connection.cursor()
-    
     try:
+        cursor = mysql.connection.cursor()
+        
+        # Form data
+        id_veiculo = request.json.get('id_veiculo')
+        nu_placa = request.json.get('nu_placa', '').upper()
+        id_categoria = request.json.get('id_categoria')
+        marca = request.json.get('marca', '')
+        ds_modelo = request.json.get('ds_modelo', '')
+        ano_fabmod = request.json.get('ano_fabmod', '')
+        origem_veiculo = request.json.get('origem_veiculo', '')
+        propriedade = request.json.get('propriedade', '')
+        combustivel = request.json.get('combustivel', '')
+        obs = request.json.get('obs', '')
+        ativo = request.json.get('ativo', 'S')
+        fl_atendimento = request.json.get('fl_atendimento', 'N')
+        usuario = session.get('usuario_id')
+
+        # Get current timestamp in Manaus timezone
+        manaus_tz = timezone('America/Manaus')
+        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+
+        # Update query
         query = """
-        UPDATE TJ_VEICULO 
-        SET NU_PLACA = %s,
+        UPDATE TJ_VEICULO SET
+            NU_PLACA = %s,
             ID_CATEGORIA = %s,
             MARCA = %s,
             DS_MODELO = %s,
@@ -3169,56 +3206,50 @@ def atualizar_veiculo():
             OBS = %s,
             ATIVO = %s,
             FL_ATENDIMENTO = %s,
-            USUARIO = %s
+            USUARIO = %s,
+            DT_TRANSACAO = %s
         WHERE ID_VEICULO = %s
         """
         
         cursor.execute(query, (
-            dados['nu_placa'],
-            dados['id_categoria'],
-            dados['marca'],
-            dados['ds_modelo'],
-            dados['ano_fabmod'],
-            dados['origem_veiculo'],
-            dados['propriedade'],
-            dados['combustivel'],
-            dados['obs'],
-            dados['ativo'],
-            dados['fl_atendimento'],
-            dados['usuario'],
-            dados['id_veiculo']
+            nu_placa, id_categoria, marca, ds_modelo, 
+            ano_fabmod, origem_veiculo, propriedade, combustivel, 
+            obs, ativo, fl_atendimento, usuario, dt_transacao,
+            id_veiculo
         ))
         
         mysql.connection.commit()
+        cursor.close()
         
-        return jsonify({
-            "sucesso": True, 
-            "mensagem": "Veículo atualizado com sucesso"
-        })
-    
+        return jsonify({'sucesso': True, 'mensagem': 'Veículo atualizado com sucesso'})
+        
     except Exception as e:
         mysql.connection.rollback()
-        return jsonify({"sucesso": False, "mensagem": str(e)})
-    
-    finally:
-        cursor.close()
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
 
 
 @app.route('/api/categorias_veiculos', methods=['GET'])
 @login_required
 def listar_categorias():
-    cursor = mysql.connection.cursor()
-    
-    cursor.execute("SELECT * FROM TJ_CATEGORIA_VEICULO ORDER BY DS_CAT_VEICULO")
-    
-    categorias = []
-    columns = [column[0] for column in cursor.description]
-    
-    for row in cursor.fetchall():
-        categorias.append(dict(zip(columns, row)))
-    
-    cursor.close()
-    return jsonify(categorias)
+    try:
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("SELECT * FROM TJ_CATEGORIA_VEICULO ORDER BY DS_CAT_VEICULO")
+        
+        categorias = []
+        columns = [column[0] for column in cursor.description]
+        
+        for row in cursor.fetchall():
+            categoria = {}
+            for i, col in enumerate(columns):
+                categoria[col.lower()] = row[i]
+            categorias.append(categoria)
+        
+        cursor.close()
+        return jsonify(categorias)
+        
+    except Exception as e:
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
 	
 
 if __name__ == '__main__':
