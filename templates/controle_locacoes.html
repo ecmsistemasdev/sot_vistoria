@@ -282,7 +282,11 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label for="motorista" class="form-label small">Motorista</label>
+                            <label for="motorista" class="form-label small">Motorista 
+                                <a href="#" id="btnBuscarMotorista" class="ms-2 small text-primary">
+                                    <i class="fas fa-search"></i> Buscar Motorista
+                                </a>
+                            </label>
                             <select class="form-select form-select-sm" id="motorista" required>
                                 <option value="">Selecione...</option>
                             </select>
@@ -693,6 +697,53 @@
         </div>
     </div>       
 
+    <!-- Modal Buscar Motorista -->
+    <div class="modal fade" id="modalBuscarMotorista" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalBuscarMotoristaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalBuscarMotoristaLabel">Buscar Motorista</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="row mb-3">
+                        <div class="col-md-10">
+                            <input type="text" class="form-control form-control-sm" id="pesquisaMotorista" placeholder="Pesquise por matrícula, nome ou setor...">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-primary btn-sm w-100 d-flex align-items-center justify-content-center" id="btnPesquisarMotorista" style="height: 31px;">
+                                <i class="fas fa-search me-1"></i> Pesquisar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px;">
+                        <table class="table table-sm table-striped table-hover mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="position: sticky; top: 0; background-color: #f8f9fa; z-index: 1;">Matrícula</th>
+                                    <th style="position: sticky; top: 0; background-color: #f8f9fa; z-index: 1;">Nome</th>
+                                    <th style="position: sticky; top: 0; background-color: #f8f9fa; z-index: 1;">Setor</th>
+                                    <th style="position: sticky; top: 0; background-color: #f8f9fa; z-index: 1; text-align: center;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultadoPesquisaMotorista">
+                                <!-- Resultados serão carregados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="semResultados" class="text-center py-2 d-none">
+                        <p class="text-muted mb-0">Nenhum motorista encontrado</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal CNH Não Encontrada -->
     <div class="modal fade" id="modalCnhNaoEncontrada" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm">
@@ -849,101 +900,101 @@
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
 
-        // Configuração dos splitters
-        function setupSplitters() {
-            // Configurar o primeiro splitter (entre grupos superiores e Locações em Trânsito)
-            let isDragging1 = false;
-            let startY1 = 0;
-            let startHeight1 = 0;
-            
-            $('#splitter1').on('mousedown', function(e) {
-                e.preventDefault();
-                isDragging1 = true;
-                startY1 = e.pageY;
+            // Configuração dos splitters
+            function setupSplitters() {
+                // Configurar o primeiro splitter (entre grupos superiores e Locações em Trânsito)
+                let isDragging1 = false;
+                let startY1 = 0;
+                let startHeight1 = 0;
                 
-                // Alturas dos grupos superiores
-                const processosGroupbox = $('.groupbox').eq(0);
-                const empenhosGroupbox = $('.groupbox').eq(1);
-                startHeight1 = {
-                    processos: processosGroupbox.find('.groupbox-body').height(),
-                    empenhos: empenhosGroupbox.find('.tabs-body').height()
-                };
-                
-                $(document).on('mousemove', function(e) {
-                    if (!isDragging1) return;
+                $('#splitter1').on('mousedown', function(e) {
+                    e.preventDefault();
+                    isDragging1 = true;
+                    startY1 = e.pageY;
                     
-                    const deltaY = e.pageY - startY1;
+                    // Alturas dos grupos superiores
+                    const processosGroupbox = $('.groupbox').eq(0);
+                    const empenhosGroupbox = $('.groupbox').eq(1);
+                    startHeight1 = {
+                        processos: processosGroupbox.find('.groupbox-body').height(),
+                        empenhos: empenhosGroupbox.find('.tabs-body').height()
+                    };
                     
-                    // Aplicar nova altura aos groupbox superiores
-                    processosGroupbox.find('.groupbox-body').height(Math.max(100, startHeight1.processos + deltaY));
-                    empenhosGroupbox.find('.tabs-body').height(Math.max(100, startHeight1.empenhos + deltaY));
+                    $(document).on('mousemove', function(e) {
+                        if (!isDragging1) return;
+                        
+                        const deltaY = e.pageY - startY1;
+                        
+                        // Aplicar nova altura aos groupbox superiores
+                        processosGroupbox.find('.groupbox-body').height(Math.max(100, startHeight1.processos + deltaY));
+                        empenhosGroupbox.find('.tabs-body').height(Math.max(100, startHeight1.empenhos + deltaY));
+                    });
+                    
+                    $(document).on('mouseup', function() {
+                        isDragging1 = false;
+                        $(document).off('mousemove');
+                        $(document).off('mouseup');
+                    });
                 });
                 
-                $(document).on('mouseup', function() {
-                    isDragging1 = false;
-                    $(document).off('mousemove');
-                    $(document).off('mouseup');
+                // Configurar o segundo splitter (entre Locações em Trânsito e Locações Finalizadas)
+                let isDragging2 = false;
+                let startY2 = 0;
+                let startHeight2 = 0;
+                let startHeightFinalizadas = 0;
+                
+                $('#splitter2').on('mousedown', function(e) {
+                    e.preventDefault();
+                    isDragging2 = true;
+                    startY2 = e.pageY;
+                    
+                    // Altura dos grupos relevantes
+                    const transitoGroupbox = $('.groupbox').eq(2);
+                    const finalizadasGroupbox = $('.groupbox').eq(3);
+                    
+                    startHeight2 = transitoGroupbox.find('.groupbox-body').height();
+                    startHeightFinalizadas = finalizadasGroupbox.find('.groupbox-body').height();
+                    
+                    $(document).on('mousemove', function(e) {
+                        if (!isDragging2) return;
+                        
+                        const deltaY = e.pageY - startY2;
+                        
+                        // Permitir redução significativa - mínimo de apenas 50px
+                        const novaAlturaTransito = Math.max(50, startHeight2 + deltaY);
+                        
+                        // Aplicar nova altura ao groupbox de Locações em Trânsito
+                        transitoGroupbox.find('.groupbox-body').height(novaAlturaTransito);
+                        
+                        // Opcionalmente, ajustar o grupo de Locações Finalizadas para compensar
+                        // Isso criará um efeito de "push" em vez de apenas redimensionar um grupo
+                        finalizadasGroupbox.find('.groupbox-body').height(startHeightFinalizadas - deltaY);
+                    });
+                    
+                    $(document).on('mouseup', function() {
+                        isDragging2 = false;
+                        $(document).off('mousemove');
+                        $(document).off('mouseup');
+                    });
                 });
-            });
-            
-            // Configurar o segundo splitter (entre Locações em Trânsito e Locações Finalizadas)
-            let isDragging2 = false;
-            let startY2 = 0;
-            let startHeight2 = 0;
-            let startHeightFinalizadas = 0;
-            
-            $('#splitter2').on('mousedown', function(e) {
-                e.preventDefault();
-                isDragging2 = true;
-                startY2 = e.pageY;
                 
-                // Altura dos grupos relevantes
-                const transitoGroupbox = $('.groupbox').eq(2);
-                const finalizadasGroupbox = $('.groupbox').eq(3);
-                
-                startHeight2 = transitoGroupbox.find('.groupbox-body').height();
-                startHeightFinalizadas = finalizadasGroupbox.find('.groupbox-body').height();
-                
-                $(document).on('mousemove', function(e) {
-                    if (!isDragging2) return;
+                // Definir alturas iniciais adequadas para os grupos
+                setTimeout(function() {
+                    const alturaTransito = 200; // Altura inicial para Locações em Trânsito
+                    const alturaFinalizadas = 300; // Altura inicial para Locações Finalizadas
                     
-                    const deltaY = e.pageY - startY2;
-                    
-                    // Permitir redução significativa - mínimo de apenas 50px
-                    const novaAlturaTransito = Math.max(50, startHeight2 + deltaY);
-                    
-                    // Aplicar nova altura ao groupbox de Locações em Trânsito
-                    transitoGroupbox.find('.groupbox-body').height(novaAlturaTransito);
-                    
-                    // Opcionalmente, ajustar o grupo de Locações Finalizadas para compensar
-                    // Isso criará um efeito de "push" em vez de apenas redimensionar um grupo
-                    finalizadasGroupbox.find('.groupbox-body').height(startHeightFinalizadas - deltaY);
-                });
-                
-                $(document).on('mouseup', function() {
-                    isDragging2 = false;
-                    $(document).off('mousemove');
-                    $(document).off('mouseup');
-                });
-            });
-            
-            // Definir alturas iniciais adequadas para os grupos
-            setTimeout(function() {
-                const alturaTransito = 200; // Altura inicial para Locações em Trânsito
-                const alturaFinalizadas = 300; // Altura inicial para Locações Finalizadas
-                
-                $('.groupbox').eq(2).find('.groupbox-body').height(alturaTransito);
-                $('.groupbox').eq(3).find('.groupbox-body').height(alturaFinalizadas);
-            }, 100);
-        }
+                    $('.groupbox').eq(2).find('.groupbox-body').height(alturaTransito);
+                    $('.groupbox').eq(3).find('.groupbox-body').height(alturaFinalizadas);
+                }, 100);
+            }
 
-        // Chamar a configuração dos splitters quando a página estiver pronta
-        setupSplitters();
+            // Chamar a configuração dos splitters quando a página estiver pronta
+            setupSplitters();
 
-        // Garantir que os splitters se ajustem quando a janela for redimensionada
-        $(window).on('resize', function() {
-            // Recalcular dimensões se necessário
-        });
+            // Garantir que os splitters se ajustem quando a janela for redimensionada
+            $(window).on('resize', function() {
+                // Recalcular dimensões se necessário
+            });
 
   	        // Converter para maiúsculo os campos com classe uppercase
             $('.uppercase').on('input', function() {
@@ -1178,6 +1229,114 @@
                 });
             }
 
+            // Abrir modal de busca de motorista
+            $('#btnBuscarMotorista').on('click', function(e) {
+                e.preventDefault();
+                $('#modalBuscarMotorista').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                $('#modalBuscarMotorista').modal('show');
+                $('#pesquisaMotorista').val('').focus();
+                $('#resultadoPesquisaMotorista').empty();
+                $('#semResultados').addClass('d-none');
+            });
+
+            // Função para pesquisar motoristas
+            function pesquisarMotoristas(nome = '') {
+                if (nome.trim() === '') {
+                    $('#resultadoPesquisaMotorista').empty();
+                    $('#semResultados').addClass('d-none');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/api/busca_motorista',
+                    type: 'GET',
+                    data: { nome: nome },
+                    success: function(response) {
+                        $('#resultadoPesquisaMotorista').empty();
+                        
+                        if (response.length > 0) {
+                            $('#semResultados').addClass('d-none');
+                            
+                            response.forEach(function(motorista) {
+                                let linha = `
+                                    <tr>
+                                        <td>${motorista.matricula}</td>
+                                        <td>${motorista.nm_motorista}</td>
+                                        <td>${motorista.sigla_setor}</td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-success selecionar-motorista" 
+                                                    data-id="${motorista.id_motorista}" 
+                                                    data-nome="${motorista.nm_motorista}">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
+                                $('#resultadoPesquisaMotorista').append(linha);
+                            });
+                            
+                            // Adicionar evento aos botões de seleção
+                            $('.selecionar-motorista').on('click', function() {
+                                let id = $(this).data('id');
+                                let nome = $(this).data('nome');
+                                
+                                // Verificar se o motorista já existe no select
+                                let existeOpcao = false;
+                                $('#motorista option').each(function() {
+                                    if ($(this).val() == id) {
+                                        existeOpcao = true;
+                                        return false;
+                                    }
+                                });
+                                
+                                // Se não existir, adiciona a opção
+                                if (!existeOpcao) {
+                                    $('#motorista').append(new Option(nome, id));
+                                }
+                                
+                                // Seleciona o motorista
+                                $('#motorista').val(id);
+                                
+                                // Fecha o modal
+                                $('#modalBuscarMotorista').modal('hide');
+                            });
+                            
+                        } else {
+                            $('#semResultados').removeClass('d-none');
+                        }
+                    },
+                    error: function(error) {
+                        console.error('Erro ao buscar motoristas:', error);
+                        alert('Erro ao buscar motoristas. Por favor, tente novamente.');
+                    }
+                });
+            }
+
+            // Evento de clique no botão de pesquisa
+            $('#btnPesquisarMotorista').on('click', function() {
+                let termoPesquisa = $('#pesquisaMotorista').val().trim();
+                pesquisarMotoristas(termoPesquisa);
+            });
+
+            // Evento de tecla Enter no campo de pesquisa
+            $('#pesquisaMotorista').on('keypress', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    let termoPesquisa = $(this).val().trim();
+                    pesquisarMotoristas(termoPesquisa);
+                }
+            });
+
+            // Configurar modal para ser estático (não fechar quando clicar fora)
+            $('#modalBuscarMotorista').modal({
+                backdrop: 'static',
+                keyboard: false
+            });            
+            
+            
             // Salvar locação
             $('#btnSalvarLocacao').click(function() {
                 // Validar formulário
