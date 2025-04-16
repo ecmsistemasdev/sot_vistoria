@@ -231,7 +231,13 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label for="combustivel" class="form-label">Combustível</label>
-                                <input type="text" class="form-control" id="combustivel" name="combustivel" maxlength="25">
+                                <select class="form-select" id="combustivel" name="combustivel" required>
+                                    <option value="Diesel"></option>
+                                    <option value="Elétrico"></option>
+                                    <option value="Flex"></option>
+                                    <option value="Gasolina"></option>
+                                    <option value="Híbrido"></option>
+                                </select>                                
                             </div>
                             <div class="col-md-8 mb-3">
                                 <label for="obs" class="form-label">Observações</label>
@@ -394,7 +400,7 @@
                 e.preventDefault();
                 const idVeiculo = $(this).data('id');
                 
-                fetch(`/api/obter_veiculo/${idVeiculo}`)
+                fetch(`/api/veiculos_frota/${idVeiculo}`)
                     .then(response => response.json())
                     .then(veiculo => {
                         $('#secaoPesquisa, #secaoTabela, #mainFooter').hide();
