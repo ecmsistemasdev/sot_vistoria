@@ -984,7 +984,8 @@ def cadastrar_motorista():
         1: 'Administrativo',
         2: 'Motorista Desembargador',
         3: 'Motorista Atendimento',
-        4: 'Cadastro de Condutores'
+        4: 'Cadastro de Condutores',
+	5: 'Tercerizado'    
     }
 
     try:
@@ -1055,7 +1056,8 @@ def atualizar_motorista():
         1: 'Administrativo',
         2: 'Motorista Desembargador',
         3: 'Motorista Atendimento',
-        4: 'Cadastro de Condutores'
+        4: 'Cadastro de Condutores',
+	5: 'Tercerizado'
     }
 
 
