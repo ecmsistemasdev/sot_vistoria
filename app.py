@@ -912,7 +912,7 @@ def listar_motoristas():
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
                 FILE_PDF IS NOT NULL AS FILE_PDF
             FROM TJ_MOTORISTA 
-            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
+            WHERE ID_MOTORISTA > 0
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
             ORDER BY NM_MOTORISTA
             """
@@ -924,7 +924,7 @@ def listar_motoristas():
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
                 FILE_PDF IS NOT NULL AS FILE_PDF
             FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
+            WHERE ID_MOTORISTA > 0
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
