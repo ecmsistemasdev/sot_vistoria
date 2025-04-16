@@ -110,7 +110,7 @@ def logout():
 def nova_vistoria():
     # Busca motoristas e veículos do banco de dados
     cur = mysql.connection.cursor()
-    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA")
+    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
     cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
@@ -123,7 +123,7 @@ def nova_vistoria():
 def nova_vistoria2():
     # Busca motoristas e veículos do banco de dados
     cur = mysql.connection.cursor()
-    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA")
+    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
     cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
@@ -912,7 +912,7 @@ def listar_motoristas():
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
                 FILE_PDF IS NOT NULL AS FILE_PDF
             FROM TJ_MOTORISTA 
-            WHERE ID_MOTORISTA > 0
+            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
             ORDER BY NM_MOTORISTA
             """
@@ -924,7 +924,7 @@ def listar_motoristas():
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
                 FILE_PDF IS NOT NULL AS FILE_PDF
             FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA > 0 
+            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
@@ -1620,7 +1620,7 @@ def listar_motoristas_loc():
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, NU_TELEFONE, 
             FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA
+            WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA
         """)
         
         results = cursor.fetchall()
@@ -3008,7 +3008,7 @@ def busca_motorista():
             query = """
             SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
             FROM TJ_MOTORISTA 
-            WHERE ID_MOTORISTA > 0
+            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
             ORDER BY NM_MOTORISTA
             """
@@ -3017,7 +3017,7 @@ def busca_motorista():
             query = """
             SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
             FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA > 0 
+            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
