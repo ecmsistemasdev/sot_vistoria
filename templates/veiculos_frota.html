@@ -232,12 +232,13 @@
                             <div class="col-md-4 mb-3">
                                 <label for="combustivel" class="form-label">Combustível</label>
                                 <select class="form-select" id="combustivel" name="combustivel" required>
-                                    <option value="Diesel"></option>
-                                    <option value="Elétrico"></option>
-                                    <option value="Flex"></option>
-                                    <option value="Gasolina"></option>
-                                    <option value="Híbrido"></option>
-                                </select>                                
+                                    <option value="">Selecione o combustível</option>
+                                    <option value="Diesel">Diesel</option>
+                                    <option value="Elétrico">Elétrico</option>
+                                    <option value="Flex">Flex</option>
+                                    <option value="Gasolina">Gasolina</option>
+                                    <option value="Híbrido">Híbrido</option>
+                                </select>                              
                             </div>
                             <div class="col-md-8 mb-3">
                                 <label for="obs" class="form-label">Observações</label>
@@ -401,8 +402,15 @@
                 const idVeiculo = $(this).data('id');
                 
                 fetch(`/api/veiculos_frota/${idVeiculo}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Erro HTTP: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(veiculo => {
+                        console.log("Dados recebidos do veículo:", veiculo); // Log para depuração
+                        
                         $('#secaoPesquisa, #secaoTabela, #mainFooter').hide();
                         $('#secaoCadastro, #formFooter').show();
 
@@ -415,7 +423,24 @@
                         $('#anoFabmod').val(veiculo.ano_fabmod);
                         $('#origemVeiculo').val(veiculo.origem_veiculo);
                         $('#propriedade').val(veiculo.propriedade);
-                        $('#combustivel').val(veiculo.combustivel);
+                        
+                        // Verificar se o combustível existe antes de definir
+                        console.log("Valor do combustível recebido:", veiculo.combustivel);
+                        
+                        if (veiculo.combustivel) {
+                            // Verificar se a opção existe no select
+                            if ($('#combustivel option[value="' + veiculo.combustivel + '"]').length > 0) {
+                                $('#combustivel').val(veiculo.combustivel);
+                            } else {
+                                console.warn("Valor de combustível não encontrado nas opções:", veiculo.combustivel);
+                                // Adicionar dinamicamente se não existir
+                                $('#combustivel').append(new Option(veiculo.combustivel, veiculo.combustivel));
+                                $('#combustivel').val(veiculo.combustivel);
+                            }
+                        } else {
+                            $('#combustivel').val('');
+                        }
+                        
                         $('#obs').val(veiculo.obs);
                         
                         // Checkboxes
@@ -424,10 +449,9 @@
                     })
                     .catch(error => {
                         console.error('Erro ao carregar veículo para edição:', error);
-                        alert('Erro ao carregar dados do veículo');
+                        alert('Erro ao carregar dados do veículo: ' + error.message);
                     });
             });
-
             // Enviar formulário
             $('#btnSalvarVeiculo').click(function(e) {
                 e.preventDefault();
