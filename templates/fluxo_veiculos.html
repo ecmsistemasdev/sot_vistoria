@@ -266,7 +266,7 @@
                     <button type="button" class="btn btn-danger btn-sm" data-bs-dismiss="modal">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
-                    <button type="button" class="btn btn-success btn-sm" id="btnSalvarSaida">
+                    <button type="button" class="btn btn-success btn-sm" id="btnSalvarRetorno">
                         <i class="fas fa-save"></i> Salvar
                     </button>
                 </div>
@@ -314,7 +314,7 @@
         // Variáveis globais
         let motoristasLista = [];
         let veiculosLista = [];
-        
+        let fluxoId;
         // Declarando as funções no escopo global
         function carregarSaidaSemRetorno() {
             $.ajax({
@@ -473,7 +473,8 @@
             // Implementar lógica para carregar os dados do fluxo e abrir o modal
             console.log("Abrindo modal de retorno para ID:", idFluxo);
             // Aqui você faria uma requisição AJAX para buscar os dados do veículo
-
+            // alimenta variavel global
+            fluxoId = idFluxo;
 
             // Primeiro, carregar os dados da locação
             $.ajax({
@@ -565,6 +566,38 @@
             return true;
         }    
 
+        // Função para validar o formulário
+        function validarFormularioRetorno() {
+            
+            if (!$('#data_retorno').val()) {
+                alert("Por favor, informe a data de retorno.");
+                return false;
+            }
+            
+            if (!$('#hora_retorno').val()) {
+                alert("Por favor, informe a hora de retorno.");
+                return false;
+            }
+            
+            // Compondo as datas completas com hora
+            const dataSaidaStr = $('#datasaida_retorno').val();
+            const horaSaidaStr = $('#horasaida_retorno').val();
+            
+            const dataRetornoStr = $('#data_retorno').val();
+            const horaRetornoStr = $('#hora_retorno').val();
+            
+            // Criando objetos Date com data e hora juntos
+            const dataSaidaCompleta = new Date(`${dataSaidaStr}T${horaSaidaStr}`);
+            const dataRetornoCompleta = new Date(`${dataRetornoStr}T${horaRetornoStr}`);
+            
+            // Verificando se o datetime de retorno é anterior ao datetime de saída
+            if (dataRetornoCompleta < dataSaidaCompleta) {
+                alert("A data/hora de retorno não pode ser anterior à data/hora de saída!");
+                return false;
+            }
+
+            return true;
+        }
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
@@ -924,12 +957,6 @@
                         // Reativar o footer quando o modal fechar
                         $('.footer').removeClass('d-none');
                         
-                        // Recarregar locações em trânsito se a função existir
-                        if (typeof carregarLocacoesTransito === 'function') {
-                            carregarLocacoesTransito(processoIdSelecionado);
-                        }
-                        
-                        
                         // Fechar o modal principal
                         const modalNovaSaida = bootstrap.Modal.getInstance(document.getElementById('modalNovaSaida'));
                         if (modalNovaSaida) {
@@ -964,320 +991,86 @@
                 });
 
             });
+
+            // Adicionar evento para o botão Salvar retorno
+            $('#btnSalvarRetorno').click(function() {
+                console.log("Botão Salvar retorno clicado");
+                // Validar formulário
+                if (!validarFormularioRetorno()) {
+                    return;
+                }                
+                
+                $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
+
+                // Preparar dados para envio
+                const formData = new FormData();
+                formData.append('data_retorno', $('#data_retorno').val());
+                formData.append('hora_retorno', $('#hora_retorno').val());
+                formData.append('obs_retorno', $('#obs_retorno').val());
+            
+                // Enviar dados para API
+                $.ajax({
+                    url: `/api/fluxo_lanca_retorno/${fluxoId}`,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        console.log("Resposta:", response);
+                        
+                        // Mostrar mensagem de sucesso
+                        let mensagem = "Retorno registrado com sucesso!";
+                        
+                        $('#mensagemSucesso').text(mensagem);
+                        
+                        // Fechar modal de locação
+                        $('#modalRetorno').modal('hide');
+                        
+                        // Mostrar modal de sucesso
+                        $('#mensagemSucesso').html("Retorno de veículo registrado com sucesso!");
+                        const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+                        modalSucesso.show();
+                        
+                        // Reativar o footer quando o modal fechar
+                        $('.footer').removeClass('d-none');
+                        
+                        // Fechar o modal principal
+                        const modalNovaSaida = bootstrap.Modal.getInstance(document.getElementById('modalNovaSaida'));
+                        if (modalNovaSaida) {
+                            modalNovaSaida.hide();
+                        }
+                        
+                        // Recarregar os dados
+                        carregarSaidaSemRetorno();
+                        carregarRetornoDia();
+                        carregarSaidasRetornoPendente();
+
+                        // Reset botão salvar
+                        $('#btnSalvarRetorno').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao salvar retorno:", error);
+                        console.error("Resposta:", xhr.responseText);
+                        
+                        let mensagemErro = "Erro ao salvar retorno";
+                        if (xhr.responseJSON && xhr.responseJSON.mensagem) {
+                            mensagemErro += ": " + xhr.responseJSON.mensagem;
+                        } else if (xhr.statusText) {
+                            mensagemErro += ": " + xhr.statusText;
+                        } else {
+                            mensagemErro += ": " + error;
+                        }
+                        
+                        alert(mensagemErro);
+                        
+                        // Reset botão salvar
+                        $('#btnSalvarRetorno').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar');
+                    }
+                });
+
+            });
+
         });
-
-
-
-            // // Botão de devolução na tabela de locações em trânsito
-            // $(document).on('click', '#tabela-transito .btn-danger', function() {
-            //     const tr = $(this).closest('tr');
-            //     const idItem = tr.find('td:first').text();
-            //     const self = this;
-                
-            //     // Mostrar modal de carregamento
-            //     mostrarModalCarregando();
-                                
-            //     // Mostrar um indicador de carregamento
-            //     $(self).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
-
-            //     // Primeiro, carregar os dados da locação
-            //     $.ajax({
-            //         url: `/api/locacao_item/${idItem}`,
-            //         type: 'GET',
-            //         dataType: 'json',
-            //         success: function(data) {
-            //             console.log("Dados da locação carregados:", data);
-                        
-            //             // Guardar os dados para uso posterior
-            //             const itemData = data;
-                        
-            //             // Configurar campos ocultos
-            //             if (!$('#idItemDev').length) {
-            //                 $('#formDevolucaoLocacao').append('<input type="hidden" id="idItemDev">');
-            //             }
-            //             if (!$('#valorSubTotalDev').length) {
-            //                 $('#formDevolucaoLocacao').append('<input type="hidden" id="valorSubTotalDev">');
-            //             }
-                        
-            //             // Preencher os campos de texto imediatamente
-            //             $('#idItemDev').val(idItem);
-            //             $('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
-            //             $('#objetivoDev').val(data.objetivo);
-            //             $('#numSeiDev').val(data.nu_sei);
-            //             $('#veiculoModeloDev').val(data.veículo_modelo);                        
-            //             $('#combustivelDev').val(data.combustivel);
-            //             $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
-            //             $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
-            //             $('#dataFimDev').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
-            //             //$('#horaFimDev').val(new Date().toTimeString().substring(0, 5));
-            //             $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria || 0));
-            //             $('#qtdDiariasDev').val(data.qt_diarias || 0);
-            //             $('#valorDifDev').val(formatarValorMonetario(data.valor_diferenca || 0));
-            //             $('#valorSubTotalDev').val(data.valor_subtotal || 0);
-            //             $('#valorTotalDev').val(formatarValorMonetario(data.valor_total || 0));
-                        
-            //             // Contador para carregamentos pendentes
-            //             let carregamentosPendentes = 5; // Número de carregamentos assíncronos
-                        
-            //             function verificarCarregamentoCompleto() {
-            //                 carregamentosPendentes--;
-            //                 console.log("Carregamentos pendentes:", carregamentosPendentes);
-            //                 if (carregamentosPendentes <= 0) {
-            //                     // Todos os dados foram carregados
-            //                     fecharModalCarregando();
-                                
-            //                     // Restaurar o botão
-            //                     $(self).html('<i class="fas fa-arrow-right-to-bracket"></i>');
-                                
-            //                     // Definir valores após carregamento
-            //                     $('#empenholocDev').val(itemData.id_empenho);
-            //                     $('#setorSolicitanteDev').val(itemData.setor_solicitante);
-            //                     $('#motoristaDev').val(itemData.id_motorista);
-            //                     $('#veiculoDev').val(itemData.id_veiculo_loc);
-                                
-            //                     // Calcular diárias
-            //                     calcularDiariasEValoresDev();
-                                
-            //                     // Abrir o modal
-            //                     const modalDevolucaoLocacao = new bootstrap.Modal(document.getElementById('modalDevolucaoLocacao'));
-            //                     modalDevolucaoLocacao.show();
-            //                 }
-            //             }
-                        
-            //             // Carregar empenhos
-            //             $.ajax({
-            //                 url: `/api/empenhos_loc?id_cl=${processoIdSelecionado}`,
-            //                 type: 'GET',
-            //                 dataType: 'json',
-            //                 success: function(data) {
-            //                     empenhoLista = data;
-            //                     let html = '<option value="">Selecione...</option>';
-            //                     data.forEach(function(item) {
-            //                         html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
-            //                     });
-            //                     $('#empenholocDev').html(html);
-            //                     verificarCarregamentoCompleto();
-            //                 },
-            //                 error: function(xhr, status, error) {
-            //                     console.error("Erro ao carregar empenhos:", error);
-            //                     verificarCarregamentoCompleto();
-            //                 }
-            //             });
-                        
-            //             // Carregar setores
-            //             $.ajax({
-            //                 url: '/api/setores_loc',
-            //                 type: 'GET',
-            //                 dataType: 'json',
-            //                 success: function(data) {
-            //                     let html = '<option value="">Selecione...</option>';
-            //                     data.forEach(function(item) {
-            //                         html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
-            //                     });
-            //                     $('#setorSolicitanteDev').html(html);
-            //                     verificarCarregamentoCompleto();
-            //                 },
-            //                 error: function(xhr, status, error) {
-            //                     console.error("Erro ao carregar setores:", error);
-            //                     verificarCarregamentoCompleto();
-            //                 }
-            //             });
-                        
-            //             // Carregar processos
-            //             $.ajax({
-            //                 url: '/api/processos_locacao',
-            //                 type: 'GET',
-            //                 dataType: 'json',
-            //                 success: function(data) {
-            //                     verificarCarregamentoCompleto();
-            //                 },
-            //                 error: function(xhr, status, error) {
-            //                     console.error("Erro ao carregar processos:", error);
-            //                     verificarCarregamentoCompleto();
-            //                 }
-            //             });
-                        
-            //             // Carregar motoristas
-            //             $.ajax({
-            //                 url: '/api/lista_motorista_loc',
-            //                 type: 'GET',
-            //                 dataType: 'json',
-            //                 success: function(data) {
-            //                     motoristasLista = data;
-            //                     let html = '<option value="">Selecione...</option>';
-            //                     data.forEach(function(item) {
-            //                         html += `<option value="${item.ID_MOTORISTA}">${item.NM_MOTORISTA}</option>`;
-            //                     });
-            //                     $('#motoristaDev').html(html);
-            //                     verificarCarregamentoCompleto();
-            //                 },
-            //                 error: function(xhr, status, error) {
-            //                     console.error("Erro ao carregar motoristas:", error);
-            //                     verificarCarregamentoCompleto();
-            //                 }
-            //             });
-                        
-            //             // Carregar veículos
-            //             $.ajax({
-            //                 url: `/api/lista_veiculo?id_cl=${processoIdSelecionado}`,
-            //                 type: 'GET',
-            //                 dataType: 'json',
-            //                 success: function(data) {
-            //                     veiculosLista = data;
-            //                     let html = '<option value="">Selecione...</option>';
-            //                     data.forEach(function(item) {
-            //                         html += `<option value="${item.ID_VEICULO_LOC}" data-valor="${item.VL_DIARIA_KM}">${item.DE_VEICULO}</option>`;
-            //                     });
-            //                     $('#veiculoDev').html(html);
-            //                     verificarCarregamentoCompleto();
-            //                 },
-            //                 error: function(xhr, status, error) {
-            //                     console.error("Erro ao carregar veículos:", error);
-            //                     verificarCarregamentoCompleto();
-            //                 }
-            //             });
-            //         },
-            //         error: function(xhr, status, error) {
-            //             console.error("Erro ao carregar dados da locação:", error);
-            //             alert("Erro ao carregar dados da locação: " + (xhr.responseJSON?.erro || error));
-            //             $(self).html('<i class="fas fa-arrow-right-to-bracket"></i>');
-            //             fecharModalCarregando();
-            //         }
-            //     });
-            // });
-            
-            // // Botão salvar devolução
-            // $('#btnSalvarDevolucao').click(function() {
-            //     // Validar formulário
-            //     if (!validarFormularioDevolucao()) {
-            //         return;
-            //     }
-                
-            //     // Mostrar loader
-            //     $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvando...');
-                
-            //     const idItem = $('#idItemDev').val();
-            //     const formData = new FormData();
-                
-            //     // Adicionar dados ao FormData
-            //     formData.append('objetivo', $('#objetivoDev').val());
-            //     formData.append('id_veiculo', $('#veiculoDev').val());
-            //     formData.append('id_motorista', $('#motoristaDev').val());
-            //     formData.append('setor_solicitante', $('#setorSolicitanteDev').val());
-            //     formData.append('data_inicio', $('#dataInicioDev').val());
-            //     formData.append('data_fim', $('#dataFimDev').val());
-            //     formData.append('hora_inicio', $('#horaInicioDev').val());
-            //     formData.append('hora_fim', $('#horaFimDev').val());
-            //     formData.append('qt_diarias', $('#qtdDiariasDev').val());
-            //     formData.append('km_rodado', $('#kmDev').val());
-            //     formData.append('valor_diferenca', converterParaNumero($('#valorDifDev').val()));
-            //     formData.append('valor_subtotal', $('#valorSubTotalDev').val());
-            //     formData.append('valor_total', converterParaNumero($('#valorTotalDev').val()));
-            //     formData.append('veiculo_modelo', $('#veiculoModeloDev').val());
-            //     formData.append('combustivel', $('#combustivelDev').val());
-            //     formData.append('obs_dev', $('#observacoesDev').val());
-
-            //     $.ajax({
-            //         url: `/api/salvar_devolucao/${idItem}`,
-            //         type: 'POST',
-            //         data: formData,
-            //         processData: false,
-            //         contentType: false,
-            //         success: function(response) {
-            //             console.log("Resposta:", response);
-                        
-            //             // Mostrar mensagem de sucesso
-            //             $('#mensagemSucesso').text("Devolução registrada com sucesso!");
-                        
-            //             // Fechar modal de devolução
-            //             $('#modalDevolucaoLocacao').modal('hide');
-                        
-            //             // Mostrar modal de sucesso
-            //             const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
-            //             modalSucesso.show();
-                        
-            //             // Recarregar locações em trânsito
-            //             if (processoIdSelecionado) {
-            //                 carregarLocacoesTransito(processoIdSelecionado);
-            //                 carregarLocacoesFinalizadas(processoIdSelecionado);
-            //             }
-                        
-            //             // Reset botão salvar
-            //             $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
-            //         },
-            //         error: function(xhr, status, error) {
-            //             console.error("Erro ao salvar devolução:", error);
-            //             console.error("Resposta:", xhr.responseText);
-                        
-            //             let mensagemErro = "Erro ao salvar devolução";
-            //             if (xhr.responseJSON && xhr.responseJSON.erro) {
-            //                 mensagemErro += ": " + xhr.responseJSON.erro;
-            //             } else if (xhr.statusText) {
-            //                 mensagemErro += ": " + xhr.statusText;
-            //             } else {
-            //                 mensagemErro += ": " + error;
-            //             }
-                        
-            //             alert(mensagemErro);
-                        
-            //             // Reset botão salvar
-            //             $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
-            //         }
-            //     });
-            // });
-            
-        // });
-        
-        
-        // // Função para validar o formulário
-        // function validarFormulario() {
-        //     if (!$('#setorSolicitante').val()) {
-        //         alert("Por favor, selecione o setor solicitante.");
-        //         return false;
-        //     }
-            
-        //     if (!$('#objetivo').val()) {
-        //         alert("Por favor, informe o objetivo da locação.");
-        //         return false;
-        //     }
-            
-        //     if (!$('#veiculo').val()) {
-        //         alert("Por favor, selecione um veículo.");
-        //         return false;
-        //     }
-            
-        //     if (!$('#motorista').val()) {
-        //         alert("Por favor, selecione um motorista.");
-        //         return false;
-        //     }
-            
-        //     if (!$('#dataInicio').val()) {
-        //         alert("Por favor, informe a data de início.");
-        //         return false;
-        //     }
-            
-        //     if (!$('#dataFim').val()) {
-        //         alert("Por favor, informe a data de fim.");
-        //         return false;
-        //     }
-            
-        //     if (!$('#horaInicio').val()) {
-        //         alert("Por favor, informe a hora de início.");
-        //         return false;
-        //     }
-            
-            
-        //     // Verificar se as datas são válidas
-        //     const dataInicio = new Date($('#dataInicio').val());
-        //     const dataFim = new Date($('#dataFim').val());
-            
-        //     if (dataFim < dataInicio) {
-        //         alert("A data final não pode ser anterior à data inicial!");
-        //         return false;
-        //     }
-                            
-        //     return true;
-        // }
                 
     </script>
 </body>
