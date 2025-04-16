@@ -401,7 +401,7 @@
                 e.preventDefault();
                 const idVeiculo = $(this).data('id');
                 
-                fetch(`/api/veiculos_frota/${idVeiculo}`)
+                fetch(`/api/obter_veiculo/${idVeiculo}`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`Erro HTTP: ${response.status}`);
