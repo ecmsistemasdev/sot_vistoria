@@ -2579,11 +2579,19 @@ def fluxo_lista_motorista():
 @login_required
 def fluxo_lista_veiculos():
     try:
+        # SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO 
+        # FROM TJ_VEICULO WHERE FL_ATENDIMENTO = 'S'
+        # ORDER BY DS_MODELO
+  
         cursor = mysql.connection.cursor()
         cursor.execute("""
-        SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO 
-        FROM TJ_VEICULO WHERE FL_ATENDIMENTO = 'S'
-        ORDER BY DS_MODELO
+        SELECT v.ID_VEICULO, CONCAT(v.DS_MODELO,' - ',v.NU_PLACA) AS VEICULO 
+        FROM TJ_VEICULO v 
+        WHERE v.ID_VEICULO NOT IN 
+            (SELECT ID_VEICULO FROM TJ_FLUXO_VEICULOS
+			 WHERE FL_STATUS = 'S') 
+        AND v.FL_ATENDIMENTO = 'S'
+        ORDER BY v.DS_MODELO 
         """)
                
         items = cursor.fetchall()
