@@ -623,8 +623,8 @@ def ver_vistoria(id):
         # Buscar detalhes da vistoria
         cur.execute("""
             SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
-                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
+                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO, v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, 
+		   v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
