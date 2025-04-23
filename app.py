@@ -144,7 +144,7 @@ def confirma_vistoria(id):
         SELECT v.IDVISTORIA, v.IDMOTORISTA, m.NM_MOTORISTA as MOTORISTA, v.IDVEICULO, 
                CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, 
                v.COMBUSTIVEL, v.HODOMETRO, ve.DS_MODELO, v.VISTORIA_SAIDA_ID,  
-               v.ASS_USUARIO, v.ASS_MOTORISTA, v.OBS
+               v.ASS_USUARIO, v.ASS_MOTORISTA, v.OBS, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -162,6 +162,9 @@ def confirma_vistoria(id):
             veiculo_placa=vistoria[4],
             combustivel=vistoria[8],
             hodometro=vistoria[9],
+	    data_saida=vistoria[15],
+	    data_retorno=vistoria[16],
+	    nu_sei=vistoria[17],
             tipo='INICIAL'
         )
     else:
@@ -174,7 +177,8 @@ def nova_vistoria_devolucao(vistoria_saida_id):
     # Buscar informações da vistoria de saida
     cur = mysql.connection.cursor()
     cur.execute("""
-        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NM_MOTORISTA, ve.NU_PLACA, v.COMBUSTIVEL
+        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NM_MOTORISTA, 
+	ve.NU_PLACA, v.COMBUSTIVEL, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -194,6 +198,9 @@ def nova_vistoria_devolucao(vistoria_saida_id):
         veiculo_id=vistoria_saida[2],
         veiculo_placa=vistoria_saida[4],
         vistoria_saida_id=vistoria_saida_id,
+	data_saida=vistoria[6],
+	data_retorno=vistoria[7],
+	nu_sei=vistoria[8],
         tipo='DEVOLUCAO'
     )
 
