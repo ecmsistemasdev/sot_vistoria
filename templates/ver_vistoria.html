@@ -142,7 +142,7 @@
             align-items: baseline;
         }
 
-        .vistoria-header .info-row .motorista-info,
+        .vistoria-header .info-row .motorista-info, .datasei-info,
         .vistoria-header .info-row .veiculo-info {
             margin-right: 10px;
         }
@@ -413,6 +413,14 @@
                         <strong>Veículo: </strong>{{ vistoria[2] }}
                     </div>
                 </div>
+                <div class="info-row">
+                    <div class="datasei-info">
+                        <strong>Período do Deslocamento: </strong> {{ vistoria[14] }} a {{ vistoria[15] }}
+                    </div>
+                    <div class="datasei-info">
+                        <strong>Nº do Sei: </strong>{{ vistoria[16] }}
+                    </div>
+                </div>                
             </h3>
         </div>
 
