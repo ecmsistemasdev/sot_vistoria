@@ -2,7 +2,6 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nova Vistoria</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
@@ -76,6 +75,24 @@
             text-overflow: ellipsis;
         }
 
+        .flex-fields-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .flex-field {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        @media (max-width: 768px) {
+            .flex-field {
+                flex-basis: 100%;
+            }
+        }
+
         /* Responsividade para o layout de 4 colunas */
         @media (min-width: 992px) {
             .flex-fields-container {
@@ -133,6 +150,18 @@
             display: none;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
+
+        .sei-field {
+            flex: 1.5; /* Dá mais espaço para este campo em relação aos outros */
+            min-width: 280px; /* Garante um mínimo de largura */
+        }
+
+        /* Garantir que o campo NumSei tenha largura suficiente */
+        #numSei {
+            font-family: monospace; /* Usa fonte monoespaçada para melhor visualização da máscara */
+            letter-spacing: 0.5px; /* Pequeno espaçamento entre caracteres */
+        }
+
     </style>
     <script src="{{ url_for('static', filename='js/auth-check.js') }}"></script>
 </head>
@@ -207,12 +236,31 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Novos campos: Data Saída, Data Retorno e Número SEI -->
+                <div class="flex-fields-container">
+                    <div class="flex-field">
+                        <label for="dataSaida" class="form-label">Data Saída</label>
+                        <input type="date" class="form-control" id="dataSaida" name="dataSaida" required>
+                    </div>
+                    
+                    <div class="flex-field">
+                        <label for="dataRetorno" class="form-label">Data Retorno</label>
+                        <input type="date" class="form-control" id="dataRetorno" name="dataRetorno" required>
+                    </div>
+                    
+                    <div class="flex-field sei-field">
+                        <label for="numSei" class="form-label">Número SEI</label>
+                        <input type="text" class="form-control" id="numSei" name="numSei" placeholder="0000000-00.0000.0.00.0000" required>
+                    </div>
+                </div>
+
             </div>
             
             <div class="mb-4">
                 <label for="observacoes" class="form-label">Observações Gerais</label>
-                <textarea class="form-control" id="observacoes" name="observacoes" maxlength="1000" rows="3" placeholder="Digite observações gerais sobre a vistoria (máx. 1000 caracteres)"></textarea>
-                <div class="form-text"><span id="char-count">0</span>/1000 caracteres</div>
+                <textarea class="form-control" id="observacoes" name="observacoes" maxlength="150" rows="3" placeholder="Digite observações gerais sobre a vistoria (máx. 150 caracteres)"></textarea>
+                <div class="form-text"><span id="char-count">0</span>/150 caracteres</div>
             </div>
                                     
             <div class="fixed-footer">
@@ -286,7 +334,7 @@
                     document.getElementById('char-count').textContent = charCount;
                     
                     // Mudar a cor se estiver próximo do limite
-                    if (charCount > 980) {
+                    if (charCount > 130) {
                         document.getElementById('char-count').style.color = 'red';
                     } else {
                         document.getElementById('char-count').style.color = '';
@@ -294,6 +342,51 @@
                 });
             }
         }
+
+        // Função para validar os campos de data e SEI
+        function validarCamposDataSeI() {
+            const dataSaida = document.getElementById('dataSaida');
+            const dataRetorno = document.getElementById('dataRetorno');
+            const numSei = document.getElementById('numSei');
+            
+            // Validar se o campo SEI foi preenchido
+            if (!numSei.value) {
+                alert('É necessário informar o Número SEI.');
+                numSei.focus();
+                return false;
+            }
+            
+            // Validar formato do SEI (verificação básica)
+            const seiPattern = /^\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2}\.\d{4}$/;
+            if (!seiPattern.test(numSei.value)) {
+                alert('O formato do Número SEI deve ser: 0000000-00.0000.0.00.0000');
+                numSei.focus();
+                return false;
+            }
+            
+            // Validar se as datas foram preenchidas
+            if (!dataSaida.value) {
+                alert('É necessário informar a Data de Saída.');
+                dataSaida.focus();
+                return false;
+            }
+            
+            if (!dataRetorno.value) {
+                alert('É necessário informar a Data de Retorno.');
+                dataRetorno.focus();
+                return false;
+            }
+            
+            // Validar se a data de retorno é maior ou igual à data de saída
+            if (dataRetorno.value < dataSaida.value) {
+                alert('A data de retorno não pode ser anterior à data de saída!');
+                dataRetorno.focus();
+                return false;
+            }
+            
+            return true;
+        }
+
 
         // Mostrar modal com link para o motorista
         function mostrarModalSucesso(idVistoria) {
@@ -347,6 +440,11 @@
             if (form) {
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
+                    
+                    // Validar campos de data e SEI
+                    if (!validarCamposDataSeI()) {
+                        return;
+                    }
                     
                     // Criar FormData para o envio
                     const formData = new FormData(this);
@@ -454,9 +552,91 @@
             });
 
             configurarObservacoes();
+            configurarCamposDataSeI();  // Esta função definirá datas padrão e aplicará máscaras
             configurarFormulario();
-
+        
         });
+
+        // Configurar campos de data e máscara do SEI
+        function configurarCamposDataSeI() {
+            // Definir data atual como padrão para os campos de data
+            const hoje = new Date();
+            const dataFormatada = hoje.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+            
+            const dataSaida = document.getElementById('dataSaida');
+            const dataRetorno = document.getElementById('dataRetorno');
+            
+            if (dataSaida) dataSaida.value = dataFormatada;
+            if (dataRetorno) dataRetorno.value = dataFormatada;
+            
+            // Configurar validação de data de retorno
+            if (dataRetorno && dataSaida) {
+                dataRetorno.addEventListener('change', function() {
+                    if (this.value < dataSaida.value) {
+                        alert('A data de retorno não pode ser anterior à data de saída!');
+                        this.value = dataSaida.value;
+                    }
+                });
+                
+                dataSaida.addEventListener('change', function() {
+                    if (dataRetorno.value < this.value) {
+                        dataRetorno.value = this.value;
+                    }
+                });
+            }
+            
+            // Configurar máscara para o campo Número SEI
+            const numSei = document.getElementById('numSei');
+            if (numSei) {
+                numSei.addEventListener('input', function(e) {
+                    let valor = this.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+                    
+                    if (valor.length > 0) {
+                        // Aplicar a máscara 0000000-00.0000.0.00.0000
+                        let formatado = '';
+                        
+                        // Adicionar os primeiros 7 dígitos
+                        formatado += valor.substring(0, Math.min(7, valor.length));
+                        
+                        // Adicionar o hífen após os primeiros 7 dígitos
+                        if (valor.length > 7) {
+                            formatado += '-';
+                            formatado += valor.substring(7, Math.min(9, valor.length));
+                        }
+                        
+                        // Adicionar o primeiro ponto
+                        if (valor.length > 9) {
+                            formatado += '.';
+                            formatado += valor.substring(9, Math.min(13, valor.length));
+                        }
+                        
+                        // Adicionar o segundo ponto
+                        if (valor.length > 13) {
+                            formatado += '.';
+                            formatado += valor.substring(13, Math.min(14, valor.length));
+                        }
+                        
+                        // Adicionar o terceiro ponto
+                        if (valor.length > 14) {
+                            formatado += '.';
+                            formatado += valor.substring(14, Math.min(16, valor.length));
+                        }
+                        
+                        // Adicionar o quarto ponto
+                        if (valor.length > 16) {
+                            formatado += '.';
+                            formatado += valor.substring(16, Math.min(20, valor.length));
+                        }
+                        
+                        this.value = formatado;
+                    }
+                });
+                
+                // Adicionar placeholder como exemplo
+                numSei.setAttribute('placeholder', '0000000-00.0000.0.00.0000');
+            }
+        }
+
     </script>
 </body>
 </html>
