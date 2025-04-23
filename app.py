@@ -198,9 +198,9 @@ def nova_vistoria_devolucao(vistoria_saida_id):
         veiculo_id=vistoria_saida[2],
         veiculo_placa=vistoria_saida[4],
         vistoria_saida_id=vistoria_saida_id,
-	data_saida=vistoria[6],
-	data_retorno=vistoria[7],
-	nu_sei=vistoria[8],
+	data_saida=vistoria_saida[6],
+	data_retorno=vistoria_saida[7],
+	nu_sei=vistoria_saida[8],
         tipo='DEVOLUCAO'
     )
 
