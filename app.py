@@ -1348,7 +1348,7 @@ def api_dados_pls(id_cl):
                 'QTD': pls[1],
                 'VLTOTAL': float(pls[2]) if pls[2] else 0,
                 'COMBUSTIVEL': pls[3],
-		'KM': pls[4]    
+		'KM': float(pls[4]) if pls[4] else ''
             })
         
         cursor.close()
