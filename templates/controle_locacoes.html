@@ -117,6 +117,7 @@
                                             <tr>
                                                 <th>Mês/Ano</th>
                                                 <th>Qtde Locação</th>
+                                                <th>Km Rodado</th>
                                                 <th>Valor</th>
                                                 <th>Combustível</th>
                                             </tr>
@@ -1220,6 +1221,7 @@
                                 html += `<tr>
                                     <td>${item.MES_ANO}</td>
                                     <td>${item.QTD}</td>
+                                    <td>${item.KM}</td>
                                     <td>R$ ${formatarValor(item.VLTOTAL)}</td>
                                     <td>${item.COMBUSTIVEL}</td>
                                 </tr>`;
@@ -3183,6 +3185,7 @@
                             html += `<tr>
                                 <td>${item.MES_ANO}</td>
                                 <td>${item.QTD}</td>
+                                <td>${item.KM}</td>
                                 <td>R$ ${formatarValor(item.VLTOTAL)}</td>
                                 <td>${item.COMBUSTIVEL}</td>
                             </tr>`;
