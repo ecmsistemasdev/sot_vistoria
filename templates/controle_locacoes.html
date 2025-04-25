@@ -1214,23 +1214,68 @@
                     success: function(data) {
                         console.log("Dados do PLS carregado:", data);
                         let html = '';
+                        
                         if (data.length === 0) {
                             html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
                         } else {
+                            // Agrupar dados por MES_ANO
+                            const groupedData = {};
                             data.forEach(function(item) {
-                                html += `<tr>
-                                    <td>${item.MES_ANO}</td>
-                                    <td>${item.QTD}</td>
-                                    <td>${item.KM}</td>
-                                    <td>R$ ${formatarValor(item.VLTOTAL)}</td>
-                                    <td>${item.COMBUSTIVEL}</td>
+                                if (!groupedData[item.MES_ANO]) {
+                                    groupedData[item.MES_ANO] = [];
+                                }
+                                groupedData[item.MES_ANO].push(item);
+                            });
+                            
+                            // Para cada grupo, gerar as linhas e totalizadores
+                            Object.keys(groupedData).sort().reverse().forEach(function(mesAno) {
+                                const items = groupedData[mesAno];
+                                const rowCount = items.length;
+                                
+                                // Calcular totais do grupo
+                                let totalQtd = 0;
+                                let totalKm = 0;
+                                let totalValor = 0;
+                                
+                                items.forEach(function(item) {
+                                    totalQtd += item.QTD;
+                                    totalKm += item.KM;
+                                    totalValor += item.VLTOTAL;
+                                });
+                                
+                                // Gerar as linhas para cada item
+                                items.forEach(function(item, index) {
+                                    html += `<tr class="item-row" data-mes-ano="${item.MES_ANO}">`;
+                                    
+                                    // Coluna MES_ANO - primeira linha do grupo mostra o valor, as demais ficam vazias
+                                    if (index === 0) {
+                                        html += `<td rowspan="${rowCount}" class="align-middle">${item.MES_ANO}</td>`;
+                                    }
+                                    
+                                    html += `
+                                        <td>${item.QTD}</td>
+                                        <td>${item.KM}</td>
+                                        <td>R$ ${formatarValor(item.VLTOTAL)}</td>
+                                        <td>${item.COMBUSTIVEL}</td>
+                                    </tr>`;
+                                });
+                                
+                                // Adicionar linha de totais para o grupo
+                                html += `
+                                <tr class="table-secondary total-row">
+                                    <td><strong>TOTAL ${mesAno}</strong></td>
+                                    <td><strong>${totalQtd}</strong></td>
+                                    <td><strong>${totalKm}</strong></td>
+                                    <td><strong>R$ ${formatarValor(totalValor)}</strong></td>
+                                    <td></td>
                                 </tr>`;
                             });
                         }
+                        
                         $('#tabela-dados-pls').html(html);
                     },
                     error: function(xhr, status, error) {
-                        console.error("Erro ao carregar saldo de diárias:", error);
+                        console.error("Erro ao carregar dados:", error);
                         $('#tabela-dados-pls').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                     }
                 });
@@ -3178,26 +3223,69 @@
                 success: function(data) {
                     console.log("Dados do PLS carregado:", data);
                     let html = '';
+                    
                     if (data.length === 0) {
                         html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
                     } else {
+                        // Agrupar dados por MES_ANO
+                        const groupedData = {};
                         data.forEach(function(item) {
-                            html += `<tr>
-                                <td>${item.MES_ANO}</td>
-                                <td>${item.QTD}</td>
-                                <td>${item.KM}</td>
-                                <td>R$ ${formatarValor(item.VLTOTAL)}</td>
-                                <td>${item.COMBUSTIVEL}</td>
+                            if (!groupedData[item.MES_ANO]) {
+                                groupedData[item.MES_ANO] = [];
+                            }
+                            groupedData[item.MES_ANO].push(item);
+                        });
+                        
+                        // Para cada grupo, gerar as linhas e totalizadores
+                        Object.keys(groupedData).sort().reverse().forEach(function(mesAno) {
+                            const items = groupedData[mesAno];
+                            const rowCount = items.length;
+                            
+                            // Calcular totais do grupo
+                            let totalQtd = 0;
+                            let totalKm = 0;
+                            let totalValor = 0;
+                            
+                            items.forEach(function(item) {
+                                totalQtd += item.QTD;
+                                totalKm += item.KM;
+                                totalValor += item.VLTOTAL;
+                            });
+                            
+                            // Gerar as linhas para cada item
+                            items.forEach(function(item, index) {
+                                html += `<tr class="item-row" data-mes-ano="${item.MES_ANO}">`;
+                                
+                                // Coluna MES_ANO - primeira linha do grupo mostra o valor, as demais ficam vazias
+                                if (index === 0) {
+                                    html += `<td rowspan="${rowCount}" class="align-middle">${item.MES_ANO}</td>`;
+                                }
+                                
+                                html += `
+                                    <td>${item.QTD}</td>
+                                    <td>${item.KM}</td>
+                                    <td>R$ ${formatarValor(item.VLTOTAL)}</td>
+                                    <td>${item.COMBUSTIVEL}</td>
+                                </tr>`;
+                            });
+                            
+                            // Adicionar linha de totais para o grupo
+                            html += `
+                            <tr class="table-secondary total-row">
+                                <td><strong>TOTAL ${mesAno}</strong></td>
+                                <td><strong>${totalQtd}</strong></td>
+                                <td><strong>${totalKm}</strong></td>
+                                <td><strong>R$ ${formatarValor(totalValor)}</strong></td>
+                                <td></td>
                             </tr>`;
                         });
                     }
+                    
                     $('#tabela-dados-pls').html(html);
-                    verificarCarregamentoCompleto();
                 },
                 error: function(xhr, status, error) {
-                    console.error("Erro ao carregar saldo de diárias:", error);
+                    console.error("Erro ao carregar dados:", error);
                     $('#tabela-dados-pls').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
-                    verificarCarregamentoCompleto();
                 }
             });            
             
