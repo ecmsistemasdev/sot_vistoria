@@ -354,7 +354,11 @@
                         <label for="dataSaida" class="form-label">Data Saída (Deslocamento)</label>
                         <input type="date" class="form-control" id="dataSaida" value="{{ data_saida }}" name="dataSaida">
                     </div>
-                    {% else %}
+                    {% else %}                  
+                    <div class="flex-field">
+                        <label for="dataSaida" class="form-label">Data Saída (Deslocamento)</label>
+                        <input type="date" class="form-control" id="dataSaida" value="{{ data_saida }}" name="dataSaida" readonly>
+                    </div>
                     <div class="flex-field">
                         <label for="dataRetorno" class="form-label">Data Retorno (Deslocamento)</label>
                         <input type="date" class="form-control" id="dataRetorno" value="{{ data_retorno }}" name="dataRetorno">
@@ -1170,23 +1174,28 @@
             const dataSaida = document.getElementById('dataSaida');
             const dataRetorno = document.getElementById('dataRetorno');
             const numSei = document.getElementById('numSei');
-            
-            if (!dataSaida.value) {
-                alert('É necessário informar a Data de Saída.');
-                dataSaida.focus();
-                return false;
+            const tipo = document.getElementById('tipo');
+
+            if (tipo.value === 'SAIDA') {
+                if (!dataSaida.value) {
+                    alert('É necessário informar a Data de Saída.');
+                    dataSaida.focus();
+                    return false;
+                }
             }
             
-            if (!dataRetorno.value) {
-                alert('É necessário informar a Data de Retorno.');
-                dataRetorno.focus();
-                return false;
-            }
+            if (tipo.value === 'RETORNO') {
+                if (!dataRetorno.value) {
+                    alert('É necessário informar a Data de Retorno.');
+                    dataRetorno.focus();
+                    return false;
+                }
             
-            if (dataRetorno.value < dataSaida.value) {
-                alert('A Data de Retorno não pode ser anterior à Data de Saída.');
-                dataRetorno.focus();
-                return false;
+                if (dataRetorno.value < dataSaida.value) {
+                    alert('A Data de Retorno não pode ser anterior à Data de Saída.');
+                    dataRetorno.focus();
+                    return false;
+                }
             }
             
             if (!numSei.value) {
