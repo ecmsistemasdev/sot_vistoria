@@ -263,10 +263,10 @@ def salvar_vistoria():
             # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, 
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, 
                    HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_RETORNO, NU_SEI) 
-                   VALUES (%s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                (data_hora, tipo, vistoria_saida_id, combustivel, hodometro, 
+                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, 
                  assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, data_retorno, nu_sei)
             )
             # Atualizar status da vistoria de saida para finalizada
