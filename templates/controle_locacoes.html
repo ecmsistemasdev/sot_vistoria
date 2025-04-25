@@ -903,9 +903,172 @@
         //    $('#modalEditarLocacao').modal('show');
         //}
 
+        function processarTabelaPLS() {
+            console.log("Processando tabela PLS para adicionar totalizadores...");
+            
+            const tabela = document.getElementById('tabela-dados-pls');
+            if (!tabela) return;
+            
+            // Verificar se a tabela já foi processada para evitar loops
+            if (tabela.dataset.processada === 'true') return;
+            
+            const linhas = tabela.querySelectorAll('tr');
+            if (linhas.length === 0) return;
+            
+            // Coletar e agrupar os dados da tabela que já foi carregada
+            const grupos = {};
+            const linhasARemover = [];
+            
+            // Primeira passagem: coletar dados existentes na tabela
+            linhas.forEach(function(linha) {
+                const colunas = linha.querySelectorAll('td');
+                if (colunas.length < 5) return; // Ignorar linhas que não têm as colunas esperadas
+                
+                const mesAno = colunas[0].textContent.trim();
+                const qtd = parseInt(colunas[1].textContent) || 0;
+                const km = parseFloat(colunas[2].textContent) || 0;
+                const valorTexto = colunas[3].textContent.replace('R$', '').trim();
+                const valor = parseFloat(valorTexto.replace('.', '').replace(',', '.')) || 0;
+                const combustivel = colunas[4].textContent.trim();
+                
+                if (!grupos[mesAno]) {
+                    grupos[mesAno] = {
+                        linhas: [],
+                        totalQtd: 0,
+                        totalKm: 0,
+                        totalValor: 0
+                    };
+                }
+                
+                grupos[mesAno].linhas.push({
+                    linha: linha,
+                    qtd: qtd,
+                    km: km,
+                    valor: valor,
+                    combustivel: combustivel
+                });
+                
+                grupos[mesAno].totalQtd += qtd;
+                grupos[mesAno].totalKm += km;
+                grupos[mesAno].totalValor += valor;
+                
+                // Marcar para remoção
+                linhasARemover.push(linha);
+            });
+            
+            // Remover todas as linhas originais
+            linhasARemover.forEach(linha => linha.remove());
+            
+            // Adicionar as linhas reorganizadas com totalizadores
+            Object.keys(grupos).forEach(function(mesAno) {
+                const grupo = grupos[mesAno];
+                const numLinhas = grupo.linhas.length;
+                
+                // Adicionar as linhas de dados
+                grupo.linhas.forEach((item, index) => {
+                    const novaLinha = document.createElement('tr');
+                    
+                    // Célula MES_ANO
+                    if (index === 0) {
+                        const tdMesAno = document.createElement('td');
+                        tdMesAno.setAttribute('rowspan', numLinhas);
+                        tdMesAno.textContent = mesAno;
+                        tdMesAno.classList.add('align-middle');
+                        novaLinha.appendChild(tdMesAno);
+                    }
+                    
+                    // Demais células
+                    const tdQtd = document.createElement('td');
+                    tdQtd.textContent = item.qtd;
+                    novaLinha.appendChild(tdQtd);
+                    
+                    const tdKm = document.createElement('td');
+                    tdKm.textContent = item.km;
+                    novaLinha.appendChild(tdKm);
+                    
+                    const tdValor = document.createElement('td');
+                    tdValor.textContent = `R$ ${formatarValor(item.valor)}`;
+                    novaLinha.appendChild(tdValor);
+                    
+                    const tdCombustivel = document.createElement('td');
+                    tdCombustivel.textContent = item.combustivel;
+                    novaLinha.appendChild(tdCombustivel);
+                    
+                    tabela.appendChild(novaLinha);
+                });
+                
+                // Adicionar linha de total
+                const linhaTotais = document.createElement('tr');
+                linhaTotais.classList.add('table-secondary');
+                
+                const tdLabel = document.createElement('td');
+                tdLabel.innerHTML = `<strong>TOTAL ${mesAno}</strong>`;
+                linhaTotais.appendChild(tdLabel);
+                
+                const tdTotalQtd = document.createElement('td');
+                tdTotalQtd.innerHTML = `<strong>${grupo.totalQtd}</strong>`;
+                linhaTotais.appendChild(tdTotalQtd);
+                
+                const tdTotalKm = document.createElement('td');
+                tdTotalKm.innerHTML = `<strong>${grupo.totalKm.toFixed(0)}</strong>`;
+                linhaTotais.appendChild(tdTotalKm);
+                
+                const tdTotalValor = document.createElement('td');
+                tdTotalValor.innerHTML = `<strong>R$ ${formatarValor(grupo.totalValor)}</strong>`;
+                linhaTotais.appendChild(tdTotalValor);
+                
+                const tdEmpty = document.createElement('td');
+                linhaTotais.appendChild(tdEmpty);
+                
+                tabela.appendChild(linhaTotais);
+            });
+            
+            // Marcar a tabela como processada
+            tabela.dataset.processada = 'true';
+            console.log("Tabela PLS processada com sucesso!");
+        }
+
+ 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
 
+            // Tentativa 1: Esperar um pequeno tempo após a página carregar
+            setTimeout(processarTabelaPLS, 1000);
+
+            // Tentativa 2: Observar mudanças na tabela
+            const observer = new MutationObserver(function(mutations) {
+                // Verificar se as mutações afetaram nossa tabela
+                let deveProcessar = false;
+                mutations.forEach(function(mutation) {
+                    if (mutation.target.id === 'tabela-dados-pls' || 
+                        mutation.target.closest('#tabela-dados-pls')) {
+                        deveProcessar = true;
+                    }
+                });
+                
+                if (deveProcessar) {
+                    // Desconectar para evitar loop
+                    observer.disconnect();
+                    // Processar após um pequeno atraso para garantir que todas as mudanças foram aplicadas
+                    setTimeout(processarTabelaPLS, 100);
+                }
+            });
+            
+            // Configurar o observador
+            const tabelaContainer = document.getElementById('tabela-dados-pls');
+            if (tabelaContainer) {
+                observer.observe(tabelaContainer, { 
+                    childList: true, 
+                    subtree: true 
+                });
+            }
+            
+            // Adicionar um ouvinte para a aba de dados PLS
+            $('#dados-pls-tab').on('shown.bs.tab', function (e) {
+                setTimeout(processarTabelaPLS, 300);
+            });
+            
+                    
             // Configuração dos splitters
             function setupSplitters() {
                 // Configurar o primeiro splitter (entre grupos superiores e Locações em Trânsito)
