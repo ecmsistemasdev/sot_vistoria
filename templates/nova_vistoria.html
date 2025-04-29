@@ -1171,48 +1171,36 @@
             processarFotosParaEnvio(formData);
         }
 
-        // Função para validar campos de data e SEI
+        // Função corrigida de validação dos campos Data e SEI
         function validarCamposDataSeI() {
-            const dataSaida = document.getElementById('dataSaida');
-            const dataRetorno = document.getElementById('dataRetorno');
-            const numSei = document.getElementById('numSei');
-            const tipo = document.getElementById('tipo');
-
-            if (tipo.value === 'SAIDA') {
-                if (!dataSaida.value) {
-                    alert('É necessário informar a Data de Saída.');
-                    dataSaida.focus();
-                    return false;
-                }
-            }
+            // Verifica se estamos na página de saída ou devolução
+            const tipoInput = document.querySelector('input[name="tipo"]');
+            if (!tipoInput) return true; // Se não houver tipo definido, retorna true
             
-            if (tipo.value === 'RETORNO') {
-                if (!dataRetorno.value) {
-                    alert('É necessário informar a Data de Retorno.');
-                    dataRetorno.focus();
-                    return false;
-                }
+            const tipo = tipoInput.value;
             
-                if (dataRetorno.value < dataSaida.value) {
-                    alert('A Data de Retorno não pode ser anterior à Data de Saída.');
-                    dataRetorno.focus();
-                    return false;
-                }
-            }
-            
-            if (!numSei.value) {
-                alert('É necessário informar o Número SEI.');
-                numSei.focus();
+            // Verifica campo de data de saída
+            const dataSaidaInput = document.getElementById('dataSaida');
+            if (dataSaidaInput && !dataSaidaInput.value) {
+                alert('Por favor, preencha a data de saída.');
+                dataSaidaInput.focus();
                 return false;
-            }       
-
-            // const regexSei = /^\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2}\.\d{4}$/;
-            // if (!regexSei.test(numSei.value)) {
-            //     alert('O Número SEI deve estar no formato 0000000-00.0000.0.00.0000');
-            //     numSei.focus();
-            //     return false;
-            // }            
-
+            }
+            
+            // Se for devolução, verifica data de retorno
+            if (tipo === 'DEVOLUCAO') {
+                const dataRetornoInput = document.getElementById('dataRetorno');
+                if (dataRetornoInput && !dataRetornoInput.value) {
+                    alert('Por favor, preencha a data de retorno.');
+                    dataRetornoInput.focus();
+                    return false;
+                }
+            }
+            
+            // Verifica o campo SEI (se existir) - tornando opcional
+            const numSeiInput = document.getElementById('numSei');
+            // Não retornamos false se o campo estiver vazio, pois é opcional
+            
             return true;
         }
 
