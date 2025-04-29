@@ -215,8 +215,9 @@ def salvar_vistoria():
         hodometro = request.form['hodometro']
         obs = request.form['observacoes']
         data_saida = request.form['dataSaida']
-        #data_retorno = request.form['dataRetorno']
-        nu_sei = request.form['numSei']      
+        # Obter data_retorno apenas se estiver presente no formulário
+        data_retorno = request.form.get('dataRetorno', None)
+        nu_sei = request.form.get('numSei', '')  # Tornando campo SEI opcional
         
         # Obter o nome do usuário da sessão
         usuario_nome = session.get('usuario_nome', 'Sistema')
@@ -264,8 +265,8 @@ def salvar_vistoria():
             cur.execute(
                 """INSERT INTO VISTORIAS 
                    (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, 
-                   HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_RETORNO, NU_SEI) 
-                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                   HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, DATA_RETORNO, NU_SEI) 
+                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, 
                  assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, data_retorno, nu_sei)
             )
