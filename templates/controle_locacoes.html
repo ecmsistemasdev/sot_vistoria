@@ -1794,7 +1794,7 @@
                         $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
                         $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
                         $('#dataFimDev').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
-                        $('#horaFimDev').val(new Date().toTimeString().substring(0, 5));
+                        $('#horaFimDev').val('');
                         $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria || 0));
                         $('#qtdDiariasDev').val(data.qt_diarias || 0);
                         $('#valorDifDev').val(formatarValorMonetario(data.valor_diferenca || 0));
