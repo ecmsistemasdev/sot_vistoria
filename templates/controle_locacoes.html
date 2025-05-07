@@ -1751,6 +1751,13 @@
                 const idItem = tr.find('td:first').text();
                 const self = this;
 
+                // Resetar o formulário completamente antes de abrir
+                $('#formDevolucaoLocacao')[0].reset();
+                
+                // Limpar explicitamente o campo de hora fim e restaurar o botão de salvar
+                $('#horaFimDev').val('');
+                $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
+
                 // Mostrar modal de carregamento
                 mostrarModalCarregando();
                                 
@@ -1778,20 +1785,22 @@
                         
                         // Preencher os campos de texto imediatamente
                         $('#idItemDev').val(idItem);
-                        $('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
+                        //$('#veiculoModeloDev').val(tr.find('td:eq(3)').text());
                         $('#objetivoDev').val(data.objetivo);
                         $('#numSeiDev').val(data.nu_sei);
-                        $('#veiculoModeloDev').val(data.veículo_modelo);                        
+                        //$('#veiculoModeloDev').val(data.veículo_modelo);
+                        $('#veiculoModeloDev').val(data.veículo_modelo || tr.find('td:eq(3)').text());
                         $('#combustivelDev').val(data.combustivel);
                         $('#dataInicioDev').val(formatarDataParaInput(data.dt_inicio));
                         $('#horaInicioDev').val(data.hora_inicio ? data.hora_inicio.substring(0, 5) : '');
                         $('#dataFimDev').val(formatarDataParaInput(data.dt_fim || new Date().toISOString().split('T')[0]));
-                        //$('#horaFimDev').val(new Date().toTimeString().substring(0, 5));
+                        $('#horaFimDev').val(new Date().toTimeString().substring(0, 5));
                         $('#valorDiariaDev').val(formatarValorMonetario(data.valor_diaria || 0));
                         $('#qtdDiariasDev').val(data.qt_diarias || 0);
                         $('#valorDifDev').val(formatarValorMonetario(data.valor_diferenca || 0));
                         $('#valorSubTotalDev').val(data.valor_subtotal || 0);
                         $('#valorTotalDev').val(formatarValorMonetario(data.valor_total || 0));
+                        $('#observacoesDev').val('');
                         
                         // Contador para carregamentos pendentes
                         let carregamentosPendentes = 5; // Número de carregamentos assíncronos
@@ -1805,6 +1814,9 @@
                                 
                                 // Restaurar o botão
                                 $(self).html('<i class="fas fa-arrow-right-to-bracket"></i>');
+
+                                // Garantir que o botão de salvar está no estado correto
+                                $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
                                 
                                 // Definir valores após carregamento
                                 $('#empenholocDev').val(itemData.id_empenho);
@@ -1923,6 +1935,19 @@
                 });
             });
 
+            // Evento para reiniciar o formulário quando o modal é fechado
+            $('#modalDevolucaoLocacao').on('hidden.bs.modal', function () {
+                // Resetar o formulário
+                $('#formDevolucaoLocacao')[0].reset();
+                
+                // Garantir que o botão de salvar está no estado correto
+                $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
+                
+                // Limpar explicitamente o campo de hora fim
+                $('#horaFimDev').val('');
+            });
+
+            
             // Recalcular diárias e valores ao alterar datas e horas
             $('#dataFimDev, #horaFimDev, #qtdDiariasDev, #valorDifDev').on('change input', function() {
                 calcularDiariasEValoresDev();
@@ -2010,8 +2035,9 @@
                         // Mostrar mensagem de sucesso
                         $('#mensagemSucesso').text("Devolução registrada com sucesso!");
                         
-                        // Fechar modal de devolução
+                        // Fechar modal de devolução e garantir que o botão de salvar está no estado correto
                         $('#modalDevolucaoLocacao').modal('hide');
+                        $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
                         
                         // Mostrar modal de sucesso
                         const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
@@ -2024,7 +2050,7 @@
                         }
                         
                         // Reset botão salvar
-                        $('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
+                        //$('#btnSalvarDevolucao').prop('disabled', false).html('<i class="fas fa-save"></i> Salvar Devolução');
                     },
                     error: function(xhr, status, error) {
                         console.error("Erro ao salvar devolução:", error);
