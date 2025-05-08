@@ -2740,14 +2740,21 @@
                 success: function(data) {
                     let html = '';
                     data.forEach(function(item) {
-                        html += `<tr>
+                        html += `<tr data-id="${item.ID_CL}">
                             <td>${item.ID_CL}</td>
                             <td>${item.ANO_EXERCICIO}</td>
                             <td>${item.NM_FORNECEDOR}</td>
                             <td>${item.NU_SEI}</td>
                             <td>${item.NU_CONTRATO}</td>
                             <td class="sticky-column">
-                                <a href="javascript:void(0)" onclick="selecionarProcesso(${item.ID_CL})" class="btn-selecionar">Selecionar</a>
+                                <div class="d-flex justify-content-around">
+                                    <a href="javascript:void(0)" onclick="selecionarProcesso(${item.ID_CL})" class="btn btn-sm btn-primary" title="Selecionar">
+                                        <i class="fas fa-check-circle"></i>
+                                    </a>
+                                    <a href="javascript:void(0)" onclick="sairProcesso(${item.ID_CL})" class="btn btn-sm btn-danger ms-1" title="Sair" style="display: none;">
+                                        <i class="fas fa-times-circle"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>`;
                     });
@@ -3108,7 +3115,7 @@
         function selecionarProcesso(id_cl) {
             console.log("Selecionando processo ID:", id_cl);
             processoIdSelecionado = id_cl;
-
+        
             // Mostrar modal de carregamento
             mostrarModalCarregando();
             
@@ -3118,10 +3125,17 @@
             // Armazenar no localStorage
             localStorage.setItem('fornecedorNome', fornecedorNome);
             console.log("Nome do fornecedor armazenado:", fornecedorNome);
-
+        
+            // Ocultar todos os processos exceto o selecionado
+            $(`#tabela-processos tr`).hide();
+            $(`#tabela-processos tr[data-id="${id_cl}"]`).show();
+            
+            // Mostrar o botão de sair apenas para o processo selecionado
+            $(`#tabela-processos tr[data-id="${id_cl}"] .btn-danger`).show();
+        
             // Contador para controlar carregamentos pendentes
             let carregamentosPendentes = 6; // Quantidade de carregamentos assíncronos
-
+        
             function verificarCarregamentoCompleto() {
                 carregamentosPendentes--;
                 if (carregamentosPendentes <= 0) {
@@ -3129,7 +3143,7 @@
                     fecharModalCarregando();
                 }
             }
-
+        
             // Carregar empenhos
             $.ajax({
                 url: `/api/empenhos/${id_cl}`,
@@ -3195,7 +3209,7 @@
                     verificarCarregamentoCompleto();
                 }
             });
-
+        
             // Carregar dados do PLS
             $.ajax({
                 url: `/api/dados_pls/${id_cl}`,
@@ -3340,10 +3354,30 @@
                     verificarCarregamentoCompleto();
                 }
             });
-
+        
             //Carregar locações finalizadas
             carregarLocacoesFinalizadas(id_cl);            
         }
+
+        // Nova função para sair do processo selecionado
+        function sairProcesso(id_cl) {
+            console.log("Saindo do processo ID:", id_cl);
+            processoIdSelecionado = null;
+            
+            // Limpar localStorage
+            localStorage.removeItem('fornecedorNome');
+            
+            // Limpar todas as tabelas
+            $('#tabela-empenhos').html('<tr><td colspan="6" class="text-center">Selecione um processo para visualizar os empenhos</td></tr>');
+            $('#tabela-saldo-diarias').html('<tr><td colspan="8" class="text-center">Selecione um processo para visualizar o saldo de diárias</td></tr>');
+            $('#tabela-dados-pls').html('<tr><td colspan="5" class="text-center">Selecione um processo para visualizar os dados do PLS</td></tr>');
+            $('#tabela-transito').html('<tr><td colspan="10" class="text-center">Selecione um processo para visualizar as locações em trânsito</td></tr>');
+            $('#tabela-finalizadas').html('<tr><td colspan="10" class="text-center">Selecione um processo para visualizar as locações finalizadas</td></tr>');
+            $('#filtroMesAno').html('<option value="Todos">Todos</option>');
+            
+            // Recarregar todos os processos
+            carregarProcessos();
+        }        
               
         // Função para exibir locações finalizadas na tabela
         function exibirLocacoesFinalizadas(data) {
