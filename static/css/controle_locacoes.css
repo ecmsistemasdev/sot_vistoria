@@ -324,3 +324,36 @@ td {
 .form-control.bg-readonly-green {
     background-color: #e8f5e9; /* Verde bem claro */
 }
+
+/* Estilos adicionais para os botões de ação */
+.sticky-column {
+    position: sticky;
+    right: 0;
+    background-color: #fff;
+    z-index: 1;
+}
+
+/* Adiciona um pouco de espaço entre os botões */
+.sticky-column .btn {
+    margin-right: 3px;
+}
+
+/* Estilos para os ícones */
+.btn-primary i {
+    color: white;
+}
+
+.btn-danger i {
+    color: white;
+}
+
+/* Efeito de hover nos botões */
+.btn:hover {
+    opacity: 0.9;
+}
+
+/* Estilos para destacar a linha selecionada */
+#tabela-processos tr.selecionado {
+    background-color: #e8f4ff;
+    font-weight: bold;
+}
