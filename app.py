@@ -1207,6 +1207,7 @@ def api_processos_locacao():
         FROM TJ_CONTROLE_LOCACAO cl, TJ_FORNECEDOR f
         WHERE f.ID_FORNECEDOR = cl.ID_FORNECEDOR
         AND cl.ATIVO = 'S'
+	ORDER BY cl.ID_CL DESC
         """
         cursor.execute(query)
         processos = cursor.fetchall()
