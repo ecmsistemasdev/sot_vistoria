@@ -110,6 +110,16 @@
             opacity: 0.7;
         }
 
+        /* Botão de visualizar CNH */
+        .btn-visualizar-cnh {
+            margin-left: 10px;
+        }
+
+        .file-container {
+            display: flex;
+            align-items: center;
+        }
+
         /* Ajustes para mobile */
         @media (max-width: 768px) {
             .footer .container-fluid {
@@ -264,7 +274,12 @@
                                 <label for="fileCnh" class="form-label">Anexar CNH (PDF)</label>
                                 <input class="form-control" type="file" id="fileCnh" name="file_pdf" 
                                        accept=".pdf">
-                                <div id="fileNameDisplay" class="file-name"></div>
+                                <div class="file-container mt-2">
+                                    <div id="fileNameDisplay" class="file-name"></div>
+                                    <button type="button" id="btnVisualizarCnh" class="btn btn-sm btn-primary btn-visualizar-cnh" style="display:none;">
+                                        <i class="fas fa-eye"></i> Visualizar CNH
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -352,6 +367,18 @@
             $('#fileCnh').on('change', function() {
                 const fileName = this.files[0] ? this.files[0].name : '';
                 $('#fileNameDisplay').text(fileName ? `Arquivo selecionado: ${fileName}` : '');
+                // Ocultar botão de visualizar quando um novo arquivo é selecionado
+                $('#btnVisualizarCnh').hide();
+            });
+
+            // Botão Visualizar CNH
+            $('#btnVisualizarCnh').click(function(e) {
+                e.preventDefault();
+                const idMotorista = $('#idMotorista').val();
+                if (idMotorista) {
+                    // Abrir o PDF em uma nova aba
+                    window.open(`/api/motoristas/download_cnh/${idMotorista}`, '_blank');
+                }
             });
 
             // Update event listeners to handle both section and footer buttons
@@ -362,6 +389,7 @@
                 $('#secaoAtivo').hide();
                 $('#cadastroForm')[0].reset();
                 $('#fileNameDisplay').text('');
+                $('#btnVisualizarCnh').hide(); // Esconde o botão quando cria novo registro
             });
 
             // Botão Cancelar / Voltar
@@ -402,6 +430,12 @@
                                         data-id="${motorista.id_motorista}">
                                             <i class="fas fa-edit"></i> Editar
                                         </a>
+                                        ${motorista.file_pdf ? 
+                                            `<a href="/api/motoristas/download_cnh/${motorista.id_motorista}" 
+                                             class="btn btn-sm btn-primary ms-1" target="_blank">
+                                                <i class="fas fa-eye"></i> Ver CNH
+                                             </a>` : 
+                                            ''}
                                     </td>
                                 </tr>
                             `);
@@ -475,8 +509,12 @@
                         // Display filename if exists
                         if (motorista.nome_arquivo) {
                             $('#fileNameDisplay').text(`Arquivo atual: ${motorista.nome_arquivo}`);
+                            // Mostrar o botão de visualização
+                            $('#btnVisualizarCnh').show();
                         } else {
                             $('#fileNameDisplay').text('');
+                            // Esconder o botão de visualização
+                            $('#btnVisualizarCnh').hide();
                         }
                     });
             });
