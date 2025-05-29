@@ -1236,6 +1236,55 @@
                 });
             }
 
+            
+            function carregarLocacoesFinalizadas(id_cl) {   
+                $.ajax({
+                    url: `/api/locacoes_finalizadas/${id_cl}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Locações finalizadas carregadas:", data);
+                        // Armazenar os dados completos para filtrar depois
+                        locacoesFinalizadasCompletas = data;
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="10" class="text-center">Nenhuma locação finalizada encontrada</td></tr>';
+                        } else {
+                            data.forEach(function(item) {
+                                html += `<tr>
+                                    <td>${item.ID_ITEM}</td>
+                                    <td>${item.MES_ANO}</td>
+                                    <td>${item.DE_VEICULO}</td>
+                                    <td>${item.DS_VEICULO_MOD}</td>
+                                    <td>${formatarDataString(item.DT_INICIAL)}</td>
+                                    <td>${formatarDataString(item.DT_FINAL)}</td>
+                                    <td>${item.QT_DIARIA_KM}</td>
+                                    <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                                    <td>${item.MOTORISTA}</td>
+                                    <td class="sticky-column">
+                                        <div class="d-flex justify-content-around">
+                                            <a href="javascript:void(0)" class="acao-btn btn-abrir" title="Visualizar">
+                                                <i class="fas fa-search"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-finalizadas').html(html);                    
+                        // Exibir todos os dados inicialmente
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar locações finalizadas:", error);
+                        console.error("Status:", xhr.status);
+                        console.error("Resposta:", xhr.responseText);
+                        $('#tabela-finalizadas').html('<tr><td colspan="10" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                        verificarCarregamentoCompleto();
+                    }
+                });                 
+            }
+            
             // Abrir modal de busca de motorista
             $('#btnBuscarMotorista').on('click', function(e) {
                 e.preventDefault();
