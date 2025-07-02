@@ -432,7 +432,7 @@
                             <label for="valorDiariaDev" class="form-label small">Valor Diária</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
-                                <input type="text" class="form-control form-control-sm" id="valorDiariaDev">
+                                <input type="text" class="form-control form-control-sm" id="valorDiariaDev" readonly>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -838,7 +838,6 @@
         let qtdDiariasEditadaManualmente = false;
         let valorDifEditadoManualmente = false;
         let idLocacaoAtual;
-        let valorDiariaEditadoManualmente = false;
         
         const TOLERANCIA_HORAS = 2; // 2 horas de tolerância
         const FRACAO_HORA_EXTRA = 0.1; // 1/10 do valor da diária por hora extra
@@ -1999,22 +1998,16 @@
 
             
             // Recalcular diárias e valores ao alterar datas e horas
-            //$('#dataFimDev, #horaFimDev, #qtdDiariasDev, #valorDifDev').on('change input', function() {
-            //    calcularDiariasEValoresDev();
-            //});
-
-            // Eventos para mudança de data/hora - sempre recalcula diárias e horas extras
-            $('#dataFimDev, #horaFimDev').on('change input', function() {
+            $('#dataFimDev, #horaFimDev, #qtdDiariasDev, #valorDifDev').on('change input', function() {
                 calcularDiariasEValoresDev();
             });
-            
+
             // Resetar flags quando mudar data/hora
             $('#dataFimDev, #horaFimDev').on('change', function() {
                 qtdDiariasEditadaManualmente = false;
                 valorDifEditadoManualmente = false;
-                valorDiariaEditadoManualmente = false;
                 calcularDiariasEValoresDev();
-            });        
+            });            
 
             // Marcadores para edição manual dos campos de diárias e diferença
             $('#qtdDiariasDev').on('input', function() {
@@ -2026,24 +2019,8 @@
                 valorDifEditadoManualmente = true;
                 calcularDiariasEValoresDev();
             });
-            
-            let valorDiariaEditadoManualmente = false;
-            
-            // Adicionar evento para o campo Valor Diária
-            $('#valorDiariaDev').on('input', function() {
-                valorDiariaEditadoManualmente = true;
-                calcularValorTotalDev();
-            });
-            
-            // Formatar valor da diária ao perder foco
-            $('#valorDiariaDev').on('blur', function() {
-                if (valorDiariaEditadoManualmente) {
-                    const valor = converterParaNumero($(this).val());
-                    $(this).val(formatarValorMonetario(valor));
-                    calcularValorTotalDev();
-                }
-            });
 
+            
             // Para o campo de valor diferença, formatar como valor monetário ao perder foco
             $('#valorDifDev').on('blur', function() {
                 if (valorDifEditadoManualmente) {
@@ -2063,44 +2040,6 @@
                     calcularDiariasEValoresDev();
                 }
             });
-
-            // Modificar os eventos existentes para chamar a nova função
-            $('#qtdDiariasDev').off('input').on('input', function() {
-                qtdDiariasEditadaManualmente = true;
-                calcularValorTotalDev();
-            });
-            
-            $('#valorDifDev').off('input').on('input', function() {
-                valorDifEditadoManualmente = true;
-                calcularValorTotalDev();
-            });
-
-            $('#valorDiariaDev').off('input').on('input', function() {
-                valorDiariaEditadoManualmente = true;
-                calcularValorTotalDev();
-            });
-            
-            // Nova função para calcular apenas o valor total
-            function calcularValorTotalDev() {
-                const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
-                const qtdDiarias = parseFloat($('#qtdDiariasDev').val() || 0);
-                const valorDiferenca = converterParaNumero($('#valorDifDev').val());
-                
-                console.log("Calculando valor total:", valorDiaria, qtdDiarias, valorDiferenca);
-                
-                const valorSubTotal = valorDiaria * qtdDiarias;
-                const valorTotal = valorSubTotal + valorDiferenca; // Soma a diferença ao invés de subtrair
-                
-                console.log("Valores calculados:", valorSubTotal, valorTotal);
-                
-                // Armazenar valor subtotal em campo hidden
-                if ($('#valorSubTotalDev').length) {
-                    $('#valorSubTotalDev').val(valorSubTotal);
-                }
-                
-                // Atualizar campo na interface
-                $('#valorTotalDev').val(formatarValorMonetario(valorTotal));
-            }
             
             // Botão salvar devolução
             $('#btnSalvarDevolucao').click(function() {
@@ -3050,7 +2989,6 @@
                 // Resetar bandeiras quando data/hora mudar
                 qtdDiariasEditadaManualmente = false;
                 valorDifEditadoManualmente = false;
-                valorDiariaEditadoManualmente = false;
                 
                 // Verificar se é a mesma data
                 const dataInicioStr = $('#dataInicioDev').val();
@@ -3110,16 +3048,30 @@
                     diarias = Math.max(1, diarias);
                 }
                 
-                // Atualizar os campos com os valores calculados
+                // Atualizar os campos
                 $('#qtdDiariasDev').val(diarias);
                 $('#valorDifDev').val(formatarValorMonetario(valorDiferenca));
-                
-                // Calcular valor total após atualizar os campos
-                calcularValorTotalDev();
-            } else {
-                // Se algum campo foi editado manualmente, apenas recalcular o valor total
-                calcularValorTotalDev();
             }
+            
+            // Calcular valor total (sempre recalcular, independente de qual campo foi editado)
+            const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
+            const qtdDiarias = parseFloat($('#qtdDiariasDev').val() || 0);
+            const valorDiferenca = converterParaNumero($('#valorDifDev').val());
+            
+            console.log("Valores para cálculo:", valorDiaria, qtdDiarias, valorDiferenca);
+            
+            const valorSubTotal = valorDiaria * qtdDiarias;
+            const valorTotal = valorSubTotal + valorDiferenca;
+            
+            console.log("Valores calculados:", valorSubTotal, valorTotal);
+            
+            // Armazenar valor subtotal em campo hidden (assumindo que existe)
+            if ($('#valorSubTotalDev').length) {
+                $('#valorSubTotalDev').val(valorSubTotal);
+            }
+            
+            // Atualizar campos na interface
+            $('#valorTotalDev').val(formatarValorMonetario(valorTotal));
         }
 
         // Calcular diárias e valores para devolução
