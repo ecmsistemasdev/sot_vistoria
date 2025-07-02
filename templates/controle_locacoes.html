@@ -1999,10 +1999,15 @@
 
             
             // Recalcular diárias e valores ao alterar datas e horas
-            $('#dataFimDev, #horaFimDev, #qtdDiariasDev, #valorDifDev').on('change input', function() {
+            //$('#dataFimDev, #horaFimDev, #qtdDiariasDev, #valorDifDev').on('change input', function() {
+            //    calcularDiariasEValoresDev();
+            //});
+
+            // Eventos para mudança de data/hora - sempre recalcula diárias e horas extras
+            $('#dataFimDev, #horaFimDev').on('change input', function() {
                 calcularDiariasEValoresDev();
             });
-
+            
             // Resetar flags quando mudar data/hora
             $('#dataFimDev, #horaFimDev').on('change', function() {
                 qtdDiariasEditadaManualmente = false;
@@ -2070,6 +2075,11 @@
                 calcularValorTotalDev();
             });
 
+            $('#valorDiariaDev').off('input').on('input', function() {
+                valorDiariaEditadoManualmente = true;
+                calcularValorTotalDev();
+            });
+            
             // Nova função para calcular apenas o valor total
             function calcularValorTotalDev() {
                 const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
@@ -3040,7 +3050,7 @@
                 // Resetar bandeiras quando data/hora mudar
                 qtdDiariasEditadaManualmente = false;
                 valorDifEditadoManualmente = false;
-                valorDiariaEditadoManualmente = false; // Resetar também a bandeira do valor da diária
+                valorDiariaEditadoManualmente = false;
                 
                 // Verificar se é a mesma data
                 const dataInicioStr = $('#dataInicioDev').val();
@@ -3100,13 +3110,16 @@
                     diarias = Math.max(1, diarias);
                 }
                 
-                // Atualizar os campos
+                // Atualizar os campos com os valores calculados
                 $('#qtdDiariasDev').val(diarias);
                 $('#valorDifDev').val(formatarValorMonetario(valorDiferenca));
+                
+                // Calcular valor total após atualizar os campos
+                calcularValorTotalDev();
+            } else {
+                // Se algum campo foi editado manualmente, apenas recalcular o valor total
+                calcularValorTotalDev();
             }
-            
-            // Sempre recalcular o valor total
-            calcularValorTotalDev();
         }
 
         // Calcular diárias e valores para devolução
