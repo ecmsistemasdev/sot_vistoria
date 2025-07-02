@@ -1235,22 +1235,25 @@ def api_empenhos(id_cl):
     try:
         cursor = mysql.connection.cursor()
         query = """
-        SELECT e.ID_EMPENHO, e.NU_EMPENHO, e.VL_EMPENHO,
-               (SELECT IFNULL(SUM(VL_SUBTOTAL),0) 
-               FROM TJ_CONTROLE_LOCACAO_ITENS
-               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_DIARIAS,      
-               (SELECT IFNULL(SUM(VL_DIFERENCA),0) 
-               FROM TJ_CONTROLE_LOCACAO_ITENS
-               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_DIF,
-               (SELECT IFNULL(SUM(VL_TOTALITEM),0) 
-               FROM TJ_CONTROLE_LOCACAO_ITENS I
-               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_UTILIZADO,
-               e.VL_EMPENHO - e.VL_ANULADO - 
-               (SELECT IFNULL(SUM(VL_TOTALITEM),0) 
-               FROM TJ_CONTROLE_LOCACAO_ITENS I
-               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_SALDO
-        FROM TJ_CONTROLE_LOCACAO_EMPENHOS e
-        WHERE e.ATIVO = 'S'
+	SELECT 
+	    e.ID_EMPENHO, 
+	    e.NU_EMPENHO, 
+	    e.VL_EMPENHO,
+	    IFNULL(i.VL_DIARIAS, 0) AS VL_DIARIAS,
+	    IFNULL(i.VL_DIF, 0) AS VL_DIF,
+	    IFNULL(i.VL_UTILIZADO, 0) AS VL_UTILIZADO,
+	    (e.VL_EMPENHO - IFNULL(e.VL_ANULADO, 0) - IFNULL(i.VL_UTILIZADO, 0)) AS VL_SALDO
+	FROM TJ_CONTROLE_LOCACAO_EMPENHOS e
+	LEFT JOIN (
+	    SELECT 
+		ID_EMPENHO,
+		SUM(VL_SUBTOTAL) AS VL_DIARIAS,
+		SUM(VL_DIFERENCA) AS VL_DIF,
+		SUM(VL_TOTALITEM) AS VL_UTILIZADO
+	    FROM TJ_CONTROLE_LOCACAO_ITENS
+	    GROUP BY ID_EMPENHO
+	) i ON e.ID_EMPENHO = i.ID_EMPENHO
+	WHERE e.ATIVO = 'S'
         AND e.ID_CL = %s
         """
         cursor.execute(query, (id_cl,))
