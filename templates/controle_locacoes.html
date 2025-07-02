@@ -432,7 +432,7 @@
                             <label for="valorDiariaDev" class="form-label small">Valor Diária</label>
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text">R$</span>
-                                <input type="text" class="form-control form-control-sm" id="valorDiariaDev" readonly>
+                                <input type="text" class="form-control form-control-sm" id="valorDiariaDev">
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -2017,6 +2017,18 @@
             
             $('#valorDifDev').on('input', function() {
                 valorDifEditadoManualmente = true;
+                calcularDiariasEValoresDev();
+            });
+            
+            // Novo event listener para o campo Valor Diária
+            $('#valorDiariaDev').on('input', function() {
+                calcularDiariasEValoresDev();
+            });
+            
+            // Formatação do campo Valor Diária ao perder foco
+            $('#valorDiariaDev').on('blur', function() {
+                const valor = converterParaNumero($(this).val());
+                $(this).val(formatarValorMonetario(valor));
                 calcularDiariasEValoresDev();
             });
 
