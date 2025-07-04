@@ -1,18 +1,39 @@
-from flask import Flask, render_template, request, make_response, redirect, url_for, flash, jsonify, send_file, session
+from flask import Flask, render_template, redirect, request, make_response, jsonify, flash, session
 from flask_mail import Mail, Message
-from functools import wraps
-import os
+from flask_cors import CORS
 from flask_mysqldb import MySQL
-import MySQLdb.cursors
-import uuid
-import base64
+from dotenv import load_dotenv
 from datetime import datetime
-from io import BytesIO
 from pytz import timezone
+import mercadopago
+import requests
+import hashlib
+import pdfkit
+import os
+import re
+import random
+import string
+import json
+import uuid
+import logging
+import pytz
+
+load_dotenv()  # Carrega as variáveis do arquivo .env
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+sdk = mercadopago.SDK(os.getenv('MP_ACCESS_TOKEN'))
+
+app.secret_key = os.getenv('SECRET_KEY')
+CORS(app)
 
 # Configuração do Flask-Mail
+#app.config['MAIL_SERVER'] = os.getenv('SMTP_SERVER')  # Substitua pelo seu servidor SMTP
+#app.config['MAIL_PORT'] = os.getenv('SMTP_PORT') 
+#app.config['MAIL_USERNAME'] = os.getenv('EMAIL_USER') 
+#app.config['MAIL_PASSWORD'] = os.getenv('EMAIL_PASSWORD') 
+#app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')  # Substitua pelo seu servidor SMTP
 app.config['MAIL_PORT'] = os.getenv('MAIL_PORT') 
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME') 
@@ -22,3279 +43,5309 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_MAX_EMAILS'] = None
 app.config['MAIL_TIMEOUT'] = 10  # segundos
+app.config['MP_ACCESS_TOKEN'] = os.getenv('MP_ACCESS_TOKEN')
+
 mail = Mail(app)
 
-# Configuração do MySQL
+# Configuração MySQL
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+
 mysql = MySQL(app)
 
-# Configuração para segurança
-app.secret_key = os.getenv('SECRET_KEY')
+#sdk = mercadopago.SDK(os.getenv('MP_ACCESS_TOKEN2'))
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'usuario_logado' not in session:
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
+# Global variables for the receipt
+receipt_data = {
+    'titulo': 'Comprovante de Inscrição',
+    'data': '14/01/2025',
+    'evento': '4º DESAFIO 200K PORTO VELHO-HUMAITÁ - 2025',
+    'endereco': 'AV. Jorge Teixeira, Espaço Alternativo - Porto Velho/RO',
+    'dataevento': '04, 05 e 06/07/2025',
+    'participante': 'ELIENAI CARVALHO MOMTEIRO',
+    'km': 'Solo - 200 km',
+    'valor': 'R$ 500,00',
+    'inscricao': '123455456456',    
+    'obs': 'Observações importantes sobre o evento vão aqui.'
+}
 
-@app.route('/')
-@login_required
+var_email = ""
+
+def fn_email(valor):
+    global var_email
+    var_email = valor
+
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/index2')
-@login_required
-def index2():
-    return render_template('index2.html')
-
-@app.route('/login')
-def login():
-    if 'usuario_logado' in session:
-        return redirect(url_for('index'))
-    return render_template('login.html')
-
-@app.route('/autenticar', methods=['POST'])
-def autenticar():
-    login = request.form['login']
-    senha = request.form['senha']
+@app.route('/backyard2025/resultado')
+def backyard2025_resultado():
+    # Obter parâmetros de filtro
+    sexo_filter = request.args.get('sexo', '')
+    tipo_corrida_filter = request.args.get('tipo_corrida', '')
     
-    # Criptografa a senha para comparação
-    senha_criptografada = criptografar(senha)
+    # Iniciar a consulta base
+    query = """
+        SELECT idatleta, concat(lpad(cast(nrpeito as char(3)),3,0),' - ', nome) as atleta, 
+        sexo, tipo_corrida, 
+        case when nr_voltas>0 then nr_voltas else 'DNF' end as nvoltas,
+        case when nr_voltas>0 then cast((nr_voltas * 6706) as char) else 'DNF' end as km
+        FROM 2025_atletas
+        WHERE 1=1
+    """
     
-    # Busca o usuário no banco de dados
-    cur = mysql.connection.cursor()
-    cur.execute("""
-        SELECT ID_USUARIO, NM_USUARIO, NIVEL_ACESSO 
-        FROM TJ_USUARIO 
-        WHERE US_LOGIN = %s 
-        AND SENHA = %s 
-        AND FL_STATUS = 'A'
-    """, (login, senha_criptografada))
+    # Adicionar filtros se fornecidos
+    if sexo_filter:
+        query += f" AND sexo = '{sexo_filter}'"
+    if tipo_corrida_filter:
+        query += f" AND tipo_corrida = '{tipo_corrida_filter}'"
     
-    usuario = cur.fetchone()
-    cur.close()
+    # Ordenação
+    query += " ORDER BY nr_voltas DESC, nome"
     
-    if usuario:
-        # Usuário encontrado e senha correta
-        session['usuario_logado'] = True
-        session['usuario_id'] = usuario[0]
-        session['usuario_login'] = login
-        session['usuario_nome'] = usuario[1]
-        session['nivel_acesso'] = usuario[2]
-        
-        # Retorna dados para salvar no localStorage via JavaScript
-        return jsonify({
-            'sucesso': True,
-            'usuario_id': usuario[0],
-            'usuario_login': login,
-            'usuario_nome': usuario[1],
-            'nivel_acesso': usuario[2]
-        })
-    else:
-        # Usuário não encontrado ou credenciais inválidas
-        flash('Credenciais inválidas. Tente novamente.', 'danger')
-        return jsonify({'sucesso': False, 'mensagem': 'Credenciais inválidas'})
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-
-@app.route('/nova_vistoria')
-def nova_vistoria():
-    # Busca motoristas e veículos do banco de dados
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
-    motoristas = cur.fetchall()
-    cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
-    veiculos = cur.fetchall()
-    cur.close()
+    # Executar a consulta
+    cursor = mysql.connection.cursor()
+    cursor.execute(query)
+    atletas = cursor.fetchall()
     
-    return render_template('nova_vistoria.html', motoristas=motoristas, veiculos=veiculos, tipo='SAIDA')
-
-
-@app.route('/nova_vistoria2')
-def nova_vistoria2():
-    # Busca motoristas e veículos do banco de dados
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
-    motoristas = cur.fetchall()
-    cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
-    veiculos = cur.fetchall()
-    cur.close()
+    # Obter listas únicas para os filtros de dropdown
+    cursor.execute("SELECT DISTINCT sexo FROM 2025_atletas ORDER BY sexo")
+    sexos = [row[0] for row in cursor.fetchall()]
     
-    return render_template('nova_vistoria2.html', motoristas=motoristas, veiculos=veiculos, tipo='INICIAL')
-
-@app.route('/confirma_vistoria/<int:id>')
-def confirma_vistoria(id):
+    cursor.execute("SELECT DISTINCT tipo_corrida FROM 2025_atletas ORDER BY tipo_corrida")
+    tipos_corrida = [row[0] for row in cursor.fetchall()]
     
-    session['vistoria_id'] = id
-    print(f" ID VISTORIA: {id}")
-
-    cur = mysql.connection.cursor()
-    
-    # Buscar detalhes da vistoria
-    cur.execute("""
-        SELECT v.IDVISTORIA, v.IDMOTORISTA, m.NM_MOTORISTA as MOTORISTA, v.IDVEICULO, 
-               CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, 
-               v.COMBUSTIVEL, v.HODOMETRO, ve.DS_MODELO, v.VISTORIA_SAIDA_ID,  
-               v.ASS_USUARIO, v.ASS_MOTORISTA, v.OBS, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
-        FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.TIPO = 'INICIAL' AND v.IDVISTORIA = %s
-    """, (id,))
-    vistoria = cur.fetchone()
-
-    if vistoria:
-        return render_template(
-            'confirma_vistoria.html',
-            vistoria_id=vistoria[0],
-            motorista_id=vistoria[1],
-            motorista_nome=vistoria[2],
-            veiculo_id=vistoria[3],
-            veiculo_placa=vistoria[4],
-            combustivel=vistoria[8],
-            hodometro=vistoria[9],
-	    data_saida=vistoria[15],
-	    data_retorno=vistoria[16],
-	    nu_sei=vistoria[17],
-            tipo='INICIAL'
-        )
-    else:
-        return redirect(url_for('ver_vistoria2', id=id))
-       
-
-@app.route('/nova_vistoria_devolucao/<int:vistoria_saida_id>')
-def nova_vistoria_devolucao(vistoria_saida_id):
-    # Buscar informações da vistoria de saida
-    cur = mysql.connection.cursor()
-    cur.execute("""
-        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NM_MOTORISTA, 
-	ve.NU_PLACA, v.COMBUSTIVEL, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
-        FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.IDVISTORIA = %s AND v.TIPO = 'SAIDA'
-    """, (vistoria_saida_id,))
-    vistoria_saida = cur.fetchone()
-    cur.close()
-    
-    if not vistoria_saida:
-        flash('Vistoria de saida não encontrada!', 'danger')
-        return redirect(url_for('vistorias'))
+    cursor.close()
     
     return render_template(
-        'nova_vistoria.html', 
-        motorista_id=vistoria_saida[1],
-        motorista_nome=vistoria_saida[3],
-        veiculo_id=vistoria_saida[2],
-        veiculo_placa=vistoria_saida[4],
-        vistoria_saida_id=vistoria_saida_id,
-	data_saida=vistoria_saida[6],
-	data_retorno=vistoria_saida[7],
-	nu_sei=vistoria_saida[8],
-        tipo='DEVOLUCAO'
+        'backyard2025resultado.html', 
+        atletas=atletas, 
+        sexos=sexos, 
+        tipos_corrida=tipos_corrida,
+        sexo_filter=sexo_filter,
+        tipo_corrida_filter=tipo_corrida_filter
     )
 
-@app.route('/salvar_vistoria', methods=['POST'])
-def salvar_vistoria():
+
+@app.route('/listar-estados', methods=['GET'])
+def listar_estados():
     try:
-        # Obter dados do formulário
-        id_motorista = request.form['id_motorista']
-        id_veiculo = request.form['id_veiculo']
-        tipo = request.form['tipo']
-        vistoria_saida_id = request.form.get('vistoria_saida_id')
-        combustivel = request.form['combustivel']
-        hodometro = request.form['hodometro']
-        obs = request.form['observacoes']
-        data_saida = request.form['dataSaida']
-        # Obter data_retorno apenas se estiver presente no formulário
-        data_retorno = request.form.get('dataRetorno', None)
-        nu_sei = request.form.get('numSei', '')  # Tornando campo SEI opcional
+        cursor = mysql.connection.cursor()
         
-        # Obter o nome do usuário da sessão
-        usuario_nome = session.get('usuario_nome', 'Sistema')
-
-        # Obter as assinaturas
-        assinatura_usuario_data = request.form.get('assinatura_usuario')
-        assinatura_motorista_data = request.form.get('assinatura_motorista')
+        cursor.execute("""
+            SELECT uf, nome 
+            FROM estado 
+            ORDER BY nome
+        """)
         
-        # Processar as assinaturas de base64 para binário, se existirem
-        assinatura_usuario_bin = None
-        assinatura_motorista_bin = None
+        estados_tuplas = cursor.fetchall()
         
-        if assinatura_usuario_data and ',' in assinatura_usuario_data:
-            assinatura_usuario_data = assinatura_usuario_data.split(',')[1]
-            assinatura_usuario_bin = base64.b64decode(assinatura_usuario_data)
-        
-        if assinatura_motorista_data and ',' in assinatura_motorista_data:
-            assinatura_motorista_data = assinatura_motorista_data.split(',')[1]
-            assinatura_motorista_bin = base64.b64decode(assinatura_motorista_data)
-        
-        # Criar uma nova vistoria
-        cur = mysql.connection.cursor()
-        
-        # Capturar o último ID antes da inserção
-        cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
-        ultimo_id = cur.fetchone()[0] or 0
-
-        data_e_hora_atual = datetime.now()
-        fuso_horario = timezone('America/Manaus')
-        data_hora = data_e_hora_atual.astimezone(fuso_horario)
-        #data_pagamento = data_e_hora_manaus.strftime('%d/%m/%Y %H:%M')        
-    
-        if tipo == 'SAIDA':
-            # Para vistorias de SAIDA, definir status como EM_TRANSITO
-            cur.execute(
-                """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, 
-                   ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, NU_SEI) 
-                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, 
-                 assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, nu_sei)
-            )
-        else:  # DEVOLUCAO
-            # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
-            cur.execute(
-                """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, 
-                   HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, DATA_RETORNO, NU_SEI) 
-                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, 
-                 assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, data_retorno, nu_sei)
-            )
-            # Atualizar status da vistoria de saida para finalizada
-            cur.execute(
-                "UPDATE VISTORIAS SET STATUS = 'FINALIZADA' WHERE IDVISTORIA = %s",
-                (vistoria_saida_id,)
-            )
+        estados = []
+        for estado in estados_tuplas:
+            estados.append({
+                'uf': estado[0],
+                'nome': estado[1]
+            })
             
-        # Realizar o commit para garantir que a vistoria foi salva
-        mysql.connection.commit()
-        
-        # Buscar o ID da vistoria recém-inserida procurando o ID maior que o último ID conhecido
-        cur.execute("SELECT IDVISTORIA FROM VISTORIAS WHERE IDVISTORIA > %s ORDER BY IDVISTORIA ASC LIMIT 1", (ultimo_id,))
-        result = cur.fetchone()
-        
-        if not result:
-            raise Exception("Não foi possível recuperar o ID da vistoria criada")
-        
-        id_vistoria = result[0]
-        print(f"ID da vistoria recuperado: {id_vistoria} (último ID antes da inserção: {ultimo_id})")
-        
-        # Debug: Verificar recebimento das fotos
-        fotos = request.files.getlist('fotos[]')
-        detalhamentos = request.form.getlist('detalhamentos[]')
-        
-        print(f"Tipo de vistoria: {tipo}")
-        print(f"Número de fotos recebidas: {len(fotos)}")
-        print(f"Número de detalhamentos recebidos: {len(detalhamentos)}")
-        
-        # Processar todas as fotos de uma vez
-        for i, foto in enumerate(fotos):
-            if foto:  # Apenas verificar se o objeto de arquivo existe
-                try:
-                    # Ler o conteúdo binário da imagem
-                    foto_data = foto.read()
-                    
-                    detalhamento = detalhamentos[i] if i < len(detalhamentos) else ""
-                    
-                    # Inserir explicitamente o conteúdo binário da imagem com o ID da vistoria confirmado
-                    print(f"Inserindo item {i} para vistoria {id_vistoria}")
-                    
-                    # VERIFICAÇÃO EXTRA: Confirmar que a vistoria existe antes de inserir
-                    cur.execute("SELECT 1 FROM VISTORIAS WHERE IDVISTORIA = %s", (id_vistoria,))
-                    if not cur.fetchone():
-                        print(f"ALERTA: Vistoria com ID {id_vistoria} não encontrada!")
-                        continue
-                    
-                    cur.execute(
-                        "INSERT INTO VISTORIA_ITENS (IDVISTORIA, FOTO) VALUES (%s, %s)",
-                        (id_vistoria, foto_data)
-                    )
-                    mysql.connection.commit()
-                    
-                    # VERIFICAÇÃO FINAL: Confirmar que o item foi inserido corretamente
-                    cur.execute("SELECT IDVISTORIA FROM VISTORIA_ITENS WHERE ID = LAST_INSERT_ID()")
-                    item_result = cur.fetchone()
-                    if item_result and item_result[0] != id_vistoria:
-                        print(f"ALERTA: Item inserido com IDVISTORIA incorreto: {item_result[0]} != {id_vistoria}")
-                        
-                except Exception as e:
-                    print(f"Erro ao processar foto {i}: {str(e)}")
-        
-        cur.close()
-        flash('Vistoria salva com sucesso!', 'success')
-        return redirect(url_for('index'))
-    
-    except Exception as e:
-        print(f"ERRO CRÍTICO: {str(e)}")
-        flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
-        return redirect(url_for('nova_vistoria'))
-        
-
-@app.route('/ultima_vistoria')
-def ultima_vistoria():
-    try:
-        # Recuperar o ID da última vistoria inserida
-        cur = mysql.connection.cursor()
-        cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
-        result = cur.fetchone()
-        cur.close()
-        
-        if not result or not result[0]:
-            return jsonify({
-                'success': False,
-                'message': 'Nenhuma vistoria encontrada'
-            }), 404
-            
-        id_vistoria = result[0]
+        cursor.close()
         
         return jsonify({
             'success': True,
-            'id_vistoria': id_vistoria
+            'estados': estados
         })
-    
     except Exception as e:
-        flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
-        return redirect(url_for('nova_vistoria'))
+        app.logger.error(f"Erro ao buscar estados: {e}")
+        return jsonify({
+            'success': False,
+            'mensagem': 'Erro ao buscar estados'
+        }), 500
 
-
-@app.route('/salvar_vistoria2', methods=['POST'])
-def salvar_vistoria2():
+@app.route('/listar-cidades', methods=['GET'])
+def listar_cidades():
     try:
-        # Obter dados do formulário
-        id_motorista = request.form['id_motorista']
-        id_veiculo = request.form['id_veiculo']
-        tipo = request.form['tipo']
-        vistoria_saida_id = request.form.get('vistoria_saida_id')
-        combustivel = request.form['combustivel']
-        hodometro = request.form['hodometro']
-        obs = request.form['observacoes']
-        data_saida = request.form['dataSaida']
-        data_retorno = request.form['dataRetorno']
-        nu_sei = request.form['numSei']      
+        uf = request.args.get('uf')
         
-        print(f"Data Saida { data_saida }")
-        print(f"Data Retorno { data_retorno }")
-        print(f"Sei { nu_sei }")
+        if not uf:
+            return jsonify({
+                'success': False,
+                'mensagem': 'UF não fornecida'
+            }), 400
         
+        cursor = mysql.connection.cursor()
         
-        # Obter o nome do usuário da sessão
-        usuario_nome = session.get('usuario_nome')
+        cursor.execute("""
+            SELECT c.id_cidade, c.descricao
+            FROM cidade c
+            JOIN estado e ON c.uf = e.uf
+            WHERE e.uf = %s
+            ORDER BY c.descricao
+        """, (uf,))
         
-        # Criar uma nova vistoria
-        cur = mysql.connection.cursor()
+        cidades_tuplas = cursor.fetchall()  # Armazene os resultados primeiro
         
-        # Capturar o último ID antes da inserção
-        cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
-        ultimo_id = cur.fetchone()[0] or 0
-        data_e_hora_atual = datetime.now()
-        fuso_horario = timezone('America/Manaus')
-        data_hora = data_e_hora_atual.astimezone(fuso_horario)
-    
-        cur.execute(
-            """INSERT INTO VISTORIAS 
-                (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, 
-                HODOMETRO, OBS, USUARIO, DATA_SAIDA, DATA_RETORNO, NU_SEI) 
-                VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s, %s, %s)""",
-            (id_motorista, id_veiculo, data_hora, tipo, combustivel, 
-             hodometro, obs, usuario_nome, data_saida, data_retorno, nu_sei)
-        )
+        cidades = []
+        for cidade in cidades_tuplas:
+            cidades.append({
+                'id_cidade': cidade[0],
+                'descricao': cidade[1]
+            })
             
-        # Realizar o commit para garantir que a vistoria foi salva
-        mysql.connection.commit()
+        cursor.close()  # Feche o cursor depois de processar os resultados
+
+        return jsonify({
+            'success': True,
+            'cidades': cidades
+        })
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar cidades para UF {uf}: {e}")
+        return jsonify({
+            'success': False,
+            'mensagem': f'Erro ao buscar cidades para UF {uf}'
+        }), 500
+
+# Funções auxiliares do backyard
+def calculate_seconds_difference(start_time_str, end_time_str):
+    start_time = datetime.strptime(start_time_str, '%d/%m/%Y %H:%M:%S')
+    end_time = datetime.strptime(end_time_str, '%d/%m/%Y %H:%M:%S')
+    return (end_time - start_time).total_seconds()
+
+def format_time_difference(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    seconds = int(seconds % 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+@app.route('/desafio200k/regulamento')
+def regulamento200k():
+    return render_template('regulamento200k.html')
+    
+@app.route('/corracomultra')
+def corracomultra():
+    return render_template('corracomultra.html')
+
+
+# Rotas do backyard
+@app.route('/backyard/lancamento')
+def backyard_lancamento():
+    return render_template('backyardlancamento.html')
+
+@app.route('/backyard/pesquisar_atleta/<nrpeito>')
+def pesquisar_atleta(nrpeito):
+    try:
+        cur = mysql.connection.cursor()
+
+        query = """
+            SELECT la.id, la.idlargada, a.idatleta, a.nome, a.nrpeito,
+                la.largada, a.tipo_corrida, la.nulargada, la.parcial, la.chegada,
+                CONCAT(LPAD(CAST(a.nrpeito AS CHAR(3)),3,'0'),' - ', a.nome) as atleta
+            FROM bm_largadas_atletas la, bm_atletas a
+            WHERE (la.chegada = '' OR la.chegada IS NULL)
+                AND la.idlargada = (
+                    SELECT MAX(idlargada) 
+                    FROM bm_largadas_atletas
+                    WHERE (chegada = '' OR chegada IS NULL)
+                    AND idatleta = a.idatleta
+                )
+                AND la.idatleta = a.idatleta
+                AND a.nrpeito = %s
+        """
         
-        # Buscar o ID da vistoria recém-inserida procurando o ID maior que o último ID conhecido
-        cur.execute("SELECT IDVISTORIA FROM VISTORIAS WHERE IDVISTORIA > %s ORDER BY IDVISTORIA ASC LIMIT 1", (ultimo_id,))
+        cur.execute(query, (nrpeito,))
         result = cur.fetchone()
         
-        if not result:
-            raise Exception("Não foi possível recuperar o ID da vistoria criada")
-        
-        id_vistoria = result[0]
-        print(f"ID da vistoria recuperado: {id_vistoria} (último ID antes da inserção: {ultimo_id})")
-        
-        cur.close()
-        
-        # Retornar um JSON com o ID da vistoria
-        return jsonify({'success': True, 'id_vistoria': id_vistoria})
-        
-    except Exception as e:
-        print(f"ERRO CRÍTICO: {str(e)}")
-        flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
-        return redirect(url_for('nova_vistoria'))
-
-
-@app.route('/salvar_vistoria3', methods=['POST'])
-def salvar_vistoria3():
-    try:
-        id_vistoria = session.get('vistoria_id')
-        print(f" ID VISTORIA: {id_vistoria}")
-
-        if id_vistoria is None:
-            # Caso o id não esteja na sessão
-            return "ID da vistoria não encontrado na sessão", 400
-        
-        # Obter dados do formulário
-        tipo = 'CONFIRMACAO' 
-        combustivel = request.form['combustivel']
-        hodometro = request.form['hodometro']
-        obs = request.form['observacoes']
-        
-        # Obter as assinaturas
-        assinatura_motorista_data = request.form.get('assinatura_motorista')
-        
-        # Processar as assinaturas de base64 para binário, se existirem
-        assinatura_motorista_bin = None
-                    
-        if assinatura_motorista_data and ',' in assinatura_motorista_data:
-            assinatura_motorista_data = assinatura_motorista_data.split(',')[1]
-            try:
-                assinatura_motorista_bin = base64.b64decode(assinatura_motorista_data)
-            except Exception as e:
-                print(f"Erro ao decodificar assinatura: {str(e)}")
-        
-        # Iniciar transação
-        cur = mysql.connection.cursor()
-        
-        try:
-            data_e_hora_atual = datetime.now()
-            fuso_horario = timezone('America/Manaus')
-            data_hora = data_e_hora_atual.astimezone(fuso_horario)
-            
-            print(f"Dados para UPDATE: data={data_hora}, combustivel={combustivel}, hodometro={hodometro}, obs={obs}, tipo={tipo}, id={id_vistoria}")
-            
-            # Use o valor de tipo do formulário em vez de definir estaticamente
-            cur.execute(
-                """UPDATE VISTORIAS SET 
-                    DATA = %s,
-                    COMBUSTIVEL = %s, 
-                    HODOMETRO = %s,
-                    ASS_MOTORISTA = %s,
-                    OBS = %s,
-                    TIPO = %s
-                    WHERE IDVISTORIA = %s 
-                    """,
-                (data_hora, combustivel, hodometro, assinatura_motorista_bin, obs, tipo, id_vistoria)
-            )
-            
-            # Debug: Verificar se o update afetou alguma linha
-            rows_affected = cur.rowcount
-            print(f"Linhas afetadas pelo UPDATE: {rows_affected}")
-            
-            # Processar todas as fotos
-            fotos = request.files.getlist('fotos[]')
-            detalhamentos = request.form.getlist('detalhamentos[]')
-            
-            print(f"Tipo de vistoria: {tipo}")
-            print(f"Número de fotos recebidas: {len(fotos)}")
-            print(f"Número de detalhamentos recebidos: {len(detalhamentos)}")
-            
-            
-            # Processar todas as fotos de uma vez
-            for i, foto in enumerate(fotos):
-                if foto and foto.filename:  # Verificar se o arquivo existe e tem um nome
-                    try:
-                        # Ler o conteúdo binário da imagem
-                        foto_data = foto.read()
-                        
-                        # Obter o detalhamento correspondente
-                        detalhamento = detalhamentos[i] if i < len(detalhamentos) else ""
-                        
-                        # Inserir a foto e o detalhamento
-                        print(f"Inserindo item {i} para vistoria {id_vistoria}")
-                        
-                        # Adicione o campo detalhamento à sua query se ele existir na tabela
-                        cur.execute(
-                            "INSERT INTO VISTORIA_ITENS (IDVISTORIA, FOTO, DETALHAMENTO) VALUES (%s, %s, %s)",
-                            (id_vistoria, foto_data, detalhamento)
-                        )
-                        
-                        # Verificar se o item foi inserido
-                        item_id = cur.lastrowid
-                        print(f"Item inserido com ID: {item_id}")
-                        
-                    except Exception as e:
-                        print(f"Erro ao processar foto {i}: {str(e)}")
-                        # Não fazemos rollback aqui para continuar processando outras fotos
-            
-            # Commit após todas as operações
-            mysql.connection.commit()
-            flash('Vistoria salva com sucesso!', 'success')
-            
-        except Exception as e:
-            # Se houver erro, fazemos rollback
-            mysql.connection.rollback()
-            raise e
-            
-        finally:
-            cur.close()
-            
-        return redirect(url_for('index'))
-    
-    except Exception as e:
-        print(f"ERRO CRÍTICO: {str(e)}")
-        flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
-        return redirect(url_for('nova_vistoria'))
-    
-
-@app.route('/salvar_foto', methods=['POST'])
-def salvar_foto():
-    try:
-        data = request.json
-        image_data = data['image_data']
-        
-        # Remover o prefixo da string base64
-        if ',' in image_data:
-            image_data = image_data.split(',')[1]
-        
-        # Decodificar a imagem base64 para binário
-        image_binary = base64.b64decode(image_data)
-        
-        # Gerar um ID temporário para a imagem
-        temp_id = str(uuid.uuid4())
-        
-        # Armazenar temporariamente na sessão ou devolver para o cliente
-        return jsonify({'success': True, 'temp_id': temp_id, 'image_data': image_data})
-    
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/vistorias')
-def listar_vistorias():
-    cur = mysql.connection.cursor()
-    
-    # Buscar vistorias em trânsito (Saidas não finalizadas)
-    cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
-        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
-        v.DATA, v.TIPO, v.STATUS, v.OBS 
-        FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.STATUS = 'EM_TRANSITO' AND v.TIPO = 'SAIDA'
-        ORDER BY v.DATA DESC
-    """)
-    vistorias_em_transito = cur.fetchall()
-
-    # Buscar vistorias em Pendentes
-    cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
-        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO,
-        v.DATA, v.TIPO, v.STATUS, v.OBS 
-        FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.TIPO IN ('INICIAL', 'CONFIRMACAO')
-        ORDER BY v.DATA DESC
-    """)
-    vistorias_pendentes = cur.fetchall()
-
-    # Buscar vistorias finalizadas (Saidas com devolução ou devoluções)
-    cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
-        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
-        v.DATA, v.TIPO, v.STATUS, v.OBS, 
-        (SELECT IDVISTORIA FROM VISTORIAS WHERE VISTORIA_SAIDA_ID = v.IDVISTORIA) AS ID_DEVOLUCAO
-        FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.TIPO = 'SAIDA' 
-        AND v.STATUS = 'FINALIZADA'
-        ORDER BY v.DATA DESC
-    """)
-    vistorias_finalizadas = cur.fetchall()
-    
-    cur.close()
-    
-    return render_template(
-        'vistorias.html', 
-        vistorias_em_transito=vistorias_em_transito,
-        vistorias_pendentes=vistorias_pendentes,
-        vistorias_finalizadas=vistorias_finalizadas
-    )
-
-@app.route('/vistoria/<int:id>')
-def ver_vistoria(id):
-    try:
-        cur = mysql.connection.cursor()
-
-        # Buscar detalhes da vistoria
-        cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
-                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO, v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, 
-		   v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
-            FROM VISTORIAS v
-            JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-            JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-            WHERE v.IDVISTORIA = %s
-        """, (id,))
-        vistoria = cur.fetchone()
-       
-        # Verificações seguras para evitar erros
-        vistoria_saida = None
-        vistoria_saida_itens = []
-        vistoria_devolucao = None
-        vistoria_devolucao_itens = []
-        itens = []
-
-        if vistoria:
-            # Se for uma vistoria de devolução, buscar também a vistoria de saida
-            if vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
-                cur.execute("""
-                    SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
-                           v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                           v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
-                    FROM VISTORIAS v
-                    JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-                    JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-                    WHERE v.IDVISTORIA = %s
-                """, (vistoria[8],))
-                vistoria_saida = cur.fetchone()
-
-                # Buscar fotos da vistoria de saída
-                cur.execute("""
-                    SELECT ID, DETALHAMENTO
-                    FROM VISTORIA_ITENS
-                    WHERE IDVISTORIA = %s
-                """, (vistoria[8],))
-                vistoria_saida_itens = cur.fetchall() or []
-
-            # Se for uma vistoria de saida, buscar se já existe uma vistoria de devolução
-            if vistoria[4] == 'SAIDA':
-                cur.execute("""
-                    SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
-                           v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                           v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
-                    FROM VISTORIAS v
-                    JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-                    JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-                    WHERE v.VISTORIA_SAIDA_ID = %s
-                """, (id,))
-                vistoria_devolucao = cur.fetchone()
-
-                # Buscar fotos da vistoria de devolução
-                if vistoria_devolucao:
-                    cur.execute("""
-                        SELECT ID, DETALHAMENTO
-                        FROM VISTORIA_ITENS
-                        WHERE IDVISTORIA = %s
-                    """, (vistoria_devolucao[0],))
-                    vistoria_devolucao_itens = cur.fetchall() or []
-
-            # Buscar fotos desta vistoria atual
-            cur.execute("""
-                SELECT ID, DETALHAMENTO
-                FROM VISTORIA_ITENS
-                WHERE IDVISTORIA = %s
-            """, (id,))
-            itens_raw = cur.fetchall() or []
-            
-            # Converter para dicionários para uso no template
-            itens = [{'id': item[0], 'detalhamento': item[1]} for item in itens_raw]
-            vistoria_saida_itens = [{'id': item[0], 'detalhamento': item[1]} for item in vistoria_saida_itens]
-            vistoria_devolucao_itens = [{'id': item[0], 'detalhamento': item[1]} for item in vistoria_devolucao_itens]
-
-        cur.close()
-
-        return render_template(
-            'ver_vistoria.html', 
-            vistoria=vistoria, 
-            itens=itens,
-            vistoria_saida=vistoria_saida,
-            vistoria_saida_itens=vistoria_saida_itens,
-            vistoria_devolucao=vistoria_devolucao,
-            vistoria_devolucao_itens=vistoria_devolucao_itens
-        )
-
-    except Exception as e:
-        # Adiciona log do erro para depuração
-        app.logger.error(f"Erro na rota ver_vistoria: {str(e)}")
-        
-        # Encerra o cursor se ainda estiver aberto
-        if 'cur' in locals() and cur:
-            cur.close()
-        
-        # Retorna uma página de erro amigável
-        return render_template('error.html', error_message=str(e)), 500
-    
-@app.route('/vistoria_finaliza/<int:id>')
-def vistoria_finaliza(id):
-    cur = mysql.connection.cursor()
-    
-    # Buscar detalhes da vistoria
-    cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
-               v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-               v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
-        FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
-        WHERE v.IDVISTORIA = %s
-    """, (id,))
-    vistoria = cur.fetchone()
-        
-    # Buscar fotos e detalhamentos da vistoria
-    cur.execute("""
-        SELECT ID, DETALHAMENTO
-        FROM VISTORIA_ITENS
-        WHERE IDVISTORIA = %s
-    """, (id,))
-    itens_raw = cur.fetchall()
-    
-    # Converter para dicionários para uso no template
-    itens = []
-    for item in itens_raw:
-        itens.append({
-            'id': item[0],
-            'detalhamento': item[1]
-        })
-    
-    cur.close()
-    
-    return render_template(
-        'vistoria_finaliza.html', 
-        vistoria=vistoria, 
-        itens=itens
-    )
-
-
-@app.route('/salvar_assinatura', methods=['POST'])
-def salvar_assinatura():
-    try:
-        # Verifica se os dados foram recebidos
-        if not request.is_json:
-            return jsonify({'success': False, 'message': 'Dados inválidos. Esperado JSON.'}), 400
-            
-        data = request.json
-        
-        # Verifica se os campos necessários estão presentes
-        if 'vistoria_id' not in data or 'assinatura' not in data:
-            return jsonify({'success': False, 'message': 'Campos obrigatórios não fornecidos'}), 400
-            
-        vistoria_id = data.get('vistoria_id')
-        assinatura_base64 = data.get('assinatura')
-        
-        # Valida o ID da vistoria
-        if not vistoria_id or not str(vistoria_id).isdigit():
-            return jsonify({'success': False, 'message': 'ID de vistoria inválido'}), 400
-        
-        # Valida o formato da assinatura base64
-        if not assinatura_base64 or not assinatura_base64.startswith('data:image'):
-            return jsonify({'success': False, 'message': 'Formato de assinatura inválido'}), 400
-        
-        try:
-            # Remove o prefixo da string base64
-            img_data = assinatura_base64.split(',')[1]
-            # Converte a string base64 para dados binários
-            img_binary = base64.b64decode(img_data)
-        except Exception as e:
-            app.logger.error(f"Erro ao processar imagem: {str(e)}")
-            return jsonify({'success': False, 'message': 'Erro ao processar imagem'}), 400
-        
-        try:
-            # Conecta ao banco de dados
-            cur = mysql.connection.cursor()
-            cur.execute("UPDATE VISTORIAS SET TIPO = 'SAIDA', ASS_USUARIO = %s WHERE IDVISTORIA = %s", 
-                        (img_binary, vistoria_id))
-                        
-            # Fecha a conexão
-            cur.close()
-            
-            # Verifica se alguma linha foi afetada
-            if cur.rowcount == 0:
-                return jsonify({'success': False, 'message': f'Vistoria ID {vistoria_id} não encontrada'}), 404
-                
-            # Commit das alterações
-            mysql.connection.commit()
-
-            
-            # Fecha a conexão
-            cur.close()
-            
-            return jsonify({'success': True, 'message': 'Assinatura salva com sucesso'})
-            
-        except Exception as db_error:
-            app.logger.error(f"Erro de banco de dados: {str(db_error)}")
-            return jsonify({'success': False, 'message': f'Erro de banco de dados: {str(db_error)}'}), 500
-            
-    except Exception as e:
-        app.logger.error(f"Erro interno: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/get_foto/<int:item_id>')
-def get_foto(item_id):
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT FOTO FROM VISTORIA_ITENS WHERE ID = %s", (item_id,))
-    foto = cur.fetchone()
-    cur.close()
-    
-    if foto and foto[0]:
-        return send_file(
-            BytesIO(foto[0]),
-            mimetype='image/jpeg',
-            as_attachment=False,
-            download_name=f'foto_{item_id}.jpg'
-        )
-    
-    return 'Imagem não encontrada', 404
-
-@app.route('/get_assinatura/<tipo>/<int:vistoria_id>')
-def get_assinatura(tipo, vistoria_id):
-    cur = mysql.connection.cursor()
-    
-    if tipo == 'usuario':
-        cur.execute("SELECT ASS_USUARIO FROM VISTORIAS WHERE IDVISTORIA = %s", (vistoria_id,))
-    else:  # tipo == 'motorista'
-        cur.execute("SELECT ASS_MOTORISTA FROM VISTORIAS WHERE IDVISTORIA = %s", (vistoria_id,))
-    
-    resultado = cur.fetchone()
-    cur.close()
-    
-    if not resultado or not resultado[0]:
-        return "Sem assinatura", 404
-    
-    assinatura = resultado[0]
-    
-
-    return send_file(
-        BytesIO(assinatura),
-        mimetype='image/png',  # ou 'image/jpeg' dependendo do formato da assinatura
-        as_attachment=False,
-        download_name=f'assinatura_{tipo}_{vistoria_id}.png'  # nome do arquivo ao baixar
-    )
-    
-
-def criptografar(texto):
-    key = '123456'
-    resultado = ''
-    
-    for i in range(len(texto)):
-        # Aplica XOR entre o caractere do texto e o caractere correspondente da chave
-        c = ord(key[i % len(key)]) ^ ord(texto[i])
-        # Converte para hexadecimal e garante que tenha 2 dígitos
-        resultado += f'{c:02x}'
-    
-    return resultado
-
-def descriptografar(texto):
-    key = '123456'
-    resultado = ''
-    
-    # Processa cada par de caracteres hexadecimais
-    for i in range(0, len(texto) // 2):
-        # Converte o par de caracteres hexadecimais para um valor inteiro
-        try:
-            c = int(texto[i*2:i*2+2], 16)
-        except ValueError:
-            # Se não for possível converter, usa espaço como fallback (como no Delphi)
-            c = ord(' ')
-        
-        # Aplica XOR novamente para reverter a criptografia
-        c = ord(key[i % len(key)]) ^ c
-        resultado += chr(c)
-    
-    return resultado
-
-@app.route('/motoristas')
-@login_required
-def pagina_motoristas():
-    return render_template('motoristas.html')
-
-@app.route('/api/setores')
-@login_required
-def listar_setores():
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT SIGLA_SETOR FROM TJ_SETORES ORDER BY SIGLA_SETOR")
-        setores = [{'sigla': row[0]} for row in cursor.fetchall()]
-        cursor.close()
-        return jsonify(setores)
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@app.route('/api/motoristas')
-@login_required
-def listar_motoristas():
-    try:
-        nome = request.args.get('nome', '')
-        cursor = mysql.connection.cursor()
-        
-        if nome:
-            query = """
-            SELECT 
-                ID_MOTORISTA, CAD_MOTORISTA,
-		CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
-                ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
-                ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
-            FROM TJ_MOTORISTA 
-            WHERE ID_MOTORISTA > 0
-            AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
-            ORDER BY NM_MOTORISTA
-            """
-            cursor.execute(query, (f'%{nome}%',))
-        else:
-            query = """
-            SELECT 
-                ID_MOTORISTA, CAD_MOTORISTA, 
-                CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
-                ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA, 
-                ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
-            FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA > 0
-            ORDER BY NM_MOTORISTA
-            """
-            cursor.execute(query)
-        
-        columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo']
-        motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        cursor.close()
-        return jsonify(motoristas)
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@app.route('/api/motoristas/<int:id_motorista>')
-@login_required
-def detalhe_motorista(id_motorista):
-    try:
-        cursor = mysql.connection.cursor()
-        query = """
-        SELECT 
-            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, ORDEM_LISTA, 
-            SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
-            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO, EMAIL
-        FROM TJ_MOTORISTA 
-        WHERE ID_MOTORISTA = %s
-        """
-        cursor.execute(query, (id_motorista,))
-        result = cursor.fetchone()
-        cursor.close()
-        
         if result:
-            motorista = {
-                'id_motorista': result[0],
-                'cad_motorista': result[1],
-                'nm_motorista': result[2],
-                'tipo_cadastro': result[3],
-                'sigla_setor': result[4],
-                'cat_cnh': result[5],
-                'dt_validade_cnh': result[6],
-                'ultima_atualizacao': result[7],
-                'nu_telefone': result[8],
-                'obs_motorista': result[9],
-                'ativo': result[10],
-                'tipo_cadastro_desc': result[11],
-                'nome_arquivo': result[12],
-                'email': result[13]
-            }
-            return jsonify(motorista)
+            columns = [desc[0] for desc in cur.description]
+            result_dict = dict(zip(columns, result))
+            
+            return jsonify({
+                'success': True,
+                'atleta': result_dict['atleta'],
+                'data': result_dict
+            })
         else:
-            return jsonify({'erro': 'Motorista não encontrado'}), 404
+            cur.execute("SELECT * FROM bm_atletas WHERE nrpeito = %s", (nrpeito,))
+            atleta_exists = cur.fetchone()
+            
+            return jsonify({
+                'success': False,
+                'message': 'Atleta não encontrado'
+            })
+            
     except Exception as e:
-        return jsonify({'erro': str(e)}), 500
+        print(f"Erro na consulta: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+    finally:
+        cur.close()
 
-@app.route('/api/motoristas/cadastrar', methods=['POST'])
-@login_required
-def cadastrar_motorista():
-
-    tipo_cad = {
-        1: 'Administrativo',
-        2: 'Motorista Desembargador',
-        3: 'Motorista Atendimento',
-        4: 'Cadastro de Condutores',
-	5: 'Tercerizado'    
-    }
-
+@app.route('/backyard/lancar_chegada', methods=['POST'])
+def lancar_chegada():
     try:
-
-        cursor = mysql.connection.cursor()
+        #data = request.get_json()
+        #nrpeito = data['nrpeito']
+        #chegada = data['chegada']
         
-        # Get last ID and increment
-        cursor.execute("SELECT COALESCE(MAX(ID_MOTORISTA), 0) + 1 FROM TJ_MOTORISTA")
-        novo_id = cursor.fetchone()[0]
+        data = request.get_json()
+        nrpeito = data['nrpeito']
+        chegada = data['chegada'].replace(', ', ' ')  # Remove a vírgula e mantém apenas um espaço
 
-        # Form data
-        cad_motorista = request.form.get('cad_motorista')
-        nm_motorista = request.form.get('nm_motorista')
-        tipo_cadastro = int(request.form.get('tipo_cadastro'))
-        sigla_setor = request.form.get('sigla_setor')
-        cat_cnh = request.form.get('cat_cnh')
-        dt_validade_cnh = request.form.get('dt_validade_cnh')
-        ultima_atualizacao = request.form.get('ultima_atualizacao')
-        nu_telefone = request.form.get('nu_telefone')
-        obs_motorista = request.form.get('obs_motorista', '')
-        email = request.form.get('email', '')
+
+        cur = mysql.connection.cursor()
         
-        tipo_cadastro_desc = tipo_cad[tipo_cadastro]
-
+        # Buscar dados do atleta
+        cur.execute("""
+            SELECT la.*, a.tipo_corrida 
+            FROM bm_largadas_atletas la, bm_atletas a
+            WHERE la.idatleta = a.idatleta
+            AND a.nrpeito = %s
+            AND (la.chegada = '' OR la.chegada IS NULL)
+        """, (nrpeito,))
         
-        # File handling
-        file_pdf = request.files.get('file_pdf')
-        nome_arquivo = None
-        file_blob = None
-        if file_pdf:
-            nome_arquivo = file_pdf.filename
-            file_blob = file_pdf.read()
-
-        # Get current timestamp in Manaus timezone
-        manaus_tz = timezone('America/Manaus')
-        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-
-        # Insert query
-        query = """
-        INSERT INTO TJ_MOTORISTA (
-            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, 
-            SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
-            NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, DT_TRANSACAO, 
-            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s)
-        """
+        result = cur.fetchone()
+        if not result:
+            return jsonify({
+                'success': False,
+                'error': 'Atleta não encontrado'
+            })
+            
+        columns = [desc[0] for desc in cur.description]
+        atleta = dict(zip(columns, result))
         
-        cursor.execute(query, (
-            novo_id, cad_motorista, nm_motorista, tipo_cadastro_desc, 
-            sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
-            nu_telefone, obs_motorista, session.get('usuario_id'), 
-            dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email
-        ))
+        # Próxima ordem de chegada
+        cur.execute("""
+            SELECT COALESCE(MAX(ordem_chegada),0) as ID 
+            FROM bm_largadas_atletas 
+            WHERE idlargada = %s
+        """, (atleta['idlargada'],))
+        
+        result = cur.fetchone()
+        ordem_chegada = (result[0] or 0) + 1
+        
+        # Cálculo de tempo e status
+        segundos = calculate_seconds_difference(atleta['largada'], chegada)
+        tempo_chegada = format_time_difference(segundos)
+        
+        vstatus = 'D' if segundos > 3599 else 'A'
+        
+        if atleta['idlargada'] == 3 and atleta['tipo_corrida'] == 'Três voltas':
+            vstatus = 'D'
+            
+        # Atualizar registro
+        cur.execute("""
+            UPDATE bm_largadas_atletas
+            SET 
+                chegada = %s,
+                tempochegada = %s,
+                ordem_chegada = %s,
+                usuario_chegada = %s
+            WHERE id = %s
+        """, (chegada, tempo_chegada, ordem_chegada, 'ADM', atleta['id']))
         
         mysql.connection.commit()
-        cursor.close()
         
-        return jsonify({'sucesso': True, 'id_motorista': novo_id})
-    except Exception as e:
-        mysql.connection.rollback()
-        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
-
-@app.route('/api/motoristas/atualizar', methods=['POST'])
-@login_required
-def atualizar_motorista():
-
-    tipo_cad = {
-        1: 'Administrativo',
-        2: 'Motorista Desembargador',
-        3: 'Motorista Atendimento',
-        4: 'Cadastro de Condutores',
-	5: 'Tercerizado'
-    }
-
-
-    try:
-        cursor = mysql.connection.cursor()
-
-        # Form data
-        id_motorista = request.form.get('id_motorista')
-        cad_motorista = request.form.get('cad_motorista')
-        nm_motorista = request.form.get('nm_motorista')
-        tipo_cadastro = int(request.form.get('tipo_cadastro'))
-        sigla_setor = request.form.get('sigla_setor')
-        cat_cnh = request.form.get('cat_cnh')
-        dt_validade_cnh = request.form.get('dt_validade_cnh')
-        ultima_atualizacao = request.form.get('ultima_atualizacao')
-        nu_telefone = request.form.get('nu_telefone')
-        obs_motorista = request.form.get('obs_motorista', '')
-        email = request.form.get('email', '')
-        ativo = 'S' if request.form.get('ativo') == 'on' else 'N'
-        
-
-        tipo_cadastro_desc = tipo_cad[tipo_cadastro]
-
-        # File 
-        file_pdf = request.files.get('file_pdf')
-        nome_arquivo = None
-        file_blob = None
-        
-        # Check if new file is uploaded
-        if file_pdf:
-            nome_arquivo = file_pdf.filename
-            file_blob = file_pdf.read()
-
-        # Get current timestamp in Manaus timezone
-        manaus_tz = timezone('America/Manaus')
-        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-
-        # Update query 
-        if file_pdf:
-            # Update with file
-            query = """
-            UPDATE TJ_MOTORISTA 
-            SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
-                SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
-                ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
-                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, 
-                FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s, EMAIL = %s
-            WHERE ID_MOTORISTA = %s
-            """
-            
-            cursor.execute(query, (
-                cad_motorista, nm_motorista, tipo_cadastro_desc, 
-                sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
-                nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email, id_motorista
-            ))
-        else:
-            # Update without changing file
-            query = """
-            UPDATE TJ_MOTORISTA 
-            SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
-                SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
-                ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
-                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, ORDEM_LISTA = %s, EMAIL = %s
-            WHERE ID_MOTORISTA = %s
-            """
-            
-            cursor.execute(query, (
-                cad_motorista, nm_motorista, tipo_cadastro_desc, 
-                sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
-                nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                dt_transacao, tipo_cadastro, email, id_motorista
-            ))
-        
-        mysql.connection.commit()
-        cursor.close()
-        
-        return jsonify({'sucesso': True, 'id_motorista': id_motorista})
-    except Exception as e:
-        mysql.connection.rollback()
-        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
-
-@app.route('/api/motoristas/download_cnh/<int:id_motorista>')
-@login_required
-def download_cnh(id_motorista):
-    try:
-        cursor = mysql.connection.cursor()
-        query = "SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s"
-        cursor.execute(query, (id_motorista,))
-        result = cursor.fetchone()
-        cursor.close()
-
-        if result and result[0]:
-            return send_file(
-                BytesIO(result[0]),
-                mimetype='application/pdf',
-                as_attachment=True,
-                download_name=result[1]
-            )
-        else:
-            return "Arquivo não encontrado", 404
-    except Exception as e:
-        return str(e), 500
-
-
-@app.route('/controle_locacoes')
-@login_required
-def controle_locacoes():
-    return render_template('controle_locacoes.html')
-
-@app.route('/api/processos_locacao')
-@login_required
-def api_processos_locacao():
-    try:
-        cursor = mysql.connection.cursor()
-        query = """
-        SELECT cl.ID_CL, cl.ANO_EXERCICIO,
-               f.NM_FORNECEDOR, cl.NU_SEI, cl.NU_CONTRATO
-        FROM TJ_CONTROLE_LOCACAO cl, TJ_FORNECEDOR f
-        WHERE f.ID_FORNECEDOR = cl.ID_FORNECEDOR
-        AND cl.ATIVO = 'S'
-	ORDER BY cl.ID_CL DESC
-        """
-        cursor.execute(query)
-        processos = cursor.fetchall()
-        
-        # Converter para dicionários para facilitar o uso no JSON
-        resultado = []
-        for processo in processos:
-            resultado.append({
-                'ID_CL': processo[0],
-                'ANO_EXERCICIO': processo[1],
-                'NM_FORNECEDOR': processo[2],
-                'NU_SEI': processo[3],
-                'NU_CONTRATO': processo[4]
-            })
-        
-        cursor.close()
-        return jsonify(resultado)
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar processos: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/empenhos/<int:id_cl>')
-@login_required
-def api_empenhos(id_cl):
-    try:
-        cursor = mysql.connection.cursor()
-        query = """
-	SELECT 
-	    e.ID_EMPENHO, 
-	    e.NU_EMPENHO, 
-	    e.VL_EMPENHO,
-	    IFNULL(i.VL_DIARIAS, 0) AS VL_DIARIAS,
-	    IFNULL(i.VL_DIF, 0) AS VL_DIF,
-	    IFNULL(i.VL_UTILIZADO, 0) AS VL_UTILIZADO,
-	    (e.VL_EMPENHO - IFNULL(e.VL_ANULADO, 0) - IFNULL(i.VL_UTILIZADO, 0)) AS VL_SALDO
-	FROM TJ_CONTROLE_LOCACAO_EMPENHOS e
-	LEFT JOIN (
-	    SELECT 
-		ID_EMPENHO,
-		SUM(VL_SUBTOTAL) AS VL_DIARIAS,
-		SUM(VL_DIFERENCA) AS VL_DIF,
-		SUM(VL_TOTALITEM) AS VL_UTILIZADO
-	    FROM TJ_CONTROLE_LOCACAO_ITENS
-	    GROUP BY ID_EMPENHO
-	) i ON e.ID_EMPENHO = i.ID_EMPENHO
-	WHERE e.ATIVO = 'S'
-        AND e.ID_CL = %s
-        """
-        cursor.execute(query, (id_cl,))
-        empenhos = cursor.fetchall()
-        
-        # Converter para dicionários
-        resultado = []
-        for empenho in empenhos:
-            resultado.append({
-                'ID_EMPENHO': empenho[0],
-                'NU_EMPENHO': empenho[1],
-                'VL_EMPENHO': float(empenho[2]) if empenho[2] else 0,
-                'VL_DIARIAS': float(empenho[3]) if empenho[3] else 0,
-                'VL_DIF': float(empenho[4]) if empenho[4] else 0,
-                'VL_UTILIZADO': float(empenho[5]) if empenho[5] else 0,
-                'VL_SALDO': float(empenho[6]) if empenho[6] else 0
-            })
-        
-        cursor.close()
-        return jsonify(resultado)
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/saldo_diarias/<int:id_cl>')
-@login_required
-def api_saldo_diarias(id_cl):
-    try:
-        cursor = mysql.connection.cursor()
-        query = """
-        SELECT V.DE_VEICULO, V.VL_DIARIA_KM, V.QT_DK,  
-            (SELECT IFNULL(SUM(QT_DIARIA_KM),0)
-                FROM TJ_CONTROLE_LOCACAO_ITENS
-                WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC) AS QT_UTILIZADO,
-            IFNULL(V.QT_DK - ( SELECT IFNULL(SUM(QT_DIARIA_KM),0)
-                        FROM TJ_CONTROLE_LOCACAO_ITENS
-                        WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC),0) AS QT_SALDO,
-            IFNULL((V.VL_DIARIA_KM * V.QT_DK),0) AS VALOR_TOTAL,
-            IFNULL((SELECT CAST(SUM(VL_TOTALITEM) AS DECIMAL(10,2))
-                        FROM TJ_CONTROLE_LOCACAO_ITENS
-                    WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC
-                        AND ID_CL = V.ID_CL),0) AS VL_UTILIZADO,
-            IFNULL((V.VL_DIARIA_KM * V.QT_DK) -
-                    IFNULL((SELECT SUM(VL_TOTALITEM)
-                        FROM TJ_CONTROLE_LOCACAO_ITENS
-                    WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC
-                        AND ID_CL = V.ID_CL),0),0) AS VL_SALDO
-        FROM TJ_VEICULO_LOCACAO V
-        WHERE ID_CL = %s
-        """
-        cursor.execute(query, (id_cl,))
-        saldos = cursor.fetchall()
-        
-        # Converter para dicionários
-        resultado = []
-        for saldo in saldos:
-            resultado.append({
-                'DE_VEICULO': saldo[0],
-                'VL_DIARIA_KM': saldo[1],
-                'QT_DK': int(saldo[2]),
-                'QT_UTILIZADO': saldo[3],
-                'QT_SALDO': saldo[4],
-                'VALOR_TOTAL': float(saldo[5]) if saldo[5] else 0,
-                'VL_UTILIZADO': float(saldo[6]) if saldo[6] else 0,
-                'VL_SALDO': float(saldo[7]) if saldo[7] else 0
-            })
-        
-        cursor.close()
-        return jsonify(resultado)
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/dados_pls/<int:id_cl>')
-@login_required
-def api_dados_pls(id_cl):
-    try:
-        cursor = mysql.connection.cursor()
-        query = """
-        SELECT CONCAT(m.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
-        COUNT(i.ID_ITEM) AS QTD, 
-        SUM(i.VL_TOTALITEM) AS VLTOTAL, i.COMBUSTIVEL,
-	SUM(i.KM_RODADO) AS KM 
-        FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MES m
-        WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s
-        GROUP BY i.ID_EXERCICIO, i.ID_MES, i.COMBUSTIVEL
-        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC
-        """
-        cursor.execute(query, (id_cl,))
-        dadospls = cursor.fetchall()
-        
-        # Converter para dicionários
-        resultado = []
-        for pls in dadospls:
-            resultado.append({
-                'MES_ANO': pls[0],
-                'QTD': pls[1],
-                'VLTOTAL': float(pls[2]) if pls[2] else 0,
-                'COMBUSTIVEL': pls[3],
-		'KM': float(pls[4]) if pls[4] else ''
-            })
-        
-        cursor.close()
-        return jsonify(resultado)
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/locacoes_transito/<int:id_cl>')
-@login_required
-def api_locacoes_transito(id_cl):
-    try:
-        cursor = mysql.connection.cursor()
-        query = """
-        SELECT
-           i.ID_ITEM, i.ID_EXERCICIO, x.NU_MES, x.DE_MES,
-           CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO,
-           e.NU_EMPENHO, v.ID_VEICULO_LOC, v.DE_VEICULO,
-           i.DS_VEICULO_MOD, i.DT_INICIAL, i.DT_FINAL, 
-           i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM,
-           i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM,
-           i.NU_SEI, i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
-           CASE WHEN i.ID_MOTORISTA=0
-           THEN CONCAT('*',i.NC_CONDUTOR,'*')
-           ELSE m.NM_MOTORISTA END AS MOTORISTA, 
-           i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
-        FROM TJ_CONTROLE_LOCACAO_ITENS i
-        LEFT JOIN TJ_MOTORISTA m
-        ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x,
-        TJ_CONTROLE_LOCACAO_EMPENHOS e
-        WHERE e.ID_EMPENHO = i.ID_EMPENHO
-        AND x.ID_MES = i.ID_MES
-        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC
-        AND i.FL_STATUS = 'T'
-        AND i.ID_CL = %s
-        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC, i.DATA_INICIO DESC, i.DATA_FIM DESC
-        """
-        app.logger.info(f"Executando consulta de locações em trânsito para ID_CL={id_cl}")
-        cursor.execute(query, (id_cl,))
-        locacoes = cursor.fetchall()
-        app.logger.info(f"Encontradas {len(locacoes)} locações em trânsito")
-        
-        # Converter para dicionários
-        resultado = []
-        for loc in locacoes:
-            item = {
-                'ID_ITEM': loc[0],
-                'ID_EXERCICIO': loc[1],
-                'NU_MES': loc[2],
-                'DE_MES': loc[3],
-                'MES_ANO': loc[4],
-                'NU_EMPENHO': loc[5],
-                'ID_VEICULO_LOC': loc[6],
-                'DE_VEICULO': loc[7],
-                'DS_VEICULO_MOD': loc[8],
-                'DT_INICIAL': loc[9] if loc[9] else None,
-                'DT_FINAL': loc[10] if loc[10] else None,
-                'HR_INICIAL': loc[11],
-                'HR_FINAL': loc[12],
-                'QT_DIARIA_KM': loc[13],
-                'VL_DK': float(loc[14]) if loc[14] else 0,
-                'VL_SUBTOTAL': float(loc[15]) if loc[15] else 0,
-                'VL_DIFERENCA': float(loc[16]) if loc[16] else 0,
-                'VL_TOTALITEM': float(loc[17]) if loc[17] else 0,
-                'NU_SEI': loc[18],
-                'OBJETIVO': loc[19],
-                'SETOR_SOLICITANTE': loc[20],
-                'ID_MOTORISTA': loc[21],
-                'MOTORISTA': loc[22],
-                'FL_EMAIL': loc[23],
-                'KM_RODADO': loc[24],
-                'COMBUSTIVEL': loc[25],
-                'OBS': loc[26],
-                'OBS_DEV': loc[27]
-            }
-            resultado.append(item)
-        
-        cursor.close()
-        return jsonify(resultado)
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar locações em trânsito: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/meses_locacoes/<int:id_cl>')
-@login_required
-def api_meses_locacoes(id_cl):
-    try:
-        cursor = mysql.connection.cursor()
-        query = """
-        SELECT DISTINCT CONCAT(m.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO 
-        FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MES m 
-        WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s AND i.FL_STATUS = 'F'
-        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC
-        """
-        
-        app.logger.info(f"Executando consulta de meses/anos disponíveis para ID_CL={id_cl}")
-        cursor.execute(query, (id_cl,))
-        meses_anos = cursor.fetchall()
-        app.logger.info(f"Encontrados {len(meses_anos)} opções de mês/ano")
-        
-        # Converter para lista de dicionários
-        resultado = []
-        for item in meses_anos:
-            resultado.append({'MES_ANO': item[0]})
-            
-        cursor.close()
-        return jsonify(resultado)
+        return jsonify({
+            'success': True,
+            'message': 'Chegada lançada com sucesso'
+        })
         
     except Exception as e:
-        app.logger.error(f"Erro ao buscar opções de mês/ano: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+    finally:
+        cur.close()
 
-@app.route('/api/locacoes_finalizadas/<int:id_cl>')
-@login_required
-def api_locacoes_finalizadas(id_cl):
-    try:
-        cursor = mysql.connection.cursor()
-        query = """ 
-        SELECT i.ID_ITEM, i.ID_EXERCICIO, x.NU_MES, x.DE_MES, CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
-        e.NU_EMPENHO, v.ID_VEICULO_LOC, v.DE_VEICULO, i.DS_VEICULO_MOD, 
-        i.DT_INICIAL, i.DT_FINAL, i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM, 
-        i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, 
-        i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
-        CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE m.NM_MOTORISTA END AS MOTORISTA, 
-        i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV 
-        FROM TJ_CONTROLE_LOCACAO_ITENS i 
-        LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
-        WHERE e.ID_EMPENHO = i.ID_EMPENHO 
-        AND x.ID_MES = i.ID_MES 
-        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
-        AND i.FL_STATUS = 'F' 
-        AND i.ID_CL = %s 
-        ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC, i.DATA_INICIO DESC, i.DATA_FIM DESC 
-        """
-        
-        app.logger.info(f"Executando consulta de locações finalizadas para ID_CL={id_cl}")
-        cursor.execute(query, (id_cl,))
-        locacoes = cursor.fetchall()
-        app.logger.info(f"Encontradas {len(locacoes)} locações finalizadas")
-        
-        # Converter para dicionários
-        resultado = []
-        for loc in locacoes:
-            item = {
-                'ID_ITEM': loc[0],
-                'ID_EXERCICIO': loc[1],
-                'NU_MES': loc[2],
-                'DE_MES': loc[3],
-                'MES_ANO': loc[4],
-                'NU_EMPENHO': loc[5],
-                'ID_VEICULO_LOC': loc[6],
-                'DE_VEICULO': loc[7],
-                'DS_VEICULO_MOD': loc[8],
-                'DT_INICIAL': loc[9] if loc[9] else None,
-                'DT_FINAL': loc[10] if loc[10] else None,
-                'HR_INICIAL': loc[11],
-                'HR_FINAL': loc[12],
-                'QT_DIARIA_KM': loc[13],
-                'VL_DK': float(loc[14]) if loc[14] else 0,
-                'VL_SUBTOTAL': float(loc[15]) if loc[15] else 0,
-                'VL_DIFERENCA': float(loc[16]) if loc[16] else 0,
-                'VL_TOTALITEM': float(loc[17]) if loc[17] else 0,
-                'NU_SEI': loc[18],
-                'OBJETIVO': loc[19],
-                'SETOR_SOLICITANTE': loc[20],
-                'ID_MOTORISTA': loc[21],
-                'MOTORISTA': loc[22],
-                'FL_EMAIL': loc[23],
-                'KM_RODADO': loc[24],
-                'COMBUSTIVEL': loc[25],
-                'OBS': loc[26],
-                'OBS_DEV': loc[27]
-            }
-            resultado.append(item)
-            
-        cursor.close()
-        return jsonify(resultado)
-        
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+# Rota para renderizar a página eventos.html
+@app.route('/eventos')
+def eventos():
+    return render_template('eventos.html')
 
-@app.route('/api/rel_locacao_analitico/<int:id_cl>')
-@login_required
-def get_rel_locacao_analitico(id_cl):
-    try:
-        cursor = mysql.connection.cursor()    
-        query = """
-        SELECT i.ID_ITEM, CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
-        CASE WHEN i.DT_INICIAL=i.DT_FINAL THEN i.DT_INICIAL
-        ELSE CONCAT(i.DT_INICIAL,' - ',i.DT_FINAL) END AS PERIODO,
-        CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, m.NM_MOTORISTA,
-        i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
-        FROM TJ_CONTROLE_LOCACAO_ITENS i 
-        LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
-        WHERE e.ID_EMPENHO = i.ID_EMPENHO 
-        AND x.ID_MES = i.ID_MES 
-        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
-        AND i.FL_STATUS = 'F' 
-        AND i.ID_CL = %s
-        ORDER BY i.ID_EXERCICIO, i.ID_MES, i.DATA_INICIO, i.DATA_FIM
-        """
-        
-        app.logger.info(f"Executando Relatório para ID_CL={id_cl}")
-        cursor.execute(query, (id_cl,))
-        items = cursor.fetchall()
+# Get all eventos
+@app.route('/api/eventos')
+def get_eventos():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT IDEVENTO, DESCRICAO FROM EVENTO ORDER BY DTINICIO DESC")
+    eventos = [{'IDEVENTO': row[0], 'DESCRICAO': row[1]} for row in cur.fetchall()]
+    cur.close()
+    return jsonify(eventos)
 
-        # Converter para dicionários
-        resultado = []
-        for item in items:
-            lista = {
-                'ID_ITEM': item[0],
-                'MES_ANO': item[1],
-                'PERIODO': item[2],
-                'VEICULO': item[3],
-                'MOTORISTA': item[4],
-                'QT_DIARIA_KM': item[5],
-                'VL_DK': float(item[6]) if item[6] else 0,
-                'VL_DIFERENCA': float(item[7]) if item[7] else 0,
-                'VL_TOTALITEM': float(item[8]) if item[8] else 0,
-                'KM_RODADO': item[9]
-            }
-            resultado.append(lista)
-            
-        cursor.close()
-        return jsonify(resultado)
-        
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/rel_locacao_analitico')
-@login_required
-def rel_locacao_analitico():
-    return render_template('rel_locacao_analitico.html')
-
-# Rota para listar veículos disponíveis por ID_CL
-@app.route('/api/lista_veiculo')
-@login_required
-def listar_veiculos():
-    try:
-        id_cl = request.args.get('id_cl')
-        if not id_cl:
-            return jsonify({'erro': 'ID_CL não fornecido'}), 400
-            
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT ID_VEICULO_LOC, DE_VEICULO, VL_DIARIA_KM FROM TJ_VEICULO_LOCACAO WHERE ID_CL = %s", (id_cl,))
-        
-        veiculos = []
-        for row in cursor.fetchall():
-            veiculos.append({
-                'ID_VEICULO_LOC': row[0],
-                'DE_VEICULO': row[1],
-                'VL_DIARIA_KM': float(row[2]) if row[2] else 0.0
-            })
-            
-        cursor.close()
-        return jsonify(veiculos)
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-
-@app.route('/api/setores_loc')
-@login_required
-def listar_setores_loc():
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT SIGLA_SETOR FROM TJ_SETORES ORDER BY SIGLA_SETOR")
-               
-        items = cursor.fetchall()
-
-        setores = []
-        for item in items:
-            lista = {'SIGLA_SETOR': item[0]}
-            setores.append(lista)
-            
-        cursor.close()
-        return jsonify(setores)
-        
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-
-# Rota para listar motoristas
-@app.route('/api/lista_motorista_loc')
-@login_required
-def listar_motoristas_loc():
-    try:
-        print("Iniciando consulta à lista de motoristas")
-        cursor = mysql.connection.cursor()
-        
-        print("Executando consulta SQL")
-        cursor.execute("""
-            SELECT ID_MOTORISTA, NM_MOTORISTA, NU_TELEFONE, 
-            FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA
-        """)
-        
-        results = cursor.fetchall()
-        print(f"Quantidade de resultados encontrados: {len(results)}")
-        
-        if len(results) > 0:
-            print(f"Primeiro registro: ID={results[0][0]}, Nome={results[0][1]}")
-        
-        motoristas = []
-        for i, row in enumerate(results):
-            try:
-                # Verificar se FILE_PDF é None antes de processar
-                file_pdf = row[3] if row[3] is not None else None
-                
-                motorista = {
-                    'ID_MOTORISTA': row[0],
-                    'NM_MOTORISTA': row[1],
-                    'NU_TELEFONE': row[2],
-                    'FILE_PDF': file_pdf is not None,  # Apenas indicar presença, não enviar arquivo
-                    'NOME_ARQUIVO': row[4]
-                }
-                motoristas.append(motorista)
-            except Exception as row_error:
-                print(f"Erro ao processar linha {i}: {str(row_error)}")
-        
-        cursor.close()
-        return jsonify(motoristas)
-    except Exception as e:
-        print(f"ERRO COMPLETO: {str(e)}")
-        return jsonify({'erro': str(e)}), 500
-
-@app.route('/api/empenhos_loc')
-@login_required
-def api_empenhos_loc():
-    try:
-
-        id_cl = request.args.get('id_cl')
-        if not id_cl:
-            return jsonify({'erro': 'ID_CL não fornecido'}), 400
-
-        cursor = mysql.connection.cursor()
-        query = """
-        SELECT ID_EMPENHO, NU_EMPENHO
-        FROM TJ_CONTROLE_LOCACAO_EMPENHOS
-        WHERE ATIVO = 'S'
-        AND ID_CL = %s
-        """
-        cursor.execute(query, (id_cl,))
-        empenhos = cursor.fetchall()
-        
-        # Converter para dicionários
-        resultado = []
-        for empenho in empenhos:
-            resultado.append({
-                'ID_EMPENHO': empenho[0],
-                'NU_EMPENHO': empenho[1]
-            })
-        
-        cursor.close()
-        return jsonify(resultado)
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-
-# Rota para obter o próximo ID_ITEM
-def obter_proximo_id_item():
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT MAX(ID_ITEM) FROM TJ_CONTROLE_LOCACAO_ITENS")
-    resultado = cursor.fetchone()
-    cursor.close()
+# Get specific evento
+@app.route('/api/eventos/<int:evento_id>')
+def get_evento(evento_id):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT IDEVENTO, DESCRICAO, DTINICIO, DTFIM, HRINICIO, 
+               INICIO_INSCRICAO, FIM_INSCRICAO, 
+               INICIO_INSCRICAO_EXT, FIM_INSCRICAO_EXT 
+        FROM EVENTO WHERE IDEVENTO = %s
+    """, (evento_id,))
+    row = cur.fetchone()
+    cur.close()
     
-    ultimo_id = resultado[0] if resultado[0] else 0
-    return ultimo_id + 1
-    
+    if row:
+        evento = {
+            'IDEVENTO': row[0],
+            'DESCRICAO': row[1],
+            'DTINICIO': row[2], # .strftime('%d/%m/%Y') if row[2] else '',
+            'DTFIM': row[3], #.strftime('%d/%m/%Y') if row[3] else '',
+            'HRINICIO': row[4], #.strftime('%H:%M') if row[4] else '',
+            'INICIO_INSCRICAO': row[5], #.strftime('%d/%m/%Y %H:%M:%S') if row[5] else '',
+            'FIM_INSCRICAO': row[6], #.strftime('%d/%m/%Y %H:%M:%S') if row[6] else '',
+            'INICIO_INSCRICAO_EXT': row[7], #.strftime('%d/%m/%Y %H:%M:%S') if row[7] else '',
+            'FIM_INSCRICAO_EXT': row[8] #.strftime('%d/%m/%Y %H:%M:%S') if row[8] else ''
+        }
+        return jsonify(evento)
+    return jsonify(None)
 
-@app.route('/api/nova_locacao', methods=['POST'])
-@login_required
-def nova_locacao():
-    try:
-        # Obter dados do formulário
-        id_cl = request.form.get('id_cl')
-        id_empenho = request.form.get('empenho')
-        setor_solicitante = request.form.get('setor_solicitante')
-        objetivo = request.form.get('objetivo')
-        id_veiculo_loc = request.form.get('id_veiculo_loc')
-        id_motorista = request.form.get('id_motorista')
-        data_inicio = request.form.get('data_inicio')
-        data_fim = request.form.get('data_fim')
-        hora_inicio = request.form.get('hora_inicio')
-        qt_diaria_km = request.form.get('qt_diaria_km')
-        vl_dk = request.form.get('vl_dk')
-        vl_totalitem = request.form.get('vl_totalitem')
-        nu_sei = request.form.get('nu_sei')
-        obs = request.form.get('obs')
+# Update evento
+@app.route('/api/eventos', methods=['PUT'])
+def update_evento():
+    data = request.json
+    
+    # Converter as datas do formato brasileiro para o formato do MySQL
+    dtinicio = data['DTINICIO'] #datetime.strptime(data['DTINICIO'], '%d/%m/%Y').strftime('%Y-%m-%d')
+    dtfim = data['DTFIM'] #datetime.strptime(data['DTFIM'], '%d/%m/%Y').strftime('%Y-%m-%d')
+    hrinicio = data['HRINICIO']
+    inicio_inscricao = data['INICIO_INSCRICAO'] #datetime.strptime(data['INICIO_INSCRICAO'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+    fim_inscricao = data['FIM_INSCRICAO'] #datetime.strptime(data['FIM_INSCRICAO'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+    inicio_inscricao_ext = data['INICIO_INSCRICAO_EXT'] #datetime.strptime(data['INICIO_INSCRICAO_EXT'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+    fim_inscricao_ext = data['FIM_INSCRICAO_EXT'] #datetime.strptime(data['FIM_INSCRICAO_EXT'], '%d/%m/%Y %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+    
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        UPDATE EVENTO 
+        SET DESCRICAO = %s, 
+            DTINICIO = %s,
+            DTFIM = %s,
+            HRINICIO = %s,
+            INICIO_INSCRICAO = %s,
+            FIM_INSCRICAO = %s,
+            INICIO_INSCRICAO_EXT = %s,
+            FIM_INSCRICAO_EXT = %s
+        WHERE IDEVENTO = %s
+    """, (
+        data['DESCRICAO'], dtinicio, dtfim, hrinicio,
+        inicio_inscricao, fim_inscricao,
+        inicio_inscricao_ext, fim_inscricao_ext,
+        data['IDEVENTO']
+    ))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify({'message': 'Evento atualizado com sucesso'})
+
+# Get modalidades for evento
+@app.route('/api/modalidades/<int:evento_id>')
+def get_modalidades(evento_id):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT IDITEM, DESCRICAO, 
+               FORMAT(VLINSCRICAO, 2) as VLINSCRICAO, 
+               FORMAT(VLTAXA, 2) as VLTAXA 
+        FROM EVENTO_MODALIDADE 
+        WHERE IDEVENTO = %s
+    """, (evento_id,))
+    modalidades = [
+        {
+            'IDITEM': row[0],
+            'DESCRICAO': row[1],
+            'VLINSCRICAO': row[2],
+            'VLTAXA': row[3]
+        } for row in cur.fetchall()
+    ]
+    cur.close()
+    return jsonify(modalidades)
+
+# Get specific modalidade
+@app.route('/api/modalidade/<int:iditem>')
+def get_modalidade(iditem):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT IDITEM, DESCRICAO, 
+               FORMAT(VLINSCRICAO, 2) as VLINSCRICAO, 
+               FORMAT(VLTAXA, 2) as VLTAXA 
+        FROM EVENTO_MODALIDADE 
+        WHERE IDITEM = %s
+    """, (iditem,))
+    row = cur.fetchone()
+    cur.close()
+    
+    if row:
+        modalidade = {
+            'IDITEM': row[0],
+            'DESCRICAO': row[1],
+            'VLINSCRICAO': row[2],
+            'VLTAXA': row[3]
+        }
+        return jsonify(modalidade)
+    return jsonify(None)
+
+# Update modalidade
+@app.route('/api/modalidade', methods=['PUT'])
+def update_modalidade():
+    data = request.json
+    
+    # Converter valores monetários (remove R$ e vírgulas)
+    vlinscricao = float(data['VLINSCRICAO'].replace('R$', '').replace('.', '').replace(',', '.').strip())
+    vltaxa = float(data['VLTAXA'].replace('R$', '').replace('.', '').replace(',', '.').strip())
+    
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        UPDATE EVENTO_MODALIDADE 
+        SET DESCRICAO = %s,
+            VLINSCRICAO = %s,
+            VLTAXA = %s
+        WHERE IDITEM = %s
+    """, (data['DESCRICAO'], vlinscricao, vltaxa, data['IDITEM']))
+    mysql.connection.commit()
+    cur.close()
+    return jsonify({'message': 'Modalidade atualizada com sucesso'})
+
+@app.route("/checkout")
+def checkout():
+
+    # Get values from session
+    vlinscricao = session.get('valoratual', 0)
+    vltaxa = session.get('valortaxa', 0)
+    valor_total = float(vlinscricao) + float(vltaxa)
+    
+    # Obter a chave pública do Mercado Pago das variáveis de ambiente
+    mp_public_key = os.environ.get('MP_PUBLIC_KEY')
+    
+    return render_template('checkout.html', 
+                         valor_inscricao=vlinscricao,
+                         valor_taxa=vltaxa,
+                         valor_total=valor_total,
+                         mp_public_key=mp_public_key)
+
+# @app.route('/process_payment', methods=['POST'])
+# def process_payment():
+#     try:
+#         # Configurar log detalhado
+#         app.logger.setLevel(logging.INFO)
         
-        # Obter o próximo ID_ITEM
-        id_item = obter_proximo_id_item()
+#         # Receber dados do pagamento
+#         payment_data = request.json
+#         app.logger.info("Dados completos recebidos:")
+#         app.logger.info(json.dumps(payment_data, indent=2))
+
+#         installments = payment_data.get('installments', 1)
+#         transaction_amount = payment_data.get('transaction_amount', 0)
+
+#         # device_id = payment_data.get('device_id')
+#         # app.logger.info(f"Device ID recebido: {device_id}")
+
+#         # if not device_id:
+#         #     app.logger.error("Device ID está ausente ou vazio")
+#         #     return jsonify({"error": "Device ID é obrigatório"}), 400
+       
         
-        # Converter data_inicio e data_fim para objetos datetime
-        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
-        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
+#         # Validação de campos obrigatórios
+#         required_fields = [
+#             'token', 
+#             'transaction_amount', 
+#             'installments', 
+#             'payment_method_id',
+#             'payer'
+#         ]
         
-        # Extrair ano e mês da data de fim
-        id_exercicio = data_fim_obj.year
-        id_mes = data_fim_obj.month
+#         for field in required_fields:
+#             if field not in payment_data:
+#                 app.logger.error(f"Campo obrigatório ausente: {field}")
+#                 raise ValueError(f"Campo obrigatório ausente: {field}")
         
-        # Converter data para o formato dd/mm/yyyy para os campos de string
-        dt_inicial = data_inicio_obj.strftime('%d/%m/%Y')
-        dt_final = data_fim_obj.strftime('%d/%m/%Y')
+#         # Extrair e validar dados importantes
+#         #installments = int(payment_data.get('installments', 1))
+#         #transaction_amount = round(float(payment_data['transaction_amount']), 2)
         
-        # Converter hora para string no formato hh:mm
-        hr_inicial = hora_inicio
+#         # Extrair dados do participante
+#         valor_total = round(float(payment_data.get('valor_total', 0)), 2)
+#         valor_atual = round(float(payment_data.get('valor_atual', 0)), 2)
+#         valor_taxa = round(float(payment_data.get('valor_taxa', 0)), 2)
         
-        # Obter ID do usuário da sessão
-        usuario = session.get('usuario_login')
+#         # Dados adicionais do participante
+#         camisa = payment_data.get('camiseta')
+#         apoio = payment_data.get('apoio')
+#         equipe = payment_data.get('equipe')
+#         equipe200 = payment_data.get('nome_equipe')
+#         integrantes = payment_data.get('integrantes')
         
-        # Verificar se o motorista tem CNH cadastrada
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
-        motorista_info = cursor.fetchone()
+#         # Preparar dados da sessão
+#         session['valorTotal'] = transaction_amount
+#         session['numeroParcelas'] = installments
+#         session['valorParcela'] = transaction_amount / installments if installments > 0 else transaction_amount
+#         session['valorTotalsemJuros'] = valor_total
+#         session['valorAtual'] = valor_atual
+#         session['valorTaxa'] = valor_taxa
+#         session['formaPagto'] = 'CARTAO DE CREDITO'
+#         session['Camisa'] = camisa
+#         session['Equipe'] = equipe
+#         session['Apoio'] = apoio
+#         session['Equipe200'] = equipe200
+#         session['Integrantes'] = integrantes
         
-        # Verificar se é necessário salvar a CNH
-        file_pdf = motorista_info['FILE_PDF'] if motorista_info['FILE_PDF'] else None
-        nome_arquivo_cnh = motorista_info['NOME_ARQUIVO'] if motorista_info['NOME_ARQUIVO'] else None
+#         # Gerar referência externa única
+#         external_reference = str(uuid.uuid4())
         
-        if not file_pdf and 'file_cnh' in request.files:
-            file_cnh = request.files['file_cnh']
+#         # Preparar dados do item
+#         item_details = {
+#             "id": "DESAFIO_200K",
+#             "title": "Inscrição Desafio 200k",
+#             "description": "Inscrição para 4º Desafio 200km",
+#             "category_id": "SPORTS_EVENT",
+#             "quantity": 1,
+#             "currency_id": "BRL",
+#             "unit_price": valor_atual,
+#             "total_amount": transaction_amount
+#         }
+        
+#         # Preparar preferência de pagamento
+#         preference_data = {
+#             "items": [item_details],
+#             "notification_url": "https://ecmrun.com.br/webhook",
+#             "external_reference": external_reference
+#         }
+        
+#         try:
+#             preference_response = sdk.preference().create(preference_data)
+#             if "response" not in preference_response:
+#                 app.logger.error("Erro ao criar preferência de pagamento")
+#                 raise ValueError("Erro ao criar preferência de pagamento")
+#         except Exception as pref_error:
+#             app.logger.error(f"Erro na criação da preferência: {str(pref_error)}")
+#             raise
+        
+#         # Preparar dados do pagamento
+#         payment_info = {
+#             "transaction_amount": transaction_amount,
+#             "token": payment_data['token'],
+#             "description": "Inscrição Desafio 200k",
+#             "statement_descriptor": "ECMRUN DESAFIO 200K",
+#             "installments": installments,
+#             "payment_method_id": payment_data['payment_method_id'],
+#             "external_reference": external_reference,
+#             "notification_url": "https://ecmrun.com.br/webhook",
+#             "payer": {
+#                 "email": payment_data['payer']['email'],
+#                 "identification": {
+#                     "type": payment_data['payer']['identification']['type'],
+#                     "number": payment_data['payer']['identification']['number']
+#                 },
+#                 "first_name": payment_data['payer']['first_name'],
+#                 "last_name": payment_data['payer']['last_name']
+#             },
+#             "additional_info": {
+#                 "items": [item_details],
+#                 "payer": {
+#                     "first_name": payment_data['payer']['first_name'],
+#                     "last_name": payment_data['payer']['last_name'],
+#                     "registration_date": datetime.now().isoformat()
+#                 },
+#                 "ip_address": request.remote_addr,
+#                 "user_agent": str(request.user_agent)
+#             }
+#         }
+        
+#         app.logger.info("Dados do pagamento para processamento:")
+#         app.logger.info(json.dumps(payment_info, indent=2))
+        
+#         # Processar pagamento
+#         try:
+#             payment_response = sdk.payment().create(payment_info)
             
-            if file_cnh and file_cnh.filename != '':
-                # Salvar o conteúdo do arquivo
-                file_content = file_cnh.read()
-                nome_arquivo_cnh = file_cnh.filename
+#             app.logger.info("Resposta do pagamento:")
+#             app.logger.info(json.dumps(payment_response, indent=2))
+            
+#             if "response" not in payment_response:
+#                 error_msg = payment_response.get("message", "Erro desconhecido")
+#                 app.logger.error(f"Erro no processamento do pagamento: {error_msg}")
+#                 return jsonify({
+#                     "error": "Erro ao processar pagamento",
+#                     "details": error_msg
+#                 }), 400
+            
+#             payment_data = payment_response["response"]
+            
+#             # Verificar status do pagamento
+#             if payment_data.get("status") == "approved":
+#                 # Lógica adicional para pagamento aprovado
+#                 try:
+#                     # Exemplo de chamada para lançar pagamento
+#                     verification_response = requests.get(
+#                         f'/lanca-pagamento-cartao/{payment_data["id"]}', 
+#                         headers={'Accept': 'application/json'}
+#                     )
+                    
+#                     if verification_response.status_code != 200:
+#                         app.logger.warning(f"Erro na verificação do pagamento: {verification_response.text}")
                 
-                # Atualizar o motorista com o arquivo da CNH
-                cursor.execute(
-                    "UPDATE TJ_MOTORISTA SET FILE_PDF = %s, NOME_ARQUIVO = %s WHERE ID_MOTORISTA = %s",
-                    (file_content, nome_arquivo_cnh, id_motorista)
-                )
-                mysql.connection.commit()
-                file_pdf = file_content
+#                 except Exception as verification_error:
+#                     app.logger.error(f"Erro na verificação do pagamento: {str(verification_error)}")
+                
+#                 return jsonify(payment_data), 200
+#             else:
+#                 app.logger.warning(f"Pagamento não aprovado. Status: {payment_data.get('status')}")
+#                 return jsonify({
+#                     "message": "Pagamento não aprovado",
+#                     "status": payment_data.get("status")
+#                 }), 400
         
-        # Inserir na tabela TJ_CONTROLE_LOCACAO_ITENS
-        cursor.execute("""
-            INSERT INTO TJ_CONTROLE_LOCACAO_ITENS (
-                ID_ITEM, ID_CL, ID_EXERCICIO, ID_EMPENHO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, 
-                ID_VEICULO_LOC, DS_VEICULO_MOD, ID_MOTORISTA, DATA_INICIO, DATA_FIM, HORA_INICIO, 
-                QT_DIARIA_KM, VL_DK, VL_SUBTOTAL, VL_TOTALITEM, NU_SEI, FL_EMAIL, 
-                OBS, FL_STATUS, USUARIO, DT_INICIAL, DT_FINAL, HR_INICIAL, COMBUSTIVEL
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, '',%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, '')
-        """, (
-            id_item, id_cl, id_exercicio, id_empenho, setor_solicitante, objetivo, id_mes, 
-            id_veiculo_loc, id_motorista, data_inicio, data_fim, hora_inicio, 
-            qt_diaria_km, vl_dk, vl_totalitem, vl_totalitem, nu_sei, 'N', 
-            obs, 'T', usuario, dt_inicial, dt_final, hr_inicial
-        ))
-        mysql.connection.commit()
+#         except Exception as payment_error:
+#             app.logger.error(f"Erro no processamento do pagamento: {str(payment_error)}")
+#             return jsonify({
+#                 "error": "Erro interno no processamento do pagamento",
+#                 "details": str(payment_error)
+#             }), 500
+    
+#     except ValueError as validation_error:
+#         app.logger.error(f"Erro de validação: {str(validation_error)}")
+#         return jsonify({"error": str(validation_error)}), 400
+    
+#     except Exception as general_error:
+#         app.logger.error(f"Erro geral no processamento: {str(general_error)}")
+#         return jsonify({"error": "Erro interno no servidor"}), 500
+
+####################################
+
+# @app.route('/process_payment', methods=['POST'])
+# def process_payment():
+#     try:
+#         app.logger.info("Dados recebidos:")
+#         payment_data = request.json
+#         app.logger.info(payment_data)
         
-        # Obter informações do veículo - IMPORTANTE: Também usar dictionary=True aqui
-        cursor.execute("SELECT DE_VEICULO FROM TJ_VEICULO_LOCACAO WHERE ID_VEICULO_LOC = %s", (id_veiculo_loc,))
-        veiculo_info = cursor.fetchone()
-        de_veiculo = veiculo_info['DE_VEICULO']
+#         installments = payment_data.get('installments', 1)
+#         transaction_amount = payment_data.get('transaction_amount', 0)
         
-        # Verificar se o motorista tem Email cadastrado
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT EMAIL FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
-        motorista_email = cursor.fetchone()        
+#         # Round to 2 decimal places to avoid floating point precision issues
+#         valor_total = round(float(payment_data.get('valor_total', 0)), 2)
+#         valor_atual = round(float(payment_data.get('valor_atual', 0)), 2)
+#         valor_taxa = round(float(payment_data.get('valor_taxa', 0)), 2)
+#         camisa = payment_data.get('camiseta')
+#         apoio = payment_data.get('apoio')
+#         equipe = payment_data.get('equipe')
+#         equipe200 = payment_data.get('nome_equipe')
+#         integrantes = payment_data.get('integrantes')
+
+#         session['valorTotal'] = transaction_amount #valor_total
+#         session['numeroParcelas'] = installments
+#         session['valorParcela'] = transaction_amount / installments if installments > 0 else transaction_amount
+#         session['valorTotalsemJuros'] = valor_total
+#         session['valorAtual'] = valor_atual
+#         session['valorTaxa'] = valor_taxa
+#         session['formaPagto'] = 'CARTÃO DE CRÉDITO'
+#         session['Camisa'] = camisa
+#         session['Equipe'] = equipe
+#         session['Apoio'] = apoio
+#         session['Equipe200'] = equipe200
+#         session['Integrantes'] = integrantes
+
+#         # Validar dados recebidos
+#         required_fields = [
+#             'token', 
+#             'transaction_amount', 
+#             'installments', 
+#             'payment_method_id',
+#             'payer'
+#         ]
         
-        # Enviar e-mail para a empresa locadora
-        email_enviado, erro_email = enviar_email_locacao(
-            id_item, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
-            dt_inicial, dt_final, hr_inicial, de_veiculo, obs,
-            nome_arquivo_cnh, motorista_email, file_pdf  # Passando o conteúdo do PDF
-        )
+#         for field in required_fields:
+#             if field not in payment_data:
+#                 raise ValueError(f"Campo obrigatório ausente: {field}")
+
+#         # Gerar referência externa única
+#         external_reference = str(uuid.uuid4())
         
-        response_data = {
-            'sucesso': True,
-            'email_enviado': email_enviado,
-            'mensagem': 'Locação cadastrada com sucesso!'
+#         # Criar preferência de pagamento
+#         item_details = {
+#             "id": "DESAFIO_200K",
+#             "title": "Inscrição Desafio 200k",
+#             "description": "Inscrição para 4º Desafio 200km",
+#             "category_id": "SPORTS_EVENT",
+#             "quantity": 1,
+#             "currency_id": "BRL",
+#             "unit_price": valor_atual,
+#             "total_amount": transaction_amount
+#         }
+        
+#         # Preparar preferência de pagamento
+#         preference_data = {
+#             "items": [item_details],
+#             "notification_url": "https://ecmrun.com.br/webhook",
+#             "external_reference": external_reference
+#         }
+        
+#         # Criar preferência
+#         preference_response = sdk.preference().create(preference_data)
+        
+#         if "response" not in preference_response:
+#             raise ValueError("Erro ao criar preferência de pagamento")
+            
+
+#         payment_info = {
+#             "transaction_amount": transaction_amount,
+#             "token": payment_data['token'],
+#             "description": "Inscrição Desafio 200k",
+#             "statement_descriptor": "ECMRUN DESAFIO 200K",
+#             "installments": installments,
+#             "payment_method_id": payment_data['payment_method_id'],
+#             "external_reference": external_reference,
+#             "notification_url": "https://ecmrun.com.br/webhook",
+#             "payer": {
+#                 "email": payment_data['payer']['email'],
+#                 "identification": {
+#                     "type": payment_data['payer']['identification']['type'],
+#                     "number": payment_data['payer']['identification']['number']
+#                 },
+#                 "first_name": payment_data['payer']['first_name'],
+#                 "last_name": payment_data['payer']['last_name']
+#             },
+#             "additional_info": {
+#                 "items": [item_details],
+#                 "payer": {
+#                     "first_name": payment_data['payer']['first_name'],
+#                     "last_name": payment_data['payer']['last_name'],
+#                     "registration_date": datetime.now().isoformat()
+#                 },
+#                 "ip_address": request.remote_addr,
+#                 "user_agent": str(request.user_agent)
+#             }
+#         }
+
+#         app.logger.info("Dados do pagamento:")
+#         app.logger.info(payment_info)
+        
+#         # Processar pagamento
+#         payment_response = sdk.payment().create(payment_info)
+        
+#         app.logger.info("Resposta do pagamento:")
+#         app.logger.info(payment_response)
+        
+#         if "response" not in payment_response:
+#             return jsonify({
+#                 "error": "Erro ao processar pagamento",
+#                 "details": payment_response.get("message", "Erro desconhecido")
+#             }), 400
+            
+#         return jsonify(payment_response["response"]), 200
+        
+#     except ValueError as e:
+#         app.logger.error(f"Erro de validação: {str(e)}")
+#         return jsonify({"error": str(e)}), 400
+#     except Exception as e:
+#         app.logger.error(f"Erro no processamento: {str(e)}")
+#         return jsonify({"error": str(e)}), 400
+
+
+
+@app.route('/process_payment', methods=['POST'])
+def process_payment():
+    try:
+        app.logger.info("Dados recebidos:")
+        payment_data = request.json
+        # Log sensitive data securely
+        safe_data = {**payment_data}
+        if 'token' in safe_data:
+            safe_data['token'] = '***HIDDEN***'
+        if 'payer' in safe_data and 'identification' in safe_data['payer']:
+            safe_data['payer']['identification']['number'] = '***HIDDEN***'
+        app.logger.info(safe_data)
+        
+        # Extract data with proper error handling
+        try:
+            installments = int(payment_data.get('installments', 1))
+            transaction_amount = float(payment_data.get('transaction_amount', 0))
+            
+            # Round to 2 decimal places to avoid floating point precision issues
+            valor_total = round(float(payment_data.get('valor_total', 0)), 2)
+            valor_atual = round(float(payment_data.get('valor_atual', 0)), 2)
+            valor_taxa = round(float(payment_data.get('valor_taxa', 0)), 2)
+            
+            # Ensure transaction_amount matches valor_total
+            if abs(transaction_amount - valor_total) > 0.01:
+                app.logger.warning(f"Discrepância entre transaction_amount ({transaction_amount}) e valor_total ({valor_total})")
+                # Use valor_total as the source of truth
+                transaction_amount = valor_total
+                
+            # Store other data safely
+            idatleta = payment_data.get('idAtleta')
+            vCPF = payment_data.get('CPF')
+            camisa = payment_data.get('camiseta', '')
+            apoio = payment_data.get('apoio', '')
+            equipe = payment_data.get('equipe', '')
+            equipe200 = payment_data.get('nome_equipe', '')
+            integrantes = payment_data.get('integrantes', '')
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Erro ao processar valores numéricos: {str(e)}")
+
+        # Store session data
+        session['valorTotal'] = transaction_amount
+        session['numeroParcelas'] = installments
+        session['valorParcela'] = transaction_amount / installments if installments > 0 else transaction_amount
+        session['valorTotalsemJuros'] = valor_total
+        session['valorAtual'] = valor_atual
+        session['valorTaxa'] = valor_taxa
+        session['formaPagto'] = 'CARTÃO DE CRÉDITO'
+        session['Camisa'] = camisa
+        session['Equipe'] = equipe
+        session['Apoio'] = apoio
+        session['Equipe200'] = equipe200
+        session['Integrantes'] = integrantes
+        session['idAtleta'] = idatleta
+        session['CPF'] = vCPF
+
+        # Validar dados recebidos
+        required_fields = [
+            'token', 
+            'transaction_amount', 
+            'installments', 
+            'payment_method_id',
+            'payer'
+        ]
+        
+        for field in required_fields:
+            if field not in payment_data:
+                raise ValueError(f"Campo obrigatório ausente: {field}")
+        
+        # Validate payer data
+        if not payment_data['payer'].get('email'):
+            raise ValueError("Email do pagador é obrigatório")
+        
+        if 'identification' not in payment_data['payer']:
+            raise ValueError("Identificação do pagador é obrigatória")
+        
+        if not payment_data['payer']['identification'].get('type') or not payment_data['payer']['identification'].get('number'):
+            raise ValueError("Tipo e número de documento são obrigatórios")
+
+        # Gerar referência externa única
+        external_reference = str(uuid.uuid4())
+        
+        # Criar preferência de pagamento
+        item_details = {
+            "id": "DESAFIO_200K",
+            "title": "Inscrição Desafio 200k",
+            "description": "Inscrição para 4º Desafio 200km",
+            "category_id": "SPORTS_EVENT",
+            "quantity": 1,
+            "currency_id": "BRL",
+            "unit_price": valor_atual,
+            "total_amount": transaction_amount
         }
         
-        if not email_enviado and erro_email:
-            response_data['erro_email'] = erro_email
+        # Preparar preferência de pagamento
+        preference_data = {
+            "items": [item_details],
+            "notification_url": "https://ecmrun.com.br/webhook",
+            "external_reference": external_reference
+        }
+        
+        # Criar preferência
+        try:
+            preference_response = sdk.preference().create(preference_data)
             
-        cursor.close()
-        return jsonify(response_data)
+            if "response" not in preference_response:
+                error_message = preference_response.get("message", "Erro desconhecido na criação da preferência")
+                app.logger.error(f"Erro na preferência: {error_message}")
+                raise ValueError(f"Erro ao criar preferência de pagamento: {error_message}")
+        except Exception as e:
+            app.logger.error(f"Exceção ao criar preferência: {str(e)}")
+            raise ValueError(f"Erro ao criar preferência de pagamento: {str(e)}")
+
+        payment_info = {
+            "transaction_amount": transaction_amount,
+            "token": payment_data['token'],
+            "description": "Inscrição Desafio 200k",
+            "statement_descriptor": "ECMRUN DESAFIO 200K",
+            "installments": installments,
+            "payment_method_id": payment_data['payment_method_id'],
+            "external_reference": external_reference,
+            "notification_url": "https://ecmrun.com.br/webhook",
+            "payer": {
+                "email": payment_data['payer']['email'],
+                "identification": {
+                    "type": payment_data['payer']['identification']['type'],
+                    "number": payment_data['payer']['identification']['number']
+                },
+                "first_name": payment_data['payer']['first_name'],
+                "last_name": payment_data['payer']['last_name']
+            },
+            "additional_info": {
+                "items": [{
+                    "id": "DESAFIO_200K",
+                    "title": "Inscrição Desafio 200k",
+                    "description": "Inscrição para 4º Desafio 200km",
+                    "category_id": "SPORTS_EVENT",
+                    "quantity": 1,
+                    "unit_price": valor_atual
+                }],
+                "payer": {
+                    "first_name": payment_data['payer']['first_name'],
+                    "last_name": payment_data['payer']['last_name'],
+                    "registration_date": datetime.now().isoformat()
+                },
+                "ip_address": request.remote_addr
+            }
+        }
+
+        # Log payment info (exclude sensitive data)
+        safe_payment_info = {**payment_info}
+        safe_payment_info['token'] = '***HIDDEN***'
+        safe_payment_info['payer']['identification']['number'] = '***HIDDEN***'
+        app.logger.info("Dados do pagamento:")
+        app.logger.info(safe_payment_info)
+
+        # Processar pagamento
+        try:
+            payment_response = sdk.payment().create(payment_info)
+            
+            app.logger.info("Resposta do pagamento:")
+            app.logger.info(payment_response)
+            
+            if "response" not in payment_response:
+                error_details = payment_response.get("cause", [{}])
+                error_message = "Erro desconhecido"
+                
+                if isinstance(error_details, list) and len(error_details) > 0:
+                    error_message = error_details[0].get("description", "Erro desconhecido")
+                
+                return jsonify({
+                    "error": "Erro ao processar pagamento",
+                    "details": error_message
+                }), 400
+                
+            payment_data = payment_response["response"]
+
+            # Comentado para testes, mas precisa de um retorno
+            # if payment_data.get("status") == "approved":
+            #     ...
+            # else:
+            #     ...
+            
+            # Adicione este retorno para substituir o bloco comentado
+            return jsonify(payment_data), 200        
+            
+        except Exception as e:
+            app.logger.error(f"Exceção ao processar pagamento: {str(e)}")
+            return jsonify({
+                "error": "Erro ao processar pagamento",
+                "details": str(e)
+            }), 400
+        
+    except ValueError as e:
+        app.logger.error(f"Erro de validação: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        app.logger.error(f"Erro no processamento: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+def get_receipt_data(payment_id):
+    """Função separada para buscar dados do comprovante"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('''
+            SELECT I.DTPAGAMENTO, E.DESCRICAO, E.LOCAL, 
+                CONCAT(E.DTINICIO,' ',E.HRINICIO,' - ',E.DTFIM) as DTEVENTO,
+                CONCAT(A.NOME,' ',A.SOBRENOME) as NOME_COMPLETO, 
+                CONCAT(M.DISTANCIA,' / ',M.DESCRICAO) AS DISTANCIA,
+                I.VALOR, I.VALOR_PGTO, I.FORMAPGTO, I.IDPAGAMENTO
+            FROM ecmrun.INSCRICAO I
+            JOIN ecmrun.ATLETA A ON A.IDATLETA = I.IDATLETA
+            JOIN ecmrun.EVENTO E ON E.IDEVENTO = I.IDEVENTO
+            JOIN ecmrun.EVENTO_MODALIDADE M ON M.IDITEM = I.IDITEM
+            WHERE I.FLSTATUS = 'CONFIRMADO'
+            AND I.IDPAGAMENTO = %s
+        ''', (payment_id,))
+        
+        data = cur.fetchone()
+        cur.close()
+        return data
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar dados: {str(e)}")
+        raise
+
+def send_organizer_notification(receipt_data):
+    try:
+        msg = Message(
+            f'Nova Inscrição - 4º Desafio 200k - ID {receipt_data["inscricao"]}',
+            sender=('ECM Run', 'ecmsistemasdeveloper@gmail.com'),
+            recipients=['kelioesteves@hotmail.com']
+            #recipients=['ecmsistemasdeveloper@gmail.com']
+        )
+        
+        # Render the organizer notification template with receipt data
+        msg.html = render_template('organizer_email.html', **receipt_data)
+        mail.send(msg)
+        app.logger.info("Notificação enviada para o organizador")
+        return True
         
     except Exception as e:
-        print(f"Erro ao cadastrar locação: {str(e)}")
+        app.logger.error(f"Erro ao enviar notificação para o organizador: {str(e)}")
+        return False
+
+
+@app.route('/comprovante/<int:payment_id>')
+def comprovante(payment_id):
+    try:
+        
+        app.logger.info(f"Payment ID: {payment_id}")
+        
+        cur = mysql.connection.cursor()
+        # Execute a SQL com o payment_id
+        cur.execute('''
+            SELECT I.DTPAGAMENTO, E.DESCRICAO, E.LOCAL, 
+                CONCAT(E.DTINICIO,' ',E.HRINICIO,' - ',E.DTFIM) as DTEVENTO,
+                CONCAT(A.NOME,' ',A.SOBRENOME) as NOME_COMPLETO, 
+                CONCAT(M.DISTANCIA,' / ',M.DESCRICAO) AS DISTANCIA,
+                I.VALOR, I.VALOR_PGTO, I.FORMAPGTO, I.IDPAGAMENTO, I.FLMAIL, I.IDINSCRICAO
+            FROM ecmrun.INSCRICAO I, ecmrun.ATLETA A, 
+            ecmrun.EVENTO E, ecmrun.EVENTO_MODALIDADE M
+            WHERE M.IDITEM = I.IDITEM
+            AND E.IDEVENTO = I.IDEVENTO
+            AND A.IDATLETA = I.IDATLETA
+            AND I.FLSTATUS = 'CONFIRMADO'
+            AND I.IDPAGAMENTO = %s
+        ''', (payment_id,))
+        
+        receipt_data = cur.fetchone()
+        cur.close()
+
+        if not receipt_data:
+            app.logger.info("Dados não encontrados")
+            return "Dados não encontrados", 404
+        
+        # Converter a data de string para datetime
+        #data_pagamento = datetime.strptime(receipt_data[0], '%d/%m/%Y %H:%M')  # Formato correto
+
+        # Estruturar os dados do comprovante
+        receipt_data_dict = { 
+            'data': receipt_data[0],  # Formatar data
+            'evento': receipt_data[1],
+            'endereco': receipt_data[2],
+            'dataevento': receipt_data[3],
+            'participante': receipt_data[4],
+            'km': receipt_data[5],
+            'valor': f'R$ {receipt_data[6]:,.2f}',  # Formatar valor
+            'valortotal': f'R$ {receipt_data[7]:,.2f}',  # Formatar valor
+            'formapgto': receipt_data[8],
+            'inscricao': str(receipt_data[9]),
+            'obs': 'Sua inscrição dá direito a: Número de peito, camiseta, viseira, sacolinha, e após concluir: medalha e troféu. Obs: Será apenas um troféu por equipe.'
+        }
+        
+        app.logger.info("Dados da Inscrição:")
+        app.logger.info(receipt_data)
+
+        flmail = receipt_data[10]
+        id_inscricao = receipt_data[11]
+        app.logger.info(f' FLMAIL: { flmail }')
+        app.logger.info(f' ID INSC: { id_inscricao }')
+
+
+        if flmail == 'N':
+
+            # Enviar email com os dados do comprovante
+            send_email(receipt_data_dict)
+        
+            # Enviar notificação para o organizador
+            send_organizer_notification(receipt_data_dict)
+
+            cur1 = mysql.connection.cursor()
+            cur1.execute('''
+                UPDATE ecmrun.INSCRICAO SET FLMAIL = 'S'
+                WHERE IDINSCRICAO = %s
+            ''', (id_inscricao,))
+
+            mysql.connection.commit()
+            cur1.close()
+
+
+        return render_template('comprovante_insc.html', **receipt_data_dict)
+
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar dados do comprovante: {str(e)}")
+        return "Erro ao buscar dados", 500
+
+@app.route('/vercomprovante/<int:payment_id>')
+def vercomprovante(payment_id):
+    try:
+        
+        app.logger.info(f"Payment ID: {payment_id}")
+        
+        cur = mysql.connection.cursor()
+        # Execute a SQL com o payment_id
+        cur.execute('''
+            SELECT I.DTPAGAMENTO, E.DESCRICAO, E.LOCAL, 
+                CONCAT(E.DTINICIO,' ',E.HRINICIO,' - ',E.DTFIM) as DTEVENTO,
+                CONCAT(A.NOME,' ',A.SOBRENOME) as NOME_COMPLETO, 
+                CONCAT(M.DISTANCIA,' / ',M.DESCRICAO) AS DISTANCIA,
+                I.VALOR, I.VALOR_PGTO, I.FORMAPGTO, I.IDPAGAMENTO, I.FLMAIL, I.IDINSCRICAO
+            FROM ecmrun.INSCRICAO I, ecmrun.ATLETA A, 
+            ecmrun.EVENTO E, ecmrun.EVENTO_MODALIDADE M
+            WHERE M.IDITEM = I.IDITEM
+            AND E.IDEVENTO = I.IDEVENTO
+            AND A.IDATLETA = I.IDATLETA
+            AND I.FLSTATUS = 'CONFIRMADO'
+            AND I.IDPAGAMENTO = %s
+        ''', (payment_id,))
+        
+        receipt_data = cur.fetchone()
+        cur.close()
+
+        if not receipt_data:
+            app.logger.info("Dados não encontrados")
+            return "Dados não encontrados", 404
+        
+        # Converter a data de string para datetime
+        #data_pagamento = datetime.strptime(receipt_data[0], '%d/%m/%Y %H:%M:%S')  # Formato correto
+
+        flmail = receipt_data[10]
+        id_inscricao = receipt_data[11]
+        app.logger.info(f' FLMAIL: { flmail }')
+        app.logger.info(f' ID INSC: { id_inscricao }')
+
+        # Estruturar os dados do comprovante
+        receipt_data_dict = { 
+            'data': receipt_data[0],  # Formatar data
+            'evento': receipt_data[1],
+            'endereco': receipt_data[2],
+            'dataevento': receipt_data[3],
+            'participante': receipt_data[4],
+            'km': receipt_data[5],
+            'valor': f'R$ {receipt_data[6]:,.2f}',  # Formatar valor
+            'valortotal': f'R$ {receipt_data[7]:,.2f}',  # Formatar valor
+            'formapgto': receipt_data[8],
+            'inscricao': str(receipt_data[9]),
+            'obs': 'Sua inscrição dá direito a: Número de peito, camiseta, viseira, sacolinha, e após concluir: medalha e troféu. Obs: Será apenas um troféu por equipe.'
+        }
+        
+        app.logger.info("Dados da Inscrição:")
+        app.logger.info(receipt_data)
+
+        return render_template('vercomprovante.html', **receipt_data_dict)
+
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar dados do comprovante: {str(e)}")
+        return "Erro ao buscar dados", 500
+
+@app.route('/comprovanteemail/<int:payment_id>')
+def comprovanteemail(payment_id):
+    try:
+        
+        app.logger.info(f"Payment ID: {payment_id}")
+        
+        cur = mysql.connection.cursor()
+        # Execute a SQL com o payment_id
+        cur.execute('''
+            SELECT I.DTPAGAMENTO, E.DESCRICAO, E.LOCAL, 
+                CONCAT(E.DTINICIO,' ',E.HRINICIO,' - ',E.DTFIM) as DTEVENTO,
+                CONCAT(A.NOME,' ',A.SOBRENOME) as NOME_COMPLETO, 
+                CONCAT(M.DISTANCIA,' / ',M.DESCRICAO) AS DISTANCIA,
+                I.VALOR, I.VALOR_PGTO, I.FORMAPGTO, I.IDPAGAMENTO
+            FROM ecmrun.INSCRICAO I, ecmrun.ATLETA A, 
+            ecmrun.EVENTO E, ecmrun.EVENTO_MODALIDADE M
+            WHERE M.IDITEM = I.IDITEM
+            AND E.IDEVENTO = I.IDEVENTO
+            AND A.IDATLETA = I.IDATLETA
+            AND I.FLSTATUS = 'CONFIRMADO'
+            AND I.IDPAGAMENTO = %s
+        ''', (payment_id,))
+        
+        receipt_data = cur.fetchone()
+        cur.close()
+
+        if not receipt_data:
+            app.logger.info("Dados não encontrados")
+            return "Dados não encontrados", 404
+        
+        # Estruturar os dados do comprovante
+        receipt_data_dict = { 
+            'data': receipt_data[0],  # Formatar data
+            'evento': receipt_data[1],
+            'endereco': receipt_data[2],
+            'dataevento': receipt_data[3],
+            'participante': receipt_data[4],
+            'km': receipt_data[5],
+            'valor': f'R$ {receipt_data[6]:,.2f}',  # Formatar valor
+            'valortotal': f'R$ {receipt_data[7]:,.2f}',  # Formatar valor
+            'formapgto': receipt_data[8],
+            'inscricao': str(receipt_data[9]),
+            'obs': 'Sua inscrição dá direito a: Número de peito, camiseta, viseira, sacolinha, e após concluir: medalha e troféu. Obs: Será apenas um troféu por equipe.'
+        }
+        
+        app.logger.info("Dados da Inscrição:")
+        app.logger.error(receipt_data)
+
+        return render_template('comprovante_email.html', **receipt_data_dict)
+
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar dados do comprovante: {str(e)}")
+        return "Erro ao buscar dados", 500
+
+
+
+@app.route('/pagpix')
+def pagpix():
+    return render_template('pagpix.html')
+
+
+@app.route('/get_evento_data')
+def get_evento_data():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('''
+            SELECT E.IDEVENTO, E.DESCRICAO, E.DTINICIO, E.DTFIM, E.HRINICIO,
+                E.LOCAL, E.CIDADEUF, E.INICIO_INSCRICAO, E.FIM_INSCRICAO,
+                M.IDITEM, M.DESCRICAO AS MODALIDADE, M.DISTANCIA, M.KM,
+                M.VLINSCRICAO, M.VLMEIA, M.VLTAXA
+            FROM ecmrun.EVENTO E, ecmrun.EVENTO_MODALIDADE M
+            WHERE M.IDEVENTO = E.IDEVENTO
+                AND E.IDEVENTO = 1
+        ''')
+        
+        results = cur.fetchall()
+        cur.close()
+        
+        if not results:
+            return jsonify({'error': 'Evento não encontrado'}), 404
+            
+        # Estruturar os dados
+        evento_data = {
+            'idevento': results[0][0],
+            'descricao': results[0][1],
+            'dtinicio': results[0][2],
+            'dtfim': results[0][3],
+            'hrinicio': results[0][4],
+            'local': results[0][5],
+            'cidadeuf': results[0][6],
+            'inicio_inscricao': results[0][7],
+            'fim_inscricao': results[0][8],
+            'iditem': results[0][9],
+            'modalidades': results[0][10]
+        }
+        
+        # Adicionar todas as modalidades
+        for row in results:
+            modalidade = {
+                'iditem': row[9],
+                'descricao': row[10],
+                'distancia': row[11],
+                'km': row[12],
+                'vlinscricao': float(row[13]) if row[13] else 0,
+                'vlmeia': float(row[14]) if row[14] else 0,
+                'vltaxa': float(row[15]) if row[15] else 0
+            }
+            evento_data['modalidades'].append(modalidade)
+            
+        return jsonify(evento_data)
+        
+    except Exception as e:
+        print(f"Erro ao buscar dados do evento: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/cupom200k')
+def cupom200k():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('''
+            SELECT E.IDEVENTO, E.DESCRICAO, E.DTINICIO, E.DTFIM, E.HRINICIO,
+                E.LOCAL, E.CIDADEUF, E.INICIO_INSCRICAO, E.FIM_INSCRICAO,
+                M.IDITEM, M.DESCRICAO AS MODALIDADE, M.DISTANCIA, M.KM,
+                M.VLINSCRICAO, M.VLMEIA, M.VLTAXA, E.INICIO_INSCRICAO_EXT, E.FIM_INSCRICAO_EXT
+            FROM ecmrun.EVENTO E, ecmrun.EVENTO_MODALIDADE M
+            WHERE M.IDEVENTO = E.IDEVENTO
+                AND E.IDEVENTO = 1
+        ''')
+        
+        results = cur.fetchall()
+        cur.close()
+        
+        if not results:
+            return render_template('desafio200k.html', titulo="Evento não encontrado", modalidades=[])
+            
+        evento_titulo = results[0][1]  # DESCRICAO do evento
+        modalidades = [{'id': row[9], 'descricao': row[10]} for row in results]
+        vl200 = f'R$ {results[0][13]:,.2f}'
+        vl100 = f'R$ {results[1][13]:,.2f}' 
+        vl50 = f'R$ {results[2][13]:,.2f}'
+        vl25 = f'R$ {results[3][13]:,.2f}'
+        inicioinsc = results[0][16]
+        fiminsc = results[0][17]        
+        return render_template('cupom200k.html', titulo=evento_titulo, modalidades=modalidades,
+                               vlSolo=vl200, vlDupla=vl100, vlQuarteto=vl50, vlOcteto=vl25, 
+                               inicio_insc=inicioinsc, fim_insc=fiminsc)
+        
+    except Exception as e:
+        print(f"Erro ao carregar página: {str(e)}")
+        return render_template('desafio200k.html', titulo="Erro ao carregar evento", modalidades=[])
+
+
+@app.route('/desafio200k')
+def desafio200k():
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('''
+            SELECT E.IDEVENTO, E.DESCRICAO, E.DTINICIO, E.DTFIM, E.HRINICIO,
+                E.LOCAL, E.CIDADEUF, E.INICIO_INSCRICAO, E.FIM_INSCRICAO,
+                M.IDITEM, M.DESCRICAO AS MODALIDADE, M.DISTANCIA, M.KM,
+                M.VLINSCRICAO, M.VLMEIA, M.VLTAXA, E.INICIO_INSCRICAO_EXT, E.FIM_INSCRICAO_EXT
+            FROM ecmrun.EVENTO E, ecmrun.EVENTO_MODALIDADE M
+            WHERE M.IDEVENTO = E.IDEVENTO
+                AND E.IDEVENTO = 1
+        ''')
+        
+        results = cur.fetchall()
+        cur.close()
+        
+        if not results:
+            return render_template('desafio200k.html', titulo="Evento não encontrado", modalidades=[])
+            
+        evento_titulo = results[0][1]  # DESCRICAO do evento
+        dt_incio = results[0][2]     
+        modalidades = [{'id': row[9], 'descricao': row[10]} for row in results]
+        vl200 = f'R$ {results[0][13]:,.2f}'
+        vl100 = f'R$ {results[1][13]:,.2f}' 
+        vl50 = f'R$ {results[2][13]:,.2f}'
+        vl25 = f'R$ {results[3][13]:,.2f}'
+        inicioinsc = results[0][16]
+        fiminsc = results[0][17]      
+        dt_inicioinsc = results[0][7]
+        dt_fiminsc = results[0][8]     
+        
+        #return render_template('desafio200k.html', titulo=evento_titulo, modalidades=modalidades, vlSolo=vl200, 
+        #                       vlDupla=vl100, vlQuarteto=vl50, vlOcteto=vl25, inicio_insc=inicioinsc, fim_insc=fiminsc)
+
+        return render_template('desafio200k.html', titulo=evento_titulo, modalidades=modalidades, vlSolo=vl200, 
+                               vlDupla=vl100, vlQuarteto=vl50, vlOcteto=vl25, inicio_insc=inicioinsc, fim_insc=fiminsc, 
+                               dt_inicio_insc=dt_inicioinsc, dt_fim_insc=dt_fiminsc, dt_inicio_evento=dt_incio)
+
+    except Exception as e:
+        print(f"Erro ao carregar página: {str(e)}")
+        return render_template('desafio200k.html', titulo="Erro ao carregar evento", modalidades=[])
+
+
+@app.route('/get_modalidade_valores/<int:iditem>')
+def get_modalidade_valores(iditem):
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('''
+            SELECT VLINSCRICAO, VLTAXA 
+            FROM ecmrun.EVENTO_MODALIDADE 
+            WHERE IDITEM = %s
+        ''', (iditem,))
+        
+        result = cur.fetchone()
+        cur.close()        
+
+        if result:
+            vlinscricao = float(result[0]) if result[0] else 0
+            vltaxa = float(result[1]) if result[1] else 0
+
+            # Store in session
+            session['cat_vlinscricao'] = vlinscricao
+            session['cat_vltaxa'] = vltaxa
+            session['cat_iditem'] = iditem
+            
+            return jsonify({
+                'vlinscricao': vlinscricao,
+                'vltaxa': vltaxa,
+                'iditem': iditem
+            })
+
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Usuário ou senha inválidos'
+            }), 401
+
+
+    except Exception as e:
+        print(f"Erro ao buscar valores da modalidade: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/cadastro_atleta')
+def cadastro_atleta():
+    return render_template('cadastro_atleta.html')
+
+@app.route('/autenticar', methods=['POST'])
+def autenticar():
+    email = request.form.get('email')
+    cpf = request.form.get('cpf')
+    categoria = request.form.get('categoria')
+
+    verification_code = str(random.randint(1000, 9999))
+    session['verification_code'] = verification_code
+    
+    return render_template('autenticar200k.html', verification_code=verification_code)
+
+@app.route('/salvar-cadastro', methods=['POST'])
+def salvar_cadastro():
+    try:
+        data = request.get_json()
+        
+        # Pegar a data no formato YYYY-MM-DD do campo input date
+        data_nascimento_iso = data.get('data_nascimento')
+        
+        # Para o campo DATANASC (tipo DATE no banco de dados)
+        # Não precisa de formatação adicional, o MySQL aceita o formato ISO YYYY-MM-DD
+        
+        # Para o campo DTNASCIMENTO (VARCHAR) - mantido por compatibilidade
+        # Converter de YYYY-MM-DD para DD/MM/YYYY
+        if data_nascimento_iso:
+            date_parts = data_nascimento_iso.split('-')
+            if len(date_parts) == 3:
+                ano, mes, dia = date_parts
+                data_nascimento_str = f"{dia}/{mes}/{ano}"  # Formato DD/MM/YYYY
+            else:
+                data_nascimento_str = ""  # caso haja algum problema com o formato
+        else:
+            data_nascimento_str = ""
+        
+        # Gerar data e hora atual no formato requerido
+        data_cadastro = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        
+        # Criptografar a senha usando SHA-256
+        senha = data.get('senha')
+        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        
+        # Preparar query e parâmetros
+        query = """
+        INSERT INTO ecmrun.ATLETA (
+            CPF, 
+            NOME, 
+            SOBRENOME, 
+            DTNASCIMENTO, 
+            DATANASC,
+            NRCELULAR, 
+            SEXO, 
+            EMAIL, 
+            TEL_EMERGENCIA, 
+            CONT_EMERGENCIA, 
+            SENHA, 
+            ATIVO, 
+            DTCADASTRO, 
+            ESTADO, 
+            ID_CIDADE
+        ) VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        )
+        """
+        
+        # Remover caracteres não numéricos do CPF e telefones
+        cpf_limpo = re.sub(r'\D', '', data.get('cpf'))
+        celular_limpo = re.sub(r'\D', '', data.get('celular'))
+        tel_emergencia_limpo = re.sub(r'\D', '', data.get('telefone_emergencia')) if data.get('telefone_emergencia') else None
+        
+        params = (
+            cpf_limpo,
+            data.get('primeiro_nome').upper(),
+            data.get('sobrenome').upper(),
+            data_nascimento_str,                # Para o campo DTNASCIMENTO (string DD/MM/YYYY)
+            data_nascimento_iso,                # Para o campo DATANASC (date YYYY-MM-DD)
+            celular_limpo,
+            data.get('sexo'),
+            data.get('email'),
+            tel_emergencia_limpo,
+            data.get('contato_emergencia').upper() if data.get('contato_emergencia') else None,
+            senha_hash,
+            'S',  # ATIVO
+            data_cadastro,
+            data.get('estado'),
+            data.get('cidade')
+        )
+        
+        # Executar a query
+        cur = mysql.connection.cursor()
+        cur.execute(query, params)
+        mysql.connection.commit()
+        cur.close()
+        
         return jsonify({
-            'sucesso': False,
-            'mensagem': str(e)
+            'success': True,
+            'message': 'Cadastro realizado com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao salvar cadastro: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao realizar cadastro. Por favor, tente novamente.'
         }), 500
 
 
-def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
+@app.route('/enviar-codigo-verificacao', methods=['POST'])
+def enviar_codigo_verificacao():
     try:
-        # Obter hora atual para saudação
-        hora_atual = datetime.now().hour
-        saudacao = "Bom dia" if 5 <= hora_atual < 12 else "Boa tarde" if 12 <= hora_atual < 18 else "Boa noite"
+        data = request.get_json()
+        email = data.get('email')
         
-        # Obter nome do usuário da sessão
-        nome_usuario = session.get('usuario_nome', 'Administrador')
+        if not email:
+            return jsonify({'success': False, 'message': 'Email não fornecido'}), 400
+
+        # Gerar código de verificação
+        verification_code = str(random.randint(1000, 9999))
         
-        # Formatação do assunto
-        assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
+        # Armazenar na sessão
+        session['verification_code'] = verification_code
+        session['verification_email'] = email
         
-        # Corpo do email para a locadora
-        corpo = f'''{saudacao},
+        # Simplificar o remetente
+        #sender = 'ecmsistemasdeveloper@gmail.com'
+        sender = "ECM RUN <ecmsistemasdeveloper@gmail.com>"
 
-Prezados, solicito locação de veículo conforme informações abaixo:
-
-    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
-    Veículo: {de_veiculo} ou Similar
-    Condutor: {nm_motorista} - Telefone {nu_telefone}
-
-{obs}
-    
-Segue anexo CNH do condutor.
-
-Atenciosamente,
-
-{nome_usuario}
-Tribunal de Justiça do Estado de Rondônia
-Seção de Gestão Operacional do Transporte
-(69) 3309-6229/6227'''
-        
-        # Criar mensagem para a locadora
+        # Criar mensagem com configuração mais simples
         msg = Message(
-            subject=assunto,
-            recipients=["Carmem@rovemalocadora.com.br", "atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br"],
-            body=corpo,
-            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+            'Código de Verificação - ECM Run',
+            sender=sender,
+            recipients=[email]
+        )
+
+        # Template HTML do email
+        msg.html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4376ac;">Verificação de Cadastro - ECM Run</h2>
+            <p>Olá,</p>
+            <p>Seu código de verificação é:</p>
+            <h1 style="color: #4376ac; font-size: 32px; letter-spacing: 5px;">{verification_code}</h1>
+            <p>Este código é válido por 10 minutos.</p>
+            <p>Se você não solicitou este código, por favor ignore este email.</p>
+            <br>
+            <p>Atenciosamente,<br>Equipe ECM Run</p>
+        </div>
+        """
+
+        # Adicionar logs para debug
+        print(f'Tentando enviar email para: {email}')
+        print(f'Código de verificação: {verification_code}')
+        
+        # Enviar email com tratamento de erro específico
+        try:
+            mail.send(msg)
+            print('Email enviado com sucesso')
+        except Exception as mail_error:
+            print(f'Erro ao enviar email: {str(mail_error)}')
+            return jsonify({
+                'success': False,
+                'message': f'Erro ao enviar email: {str(mail_error)}'
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': 'Código de verificação enviado com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"Erro geral na rota: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao processar requisição: {str(e)}'
+        }), 500
+    
+
+@app.route('/verificar-codigo', methods=['POST'])
+def verificar_codigo():
+    try:
+        data = request.get_json()
+        codigo_informado = data.get('codigo')
+        senha = data.get('senha')
+        
+        codigo_correto = session.get('verification_code')
+        email = session.get('verification_email')
+        
+        if not codigo_correto or not email:
+            return jsonify({
+                'success': False,
+                'message': 'Sessão expirada. Por favor, solicite um novo código.'
+            }), 400
+        
+        if codigo_informado != codigo_correto:
+            return jsonify({
+                'success': False,
+                'message': 'Código inválido'
+            }), 400
+            
+        # Aqui você pode adicionar o código para salvar o usuário no banco de dados
+        # com a senha criptografada
+        
+        # Limpar dados da sessão
+        session.pop('verification_code', None)
+        session.pop('verification_email', None)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Código verificado com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao verificar código: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao verificar código'
+        }), 500
+
+# Email sending function
+def send_verification_email(email, code):
+    try:
+        
+        if not email:
+            return jsonify({'success': False, 'message': 'Email não fornecido'}), 400
+
+        # Gerar código de verificação
+        #verification_code = str(random.randint(1000, 9999))
+        
+        # Armazenar na sessão
+        session['code'] = code
+        session['verif_email'] = email
+        
+        # Simplificar o remetente
+        #sender = 'ecmsistemasdeveloper@gmail.com'
+        sender = "ECM RUN <ecmsistemasdeveloper@gmail.com>"
+
+        # Criar mensagem com configuração mais simples
+        msg = Message(
+            'Redefinição de Senha - ECM Run',
+            sender=sender,
+            recipients=[email]
+        )
+
+        # Template HTML do email
+        msg.html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4376ac;">Verificação de Cadastro - ECM Run</h2>
+            <p>Olá,</p>
+            <p>Seu código de verificação para redefinição de senha é::</p>
+            <h1 style="color: #4376ac; font-size: 32px; letter-spacing: 5px;">{code}</h1>
+            <p>Este código é válido por 10 minutos.</p>
+            <p>Se você não solicitou este código, por favor ignore este email.</p>
+            <br>
+            <p>Atenciosamente,<br>Equipe ECM Run</p>
+        </div>
+        """
+
+        # Adicionar logs para debug
+        print(f'Tentando enviar email para: {email}')
+        print(f'Código de verificação: {code}')
+        
+        # Enviar email com tratamento de erro específico
+        try:
+            mail.send(msg)
+            print('Email enviado com sucesso')
+        except Exception as mail_error:
+            print(f'Erro ao enviar email: {str(mail_error)}')
+            return jsonify({
+                'success': False,
+                'message': f'Erro ao enviar email: {str(mail_error)}'
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': 'Código de verificação enviado com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"Erro geral na rota: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao processar requisição: {str(e)}'
+        }), 500
+
+
+@app.route('/recuperar-senha', methods=['GET'])
+def recuperar_senha():
+    return render_template('recuperar_senha.html')
+
+@app.route('/verificar-usuario', methods=['POST'])
+def verificar_usuario():
+    cpf_email = request.json.get('cpf_email')
+
+    cur = mysql.connection.cursor()    
+    if '@' in cpf_email:
+        # Query for email
+        cur.execute("""
+            SELECT IDATLETA, EMAIL 
+            FROM ATLETA
+            WHERE EMAIL = %s OR CPF = %s
+            """, (cpf_email, cpf_email))
+    else:
+        # Remove non-numeric characters from CPF
+        cpf = ''.join(filter(str.isdigit, cpf_email))    
+        cur.execute("""
+            SELECT IDATLETA, EMAIL 
+            FROM ATLETA
+            WHERE EMAIL = %s OR CPF = %s
+            """, (cpf, cpf))
+
+    result = cur.fetchone()
+    print(f'SQL: {result}')
+        
+
+    if result:
+        # Generate verification code
+        verification_code = str(random.randint(1000, 9999))
+        
+        # Store the code and user ID in session
+        session['code'] = verification_code
+        session['user_id'] = result[0]
+        
+        print(f'CODIGO: {verification_code}')
+        print(f'IDATLETA: {result[0]}')
+        
+        # Send verification code via email
+        if send_verification_email(result[1], verification_code):
+            return jsonify({
+                'success': True,
+                'message': 'Código de verificação enviado para seu email.'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Erro ao enviar email. Tente novamente.'
+            })
+    
+    return jsonify({
+        'success': False,
+        'message': 'Usuário não encontrado.'
+    })
+
+@app.route('/verificar-codigo2', methods=['POST'])
+def verificar_codigo2():
+    codigo = request.json.get('codigo')
+    stored_code = session.get('code')
+    print(f'CODIGO DIGITADO: {codigo}')
+    print(f'STORED CODE:  {stored_code}')
+    
+    if codigo == stored_code:
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'message': 'Código inválido.'})
+
+
+@app.route('/alterar-senha', methods=['POST'])
+def alterar_senha():
+    nova_senha = request.json.get('senha')
+    user_id = session.get('user_id')
+    senha_hash = hashlib.sha256(nova_senha.encode()).hexdigest()
+    
+    if not user_id:
+        return jsonify({
+            'success': False,
+            'message': 'Sessão expirada. Tente novamente.'
+        })
+        
+    try:
+
+        cur = mysql.connection.cursor()    
+        cur.execute("""
+            UPDATE ATLETA
+            SET SENHA = %s 
+            WHERE IDATLETA = %s
+            """, (senha_hash, user_id))
+
+        mysql.connection.commit()
+        
+        # Clear session
+        session.pop('code', None)
+        session.pop('user_id', None)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Senha alterada com sucesso!'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao alterar senha. Tente novamente.'
+        })
+    finally:
+        cur.close()
+
+@app.route('/estados')
+def estados():
+    with open('static/json/estados.json', encoding='utf-8') as f:
+        data = json.load(f)
+    return jsonify(data)
+
+@app.route('/municipios')
+def municipios():
+    with open('static/json/municipios.json', encoding='utf-8') as f:
+        data = json.load(f)
+    return jsonify(data)
+
+@app.route('/inscricao200k')
+def inscricao200k():
+    return render_template('inscricao200k.html')
+
+@app.route('/formulario200k')
+def formulario200k():
+    return render_template('formulario200k.html')
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+def validar_cpf(cpf):
+    # Remove caracteres não numéricos
+    cpf = ''.join(re.findall(r'\d', str(cpf)))
+    
+    # Verifica se o CPF tem 11 dígitos
+    if len(cpf) != 11:
+        return False
+    
+    # Verifica se todos os dígitos são iguais (ex: 111.111.111-11)
+    if cpf == cpf[0] * 11:
+        return False
+    
+    # Calcula o primeiro dígito verificador
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    primeiro_dv = 11 - (soma % 11)
+    primeiro_dv = 0 if primeiro_dv >= 10 else primeiro_dv
+    
+    # Calcula o segundo dígito verificador
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    segundo_dv = 11 - (soma % 11)
+    segundo_dv = 0 if segundo_dv >= 10 else segundo_dv
+    
+    # Verifica se os dígitos verificadores estão corretos
+    return cpf[-2:] == f"{primeiro_dv}{segundo_dv}"
+
+
+@app.route('/validar-cpf', methods=['GET'])
+def validar_cpf_route():
+    
+    cpf = request.args.get('cpf', '')
+    # Remove caracteres não numéricos
+    cpf = ''.join(filter(str.isdigit, cpf))
+    is_valid = validar_cpf(cpf)
+
+    return jsonify({'valid': is_valid})
+
+@app.route('/verificar-cpf', methods=['GET'])
+def verificar_cpf_existente():
+    cpf = request.args.get('cpf', '')
+    # Remove caracteres não numéricos
+    cpf = ''.join(filter(str.isdigit, cpf))
+    
+
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute('SELECT IDATLETA FROM ecmrun.ATLETA WHERE CPF = %s', (cpf,))
+        result = cur.fetchone()
+        cur.close()
+        
+        return jsonify({'exists': bool(result)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+def send_email(receipt_data):
+    try:
+        # Recuperar o email do atleta do banco de dados
+        cur = mysql.connection.cursor()
+        cur.execute('''
+            SELECT A.EMAIL
+            FROM ecmrun.ATLETA A
+            JOIN ecmrun.INSCRICAO I ON I.IDATLETA = A.IDATLETA
+            WHERE I.IDPAGAMENTO = %s
+        ''', (receipt_data['inscricao'],))
+        
+        email_result = cur.fetchone()
+        cur.close()
+
+        if not email_result or not email_result[0]:
+            app.logger.error("Email do atleta não encontrado")
+            return False
+
+        recipient_email = email_result[0]
+        
+        msg = Message(
+            f'Comprovante de Inscrição - ID {receipt_data["inscricao"]}',
+            sender=('ECM Run', 'ecmsistemasdeveloper@gmail.com'),
+            recipients=[recipient_email]
         )
         
-        # Anexar CNH se disponível
-        if file_pdf_content and nome_arquivo_cnh:
-            msg.attach(f'CNH_{nome_arquivo_cnh}', 'application/pdf', file_pdf_content)
-        
-        # Enviar email para a locadora
+        msg.html = render_template('comprovante_email.html', **receipt_data)
         mail.send(msg)
+        return True
         
-        # Registrar email no banco de dados
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        
-        # Formatação da data e hora atual
-        data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        
-        # Obter ID_CL com base no ID_ITEM
-        cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
-        resultado = cursor.fetchone()
-        id_cl = resultado['ID_CL'] if resultado else None
-
-        if id_cl:
-            # Inserir na tabela de emails (para o email da locadora)
-            cursor.execute(
-                "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
-                (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo, data_hora_atual)
-            )
-            
-            # Atualizar flag de email na tabela de locações
-            cursor.execute(
-                "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
-                (id_item,)
-            )
-            
-            mysql.connection.commit()
-
-        # Agora enviar email para o motorista, se tiver email cadastrado
-        if email_mot:
-            try:
-                # Corpo do email para o motorista
-                corpo_motorista = f'''{saudacao},
-
-Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
-
-    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
-    Veículo: {de_veiculo} ou Similar
-    Condutor: {nm_motorista} - Telefone {nu_telefone}
-
-{obs}
-
-Atenciosamente,
-
-{nome_usuario}
-Tribunal de Justiça do Estado de Rondônia
-Seção de Gestão Operacional do Transporte
-(69) 3309-6229/6227
-
-(Não precisa responder este e-mail)'''
-
-                # Criar mensagem para o motorista - CORREÇÃO AQUI
-                msg_motorista = Message(
-                    subject=assunto,
-                    recipients=[email_mot],  # Removendo as chaves incorretas
-                    body=corpo_motorista,
-                    sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
-                )
-            
-                # Enviar email para o motorista
-                mail.send(msg_motorista)
-                app.logger.info(f"Email enviado para o motorista: {email_mot}")
-                
-            except Exception as e:
-                # Tratar erro específico do email do motorista, mas não interromper a função
-                app.logger.error(f"Erro ao enviar email para o motorista: {str(e)}")
-                # Não retornar aqui, pois o email para a locadora já foi enviado com sucesso
-        
-        cursor.close()
-        return True, None
-    
     except Exception as e:
         app.logger.error(f"Erro ao enviar email: {str(e)}")
-        return False, str(e)
+        return False
 
 
-@app.route('/api/download_cnh_loc/<int:id_motorista>')
-@login_required
-def download_cnh_loc(id_motorista):
+@app.route('/pesquisarCEP', methods=['GET'])
+def pesquisar_cep():
     try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # IMPORTANTE: Use dictionary=True aqui também
-        cursor.execute("""
-            SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA = %s
-        """, (id_motorista,))
+        cep = request.args.get('cep', '').strip()
         
-        result = cursor.fetchone()
-        cursor.close()
+        # Remove caracteres não numéricos do CEP
+        cep = ''.join(filter(str.isdigit, cep))
         
-        if result and result['FILE_PDF']:  # Acesso usando chave string
-            pdf_data = result['FILE_PDF']
-            filename = result['NOME_ARQUIVO'] or f"cnh_motorista_{id_motorista}.pdf"
+        if not cep or len(cep) != 8:
+            return jsonify({'error': 'CEP inválido'}), 400
             
-            response = make_response(pdf_data)
-            response.headers['Content-Type'] = 'application/pdf'
-            response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
-            return response
-        else:
-            return jsonify({'erro': 'PDF não encontrado'}), 404
-    except Exception as e:
-        print(f"Erro ao baixar PDF: {str(e)}")
-        return jsonify({'erro': str(e)}), 500
-    
-
-@app.route('/api/excluir_locacao/<int:iditem>', methods=['DELETE'])
-@login_required
-def excluir_locacao(iditem):
-    try:
-        # Verificar se o item existe antes de excluir
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT ID_ITEM FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (iditem,))
-        item = cursor.fetchone()
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT l.id_logradouro, l.CEP, upper(l.descricao) as descricao, l.UF, l.complemento, 
+                   upper(l.descricao_sem_numero) as descricao_sem_numero, 
+                   upper(l.descricao_cidade) as descricao_cidade,
+                   upper(l.descricao_bairro) as descricao_bairro, upper(e.nome) as estado
+            FROM ecmrun.logradouro l, ecmrun.estado e
+            WHERE e.uf = l.UF AND l.CEP =  %s
+        """, (cep,))
         
-        if not item:
+        result = cur.fetchone()
+        cur.close()
+        
+        if result:
             return jsonify({
-                'sucesso': False,
-                'mensagem': 'Item não encontrado'
+                'success': True,
+                'data': {
+                    'id_logradouro': result[0],
+                    'cep': result[1],
+                    'descricao': result[2],
+                    'uf': result[3],
+                    'complemento': result[4],
+                    'descricao_sem_numero': result[5],
+                    'descricao_cidade': result[6],
+                    'descricao_bairro': result[7],
+                    'estado': result[8]
+                }
+            })
+        else:
+            return jsonify({'success': False, 'message': 'CEP não encontrado'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/autenticar-login', methods=['POST'])
+def autenticar_login():
+    try:
+        data = request.get_json()
+        cpf_email = data.get('cpf_email')
+        senha = data.get('senha')
+        
+        # Hash the password for comparison
+        senha_hash = hashlib.sha256(senha.encode()).hexdigest()
+        
+        cur = mysql.connection.cursor()
+        
+        # Verifique se a entrada é e-mail ou CPF e consulte adequadamente
+        if '@' in cpf_email:
+            # Query for email
+            cur.execute("""
+                SELECT 
+                    COALESCE(A.NOME, '') AS NOME, 
+                    COALESCE(A.SOBRENOME, '') AS SOBRENOME, 
+                    COALESCE(A.EMAIL, '') AS EMAIL, 
+                    COALESCE(A.CPF, '') AS CPF, 
+                    COALESCE(A.DTNASCIMENTO, '') AS DTNASCIMENTO, 
+                    COALESCE(A.NRCELULAR, '') AS NRCELULAR, 
+                    COALESCE(A.SEXO, '') AS SEXO, 
+                    COALESCE(A.IDATLETA, '') AS IDATLETA, 
+                    COALESCE(M.DESCRICAO, '') AS MODALIDADE, 
+                    COALESCE(E.IDEVENTO, '') AS IDEVENTO, 
+                    COALESCE(I.APOIO, '') AS APOIO, 
+                    COALESCE(I.NOME_EQUIPE, '') AS NOME_EQUIPE,
+                    COALESCE(I.INTEGRANTES, '') AS INTEGRANTES,
+                    COALESCE(I.CAMISETA, '') AS CAMISETA,
+                    COALESCE(I.VALOR, '') AS VALOR,
+                    COALESCE(I.TAXA, '') AS TAXA,
+                    COALESCE(I.VALOR_PGTO, '') AS VALOR_PGTO,
+                    COALESCE(I.DTPAGAMENTO, '') AS DTPAGAMENTO,
+                    COALESCE(I.FORMAPGTO, '') AS FORMAPGTO,
+                    COALESCE(I.IDPAGAMENTO, '') AS IDPAGAMENTO,
+                    COALESCE(E.DTINICIO, '') AS DTINICIO,
+                    COALESCE(E.DESCRICAO, '') AS EVENTO,
+                    COALESCE(CONCAT(E.DESCRICAO,' / ', M.DESCRICAO), '') AS EVENTO_MODAL,
+                    COALESCE(I.FLSTATUS, '') AS FLSTATUS
+                FROM ecmrun.ATLETA A
+                LEFT JOIN ecmrun.INSCRICAO I ON I.IDATLETA = A.IDATLETA AND I.IDEVENTO = 1 AND I.FLSTATUS = 'CONFIRMADO'
+                LEFT JOIN ecmrun.EVENTO E ON E.IDEVENTO = 1
+                LEFT JOIN ecmrun.EVENTO_MODALIDADE M ON M.IDITEM = I.IDITEM AND I.IDATLETA IS NOT NULL
+                WHERE A.EMAIL = %s AND A.SENHA = %s AND A.ATIVO = 'S'
+            """, (cpf_email, senha_hash))
+        else:
+            # Remove non-numeric characters from CPF
+            cpf = ''.join(filter(str.isdigit, cpf_email))
+            cur.execute("""
+                SELECT 
+                    COALESCE(A.NOME, '') AS NOME, 
+                    COALESCE(A.SOBRENOME, '') AS SOBRENOME, 
+                    COALESCE(A.EMAIL, '') AS EMAIL, 
+                    COALESCE(A.CPF, '') AS CPF, 
+                    COALESCE(A.DTNASCIMENTO, '') AS DTNASCIMENTO, 
+                    COALESCE(A.NRCELULAR, '') AS NRCELULAR, 
+                    COALESCE(A.SEXO, '') AS SEXO, 
+                    COALESCE(A.IDATLETA, '') AS IDATLETA, 
+                    COALESCE(M.DESCRICAO, '') AS MODALIDADE, 
+                    COALESCE(E.IDEVENTO, '') AS IDEVENTO, 
+                    COALESCE(I.APOIO, '') AS APOIO, 
+                    COALESCE(I.NOME_EQUIPE, '') AS NOME_EQUIPE,
+                    COALESCE(I.INTEGRANTES, '') AS INTEGRANTES,
+                    COALESCE(I.CAMISETA, '') AS CAMISETA,
+                    COALESCE(I.VALOR, '') AS VALOR,
+                    COALESCE(I.TAXA, '') AS TAXA,
+                    COALESCE(I.VALOR_PGTO, '') AS VALOR_PGTO,
+                    COALESCE(I.DTPAGAMENTO, '') AS DTPAGAMENTO,
+                    COALESCE(I.FORMAPGTO, '') AS FORMAPGTO,
+                    COALESCE(I.IDPAGAMENTO, '') AS IDPAGAMENTO,
+                    COALESCE(E.DTINICIO, '') AS DTINICIO,
+                    COALESCE(E.DESCRICAO, '') AS EVENTO,
+                    COALESCE(CONCAT(E.DESCRICAO,' / ', M.DESCRICAO), '') AS EVENTO_MODAL,
+                    COALESCE(I.FLSTATUS, '') AS FLSTATUS
+                FROM ecmrun.ATLETA A
+                LEFT JOIN ecmrun.INSCRICAO I ON I.IDATLETA = A.IDATLETA AND I.IDEVENTO = 1 AND I.FLSTATUS = 'CONFIRMADO'
+                LEFT JOIN ecmrun.EVENTO E ON E.IDEVENTO = 1
+                LEFT JOIN ecmrun.EVENTO_MODALIDADE M ON M.IDITEM = I.IDITEM AND I.IDATLETA IS NOT NULL
+                WHERE A.CPF = %s AND A.SENHA = %s AND A.ATIVO = 'S'
+            """, (cpf, senha_hash))
+        
+        result = cur.fetchone()
+        cur.close()
+        
+        if result:
+            nome_completo = f"{result[0]} {result[1]}"
+            email = result[2]
+            vcpf = result[3]
+            dtnascimento = result[4]
+            celular = result[5]
+            sexo = result[6]
+            idatleta = result[7]
+            modalidade = result[8]
+            apoio = result[10]
+            equipe200 = result[11]
+            integrantes = result[12]
+            camiseta = result[13]
+            valor = result[14]
+            taxa = result[15]
+            valortotal = result[16]
+            dtpagamento = result[17]
+            formapgto = result[18]
+            idpagamento = result[19]
+            dtinicio = result[20]
+            evento = result[21]
+            evento_modal = result[22]
+            flstatus = result[23]
+            
+            # Converta as strings para objetos datetime
+            dt_nascimento = datetime.strptime(dtnascimento, "%d/%m/%Y")
+            dt_inicio = datetime.strptime(dtinicio, "%d/%m/%Y")
+
+            # Calcule a idade
+            idade = dt_inicio.year - dt_nascimento.year - ((dt_inicio.month, dt_inicio.day) < (dt_nascimento.month, dt_nascimento.day))
+            app.logger.info(f'Idade: { idade }')
+            app.logger.info(f'Data Evento: { dtinicio }')
+                    
+        
+            # Store in session
+            session['user_name'] = nome_completo
+            session['user_email'] = email
+            session['user_cpf'] = vcpf
+            session['user_dtnascimento'] = dtnascimento
+            session['user_dataevento'] = dtinicio
+            session['user_idade'] = str(idade)
+            session['user_celular'] = celular
+            session['user_sexo'] = sexo
+            session['user_idatleta'] = idatleta
+            session['insc_modalidade'] = modalidade
+            session['insc_apoio'] = apoio
+            session['insc_equipe200'] = equipe200
+            session['insc_integrantes'] = integrantes
+            session['insc_camiseta'] = camiseta
+            session['insc_valor'] = valor
+            session['insc_taxa'] = taxa
+            session['insc_valortotal'] = valortotal
+            session['insc_dtpagamento'] = dtpagamento
+            session['insc_formapgto'] = formapgto
+            session['insc_idpagamento'] = idpagamento
+            session['insc_evento'] = evento
+            session['insc_evento_modal'] = evento_modal
+            session['insc_flstatus'] = flstatus
+            
+            print(f'ID Pagamento: {idpagamento}')
+
+            return jsonify({
+                'success': True,
+                'nome': nome_completo,
+                'email': email,
+                'cpf': vcpf,
+                'dtnascimento': dtnascimento,
+                'idade': str(idade),
+                'celular': celular,
+                'sexo': sexo,
+                'idatleta': idatleta,
+                'modalidade': modalidade,
+                'apoio': apoio,
+                'equipe200': equipe200,
+                'integrantes': integrantes,
+                'camiseta': camiseta,
+                'valor': valor,
+                'taxa': taxa,
+                'valortotal': valortotal,
+                'dtpagamento': dtpagamento,
+                'formapgto': formapgto,
+                'idpagamento': idpagamento,
+                'dataevendo': dtinicio,
+                'evento': evento,
+                'evento_modal': evento_modal,
+                'flstatus': flstatus
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Usuário ou senha inválidos'
+            }), 401
+            
+    except Exception as e:
+        print(f"Erro na autenticação: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao realizar autenticação'
+        }), 500
+
+
+@app.route('/check-user-session', methods=['POST'])
+def check_user_session():
+    try:
+        data = request.get_json()
+        user_email = data.get('email')
+        user_cpf = data.get('cpf')
+        
+        if not (user_email or user_cpf):
+            return jsonify({
+                'success': False,
+                'message': 'Dados de usuário não fornecidos'
+            }), 400
+        
+        cur = mysql.connection.cursor()
+        
+        # Consulta usando e-mail ou CPF, dependendo do que foi fornecido
+        if user_email:
+            query_param = user_email
+            where_clause = "A.EMAIL = %s"
+        else:
+            query_param = user_cpf
+            where_clause = "A.CPF = %s"
+        
+        # Mesma consulta da rota de autenticação, mas sem verificar a senha
+        cur.execute(f"""
+            SELECT 
+                COALESCE(A.NOME, '') AS NOME, 
+                COALESCE(A.SOBRENOME, '') AS SOBRENOME, 
+                COALESCE(A.EMAIL, '') AS EMAIL, 
+                COALESCE(A.CPF, '') AS CPF, 
+                COALESCE(A.DTNASCIMENTO, '') AS DTNASCIMENTO, 
+                COALESCE(A.NRCELULAR, '') AS NRCELULAR, 
+                COALESCE(A.SEXO, '') AS SEXO, 
+                COALESCE(A.IDATLETA, '') AS IDATLETA, 
+                COALESCE(M.DESCRICAO, '') AS MODALIDADE, 
+                COALESCE(E.IDEVENTO, '') AS IDEVENTO, 
+                COALESCE(I.APOIO, '') AS APOIO, 
+                COALESCE(I.NOME_EQUIPE, '') AS NOME_EQUIPE,
+                COALESCE(I.INTEGRANTES, '') AS INTEGRANTES,
+                COALESCE(I.CAMISETA, '') AS CAMISETA,
+                COALESCE(I.VALOR, '') AS VALOR,
+                COALESCE(I.TAXA, '') AS TAXA,
+                COALESCE(I.VALOR_PGTO, '') AS VALOR_PGTO,
+                COALESCE(I.DTPAGAMENTO, '') AS DTPAGAMENTO,
+                COALESCE(I.FORMAPGTO, '') AS FORMAPGTO,
+                COALESCE(I.IDPAGAMENTO, '') AS IDPAGAMENTO,
+                COALESCE(E.DTINICIO, '') AS DTINICIO,
+                COALESCE(E.DESCRICAO, '') AS EVENTO,
+                COALESCE(CONCAT(E.DESCRICAO,' / ', M.DESCRICAO), '') AS EVENTO_MODAL,
+                COALESCE(I.FLSTATUS, '') AS FLSTATUS
+            FROM ecmrun.ATLETA A
+            LEFT JOIN ecmrun.INSCRICAO I ON I.IDATLETA = A.IDATLETA AND I.IDEVENTO = 1 AND I.FLSTATUS = 'CONFIRMADO'
+            LEFT JOIN ecmrun.EVENTO E ON E.IDEVENTO = 1
+            LEFT JOIN ecmrun.EVENTO_MODALIDADE M ON M.IDITEM = I.IDITEM AND I.IDATLETA IS NOT NULL
+            WHERE {where_clause} AND A.ATIVO = 'S'
+        """, (query_param,))
+        
+        result = cur.fetchone()
+        cur.close()
+        
+        if result:
+            nome_completo = f"{result[0]} {result[1]}"
+            email = result[2]
+            vcpf = result[3]
+            dtnascimento = result[4]
+            celular = result[5]
+            sexo = result[6]
+            idatleta = result[7]
+            modalidade = result[8]
+            apoio = result[10]
+            equipe200 = result[11]
+            integrantes = result[12]
+            camiseta = result[13]
+            valor = result[14]
+            taxa = result[15]
+            valortotal = result[16]
+            dtpagamento = result[17]
+            formapgto = result[18]
+            idpagamento = result[19]
+            dtinicio = result[20]
+            evento = result[21]
+            evento_modal = result[22]
+            flstatus = result[23]
+            
+            # Converta as strings para objetos datetime
+            dt_nascimento = datetime.strptime(dtnascimento, "%d/%m/%Y")
+            dt_inicio = datetime.strptime(dtinicio, "%d/%m/%Y")
+
+            # Calcule a idade
+            idade = dt_inicio.year - dt_nascimento.year - ((dt_inicio.month, dt_inicio.day) < (dt_nascimento.month, dt_nascimento.day))
+
+            print(result)    
+
+            evento = result[21]
+            print(f"Valor de EVENTO antes de retornar: {evento}")
+
+            return jsonify({
+                'success': True,
+                'nome': nome_completo,
+                'email': email,
+                'cpf': vcpf,
+                'dtnascimento': dtnascimento,
+                'idade': str(idade),
+                'celular': celular,
+                'sexo': sexo,
+                'idatleta': idatleta,
+                'modalidade': modalidade,
+                'apoio': apoio,
+                'equipe200': equipe200,
+                'integrantes': integrantes,
+                'camiseta': camiseta,
+                'valor': valor,
+                'taxa': taxa,
+                'valortotal': valortotal,
+                'dtpagamento': dtpagamento,
+                'formapgto': formapgto,
+                'idpagamento': idpagamento,
+                'dataevento': dtinicio,
+                'evento': evento,
+                'evento_modal': evento_modal,
+                'flstatus': flstatus
+            })
+            
+        else:
+            # Usuário não encontrado ou inativo
+            return jsonify({
+                'success': False,
+                'message': 'Usuário não encontrado ou inativo'
             }), 404
+            
+    except Exception as e:
+        print(f"Erro ao verificar sessão do usuário: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao verificar sessão do usuário'
+        }), 500
+
+
+@app.route('/pagamento')
+def pagamento():
+    # Get values from session
+    vlinscricao = session.get('valoratual', 0)
+    vltaxa = session.get('valortaxa', 0)
+    valor_total = float(vlinscricao) + float(vltaxa)
+    
+    return render_template('pagamento.html', 
+                         valor_inscricao=vlinscricao,
+                         valor_taxa=vltaxa,
+                         valor_total=valor_total)
+
+
+@app.route('/gerar-pix', methods=['POST'])
+def gerar_pix():
+    try:
+        data = request.get_json()
+        # Add more robust validation and logging
+        print(f"Raw data received: {data}")
         
-        # Exclui os emails relacionados
-        cursor.execute("""
-            DELETE FROM TJ_EMAIL_LOCACAO
-            WHERE ID_ITEM = %s
-        """, (iditem,))
+        # More robust parsing with better error handling
+        try:
+            valor_total = round(float(data.get('valor_total', 0)), 2)
+            valor_atual = round(float(data.get('valor_atual', 0)), 2)
+            valor_taxa = round(float(data.get('valor_taxa', 0)), 2)
+        except (ValueError, TypeError) as e:
+            print(f"Error parsing values: {str(e)}")
+            print(f"valor_total: {data.get('valor_total')}, type: {type(data.get('valor_total'))}")
+            print(f"valor_atual: {data.get('valor_atual')}, type: {type(data.get('valor_atual'))}")
+            print(f"valor_taxa: {data.get('valor_taxa')}, type: {type(data.get('valor_taxa'))}")
+            
+            # Try to convert from string with comma to float
+            try:
+                valor_total = round(float(str(data.get('valor_total', '0')).replace(',', '.')), 2)
+                valor_atual = round(float(str(data.get('valor_atual', '0')).replace(',', '.')), 2)
+                valor_taxa = round(float(str(data.get('valor_taxa', '0')).replace(',', '.')), 2)
+                print(f"After conversion: valor_total={valor_total}, valor_atual={valor_atual}, valor_taxa={valor_taxa}")
+            except Exception as conversion_error:
+                print(f"Conversion attempt failed: {str(conversion_error)}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Erro ao processar valores. Verifique se os valores são numéricos válidos.'
+                }), 400
         
-        # Exclui a locação
-        cursor.execute("""
-            DELETE FROM TJ_CONTROLE_LOCACAO_ITENS
-            WHERE ID_ITEM = %s
-        """, (iditem,))
+        camisa = data.get('camiseta')
+        apoio = data.get('apoio')
+        equipe = data.get('equipe')
+        equipe200 = data.get('nome_equipe')
+        integrantes = data.get('integrantes')
+        idatleta = data.get('idatleta')
+
+        # Store in session
+        session['valorTotal'] = valor_total
+        session['valorAtual'] = valor_atual
+        session['valorTaxa'] = valor_taxa
+        session['formaPagto'] = 'PIX'
+        session['Camisa'] = camisa
+        session['Equipe'] = equipe
+        session['Apoio'] = apoio
+        session['Equipe200'] = equipe200
+        session['Integrantes'] = integrantes
+        session['idAtleta'] = idatleta
         
-        mysql.connection.commit()
-        cursor.close()
+        # Validate minimum transaction amount
+        if valor_total < 1:
+            return jsonify({
+                'success': False,
+                'message': 'Valor mínimo da transação deve ser maior que R$ 1,00'
+            }), 400
+        
+        print("=== DEBUG: Iniciando geração do PIX ===")
+        print(f"Valor total processado: {valor_total}")
+        print(f"Valor atual: {valor_atual}")
+        print(f"Valor taxa: {valor_taxa}")
+        
+        # Get payer info and validate it's present
+        email = session.get('user_email')
+        nome_completo = session.get('user_name', '')
+        
+        # Fallback to data from request if session is empty
+        if not email:
+            email = data.get('email')
+            print(f"Email not found in session, using from request: {email}")
+        
+        if not nome_completo:
+            nome_completo = data.get('nome', '')
+            print(f"Nome not found in session, using from request: {nome_completo}")
+            
+        nome_parts = nome_completo.split() if nome_completo else ['', '']
+        
+        cpf = session.get('user_cpf')
+        if not cpf:
+            cpf = data.get('cpf')
+            print(f"CPF not found in session, using from request: {cpf}")
+            
+        # Validate required fields
+        if not email:
+            return jsonify({
+                'success': False,
+                'message': 'Email do pagador é obrigatório'
+            }), 400
+            
+        if not cpf:
+            return jsonify({
+                'success': False,
+                'message': 'CPF do pagador é obrigatório'
+            }), 400
+            
+        # Clean CPF format
+        cpf_cleaned = re.sub(r'\D', '', cpf) if cpf else ""
+        session['CPF'] = cpf_cleaned
+
+        print(f"Dados do pagador finais:")
+        print(f"- Email: {email}")
+        print(f"- Nome: {nome_completo}")
+        print(f"- CPF: {cpf_cleaned}")
+
+        # Try to call email function safely
+        try:
+            fn_email(email)
+        except Exception as email_error:
+            print(f"Warning: Error in fn_email: {str(email_error)}")
+            # Continue processing even if email function fails
+
+        # Generate unique reference
+        external_reference = str(uuid.uuid4())
+
+        preference_data = {
+            "items": [{
+                "id": "desafio200k_inscricao",
+                "title": "Inscrição Desafio 200k",
+                "description": "Inscrição para o 4º Desafio 200k",
+                "category_id": "sports_tickets",
+                "quantity": 1,
+                "unit_price": valor_total
+            }],
+            "statement_descriptor": "DESAFIO200K"
+        }
+        
+        preference_result = sdk.preference().create(preference_data)
+
+        # Create payment data
+        payment_data = {
+            "transaction_amount": float(valor_total),  # Ensure it's a float
+            "description": "Inscrição 4º Desafio 200k",
+            "payment_method_id": "pix",
+            "payer": {
+                "email": email,
+                "first_name": nome_parts[0] if nome_parts else "",
+                "last_name": " ".join(nome_parts[1:]) if len(nome_parts) > 1 else "",
+                "identification": {
+                    "type": "CPF",
+                    "number": cpf_cleaned
+                }   
+            },
+            "notification_url": "https://ecmrun.com.br/webhook",
+            "external_reference": external_reference
+        }
+        
+        print("Dados do pagamento preparados:")
+        print(json.dumps(payment_data, indent=2))
+
+        # Create payment in Mercado Pago
+        print("Enviando requisição para o Mercado Pago...")
+        
+        try:
+            payment_response = sdk.payment().create(payment_data)
+        except Exception as mp_error:
+            print(f"Erro na comunicação com Mercado Pago: {str(mp_error)}")
+            return jsonify({
+                'success': False,
+                'message': f'Erro na comunicação com o gateway de pagamento: {str(mp_error)}'
+            }), 500
+        
+        print("Resposta do Mercado Pago recebida")
+        
+        # Validate response structure
+        if not payment_response:
+            print("Erro: Resposta vazia do Mercado Pago")
+            return jsonify({
+                'success': False,
+                'message': 'Resposta vazia do gateway de pagamento'
+            }), 500
+            
+        if "response" not in payment_response:
+            print(f"Erro: Formato de resposta inesperado: {payment_response}")
+            return jsonify({
+                'success': False,
+                'message': 'Formato de resposta inesperado do gateway de pagamento'
+            }), 500
+
+        payment = payment_response["response"]
+        
+        # Check for error in response
+        if "error" in payment:
+            print(f"Erro retornado pelo Mercado Pago: {payment}")
+            return jsonify({
+                'success': False,
+                'message': f'Erro do gateway de pagamento: {payment.get("message", "Erro desconhecido")}'
+            }), 400
+        
+        # Check for QR code data
+        if "point_of_interaction" not in payment:
+            print("Erro: point_of_interaction não encontrado na resposta")
+            print(f"Resposta completa: {json.dumps(payment, indent=2)}")
+            return jsonify({
+                'success': False,
+                'message': 'Dados do PIX não disponíveis'
+            }), 500
+            
+        if "transaction_data" not in payment["point_of_interaction"]:
+            print("Erro: transaction_data não encontrado em point_of_interaction")
+            return jsonify({
+                'success': False,
+                'message': 'Dados do QR code não disponíveis'
+            }), 500
+
+        # Extract QR code data
+        qr_code = payment['point_of_interaction']['transaction_data'].get('qr_code', '')
+        qr_code_base64 = payment['point_of_interaction']['transaction_data'].get('qr_code_base64', '')
+        payment_id = payment.get('id', '')
+        
+        if not qr_code or not qr_code_base64 or not payment_id:
+            print("Erro: Dados do PIX incompletos")
+            return jsonify({
+                'success': False,
+                'message': 'Dados do PIX incompletos'
+            }), 500
+
+        # Success response
+        return jsonify({
+            'success': True,
+            'qr_code': qr_code,
+            'qr_code_base64': qr_code_base64,
+            'payment_id': payment_id
+        })
+
+    except Exception as e:
+        print(f"=== ERRO CRÍTICO: ===")
+        print(f"Tipo do erro: {type(e)}")
+        print(f"Mensagem de erro: {str(e)}")
+        print(f"Stack trace:")
+        import traceback
+        traceback.print_exc()
         
         return jsonify({
-            'sucesso': True,
-            'mensagem': 'Locação excluída com sucesso'
+            'success': False,
+            'message': f'Erro ao gerar PIX: {str(e)}'
+        }), 500
+
+
+@app.route('/recuperar-qrcode/<payment_id>', methods=['GET'])
+def recuperar_qrcode(payment_id):
+    try:
+        # Recupera o pagamento do Mercado Pago
+        payment = sdk.payment().get(payment_id)
+        if payment['status'] == 404:
+            return jsonify({'success': False, 'message': 'Pagamento não encontrado'})
+            
+        # Extrai os dados do QR code
+        point_of_interaction = payment.get('point_of_interaction', {})
+        transaction_data = point_of_interaction.get('transaction_data', {})
+        
+        return jsonify({
+            'success': True,
+            'qr_code': transaction_data.get('qr_code'),
+            'qr_code_base64': transaction_data.get('qr_code_base64')
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+    
+
+# @app.route('/verificar-pagamento/<payment_id>')
+# def verificar_pagamento(payment_id):
+#     try:
+#         # Buscar o status diretamente do Mercado Pago
+#         payment_response = sdk.payment().get(payment_id)
+#         payment = payment_response["response"]
+
+#         print(f"Status do pagamento recebido: {payment['status']}")
+        
+#         if payment["status"] == "approved":
+#             # Verificar se já não foi processado antes
+#             cur = mysql.connection.cursor()
+#             cur.execute("SELECT * FROM ecmrun.INSCRICAO WHERE IDPAGAMENTO = %s", (payment_id,))
+#             existing_record = cur.fetchone()
+            
+#             if not existing_record:
+#                 # Calculate valor_pgto (total payment)
+#                 valor = float(session.get('valorAtual', 0))
+#                 taxa = float(session.get('valorTaxa', 0))
+#                 valoratual = valor + taxa
+#                 valor_pgto = float(session.get('valorTotal', 0))
+#                 desconto = valoratual - valor_pgto
+#                 formaPagto = session.get('formaPagto')
+#                 camiseta = session.get('Camisa')
+#                 equipe = session.get('Equipe')
+#                 apoio = session.get('Apoio')
+#                 equipe200 = session.get('Equipe200')
+#                 integrantes = session.get('Integrantes')
+
+#                 data_e_hora_atual = datetime.now()
+#                 fuso_horario = timezone('America/Manaus')
+#                 data_e_hora_manaus = data_e_hora_atual.astimezone(fuso_horario)
+#                 data_pagamento = data_e_hora_manaus.strftime('%d/%m/%Y %H:%M')
+                                
+#                 # Get additional data from session
+#                 idatleta = session.get('idAtleta')
+#                 cpf = session.get('CPF')
+
+                
+#                 # Insert payment record
+#                 query = """
+#                 INSERT INTO ecmrun.INSCRICAO (
+#                     IDATLETA, CPF, IDEVENTO, IDITEM, CAMISETA, APOIO, 
+#                     NOME_EQUIPE, INTEGRANTES, VALOR, TAXA, DESCONTO,
+#                     VALOR_PGTO, DTPAGAMENTO, FLSTATUS, FORMAPGTO, 
+#                     IDPAGAMENTO, FLMAIL, EQUIPE
+#                 ) VALUES (
+#                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+#                 )
+#                 """
+                
+#                 params = (
+#                     idatleta,                            # IDATLETA
+#                     cpf,                                 # CPF
+#                     1,                                   # IDEVENTO (hardcoded as 1 for this event)
+#                     session.get('cat_iditem'),           # IDITEM
+#                     camiseta,                            # CAMISETA
+#                     apoio,                               # APOIO
+#                     equipe200,                           # NOME_EQUIPE
+#                     integrantes,                         # INTEGRANTES
+#                     valor,                               # VALOR
+#                     taxa,                                # TAXA
+#                     desconto,                            # DESCONTO
+#                     valor_pgto,                          # VALOR_PGTO
+#                     data_pagamento,                      # DTPAGAMENTO
+#                     'CONFIRMADO',                        # FLSTATUS
+#                     formaPagto,                          # FORMAPGTO
+#                     payment_id,                          # IDPAGAMENTO
+#                     'N',
+#                     equipe
+#                 )
+                
+#                 cur.execute(query, params)
+#                 mysql.connection.commit()
+#                 cur.close()
+                
+#                 print("Registro de pagamento inserido com sucesso!")
+                
+#                 return jsonify({
+#                     'success': True,
+#                     'status': 'approved',
+#                     'message': 'Pagamento processado e registrado'
+#                 })
+#             else:
+#                 print("Pagamento já processado anteriormente")
+#                 return jsonify({
+#                     'success': True,
+#                     'status': 'approved',
+#                     'message': 'Pagamento já processado'
+#                 })
+        
+#         return jsonify({
+#             'success': True,
+#             'status': payment["status"]
+#         })
+        
+#     except Exception as e:
+#         print(f"Erro ao verificar pagamento: {str(e)}")
+#         # Ensure JSON is returned even on error
+#         return jsonify({
+#             'success': False, 
+#             'message': str(e),
+#             'status': 'error'
+#         }), 500
+    
+
+@app.route('/verificar-pagamento/<payment_id>')
+def verificar_pagamento(payment_id):
+    try:
+        # Buscar o status diretamente do Mercado Pago
+        payment_response = sdk.payment().get(payment_id)
+        payment = payment_response["response"]
+
+        print(f"Status do pagamento recebido: {payment['status']}")
+        
+        if payment["status"] == "approved":
+
+            data_e_hora_atual = datetime.now()
+            fuso_horario = timezone('America/Manaus')
+            data_e_hora_manaus = data_e_hora_atual.astimezone(fuso_horario)
+            data_pagamento = data_e_hora_manaus.strftime('%d/%m/%Y %H:%M')
+
+
+            # Verificar se já não foi processado antes
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT IDINSCRICAO FROM INSCRICAO WHERE IDPAGAMENTO = %s", (payment_id,))
+            existing_record = cur.fetchone()
+            
+            if existing_record:
+
+                cur.execute("""
+                    UPDATE INSCRICAO SET
+                        DTPAGAMENTO = %s,
+                        FLSTATUS = %s  
+                    WHERE IDINSCRICAO = %s
+                    """, (
+                        data_pagamento,         
+                        'CONFIRMADO',           
+                        existing_record[0]      
+
+                ))
+
+                mysql.connection.commit()
+                cur.close()
+
+                return jsonify({
+                    'success': True,
+                    'status': 'approved',
+                    'message': 'Pagamento processado e registrado'
+                })
+
+            else:
+
+                # Calculate valor_pgto (total payment)
+                valor = float(session.get('valorAtual', 0))
+                taxa = float(session.get('valorTaxa', 0))
+                valoratual = valor + taxa
+                valor_pgto = float(session.get('valorTotal', 0))
+                desconto = valoratual - valor_pgto
+                formaPagto = session.get('formaPagto')
+                camiseta = session.get('Camisa')
+                equipe = session.get('Equipe')
+                apoio = session.get('Apoio')
+                equipe200 = session.get('Equipe200')
+                integrantes = session.get('Integrantes')
+                                
+                # Get additional data from session
+                #idatleta = session.get('user_idatleta')
+                #cpf = session.get('user_cpf')
+
+                idatleta = session.get('idAtleta')
+                cpf = session.get('CPF')
+                
+                # Insert payment record
+                query = """
+                INSERT INTO INSCRICAO (
+                    IDATLETA, CPF, IDEVENTO, IDITEM, CAMISETA, APOIO, 
+                    NOME_EQUIPE, INTEGRANTES, VALOR, TAXA, DESCONTO,
+                    VALOR_PGTO, DTPAGAMENTO, FLSTATUS, FORMAPGTO, 
+                    IDPAGAMENTO, FLMAIL, EQUIPE
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+                """
+                
+                params = (
+                    idatleta,                    # IDATLETA
+                    cpf,                         # CPF
+                    1,                           # IDEVENTO (hardcoded as 1 for this event)
+                    session.get('cat_iditem'),   # IDITEM
+                    camiseta,                    # CAMISETA
+                    apoio,                       # APOIO
+                    equipe200,                   # NOME_EQUIPE
+                    integrantes,                 # INTEGRANTES
+                    valor,                       # VALOR
+                    taxa,                        # TAXA
+                    desconto,                    # DESCONTO
+                    valor_pgto,                  # VALOR_PGTO
+                    data_pagamento,              # DTPAGAMENTO
+                    'CONFIRMADO',                # FLSTATUS
+                    formaPagto,                  # FORMAPGTO
+                    payment_id,                  # IDPAGAMENTO
+                    'N',
+                    equipe
+                )
+                
+                cur.execute(query, params)
+                mysql.connection.commit()
+                cur.close()
+                
+                print("Registro de pagamento inserido com sucesso!")
+                
+                return jsonify({
+                    'success': True,
+                    'status': 'approved',
+                    'message': 'Pagamento processado e registrado'
+                })
+                    
+        return jsonify({
+            'success': True,
+            'status': payment["status"]
         })
         
     except Exception as e:
-        print(f"Erro ao excluir locação: {str(e)}")
+        print(f"Erro ao verificar pagamento: {str(e)}")
+        # Ensure JSON is returned even on error
+        return jsonify({
+            'success': False, 
+            'message': str(e),
+            'status': 'error'
+        }), 500
+
+
+@app.route('/inscricao-temp/<cpf>', methods=['POST'])
+def inscricao_temp(cpf):
+    try:
+        # Obter dados do request JSON em vez de session
+        data = request.json
+        # Usar dados do request JSON
+        valor = float(data.get('valor_atual', 0))
+        taxa = float(data.get('valor_taxa', 0))
+        valoratual = valor + taxa
+        valor_pgto = float(data.get('valor_total', 0))
+        desconto = valoratual - valor_pgto
+        
+        formaPagto = data.get('forma_pagto', 'PIX')
+        camiseta = data.get('camiseta')
+        equipe = data.get('equipe')
+        apoio = data.get('apoio')
+        equipe200 = data.get('equipe_nome')
+        integrantes = data.get('integrantes')
+        idpagamento = data.get('payment_id')
+        cat_iditem = data.get('cat_iditem')
+        
+        data_e_hora_atual = datetime.now()
+        fuso_horario = timezone('America/Manaus')
+        data_e_hora_manaus = data_e_hora_atual.astimezone(fuso_horario)
+        data_pagamento = data_e_hora_manaus.strftime('%d/%m/%Y %H:%M')
+
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT IDINSCRICAO FROM INSCRICAO WHERE FLSTATUS = 'PENDENTE' AND CPF = %s AND IDEVENTO = 1", (cpf,))
+        existing_record = cur.fetchone()
+        
+        if existing_record:
+            cur = mysql.connection.cursor()
+
+            cur.execute("""
+                UPDATE INSCRICAO 
+                SET IDITEM = %s, 
+                    CAMISETA = %s,
+                    APOIO = %s,
+                    NOME_EQUIPE = %s, 
+                    INTEGRANTES = %s,
+                    VALOR = %s,
+                    TAXA = %s,
+                    DESCONTO = %s,
+                    VALOR_PGTO = %s,
+                    DTPAGAMENTO = %s,
+                    FLSTATUS = %s,
+                    FORMAPGTO = %s,
+                    IDPAGAMENTO = %s,
+                    FLMAIL = %s,
+                    EQUIPE = %s,  
+                WHERE IDINSCRICAO = %s
+                """, (
+                    cat_iditem,                 # IDITEM
+                    camiseta,                   # CAMISETA
+                    apoio,                      # APOIO
+                    equipe200,                  # NOME_EQUIPE
+                    integrantes,                # INTEGRANTES
+                    valor,                      # VALOR
+                    taxa,                       # TAXA
+                    desconto,                   # DESCONTO
+                    valor_pgto,                 # VALOR_PGTO
+                    data_pagamento,             # DTPAGAMENTO
+                    'PENDENTE',                 # FLSTATUS
+                    formaPagto,                 # FORMAPGTO
+                    idpagamento,                # IDPAGAMENTO
+                    'N',                        # FLMAIL
+                    equipe,                     # EQUIPE
+                    existing_record[0]          # IDINSCRICAO
+
+            ))
+            mysql.connection.commit()
+            cur.close()
+        
+        else:
+
+            # Obter idatleta do banco baseado no CPF
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT IDATLETA FROM ecmrun.ATLETA WHERE CPF = %s", (cpf,))
+            atleta_record = cur.fetchone()
+            
+            if atleta_record:
+                idatleta = atleta_record[0]
+            else:
+                idatleta = None
+        
+            # Insert payment record
+            query = """
+            INSERT INTO INSCRICAO (
+                IDATLETA, CPF, IDEVENTO, IDITEM, CAMISETA, APOIO, 
+                NOME_EQUIPE, INTEGRANTES, VALOR, TAXA, DESCONTO,
+                VALOR_PGTO, DTPAGAMENTO, FLSTATUS, FORMAPGTO, 
+                IDPAGAMENTO, FLMAIL, EQUIPE
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            """
+            
+            params = (
+                idatleta,                   # IDATLETA
+                cpf,                        # CPF
+                1,                          # IDEVENTO (hardcoded as 1 for this event)
+                cat_iditem,                 # IDITEM
+                camiseta,                   # CAMISETA
+                apoio,                      # APOIO
+                equipe200,                  # NOME_EQUIPE
+                integrantes,                # INTEGRANTES
+                valor,                      # VALOR
+                taxa,                       # TAXA
+                desconto,                   # DESCONTO
+                valor_pgto,                 # VALOR_PGTO
+                data_pagamento,             # DTPAGAMENTO
+                'PENDENTE',                 # FLSTATUS
+                formaPagto,                 # FORMAPGTO
+                idpagamento,                # IDPAGAMENTO
+                'N',                        # FLMAIL
+                equipe                      # EQUIPE
+            )
+            
+            cur.execute(query, params)
+            mysql.connection.commit()
+            cur.close()
+        
+        print(f"Pré-inscrição inserida com sucesso para CPF {cpf} com payment_id {idpagamento}!")
+        
+        return jsonify({
+            'success': True,
+            'status': 'inserido',
+            'message': 'registrado'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao lançar pré-inscrição: {str(e)}")
+        # Ensure JSON is returned even on error
+        return jsonify({
+            'success': False, 
+            'message': str(e),
+            'status': 'error'
+        }), 500
+
+@app.route('/inscricao-cartao/<cpf>', methods=['POST'])
+def inscricao_cartao(cpf):
+    try:
+        # Obter dados do request JSON em vez de session
+        data = request.json
+        # Usar dados do request JSON
+        valor = float(data.get('valor_atual', 0))
+        taxa = float(data.get('valor_taxa', 0))
+        valoratual = valor + taxa
+        valor_pgto = float(data.get('valor_total', 0))
+        desconto = valoratual - valor_pgto
+        
+        #formaPagto = data.get('forma_pagto', 'PIX')
+        formaPagto = data.get('forma_pagto')
+        camiseta = data.get('camiseta')
+        equipe = data.get('equipe')
+        apoio = data.get('apoio')
+        equipe200 = data.get('equipe_nome')
+        integrantes = data.get('integrantes')
+        idpagamento = data.get('payment_id')
+        cat_iditem = data.get('cat_iditem')
+        
+        data_e_hora_atual = datetime.now()
+        fuso_horario = timezone('America/Manaus')
+        data_e_hora_manaus = data_e_hora_atual.astimezone(fuso_horario)
+        data_pagamento = data_e_hora_manaus.strftime('%d/%m/%Y %H:%M')
+
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT IDINSCRICAO FROM INSCRICAO WHERE CPF = %s AND IDEVENTO = 1", (cpf,))
+        existing_record = cur.fetchone()
+        
+        if existing_record:
+            cur = mysql.connection.cursor()
+
+            cur.execute("""
+                UPDATE INSCRICAO 
+                SET IDITEM = %s, 
+                    CAMISETA = %s,
+                    APOIO = %s,
+                    NOME_EQUIPE = %s, 
+                    INTEGRANTES = %s,
+                    VALOR = %s,
+                    TAXA = %s,
+                    DESCONTO = %s,
+                    VALOR_PGTO = %s,
+                    DTPAGAMENTO = %s,
+                    FLSTATUS = %s,
+                    FORMAPGTO = %s,
+                    IDPAGAMENTO = %s,
+                    FLMAIL = %s,
+                    EQUIPE = %s,  
+                WHERE IDINSCRICAO = %s
+                """, (
+                    cat_iditem,                 # IDITEM
+                    camiseta,                   # CAMISETA
+                    apoio,                      # APOIO
+                    equipe200,                  # NOME_EQUIPE
+                    integrantes,                # INTEGRANTES
+                    valor,                      # VALOR
+                    taxa,                       # TAXA
+                    desconto,                   # DESCONTO
+                    valor_pgto,                 # VALOR_PGTO
+                    data_pagamento,             # DTPAGAMENTO
+                    'CONFIRMADO',               # FLSTATUS
+                    formaPagto,                 # FORMAPGTO
+                    idpagamento,                # IDPAGAMENTO
+                    'N',                        # FLMAIL
+                    equipe,                     # EQUIPE
+                    existing_record[0]          # IDINSCRICAO
+
+            ))
+            mysql.connection.commit()
+            cur.close()
+        
+        else:
+
+            # Obter idatleta do banco baseado no CPF
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT IDATLETA FROM ecmrun.ATLETA WHERE CPF = %s", (cpf,))
+            atleta_record = cur.fetchone()
+            
+            if atleta_record:
+                idatleta = atleta_record[0]
+            else:
+                idatleta = None
+        
+            # Insert payment record
+            query = """
+            INSERT INTO INSCRICAO (
+                IDATLETA, CPF, IDEVENTO, IDITEM, CAMISETA, APOIO, 
+                NOME_EQUIPE, INTEGRANTES, VALOR, TAXA, DESCONTO,
+                VALOR_PGTO, DTPAGAMENTO, FLSTATUS, FORMAPGTO, 
+                IDPAGAMENTO, FLMAIL, EQUIPE
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            """
+            
+            params = (
+                idatleta,                   # IDATLETA
+                cpf,                        # CPF
+                1,                          # IDEVENTO (hardcoded as 1 for this event)
+                cat_iditem,                 # IDITEM
+                camiseta,                   # CAMISETA
+                apoio,                      # APOIO
+                equipe200,                  # NOME_EQUIPE
+                integrantes,                # INTEGRANTES
+                valor,                      # VALOR
+                taxa,                       # TAXA
+                desconto,                   # DESCONTO
+                valor_pgto,                 # VALOR_PGTO
+                data_pagamento,             # DTPAGAMENTO
+                'CONFIRMADO',               # FLSTATUS
+                formaPagto,                 # FORMAPGTO
+                idpagamento,                # IDPAGAMENTO
+                'N',                        # FLMAIL
+                equipe                      # EQUIPE
+            )
+            
+            cur.execute(query, params)
+            mysql.connection.commit()
+            cur.close()
+        
+        print(f"inscrição inserida com sucesso para CPF {cpf} com payment_id {idpagamento}!")
+        
+        return jsonify({
+            'success': True,
+            'status': 'inserido',
+            'message': 'registrado'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao lançar pré-inscrição: {str(e)}")
+        # Ensure JSON is returned even on error
+        return jsonify({
+            'success': False, 
+            'message': str(e),
+            'status': 'error'
+        }), 500
+
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.json
+    app.logger.info(f"Webhook received: {data}")
+    
+    if data['type'] == 'payment':
+        payment_info = sdk.payment().get(data['data']['id'])
+        app.logger.info(f"Payment info: {payment_info}")
+    
+    return jsonify({'status': 'ok'}), 200
+
+
+@app.route('/criar_preferencia', methods=['POST'])
+def criar_preferencia():
+
+    app.logger.info("Recebendo requisição para criar preferência")
+    app.logger.debug(f"Dados recebidos: {request.get_json()}")
+    app.logger.debug(f"MP_ACCESS_TOKEN configurado: {'MP_ACCESS_TOKEN' in os.environ}")
+
+    try:
+        data = request.get_json()
+        
+        # Log dos dados recebidos
+        print("Dados recebidos:", data)
+        
+        # Get values from localStorage (sent in request)
+        valor_total = float(data.get('valortotal', 0))
+        valor_taxa = float(data.get('valortaxa', 0))
+        nome_completo = data.get('user_name', '')
+        
+        # Split full name into first and last name
+        nome_parts = nome_completo.split(' ', 1)
+        first_name = nome_parts[0]
+        last_name = nome_parts[1] if len(nome_parts) > 1 else ''
+        
+        preco_final = valor_total
+        
+        print("Preço final calculado:", preco_final)
+        
+        # Configurar URLs de retorno
+        base_url = request.url_root.rstrip('/')  # Remove trailing slash if present
+
+        back_urls = {
+            "success": f"{base_url}/aprovado",
+            "failure": f"{base_url}/negado",
+            "pending": f"{base_url}/negado"
+        }
+
+        preference_data = {
+            "items": [
+                {
+                    "id": "200k-inscricao",
+                    "title": "Inscrição 4º Desafio 200k",
+                    "quantity": 1,
+                    "unit_price": float(preco_final),
+                    "description": "Inscrição para o 4º Desafio 200k Porto Velho-Humaitá",
+                    "category_id": "sports_tickets"
+                }
+            ],
+            "payer": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": data.get('user_email')
+            },
+            "payment_methods": {
+                "excluded_payment_methods": [
+                    {"id": "bolbradesco"},
+                    {"id": "pix"}
+                ],
+                "excluded_payment_types": [
+                    {"id": "ticket"},
+                    {"id": "bank_transfer"}
+                ],
+                "installments": 12
+            },
+            "back_urls": back_urls,
+            "auto_return": "approved",
+            "statement_descriptor": "ECM RUN",
+            "external_reference": data.get('user_idatleta'),
+            "notification_url": f"{back_urls['success'].rsplit('/', 1)[0]}/webhook"
+        }
+        
+        # Log da preference antes de criar
+        print("Preference data:", preference_data)
+        
+        preference_response = sdk.preference().create(preference_data)
+        print("Resposta do MP:", preference_response)
+        
+        if "response" not in preference_response:
+            raise Exception("Erro na resposta do Mercado Pago: " + str(preference_response))
+            
+        preference = preference_response["response"]
+        
+        return jsonify({
+            "id": preference["id"],
+            "init_point": preference["init_point"]
+        })
+    
+    except Exception as e:
+        print("Erro detalhado:", str(e))
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/lanca-pagamento-cartao/<payment_id>')
+def lanca_pagamento_cartao(payment_id):
+    
+    try:    
+        # Verificar se já não foi processado antes
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT * FROM ecmrun.INSCRICAO WHERE IDPAGAMENTO = %s", (payment_id,))
+        existing_record = cur.fetchone()
+        
+        if not existing_record:
+            # Calculate valor_pgto (total payment)
+            valor = float(session.get('valorAtual', 0))
+            taxa = float(session.get('valorTaxa', 0))
+            valoratual = valor + taxa
+            valor_pgto = float(session.get('valorTotal', 0))
+            desconto = valoratual - valor_pgto 
+            formaPagto = 'CARTÃO DE CRÉDITO'
+            camiseta = session.get('Camisa')
+            equipe = session.get('Equipe')
+            apoio = session.get('Apoio')
+            equipe200 = session.get('Equipe200')
+            integrantes = session.get('Integrantes')
+
+            data_e_hora_atual = datetime.now()
+            fuso_horario = timezone('America/Manaus')
+            data_e_hora_manaus = data_e_hora_atual.astimezone(fuso_horario)
+            data_pagamento = data_e_hora_manaus.strftime('%d/%m/%Y %H:%M')
+                            
+            # Get additional data from session
+            idatleta = session.get('idAtleta')
+            cpf = session.get('CPF')
+            # idatleta = session.get('user_idatleta')
+            # cpf = session.get('user_cpf')
+            
+            # Insert payment record
+            query = """
+            INSERT INTO ecmrun.INSCRICAO (
+                IDATLETA, CPF, IDEVENTO, IDITEM, CAMISETA, APOIO, 
+                NOME_EQUIPE, INTEGRANTES, VALOR, TAXA, DESCONTO,
+                VALOR_PGTO, DTPAGAMENTO, FLSTATUS, FORMAPGTO, 
+                IDPAGAMENTO, FLMAIL, EQUIPE
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            """
+            
+            params = (
+                idatleta,                            # IDATLETA
+                cpf,                                 # CPF
+                1,                                   # IDEVENTO (hardcoded as 1 for this event)
+                session.get('cat_iditem'),           # IDITEM
+                camiseta,                            # CAMISETA
+                apoio,                               # APOIO
+                equipe200,                           # NOME_EQUIPE
+                integrantes,                         # INTEGRANTES
+                valor,                               # VALOR
+                taxa,                                # TAXA
+                desconto,                            # DESCONTO
+                valor_pgto,                          # VALOR_PGTO
+                data_pagamento,                      # DTPAGAMENTO
+                'CONFIRMADO',                        # FLSTATUS
+                formaPagto,                          # FORMAPGTO
+                payment_id,                          # IDPAGAMENTO
+                'N',
+                equipe
+            )
+            
+            cur.execute(query, params)
+            mysql.connection.commit()
+            cur.close()
+            
+            print("Registro de pagamento inserido com sucesso!")
+            
+            return jsonify({
+                'success': True,
+                'status': 'approved',
+                'message': 'Pagamento processado e registrado'
+            })
+        else:
+            print("Pagamento já processado anteriormente")
+            return jsonify({
+                'success': True,
+                'status': 'approved',
+                'message': 'Pagamento já processado'
+            })
+    
+        
+    except Exception as e:
+        print(f"Erro ao gerar lançamento: {str(e)}")
+        # Ensure JSON is returned even on error
+        return jsonify({
+            'success': False, 
+            'message': str(e),
+            'status': 'error'
+        }), 500
+
+@app.route('/pesquisa-cupom/<int:categoria_id>/<cpf>/<cupom>')
+def pesquisa_cupom(categoria_id, cpf, cupom):
+    try:
+        print(f"Recebido pedido de validação - Categoria: {categoria_id}, CPF: {cpf}, Cupom: {cupom}")
+        
+        cur = mysql.connection.cursor()
+        query = "SELECT IDCUPOM, IDPAGAMENTO FROM ecmrun.CUPOM WHERE UTILIZADO = 'N' AND IDMODALIDADE = %s AND CPF = %s AND CUPOM = %s"
+        
+        print(f"Executando query: {query} com parâmetros: {(categoria_id, cpf, cupom)}")
+        
+        cur.execute(query, (categoria_id, cpf, cupom))
+        result = cur.fetchone()
+        
+        print(f"Resultado da query: {result}")
+        
+        cur.close()
+
+        if result:
+            return jsonify({
+                'success': True,
+                'idcupom': result[0],
+                'idpagamento': result[1]
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Número do cupom não encontrado ou não vinculado a este CPF e/ou Modalidade selecionada. Verifique e tente novamente.'
+            })
+    except Exception as e:
+        print(f"Erro na validação do cupom: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+@app.route('/inscricao-copum/<id_cupom>', methods=['POST'])
+def inscricao_copum(id_cupom):
+    try:    
+        cur = mysql.connection.cursor()
+        query = "SELECT * FROM ecmrun.CUPOM WHERE IDCUPOM = %s"
+        print(f"Executando query: {query} com parâmetros: {id_cupom}")
+        
+        cur.execute(query, id_cupom)
+        result = cur.fetchone()
+        print(f"Resultado da query: {result}")
+        
+        if result:
+            # Extraindo dados do cupom
+            cupom = result[1]
+            cpf = result[2]
+            idpagamento = result[3]
+            formaPagto = result[4]
+            data_pagamento = result[5]
+            
+            # Corrigindo a conversão dos valores decimais
+            valor = float(result[6])
+            taxa = float(result[7])
+            valor_pgto = float(result[8])
+            valoratual = valor + taxa
+            iditem = result[9]
+            desconto = valoratual - valor_pgto 
+            
+            # Obtendo dados da sessão
+            camiseta = request.form.get('camiseta')
+            equipe = request.form.get('equipe')
+            apoio = request.form.get('apoio')
+            equipe200 = request.form.get('equipe200')
+            integrantes = request.form.get('integrantes')
+        
+            idatleta = session.get('user_idatleta')
+            
+            # Query de inserção
+            query = """
+            INSERT INTO ecmrun.INSCRICAO (
+                IDATLETA, CPF, IDEVENTO, IDITEM, CAMISETA, APOIO, 
+                NOME_EQUIPE, INTEGRANTES, VALOR, TAXA, DESCONTO,
+                VALOR_PGTO, DTPAGAMENTO, FLSTATUS, FORMAPGTO, 
+                IDPAGAMENTO, FLMAIL, EQUIPE, CUPOM
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+            """
+            
+            params = (
+                idatleta,          # IDATLETA
+                cpf,               # CPF
+                1,                 # IDEVENTO (hardcoded as 1 for this event)
+                iditem,            # IDITEM
+                camiseta,          # CAMISETA
+                apoio,             # APOIO
+                equipe200,         # NOME_EQUIPE
+                integrantes,       # INTEGRANTES
+                valor,             # VALOR
+                taxa,              # TAXA
+                desconto,          # DESCONTO
+                valor_pgto,        # VALOR_PGTO
+                data_pagamento,    # DTPAGAMENTO
+                'CONFIRMADO',      # FLSTATUS
+                formaPagto,        # FORMAPGTO
+                idpagamento,       # IDPAGAMENTO
+                'N',              # FLMAIL
+                equipe,           # EQUIPE
+                cupom             # CUPOM
+            )
+
+            print(f"INSERT: {query}")
+            print(f"Parametros: {params}")
+                    
+            cur.execute(query, params)
+            mysql.connection.commit()
+            
+            print("Registro de pagamento inserido com sucesso!")
+            
+            # Atualizando status do cupom
+            query = "UPDATE ecmrun.CUPOM SET UTILIZADO = 'S' WHERE IDCUPOM = %s"
+            print(f"Executando Update: {query} com parâmetros: {id_cupom}")
+            cur.execute(query, id_cupom)
+            mysql.connection.commit()
+            
+            cur.close()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Inscrição processada com sucesso'
+            })
+        else:
+            print("Lancamento já processado anteriormente")
+            return jsonify({
+                'success': True,
+                'message': 'Inscrição processada anteriormente'
+            })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao processar inscrição: {str(e)}'
+        }), 500
+    
+@app.route('/gerar_cupom', methods=['POST'])
+def gerar_cupom():
+    # Check if user is authenticated (has passed the admin password check)
+    if not session.get('authenticated'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        # Get form data
+        data = request.form
+        modalidade = data.get('modalidade')
+        cpf = data.get('cpf', '').replace('.', '').replace('-', '')  # Remove formatting
+        bonifica = 'S' if data.get('bonifica') == 'on' else 'N'
+        
+        # Se for bonificação, definir valores padrão para campos de pagamento
+        if bonifica == 'S':
+            idpagamento = ''
+            dtpagamento = ''
+            formapgto = ''
+            vlinscricao = '0'
+            vltaxa = '0'
+            vlpago = '0'
+        else:
+            idpagamento = data.get('idpagamento', '')
+            dtpagamento = data.get('dtpagamento', '')
+            formapgto = data.get('formapgto', '')
+            vlinscricao = data.get('vlinscricao', '0').replace('.', '').replace(',', '.')
+            vltaxa = data.get('vltaxa', '0').replace('.', '').replace(',', '.')
+            vlpago = data.get('vlpago', '0').replace('.', '').replace(',', '.')
+        
+        # Garantir que valores numéricos sejam válidos
+        try:
+            vlinscricao_float = float(vlinscricao) if vlinscricao else 0.0
+            vltaxa_float = float(vltaxa) if vltaxa else 0.0
+            vlpago_float = float(vlpago) if vlpago else 0.0
+        except ValueError as ve:
+            print(f"Erro de conversão de valor: {ve}")
+            return jsonify({'success': False, 'error': 'Valores monetários inválidos'}), 400
+        
+        # Generate random 5-character coupon code (uppercase letters and numbers)
+        #cupom = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        numeros = random.choices(string.digits, k=2)
+        # Gerar 3 letras maiúsculas aleatórias
+        letras = random.choices(string.ascii_uppercase, k=3)
+        # Juntar todos os caracteres
+        todos_caracteres = numeros + letras
+        # Embaralhar os caracteres
+        random.shuffle(todos_caracteres)
+        # Converter lista de caracteres para string
+        cupom = ''.join(todos_caracteres)        
+
+
+
+        # Connect to database
+        cursor = mysql.connection.cursor()
+        
+        try:
+            # Insert into database
+            query = """
+            INSERT INTO CUPOM (CUPOM, CPF, IDPAGAMENTO, FORMAPAGTO, DTPAGAMENTO, VALOR, TAXA, VALOR_PGTO, IDMODALIDADE, UTILIZADO, BONIFICA)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (
+                cupom, 
+                cpf, 
+                idpagamento, 
+                formapgto, 
+                dtpagamento, 
+                vlinscricao_float, 
+                vltaxa_float, 
+                vlpago_float, 
+                int(modalidade), 
+                'N',  # Not used initially
+                bonifica
+            ))
+            
+            # Commit to database
+            mysql.connection.commit()
+
+            # Verificar se existe um atleta cadastrado com esse CPF
+            cursor.execute("SELECT EMAIL FROM ATLETA WHERE CPF = %s", (cpf,))
+            resultado = cursor.fetchone()
+            
+            # Obter a descrição da modalidade
+            cursor.execute("SELECT DESCRICAO FROM EVENTO_MODALIDADE WHERE IDITEM = %s", (modalidade,))
+            modalidade_result = cursor.fetchone()
+            desc_modalidade = modalidade_result[0] if modalidade_result else "Não especificada"
+
+            # Se encontrou o atleta, enviar email
+            if resultado and resultado[0]:
+                email_atleta = resultado[0]
+                
+                # Enviar email
+                try:
+                    sender = "ECM RUN <ecmsistemasdeveloper@gmail.com>"
+                    msg = Message(
+                        'Cupom para o 4º Desafio 200k',
+                        sender=sender,
+                        recipients=[email_atleta]
+                    )
+                    
+                    # Template HTML do email
+                    if bonifica == 'N':
+                        msg.html = f"""
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <h2 style="color: #4376ac;">Verificação de Cadastro - ECM Run</h2>
+                            <p>Olá,</p>
+                            <p>Foi gerado um cupom em seu CPF para o 4º Desafio 200k:</p>
+                            <h1 style="color: #4376ac; font-size: 32px; letter-spacing: 5px;">{cupom}</h1>
+                            <p>Para validar sua inscrição, você deve preencher os requisitos abaixo:</p>
+                            <p>Cupom válido somente para seu CPF;</p>
+                            <p>Categoria: <b>{desc_modalidade}<b>;</p>
+                            <p>Forma de Pagamento: <b>{formapgto}</b></p>
+                            <br>
+                            <p>Atenciosamente,<br>Equipe ECM Run</p>
+                        </div>
+                        """
+                    else:
+                        msg.html = f"""
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <h2 style="color: #4376ac;">Verificação de Cadastro - ECM Run</h2>
+                            <p>Olá,</p>
+                            <p>Foi gerado um cupom em seu CPF para o 4º Desafio 200k:</p>
+                            <h1 style="color: #4376ac; font-size: 32px; letter-spacing: 5px;">{cupom}</h1>
+                            <p>Para validar sua inscrição, você deve preencher os requisitos abaixo:</p>
+                            <p>Cupom válido somente para seu CPF;</p>
+                            <p>Categoria: <b>{desc_modalidade}</b></p>
+                            <br>
+                            <p>Atenciosamente,<br>Equipe ECM Run</p>
+                        </div>
+                        """
+                    
+                    # Enviar email
+                    mail.send(msg)
+                    print(f"Email enviado com sucesso para {email_atleta}")
+                except Exception as mail_error:
+                    print(f"Erro ao enviar email: {mail_error}")
+                    # Não retornamos erro aqui, pois o cupom já foi gerado com sucesso
+                    # O email é apenas uma notificação adicional
+            
+            # Limpar a autenticação após uso bem-sucedido
+            session.pop('authenticated', None)
+            
+            return jsonify({'success': True, 'cupom': cupom})
+        
+        except Exception as e:
+            print(f"Database error: {e}")
+            mysql.connection.rollback()
+            return jsonify({'success': False, 'error': str(e)}), 500
+        
+        finally:
+            cursor.close()
+            
+    except Exception as e:
+        print(f"General error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/verificar_senha', methods=['POST'])
+def verificar_senha():
+    senha = request.form.get('senha')
+    senha_adm = os.getenv('SENHA_ADM')
+    
+    if senha == senha_adm:
+        # Criar uma autenticação temporária para esta requisição apenas
+        session['authenticated'] = True
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'message': 'Senha incorreta'})
+
+@app.route('/logout')
+def logout():
+    session.pop('authenticated', None)
+    return redirect(url_for('desafio200k'))
+
+
+# Rota para exibir a página de cadastro
+@app.route('/apoio200k')
+def apoio_cadastro():
+    return render_template('apoio200k.html')
+
+# API para buscar atletas
+@app.route('/api/atletas')
+def get_atletas():
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+            SELECT A.IDATLETA, CONCAT(A.NOME,' ',A.SOBRENOME) AS ATLETA
+            FROM INSCRICAO I, ATLETA A
+            WHERE A.IDATLETA = I.IDATLETA
+            AND I.IDEVENTO = 1
+            ORDER BY CONCAT(A.NOME,' ',A.SOBRENOME)
+        """
+        cursor.execute(query)
+        atletas = cursor.fetchall()
+        cursor.close()
+        
+        # Converter para lista de dicionários
+        atletas_list = []
+        for atleta in atletas:
+            atletas_list.append({
+                'IDATLETA': atleta[0],
+                'ATLETA': atleta[1]
+            })
+        
+        return jsonify(atletas_list)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API para cadastrar apoio
+@app.route('/api/cadastrar-apoio', methods=['POST'])
+def cadastrar_apoio():
+    try:
+        data = request.get_json()
+        
+        # Validar dados obrigatórios (veículo e placa agora são opcionais)
+        if not all([data.get('nome'), data.get('celular'), 
+                   data.get('idatleta'), data.get('aceite')]):
+            return jsonify({'message': 'Nome, celular, atleta e aceite são obrigatórios'}), 400
+        
+        # Verificar se aceite é 'S'
+        if data.get('aceite') != 'S':
+            return jsonify({'message': 'É necessário aceitar o regulamento'}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Verificar se já existe apoio com mesmo nome e celular para o mesmo atleta
+        check_query = """
+            SELECT COUNT(*) FROM APOIO 
+            WHERE UPPER(NOME) = %s AND CELULAR = %s AND IDATLETA = %s
+        """
+        cursor.execute(check_query, (
+            data['nome'].upper().strip(),
+            data['celular'].strip(),
+            data['idatleta']
+        ))
+        
+        if cursor.fetchone()[0] > 0:
+            cursor.close()
+            return jsonify({'message': 'Já existe um apoio cadastrado com este nome e celular para este atleta'}), 400
+        
+        # Obter data e hora de Manaus
+        data_e_hora_atual = datetime.now()
+        fuso_horario = timezone('America/Manaus')
+        data_e_hora_manaus = data_e_hora_atual.astimezone(fuso_horario)
+        
+        # Inserir novo apoio
+        insert_query = """
+            INSERT INTO APOIO (NOME, CELULAR, VEICULO, PLACA, IDATLETA, DT_CADASTRO, ACEITE)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(insert_query, (
+            data['nome'].upper().strip(),
+            data['celular'].strip(),
+            data.get('veiculo', '').upper().strip(),
+            data.get('placa', '').upper().strip(),
+            data['idatleta'],
+            data_e_hora_manaus,
+            data['aceite']
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'message': 'Apoio cadastrado com sucesso'}), 200
+    
+    except Exception as e:
+        return jsonify({'message': f'Erro interno do servidor: {str(e)}'}), 500
+
+#######################
+
+# Rota para renderizar a página principal
+@app.route('/listainscricao200k')
+def lista_inscricao():
+    print("DEBUG: Renderizando página listainscricao200k.html")
+    return render_template('listainscricao200k.html')
+
+# Rota para verificar senha
+@app.route('/verificar_senha1', methods=['POST'])
+def verificar_senha1():
+    print("DEBUG: Verificando senha...")
+    try:
+        data = request.get_json()
+        print(f"DEBUG: Dados recebidos: {data}")
+        
+        senha_informada = data.get('senha')
+        senha_correta = os.getenv('SENHA_ACESSO')
+        
+        print(f"DEBUG: Senha informada: {senha_informada}")
+        print(f"DEBUG: Senha do ambiente existe: {senha_correta is not None}")
+                
+        if senha_informada == senha_correta:
+            session['autenticado'] = True
+            print("DEBUG: Autenticação bem-sucedida")
+            return jsonify({'success': True})
+        else:
+            print("DEBUG: Senha incorreta")
+            return jsonify({'success': False, 'message': 'Senha incorreta'})
+            
+    except Exception as e:
+        print(f"DEBUG: Erro na verificação da senha: {str(e)}")
+        return jsonify({'success': False, 'message': f'Erro: {str(e)}'})
+
+# Rota para buscar eventos
+@app.route('/api/eventos1')
+def get_eventos1():
+    print("DEBUG: Buscando eventos...")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        print("DEBUG: Conexão com banco estabelecida")
+        
+        cursor.execute("SELECT IDEVENTO, DESCRICAO FROM EVENTO")
+        eventos = cursor.fetchall()
+        cursor.close()
+        
+        print(f"DEBUG: Encontrados {len(eventos)} eventos")
+        
+        eventos_list = []
+        for evento in eventos:
+            eventos_list.append({
+                'IDEVENTO': evento[0],
+                'DESCRICAO': evento[1]
+            })
+        
+        print(f"DEBUG: Retornando eventos: {eventos_list}")
+        return jsonify(eventos_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar eventos: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Rota para buscar modalidades por evento
+@app.route('/api/modalidades1/<int:evento_id>')
+def get_modalidades1(evento_id):
+    print(f"DEBUG: Buscando modalidades para evento {evento_id}")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT IDITEM, DESCRICAO FROM EVENTO_MODALIDADE WHERE IDEVENTO = %s", (evento_id,))
+        modalidades = cursor.fetchall()
+        cursor.close()
+        
+        print(f"DEBUG: Encontradas {len(modalidades)} modalidades")
+        
+        modalidades_list = []
+        for modalidade in modalidades:
+            modalidades_list.append({
+                'IDITEM': modalidade[0],
+                'DESCRICAO': modalidade[1]
+            })
+        
+        return jsonify(modalidades_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar modalidades: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/modalidades2/<int:evento_id>')
+def get_modalidades2(evento_id):
+    print(f"DEBUG: Buscando modalidades para evento {evento_id}")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT IDITEM, DESCRICAO FROM EVENTO_MODALIDADE WHERE IDITEM <> 1 AND IDEVENTO = %s", (evento_id,))
+        modalidades = cursor.fetchall()
+        cursor.close()
+        
+        print(f"DEBUG: Encontradas {len(modalidades)} modalidades")
+        
+        modalidades_list = []
+        for modalidade in modalidades:
+            modalidades_list.append({
+                'IDITEM': modalidade[0],
+                'DESCRICAO': modalidade[1]
+            })
+        
+        return jsonify(modalidades_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar modalidades: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Rota para buscar inscrições por evento e modalidade
+@app.route('/api/inscricoes/<int:evento_id>')
+@app.route('/api/inscricoes/<int:evento_id>/<int:modalidade_id>')
+def get_inscricoes(evento_id, modalidade_id=None):
+    print(f"DEBUG: Buscando inscrições para evento {evento_id}, modalidade {modalidade_id}")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        
+        if modalidade_id:
+            query = """
+            SELECT CONCAT(COALESCE(I.NUPEITO, ''),' ',A.NOME,' ',A.SOBRENOME) AS ATLETA, 
+                   I.CAMISETA,
+                   EV.DESCRICAO,
+                   I.IDINSCRICAO,
+                   A.SEXO,
+                   I.FLSTATUS,
+                   I.NUPEITO
+            FROM ATLETA A, INSCRICAO I, EVENTO_MODALIDADE EV
+            WHERE 
+            EV.IDITEM = I.IDITEM
+            AND A.IDATLETA = I.IDATLETA
+            AND I.IDEVENTO = %s
+            AND I.IDITEM = %s
+            ORDER BY CONCAT(A.NOME,' ',A.SOBRENOME)
+            """
+            cursor.execute(query, (evento_id, modalidade_id))
+        else:
+            query = """
+            SELECT CONCAT(COALESCE(I.NUPEITO, ''),' ',A.NOME,' ',A.SOBRENOME) AS ATLETA, 
+                   I.CAMISETA,
+                   EV.DESCRICAO,
+                   I.IDINSCRICAO,
+                   A.SEXO,
+                   I.FLSTATUS,
+                   I.NUPEITO
+            FROM ATLETA A, INSCRICAO I, EVENTO_MODALIDADE EV
+            WHERE 
+            EV.IDITEM = I.IDITEM
+            AND A.IDATLETA = I.IDATLETA
+            AND I.IDEVENTO = %s
+            ORDER BY CONCAT(A.NOME,' ',A.SOBRENOME)
+            """
+            cursor.execute(query, (evento_id,))
+            
+        inscricoes = cursor.fetchall()
+        cursor.close()
+        
+        print(f"DEBUG: Encontradas {len(inscricoes)} inscrições")
+        
+        inscricoes_list = []
+        for inscricao in inscricoes:
+            inscricoes_list.append({
+                'ATLETA': inscricao[0],
+                'CAMISETA': inscricao[1],
+                'DESCRICAO': inscricao[2],
+                'IDINSCRICAO': inscricao[3],
+                'SEXO': inscricao[4],
+                'FLSTATUS': inscricao[5],
+                'NUPEITO': inscricao[6]
+            })
+        
+        return jsonify(inscricoes_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar inscrições: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Rota para buscar detalhes da inscrição
+@app.route('/api/inscricao/<int:inscricao_id>')
+def get_inscricao_detalhes(inscricao_id):
+    print(f"DEBUG: Buscando detalhes da inscrição {inscricao_id}")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT I.IDINSCRICAO, I.CPF, I.APOIO, I.NOME_EQUIPE, I.INTEGRANTES,
+            I.CAMISETA, I.VALOR, I.TAXA, I.DESCONTO, I.VALOR_PGTO,
+            I.FORMAPGTO, I.EQUIPE, I.CUPOM, 
+            CONCAT(A.NOME,' ',A.SOBRENOME) AS NOME_COMPLETO,
+            A.DTNASCIMENTO, A.NRCELULAR, A.SEXO, A.IDATLETA,
+            EV.DESCRICAO AS MODALIDADE, I.FLSTATUS, I.NUPEITO
+        FROM INSCRICAO I
+        JOIN ATLETA A ON A.IDATLETA = I.IDATLETA
+        JOIN EVENTO_MODALIDADE EV ON EV.IDITEM = I.IDITEM
+        WHERE I.IDINSCRICAO = %s
+        """
+        cursor.execute(query, (inscricao_id,))
+        inscricao = cursor.fetchone()
+        cursor.close()
+        
+        if inscricao:
+            resultado = {
+                'IDINSCRICAO': inscricao[0],
+                'CPF': inscricao[1],
+                'APOIO': inscricao[2],
+                'NOME_EQUIPE': inscricao[3],
+                'INTEGRANTES': inscricao[4],
+                'CAMISETA': inscricao[5],
+                'VALOR': float(inscricao[6]) if inscricao[6] else 0,
+                'TAXA': float(inscricao[7]) if inscricao[7] else 0,
+                'DESCONTO': float(inscricao[8]) if inscricao[8] else 0,
+                'VALOR_PGTO': float(inscricao[9]) if inscricao[9] else 0,
+                'FORMAPGTO': inscricao[10],
+                'EQUIPE': inscricao[11],
+                'CUPOM': inscricao[12],
+                'NOME_COMPLETO': inscricao[13],
+                'DTNASCIMENTO': inscricao[14],
+                'NRCELULAR': inscricao[15],
+                'SEXO': inscricao[16],
+                'IDATLETA': inscricao[17], 
+                'MODALIDADE': inscricao[18],
+                'FLSTATUS': inscricao[19],
+                'NUPEITO': inscricao[20]
+            }
+            print(f"DEBUG: Detalhes encontrados: {resultado}")
+            return jsonify(resultado)
+        else:
+            print("DEBUG: Inscrição não encontrada")
+            return jsonify({'error': 'Inscrição não encontrada'}), 404
+            
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar detalhes: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/atualizar-inscricao', methods=['POST'])
+def atualizar_inscricao():
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        data = request.json
+        inscricao_id = data['inscricaoId']
+        fpagto = data['formapagto']
+        valor = float(data['valor'])
+        taxa = float(data['taxa'])
+        desconto = float(data['desconto'])
+        valor_pago = valor + taxa - desconto
+        status = data['status']
+        npeito = data['npeito']
+        
+        cursor = mysql.connection.cursor()
+        query = """
+        UPDATE INSCRICAO 
+        SET FORMAPGTO = %s, VALOR = %s, TAXA = %s, DESCONTO = %s, VALOR_PGTO = %s, FLSTATUS = %s, NUPEITO = %s
+        WHERE IDINSCRICAO = %s
+        """
+        cursor.execute(query, (fpagto, valor, taxa, desconto, valor_pago, status, npeito, inscricao_id))
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'success': True, 'message': 'Inscrição atualizada com sucesso'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Rota para logout
+@app.route('/logout_coordenador', methods=['POST'])
+def logout_coordenador():
+    print("DEBUG: Fazendo logout")
+    session.pop('autenticado', None)
+    return jsonify({'success': True})
+
+#########
+
+# ===== ROTAS PARA SISTEMA DE EQUIPES =====
+
+# Rota para buscar equipes por evento
+@app.route('/api/equipes/<int:evento_id>')
+def get_equipes(evento_id):
+    print(f"DEBUG: Buscando equipes para evento {evento_id}")
+    
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT E.IDEA, E.NOME_EQUIPE, EM.DESCRICAO
+        FROM EQUIPE E, EVENTO_MODALIDADE EM
+        WHERE EM.IDITEM = E.IDITEM
+        AND E.IDEVENTO = %s
+        ORDER BY E.NOME_EQUIPE
+        """
+        cursor.execute(query, (evento_id,))
+        equipes = cursor.fetchall()
+        cursor.close()
+        
+        print(f"DEBUG: Encontradas {len(equipes)} equipes")
+        
+        equipes_list = []
+        for equipe in equipes:
+            equipes_list.append({
+                'IDEA': equipe[0],
+                'NOME_EQUIPE': equipe[1],
+                'DESCRICAO': equipe[2]
+            })
+        
+        return jsonify(equipes_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar equipes: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Rota para buscar dados de uma modalidade específica
+@app.route('/api/modalidade1/<int:modalidade_id>')
+def get_modalidade1(modalidade_id):
+    print(f"DEBUG: Buscando modalidade {modalidade_id}")
+    
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT IDITEM, IDEVENTO, DESCRICAO, DISTANCIA, KM, 
+               VLINSCRICAO, VLMEIA, VLTAXA, NU_ATLETAS
+        FROM EVENTO_MODALIDADE 
+        WHERE IDITEM = %s
+        """
+        cursor.execute(query, (modalidade_id,))
+        modalidade = cursor.fetchone()
+        cursor.close()
+        
+        if modalidade:
+            modalidade_data = {
+                'IDITEM': modalidade[0],
+                'IDEVENTO': modalidade[1],
+                'DESCRICAO': modalidade[2],
+                'DISTANCIA': modalidade[3],
+                'KM': modalidade[4],
+                'VLINSCRICAO': float(modalidade[5]) if modalidade[5] else 0,
+                'VLMEIA': float(modalidade[6]) if modalidade[6] else 0,
+                'VLTAXA': float(modalidade[7]) if modalidade[7] else 0,
+                'NU_ATLETAS': modalidade[8]
+            }
+            return jsonify(modalidade_data)
+        else:
+            return jsonify({'error': 'Modalidade não encontrada'}), 404
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar modalidade: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Rota para buscar atletas disponíveis para equipe
+@app.route('/api/atletas-disponiveis/<int:evento_id>/<int:modalidade_id>')
+def get_atletas_disponiveis(evento_id, modalidade_id):
+    print(f"DEBUG: Buscando atletas disponíveis para evento {evento_id}, modalidade {modalidade_id}")
+    
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT A.IDATLETA, CONCAT(A.NOME,' ',A.SOBRENOME) AS ATLETA
+        FROM INSCRICAO I, ATLETA A
+        WHERE NOT EXISTS (
+            SELECT 1 
+            FROM EQUIPE_ATLETAS EA 
+            WHERE EA.IDATLETA = A.IDATLETA 
+            AND EA.IDEVENTO = %s
+        )
+        AND I.IDITEM = %s
+        AND I.IDEVENTO = %s
+        AND A.IDATLETA = I.IDATLETA
+        ORDER BY CONCAT(A.NOME,' ',A.SOBRENOME)
+        """
+        cursor.execute(query, (evento_id, modalidade_id, evento_id))
+        atletas = cursor.fetchall()
+        cursor.close()
+        
+        print(f"DEBUG: Encontrados {len(atletas)} atletas disponíveis")
+        
+        atletas_list = []
+        for atleta in atletas:
+            atletas_list.append({
+                'IDATLETA': atleta[0],
+                'ATLETA': atleta[1]
+            })
+        
+        return jsonify(atletas_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar atletas disponíveis: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Rota para criar equipe
+@app.route('/api/criar-equipe', methods=['POST'])
+def criar_equipe():
+    print("DEBUG: Criando nova equipe")
+    
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        data = request.json
+        evento_id = data['eventoId']
+        modalidade_id = data['modalidadeId']
+        nome_equipe = data['nomeEquipe']
+        atletas = data['atletas']
+        
+        print(f"DEBUG: Dados recebidos - Evento: {evento_id}, Modalidade: {modalidade_id}, Nome: {nome_equipe}")
+        
+        cursor = mysql.connection.cursor()
+        
+        # Buscar dados da modalidade para cálculos de KM
+        cursor.execute("SELECT KM FROM EVENTO_MODALIDADE WHERE IDITEM = %s", (modalidade_id,))
+        modalidade_data = cursor.fetchone()
+        km_modalidade = modalidade_data[0] if modalidade_data else 0
+        
+        # Inserir equipe
+        cursor.execute("""
+            INSERT INTO EQUIPE (IDEVENTO, IDITEM, NOME_EQUIPE) 
+            VALUES (%s, %s, %s)
+        """, (evento_id, modalidade_id, nome_equipe))
+        
+        equipe_id = cursor.lastrowid
+        print(f"DEBUG: Equipe criada com ID: {equipe_id}")
+        
+        # Inserir atletas da equipe
+        for ordem, atleta in enumerate(atletas, 1):
+            km_ini = (ordem - 1) * km_modalidade
+            km_fim = ordem * km_modalidade
+            
+            cursor.execute("""
+                INSERT INTO EQUIPE_ATLETAS (IDEA, IDEVENTO, IDATLETA, ORDEM, KM_INI, KM_FIM) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (equipe_id, evento_id, atleta['IDATLETA'], ordem, km_ini, km_fim))
+            
+            print(f"DEBUG: Atleta {atleta['NOME']} inserido - Ordem: {ordem}, KM: {km_ini}-{km_fim}")
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'success': True, 'message': 'Equipe criada com sucesso'})
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao criar equipe: {str(e)}")
         mysql.connection.rollback()
-        return jsonify({
-            'sucesso': False,
-            'mensagem': f'Erro ao excluir locação: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-
-@app.route('/api/locacao_item/<int:iditem>')
-@login_required
-def locacao_item(iditem):
-    try:
-        print(f"Iniciando consulta à Locação Item para ID: {iditem}")
-        cursor = mysql.connection.cursor()
-        
-        print("Executando consulta SQL")
-        cursor.execute("""
-            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO, 
-            i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, i.VL_DK, 
-            i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, i.DATA_INICIO, i.DATA_FIM, 
-            i.HORA_INICIO, i.HORA_FIM, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.OBS
-            FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m
-            WHERE m.ID_MOTORISTA = i.ID_MOTORISTA
-            AND i.ID_ITEM = %s
-        """, (iditem,))
-        result = cursor.fetchone()
-        cursor.close()
-        print(f"Dados: {result}")
-        
-        if result:
-            print("Processando resultado...")
-            import datetime  # Certifique-se que está importado
-            
-            # Debug para cada campo antes da conversão
-            print(f"Tipos de dados dos campos:")
-            print(f"dt_inicio: {type(result[14])}, valor: {result[14]}")
-            print(f"dt_fim: {type(result[15])}, valor: {result[15]}")
-            print(f"hora_inicio: {type(result[16])}, valor: {result[16]}")
-            print(f"hora_fim: {type(result[17])}, valor: {result[17]}")
-            
-            try:
-                # Converter datas para string
-                print("Convertendo datas...")
-                dt_inicio = result[14].strftime('%Y-%m-%d') if result[14] and hasattr(result[14], 'strftime') else result[14]
-                dt_fim = result[15].strftime('%Y-%m-%d') if result[15] and hasattr(result[15], 'strftime') else result[15]
-                print(f"Datas convertidas: {dt_inicio}, {dt_fim}")
-                
-                # Converter tempos
-                print("Convertendo tempos...")
-                def format_timedelta(td):
-                    print(f"Formatando timedelta: {td}, tipo: {type(td)}")
-                    if td is None:
-                        return None
-                    if isinstance(td, datetime.timedelta):
-                        seconds = td.total_seconds()
-                        hours = int(seconds // 3600)
-                        minutes = int((seconds % 3600) // 60)
-                        secs = int(seconds % 60)
-                        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-                    if hasattr(td, 'strftime'):
-                        return td.strftime('%H:%M:%S')
-                    return str(td)
-                
-                hora_inicio = format_timedelta(result[16])
-                hora_fim = format_timedelta(result[17])
-                print(f"Tempos convertidos: {hora_inicio}, {hora_fim}")
-                
-                # Converter valores decimais
-                print("Convertendo valores...")
-                valor_diaria = float(result[9]) if result[9] is not None else None
-                valor_subtotal = float(result[10]) if result[10] is not None else None
-                valor_diferenca = float(result[11]) if result[11] is not None else None
-                valor_total = float(result[12]) if result[12] is not None else None
-                print("Valores convertidos com sucesso")
-                
-                itens = {
-                    'id_exercicio': result[0],
-                    'id_mes': result[1],
-                    'setor_solicitante': result[2],
-                    'objetivo': result[3],
-                    'id_empenho': result[4],
-                    'id_veiculo_loc': result[5],
-                    'id_motorista': result[6],
-                    'nome_motorista': result[7],
-                    'qt_diarias': float(result[8]) if result[8] is not None else None,
-                    'valor_diaria': valor_diaria,
-                    'valor_subtotal': valor_subtotal,
-                    'valor_diferenca': valor_diferenca,
-                    'valor_total': valor_total,
-                    'nu_sei': result[13],
-                    'dt_inicio': dt_inicio,
-                    'dt_fim': dt_fim,
-                    'hora_inicio': hora_inicio,
-                    'hora_fim': hora_fim,
-                    'veiculo_modelo': result[18],
-                    'combustivel': result[19],
-		    'obs': result[20]
-                }
-                print("Dicionário itens criado com sucesso")
-                
-                # Debug - veja o que está sendo enviado
-                print("Enviando para o frontend:", itens)
-                return jsonify(itens)
-            
-            except Exception as e:
-                print(f"Erro durante processamento dos dados: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
-        else:
-            print(f"Locação com ID {iditem} não encontrada")
-            return jsonify({'erro': 'Locação não encontrada'}), 400
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500     
-
-@app.route('/api/busca_modelos_veiculos')
-@login_required
-def busca_modelos_veiculos():
-    try:
-        termo = request.args.get('termo', '')
-        if len(termo) < 3:
-            return jsonify([])
-            
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-            SELECT DISTINCT DS_VEICULO_MOD 
-            FROM TJ_CONTROLE_LOCACAO_ITENS
-            WHERE DS_VEICULO_MOD LIKE %s
-            LIMIT 10
-        """, (f'%{termo}%',))
-        
-        result = cursor.fetchall()
-        cursor.close()
-        
-        modelos = [row[0] for row in result]
-        return jsonify(modelos)
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-
-@app.route('/api/busca_combustivel')
-@login_required
-def busca_combustivel():
-    try:
-        termo = request.args.get('termo', '')
-            
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-            SELECT DISTINCT COMBUSTIVEL FROM TJ_CONTROLE_LOCACAO_ITENS
-            WHERE DS_VEICULO_MOD = %s
-        """, (termo,))
-                
-        result = cursor.fetchall()
-        cursor.close()
-        
-        combustivel = [row[0] for row in result]
-        return jsonify(combustivel)
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-
-@app.route('/api/salvar_devolucao/<int:iditem>', methods=['POST'])
-@login_required
-def salvar_devolucao(iditem):
-    try:
-        data = request.form
-        data_inicio = data.get('data_inicio')
-        data_fim = data.get('data_fim')
-        hora_inicio = data.get('hora_inicio')
-        hora_fim = data.get('hora_fim')
-        qt_diarias = data.get('qt_diarias')
-        km_rodado = data.get('km_rodado')
-        
-        #qt_diarias = float(data.get('qt_diarias', 0))
-
-        # Converter data_inicio e data_fim para objetos datetime
-        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
-        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
-        
-        # Extrair ano e mês da data de fim
-        id_exercicio = data_fim_obj.year
-        id_mes = data_fim_obj.month
-        
-        # Converter data para o formato dd/mm/yyyy para os campos de string
-        dt_inicial = data_inicio_obj.strftime('%d/%m/%Y')
-        dt_final = data_fim_obj.strftime('%d/%m/%Y')
-        
-        # Converter hora para string no formato hh:mm
-        hr_inicial = hora_inicio
-        hr_final = hora_fim
-        
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-            UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
-            OBJETIVO = %s,
-            SETOR_SOLICITANTE = %s,
-            ID_VEICULO_LOC = %s,
-            ID_MOTORISTA = %s,
-            ID_EXERCICIO = %s,
-            ID_MES = %s,
-            DATA_INICIO = %s,
-            DATA_FIM = %s,
-            HORA_INICIO = %s,
-            HORA_FIM = %s,
-            DT_INICIAL = %s,
-            DT_FINAL = %s,
-            HR_INICIAL = %s,
-            HR_FINAL = %s,
-            QT_DIARIA_KM = %s,
-            VL_DIFERENCA = %s,
-            VL_SUBTOTAL = %s,
-            VL_TOTALITEM = %s,
-            DS_VEICULO_MOD = %s,
-            FL_STATUS = 'F',
-            KM_RODADO = %s,
-            COMBUSTIVEL = %s,
-            OBS_DEV = %s
-            WHERE ID_ITEM = %s
-        """, (
-            data.get('objetivo'),
-            data.get('setor_solicitante'),
-            data.get('id_veiculo'),
-            data.get('id_motorista'),
-            id_exercicio, id_mes,
-            data.get('data_inicio'),
-            data.get('data_fim'),
-            data.get('hora_inicio'),
-            data.get('hora_fim'),
-            dt_inicial, dt_final, hr_inicial, hr_final,
-            qt_diarias,
-            data.get('valor_diferenca'),
-            data.get('valor_subtotal'),
-            data.get('valor_total'),
-            data.get('veiculo_modelo'),
-            km_rodado,
-            data.get('combustivel'),
-            data.get('obs_dev'),
-            iditem
-        ))
-        mysql.connection.commit()
-        cursor.close()
-        
-        return jsonify({'mensagem': 'Devolução registrada com sucesso!'})
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@app.route('/api/editar_locacao/<int:iditem>', methods=['POST'])
-@login_required
-def editar_locacao(iditem):
-    try:
-        data = request.form
-        data_inicio = data.get('data_inicio')
-        data_fim = data.get('data_fim')
-        hora_inicio = data.get('hora_inicio')
-        hora_fim = data.get('hora_fim')
-        qt_diarias = data.get('qt_diarias')
-        km_rodado = data.get('km_rodado')
-        
-        #qt_diarias = float(data.get('qt_diarias', 0))
-
-        # Converter data_inicio e data_fim para objetos datetime
-        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
-        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
-        
-        # Extrair ano e mês da data de fim
-        id_exercicio = data_fim_obj.year
-        id_mes = data_fim_obj.month
-        
-        # Converter data para o formato dd/mm/yyyy para os campos de string
-        dt_inicial = data_inicio_obj.strftime('%d/%m/%Y')
-        dt_final = data_fim_obj.strftime('%d/%m/%Y')
-        
-        # Converter hora para string no formato hh:mm
-        hr_inicial = hora_inicio
-        hr_final = hora_fim
-        
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-            UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
-            OBJETIVO = %s,
-            SETOR_SOLICITANTE = %s,
-            ID_VEICULO_LOC = %s,
-            ID_MOTORISTA = %s,
-            ID_EXERCICIO = %s,
-            ID_MES = %s,
-            DATA_INICIO = %s,
-            DATA_FIM = %s,
-            HORA_INICIO = %s,
-            HORA_FIM = %s,
-            DT_INICIAL = %s,
-            DT_FINAL = %s,
-            HR_INICIAL = %s,
-            HR_FINAL = %s,
-            QT_DIARIA_KM = %s,
-            VL_DIFERENCA = %s,
-            VL_SUBTOTAL = %s,
-            VL_TOTALITEM = %s,
-            DS_VEICULO_MOD = %s,
-            COMBUSTIVEL = %s,
-            OBS = %s
-            WHERE ID_ITEM = %s
-        """, (
-            data.get('objetivo'),
-            data.get('setor_solicitante'),
-            data.get('id_veiculo'),
-            data.get('id_motorista'),
-            id_exercicio, id_mes,
-            data.get('data_inicio'),
-            data.get('data_fim'),
-            data.get('hora_inicio'),
-            data.get('hora_fim'),
-            dt_inicial, dt_final, hr_inicial, hr_final,
-            qt_diarias,
-            data.get('valor_diferenca'),
-            data.get('valor_subtotal'),
-            data.get('valor_total'),
-            data.get('veiculo_modelo'),
-            data.get('combustivel'),
-            data.get('obs'),
-            iditem
-        ))
-        mysql.connection.commit()
-        cursor.close()
-        
-        return jsonify({'mensagem': 'Alteração registrada com sucesso!'})
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-
-@app.route('/api/locacao_visualiza/<int:iditem>')
-@login_required
-def locacao_visualiza(iditem):
-    try:
-        print(f"Iniciando consulta à Locação Item para ID: {iditem}")
-        cursor = mysql.connection.cursor()
-        
-        print("Executando consulta SQL")
-        cursor.execute("""
-			SELECT e.NU_EMPENHO, i.SETOR_SOLICITANTE, i.OBJETIVO, i.NU_SEI, m.NM_MOTORISTA, 
-            v.DE_VEICULO, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.DATA_INICIO, i.DATA_FIM, 
-            i.HORA_INICIO, i.HORA_FIM, i.QT_DIARIA_KM, i.VL_DK, 
-            i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO, i.OBS, i.OBS_DEV
-            FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m, 
-            TJ_CONTROLE_LOCACAO_EMPENHOS e, TJ_VEICULO_LOCACAO v
-            WHERE v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
-            AND e.ID_EMPENHO = i.ID_EMPENHO 
-            AND m.ID_MOTORISTA = i.ID_MOTORISTA
-            AND i.ID_ITEM = %s
-        """, (iditem,))
-        result = cursor.fetchone()
-        cursor.close()
-        print(f"Dados: {result}")
-        
-        if result:
-            print("Processando resultado...")
-            import datetime  # Certifique-se que está importado
-            
-            # Debug para cada campo antes da conversão
-            print(f"Tipos de dados dos campos:")
-            print(f"dt_inicio: {type(result[8])}, valor: {result[8]}")
-            print(f"dt_fim: {type(result[9])}, valor: {result[9]}")
-            print(f"hora_inicio: {type(result[10])}, valor: {result[10]}")
-            print(f"hora_fim: {type(result[11])}, valor: {result[11]}")
-            
-            try:
-                # Converter datas para string
-                print("Convertendo datas...")
-                dt_inicio = result[8].strftime('%Y-%m-%d') if result[8] and hasattr(result[8], 'strftime') else result[8]
-                dt_fim = result[9].strftime('%Y-%m-%d') if result[9] and hasattr(result[9], 'strftime') else result[9]
-                print(f"Datas convertidas: {dt_inicio}, {dt_fim}")
-                
-                # Converter tempos
-                print("Convertendo tempos...")
-                def format_timedelta(td):
-                    print(f"Formatando timedelta: {td}, tipo: {type(td)}")
-                    if td is None:
-                        return None
-                    if isinstance(td, datetime.timedelta):
-                        seconds = td.total_seconds()
-                        hours = int(seconds // 3600)
-                        minutes = int((seconds % 3600) // 60)
-                        secs = int(seconds % 60)
-                        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-                    if hasattr(td, 'strftime'):
-                        return td.strftime('%H:%M:%S')
-                    return str(td)
-                
-                hora_inicio = format_timedelta(result[10])
-                hora_fim = format_timedelta(result[11])
-                print(f"Tempos convertidos: {hora_inicio}, {hora_fim}")
-                
-                # Converter valores decimais
-                print("Convertendo valores...")
-                valor_diaria = float(result[13]) if result[13] is not None else None
-                valor_subtotal = float(result[14]) if result[14] is not None else None
-                valor_diferenca = float(result[15]) if result[15] is not None else None
-                valor_total = float(result[16]) if result[16] is not None else None
-                print("Valores convertidos com sucesso")
-                
-                itens = {
-                    'nu_empenho': result[0],
-                    'setor_solicitante': result[1],
-                    'objetivo': result[2],
-                    'nu_sei': result[3],
-                    'nome_motorista': result[4],
-                    'de_veiculo': result[5],
-                    'veiculo_modelo': result[6],
-                    'combustivel': result[7],
-                    'dt_inicio': dt_inicio,
-                    'dt_fim': dt_fim,
-                    'hora_inicio': hora_inicio,
-                    'hora_fim': hora_fim,
-                    'qt_diarias': float(result[12]) if result[12] is not None else None,
-                    'valor_diaria': valor_diaria,
-                    'valor_subtotal': valor_subtotal,
-                    'valor_diferenca': valor_diferenca,
-                    'valor_total': valor_total,
-                    'km_rodado': result[17],
-                    'obs': result[18],
-                    'obs_dev': result[19]
-                }
-                print("Dicionário itens criado com sucesso")
-                
-                # Debug - veja o que está sendo enviado
-                print("Enviando para o frontend:", itens)
-                return jsonify(itens)
-            
-            except Exception as e:
-                print(f"Erro durante processamento dos dados: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
-        else:
-            print(f"Locação com ID {iditem} não encontrada")
-            return jsonify({'erro': 'Locação não encontrada'}), 400
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500     
-
-@app.route('/fluxo_veiculos')
-@login_required
-def fluxo_veiculos():
-    return render_template('fluxo_veiculos.html')
-
-
-# @app.route('/api/fluxo_lista_setores')
-# @login_required
-# def fluxo_lista_setores():
-#     try:
-#         cursor = mysql.connection.cursor()
-#         cursor.execute("""
-#         SELECT DISTINCT SETOR_SOLICITANTE 
-#         FROM TJ_FLUXO_VEICULOS
-#         ORDER BY SETOR_SOLICITANTE
-#         """)
-               
-#         items = cursor.fetchall()
-
-#         setores = []
-#         for item in items:
-#             lista = {'SETOR_SOLICITANTE': item[0]}
-#             setores.append(lista)
-            
-#         cursor.close()
-#         return jsonify(setores)
-        
-#     except Exception as e:
-#         app.logger.error(f"Erro ao buscar setores: {str(e)}")
-#         return jsonify({"error": str(e)}), 500
+# Rota para buscar atletas de uma equipe
+@app.route('/api/equipe-atletas/<int:equipe_id>')
+def get_equipe_atletas(equipe_id):
+    print(f"DEBUG: Buscando atletas da equipe {equipe_id}")
     
-
-@app.route('/api/fluxo_busca_setor')
-@login_required
-def fluxo_busca_setor():
-    try:
-        termo = request.args.get('termo', '')
-        if len(termo) < 3:
-            return jsonify([])
-            
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-            SELECT DISTINCT SETOR_SOLICITANTE 
-            FROM TJ_FLUXO_VEICULOS
-            WHERE SETOR_SOLICITANTE LIKE %s
-            ORDER BY SETOR_SOLICITANTE
-        """, (f'%{termo}%',))
-        
-        result = cursor.fetchall()
-        cursor.close()
-        
-        setores = [row[0] for row in result]
-        return jsonify(setores)
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500    
-
-@app.route('/api/fluxo_busca_destino')
-@login_required
-def fluxo_busca_destino():
-    try:
-        termo = request.args.get('termo', '')
-        if len(termo) < 3:
-            return jsonify([])
-            
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-            SELECT DISTINCT DESTINO 
-            FROM TJ_FLUXO_VEICULOS
-            WHERE DESTINO LIKE %s
-            ORDER BY DESTINO
-        """, (f'%{termo}%',))
-        
-        result = cursor.fetchall()
-        cursor.close()
-        
-        destinos = [row[0] for row in result]
-        return jsonify(destinos)
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500    
-
-
-# @app.route('/api/fluxo_lista_destinos')
-# @login_required
-# def fluxo_lista_destinos():
-#     try:
-#         cursor = mysql.connection.cursor()
-#         cursor.execute("""
-#         SELECT DISTINCT DESTINO 
-#         FROM TJ_FLUXO_VEICULOS
-#         ORDER BY DESTINO
-#         """)
-               
-#         items = cursor.fetchall()
-
-#         destinos = []
-#         for item in items:
-#             lista = {'DESTINO': item[0]}
-#             destinos.append(lista)
-            
-#         cursor.close()
-#         return jsonify(destinos)
-        
-#     except Exception as e:
-#         app.logger.error(f"Erro ao buscar setores: {str(e)}")
-#         return jsonify({"error": str(e)}), 500
-
-@app.route('/api/fluxo_lista_motorista')
-@login_required
-def fluxo_lista_motorista():
-    try:
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-        SELECT ID_MOTORISTA, NM_MOTORISTA 
-        FROM TJ_MOTORISTA WHERE ATIVO = 'S' AND ID_MOTORISTA <> 0
-        ORDER BY NM_MOTORISTA
-        """)
-               
-        items = cursor.fetchall()
-
-        motoristas = []
-        for item in items:
-            lista = {'ID_MOTORISTA': item[0],
-                     'NM_MOTORISTA': item[1]}
-            motoristas.append(lista)
-            
-        cursor.close()
-        return jsonify(motoristas)
-        
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar setores: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/fluxo_lista_veiculos')
-@login_required
-def fluxo_lista_veiculos():
-    try:
-        # SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO 
-        # FROM TJ_VEICULO WHERE FL_ATENDIMENTO = 'S'
-        # ORDER BY DS_MODELO
-  
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-        SELECT v.ID_VEICULO, CONCAT(v.DS_MODELO,' - ',v.NU_PLACA) AS VEICULO 
-        FROM TJ_VEICULO v 
-        WHERE v.ID_VEICULO NOT IN 
-            (SELECT ID_VEICULO FROM TJ_FLUXO_VEICULOS
-			 WHERE FL_STATUS = 'S') 
-        AND v.FL_ATENDIMENTO = 'S'
-        ORDER BY v.DS_MODELO 
-        """)
-               
-        items = cursor.fetchall()
-
-        veiculos = []
-        for item in items:
-            lista = {'ID_VEICULO': item[0],
-                     'VEICULO': item[1]}
-            veiculos.append(lista)
-            
-        cursor.close()
-        return jsonify(veiculos)
-        
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar setores: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/fluxo_veiculo_saida_sem_retorno')
-@login_required
-def fluxo_veiculo_saida_sem_retorno():
-    try:
-        cursor = mysql.connection.cursor()
-        
-        print("Executando consulta SQL")
-        cursor.execute("""
-            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
-                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
-                f.ID_VEICULO, f.ID_MOTORISTA, 
-                CASE WHEN f.ID_MOTORISTA=0 THEN 
-                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
-                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
-            FROM TJ_FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v 
-                ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m 
-                ON f.ID_MOTORISTA = m.ID_MOTORISTA
-            WHERE f.DATA_RETORNO IS NULL
-            AND f.DATA_SAIDA = CURDATE()
-            ORDER BY f.DATA_SAIDA, f.HORA_SAIDA
-        """)
-        results = cursor.fetchall()  # Altere para fetchall() para obter todos os registros
-        cursor.close()
-        print(f"Número de registros encontrados: {len(results)}")
-        
-        if results:
-            print("Processando resultados...")
-            itens_list = []
-            
-            try:
-                for result in results:
-                    item = {
-                        'id_fluxo': result[0],
-                        'setor_solicitante': result[1],
-                        'destino': result[2],
-                        'veiculo': result[3],
-                        'id_veiculo': result[4],''
-                        'id_motorista': result[5],
-                        'nome_motorista': result[6],
-                        'datahora_saida': result[7],
-                        'obs': result[8]
-                    }
-                    itens_list.append(item)
-                
-                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
-                # Debug - veja o que está sendo enviado
-                print("Enviando para o frontend:", itens_list)
-                return jsonify(itens_list)  # Retorne a lista completa
-            
-            except Exception as e:
-                print(f"Erro durante processamento dos dados: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
-        else:
-            return jsonify([])  # Retorne lista vazia em vez de erro quando não houver dados
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@app.route('/api/fluxo_veiculo_retorno_dia')
-@login_required
-def fluxo_veiculo_retorno_dia():
-    try:
-        cursor = mysql.connection.cursor()
-        
-        print("Executando consulta SQL")
-        cursor.execute("""
-            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
-                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
-                f.ID_VEICULO, f.ID_MOTORISTA, 
-                CASE WHEN f.ID_MOTORISTA=0 THEN 
-                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
-                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, 
-                CONCAT(f.DT_RETORNO,' ',f.HR_RETORNO) AS RETORNO, f.OBS_RETORNO
-            FROM TJ_FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v 
-                ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m 
-                ON f.ID_MOTORISTA = m.ID_MOTORISTA
-            WHERE f.DATA_RETORNO IS NOT NULL
-            AND f.DATA_RETORNO = CURDATE()
-            ORDER BY f.DATA_RETORNO, f.HORA_RETORNO
-        """)
-        results = cursor.fetchall()  # Altere para fetchall()
-        cursor.close()
-        print(f"Número de registros encontrados: {len(results)}")
-        
-        if results:
-            print("Processando resultados...")
-            itens_list = []
-            
-            try:
-                for result in results:
-                    item = {
-                        'id_fluxo': result[0],
-                        'setor_solicitante': result[1],
-                        'destino': result[2],
-                        'veiculo': result[3],
-                        'id_veiculo': result[4],
-                        'id_motorista': result[5],
-                        'nome_motorista': result[6],
-                        'datahora_saida': result[7],
-                        'datahora_retorno': result[8],
-                        'obs': result[9]
-                    }
-                    itens_list.append(item)
-                
-                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
-                return jsonify(itens_list)  # Retorne a lista completa
-            
-            except Exception as e:
-                print(f"Erro durante processamento dos dados: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
-        else:
-            return jsonify([])  # Retorne lista vazia
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-
-@app.route('/api/fluxo_veiculo_saida_retorno_pendente')
-@login_required
-def fluxo_veiculo_saida_retorno_pendente():
-    try:
-        cursor = mysql.connection.cursor()
-        
-        print("Executando consulta SQL")
-        cursor.execute("""
-            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
-                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
-                f.ID_VEICULO, f.ID_MOTORISTA, 
-                CASE WHEN f.ID_MOTORISTA=0 THEN 
-                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
-                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
-            FROM TJ_FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v 
-                ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m 
-                ON f.ID_MOTORISTA = m.ID_MOTORISTA
-            WHERE f.DATA_RETORNO IS NULL
-            AND f.DATA_SAIDA <> CURDATE()
-            ORDER BY f.DATA_SAIDA, f.HORA_SAIDA
-        """)
-        results = cursor.fetchall()  # Altere para fetchall()
-        cursor.close()
-        print(f"Número de registros encontrados: {len(results)}")
-        
-        if results:
-            print("Processando resultados...")
-            itens_list = []
-            
-            try:
-                for result in results:
-                    item = {
-                        'id_fluxo': result[0],
-                        'setor_solicitante': result[1],
-                        'destino': result[2],
-                        'veiculo': result[3],
-                        'id_veiculo': result[4],
-                        'id_motorista': result[5],
-                        'nome_motorista': result[6],
-                        'datahora_saida': result[7],
-                        'obs': result[8]
-                    }
-                    itens_list.append(item)
-                
-                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
-                return jsonify(itens_list)  # Retorne a lista completa
-            
-            except Exception as e:
-                print(f"Erro durante processamento dos dados: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
-        else:
-            return jsonify([])  # Retorne lista vazia
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-
-@app.route('/api/fluxo_saida_item/<int:idfluxo>')
-@login_required
-def fluxo_saida_item(idfluxo):
-    try:
-        print(f"Iniciando consulta à Saida para ID: {idfluxo}")
-        cursor = mysql.connection.cursor()
-        
-        print("Executando consulta SQL")
-        cursor.execute("""
-            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
-                f.ID_VEICULO, f.ID_MOTORISTA, f.DATA_SAIDA, f.HORA_SAIDA, 
-                f.DATA_RETORNO, f.HORA_RETORNO, f.OBS,
-                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO,  
-                CASE WHEN f.ID_MOTORISTA=0 THEN 
-                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA
-            FROM TJ_FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v 
-                ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m 
-                ON f.ID_MOTORISTA = m.ID_MOTORISTA
-            WHERE f.ID_FLUXO = %s
-        """, (idfluxo,))
-        result = cursor.fetchone()
-        cursor.close()
-        print(f"Dados: {result}")
-        
-        if result:
-            print("Processando resultado...")
-            import datetime  # Certifique-se que está importado
-            
-            # Debug para cada campo antes da conversão
-            print(f"Tipos de dados dos campos:")
-            print(f"dt_saida: {type(result[5])}, valor: {result[5]}")
-            print(f"dt_retorno: {type(result[7])}, valor: {result[7]}")
-            print(f"hora_saida: {type(result[6])}, valor: {result[6]}")
-            print(f"hora_retorno: {type(result[8])}, valor: {result[8]}")
-            
-            try:
-                # Converter datas para string
-                print("Convertendo datas...")
-                dt_saida = result[5].strftime('%Y-%m-%d') if result[5] and hasattr(result[5], 'strftime') else result[5]
-                dt_retorno = result[7].strftime('%Y-%m-%d') if result[7] and hasattr(result[7], 'strftime') else result[7]
-                print(f"Datas convertidas: {dt_saida}, {dt_retorno}")
-                
-                # Converter tempos
-                print("Convertendo tempos...")
-                def format_timedelta(td):
-                    print(f"Formatando timedelta: {td}, tipo: {type(td)}")
-                    if td is None:
-                        return None
-                    if isinstance(td, datetime.timedelta):
-                        seconds = td.total_seconds()
-                        hours = int(seconds // 3600)
-                        minutes = int((seconds % 3600) // 60)
-                        secs = int(seconds % 60)
-                        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
-                    if hasattr(td, 'strftime'):
-                        return td.strftime('%H:%M:%S')
-                    return str(td)
-                
-                hora_saida = format_timedelta(result[6])
-                hora_retorno = format_timedelta(result[8])       
-                
-                itens = {
-                    'id_fluxo': result[0],
-                    'setor_solicitante': result[1],
-                    'destino': result[2],
-                    'id_veiculo': result[3],
-                    'veiculo': result[10],
-                    'id_motorista': result[4],
-                    'nome_motorista': result[11],
-                    'dt_saida': dt_saida,
-                    'dt_retorno': dt_retorno,
-                    'hora_saida': hora_saida,
-                    'hora_retorno': hora_retorno,
-		            'obs': result[9]
-                }
-                print("Dicionário itens criado com sucesso")
-                
-                # Debug - veja o que está sendo enviado
-                print("Enviando para o frontend:", itens)
-                return jsonify(itens)
-            
-            except Exception as e:
-                print(f"Erro durante processamento dos dados: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
-        else:
-            print(f"Locação com ID {idfluxo} não encontrada")
-            return jsonify({'erro': 'Locação não encontrada'}), 400
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-# Rota para obter o próximo ID_ITEM
-def obter_proximo_id_fluxo():
-    cursor = mysql.connection.cursor()
-    cursor.execute("SELECT MAX(ID_FLUXO) FROM TJ_FLUXO_VEICULOS")
-    resultado = cursor.fetchone()
-    cursor.close()
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
     
-    ultimo_id = resultado[0] if resultado[0] else 0
-    return ultimo_id + 1
-
-
-@app.route('/api/fluxo_nova_saida', methods=['POST'])
-@login_required
-def fluxo_nova_saida():
     try:
-        setor_solicitante = request.form.get('setorSolicitante_saida')
-        destino = request.form.get('destino_saida')
-        id_veiculo = request.form.get('veiculo_saida')
-        id_motorista = request.form.get('motorista_saida')
-        motorista_nc = request.form.get('motoristanaocad_saida')
-        data_saida = request.form.get('datasaida_saida')
-        hora_saida = request.form.get('horasaida_saida')
-        obs_saida = request.form.get('obs_saida')
+        cursor = mysql.connection.cursor()
         
-        # Obter o próximo ID_ITEM
-        id_fluxo = obter_proximo_id_fluxo()
-        
-        # Converter data_inicio e data_fim para objetos datetime
-        data_saida_obj = datetime.strptime(data_saida, '%Y-%m-%d')
-        
-        # Converter data para o formato dd/mm/yyyy para os campos de string
-        dt_saida = data_saida_obj.strftime('%d/%m/%Y')
-        
-        # Converter hora para string no formato hh:mm
-        hr_saida = hora_saida
-        
-        # Obter ID do usuário da sessão
-        usuario = session.get('usuario_login')
-
-        cursor = mysql.connection.cursor() 
-        # Inserir na tabela TJ_FLUXO_VEICULOS
+        # Buscar dados da equipe
         cursor.execute("""
-            INSERT INTO TJ_FLUXO_VEICULOS (
-                ID_FLUXO, ID_VEICULO, DT_SAIDA, HR_SAIDA, SETOR_SOLICITANTE, DESTINO, 
-                ID_MOTORISTA, NC_CONDUTOR, OBS, FL_STATUS, USUARIO_SAIDA, DATA_SAIDA, HORA_SAIDA
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (id_fluxo, id_veiculo, dt_saida, hr_saida, setor_solicitante, destino, 
-              id_motorista, motorista_nc, obs_saida, 'S', usuario, data_saida, hora_saida        
-        ))
-
-        mysql.connection.commit()
-              
-        response_data = {
-            'sucesso': True,
-            'mensagem': 'Saida registrada com sucesso!'
+            SELECT E.IDEA, E.NOME_EQUIPE, E.IDEVENTO, E.IDITEM, EM.DESCRICAO
+            FROM EQUIPE E, EVENTO_MODALIDADE EM
+            WHERE E.IDEA = %s AND EM.IDITEM = E.IDITEM
+        """, (equipe_id,))
+        equipe_data = cursor.fetchone()
+        
+        if not equipe_data:
+            return jsonify({'error': 'Equipe não encontrada'}), 404
+        
+        # Buscar atletas da equipe
+        cursor.execute("""
+            SELECT EA.IDATLETA, CONCAT(A.NOME,' ',A.SOBRENOME) AS ATLETA, 
+                   EA.ORDEM, EA.KM_INI, EA.KM_FIM
+            FROM EQUIPE_ATLETAS EA
+            INNER JOIN ATLETA A ON A.IDATLETA = EA.IDATLETA
+            WHERE EA.IDEA = %s
+            ORDER BY EA.ORDEM
+        """, (equipe_id,))
+        atletas_data = cursor.fetchall()
+        
+        cursor.close()
+        
+        # Estruturar dados da equipe
+        equipe = {
+            'IDEA': equipe_data[0],
+            'NOME_EQUIPE': equipe_data[1],
+            'IDEVENTO': equipe_data[2],
+            'IDITEM': equipe_data[3],
+            'DESCRICAO': equipe_data[4]
         }
-             
-        cursor.close()
-        return jsonify(response_data)
+        
+        # Estruturar dados dos atletas
+        atletas = []
+        for atleta in atletas_data:
+            atletas.append({
+                'IDATLETA': atleta[0],
+                'ATLETA': atleta[1],
+                'ORDEM': atleta[2],
+                'KM_INI': atleta[3],
+                'KM_FIM': atleta[4]
+            })
+        
+        return jsonify({
+            'equipe': equipe,
+            'atletas': atletas
+        })
         
     except Exception as e:
-        print(f"Erro ao : {str(e)}")
-        return jsonify({
-            'sucesso': False,
-            'mensagem': str(e)
-        }), 500
+        print(f"Erro ao buscar atletas da equipe: {str(e)}")
+        return jsonify({'error': 'Erro interno do servidor'}), 500
 
-
-@app.route('/api/fluxo_lanca_retorno/<int:idfluxo>', methods=['POST'])
-@login_required
-def fluxo_lanca_retorno(idfluxo):
+# Rota para salvar nova ordem dos atletas
+@app.route('/api/salvar-ordem-equipe', methods=['POST'])
+def salvar_ordem_equipe():
+    print("DEBUG: Salvando nova ordem da equipe")
+    
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
     try:
-        data_retorno = request.form.get('data_retorno')
-        hora_retorno = request.form.get('hora_retorno')
-        obs_retorno = request.form.get('obs_retorno')
+        data = request.get_json()
+        equipe_id = data.get('equipeId')
+        atletas = data.get('atletas')
         
-        # Converter data_inicio e data_fim para objetos datetime
-        data_retorno_obj = datetime.strptime(data_retorno, '%Y-%m-%d')
+        if not all([equipe_id, atletas]):
+            return jsonify({'error': 'Dados incompletos'}), 400
         
-        # Converter data para o formato dd/mm/yyyy para os campos de string
-        dt_retorno = data_retorno_obj.strftime('%d/%m/%Y')
+        cursor = mysql.connection.cursor()
         
-        # Converter hora para string no formato hh:mm
-        hr_retorno = hora_retorno
-        
-        # Obter ID do usuário da sessão
-        usuario = session.get('usuario_login')
-
-        cursor = mysql.connection.cursor() 
-        # Inserir na tabela TJ_FLUXO_VEICULOS
+        # Buscar dados da equipe para pegar o KM da modalidade
         cursor.execute("""
-            UPDATE TJ_FLUXO_VEICULOS SET
-                DT_RETORNO = %s,
-                HR_RETORNO = %s,
-                DATA_RETORNO = %s,
-                HORA_RETORNO = %s,
-                FL_STATUS = %s,
-                USUARIO_CHEGADA = %s,
-                OBS_RETORNO = %s
-            WHERE ID_FLUXO = %s
-        """, (dt_retorno, hr_retorno, data_retorno, hora_retorno, 
-              'R', usuario, obs_retorno, idfluxo        
-        ))
-
+            SELECT E.IDITEM, EM.KM
+            FROM EQUIPE E
+            INNER JOIN EVENTO_MODALIDADE EM ON EM.IDITEM = E.IDITEM
+            WHERE E.IDEA = %s
+        """, (equipe_id,))
+        equipe_data = cursor.fetchone()
+        
+        if not equipe_data:
+            return jsonify({'error': 'Equipe não encontrada'}), 404
+        
+        km_por_atleta = equipe_data[1]
+        
+        # Atualizar ordem dos atletas
+        for atleta in atletas:
+            ordem = atleta['ordem']
+            id_atleta = atleta['idatleta']
+            km_ini = (ordem - 1) * km_por_atleta
+            km_fim = ordem * km_por_atleta
+            
+            cursor.execute("""
+                UPDATE EQUIPE_ATLETAS 
+                SET ORDEM = %s, KM_INI = %s, KM_FIM = %s
+                WHERE IDEA = %s AND IDATLETA = %s
+            """, (ordem, km_ini, km_fim, equipe_id, id_atleta))
+        
         mysql.connection.commit()
-              
-        response_data = {
-            'sucesso': True,
-            'mensagem': 'Retorno registrado com sucesso!'
+        cursor.close()
+        
+        return jsonify({'success': True, 'message': 'Ordem salva com sucesso'})
+        
+    except Exception as e:
+        print(f"Erro ao salvar ordem: {str(e)}")
+        mysql.connection.rollback()
+        return jsonify({'error': 'Erro interno do servidor'}), 500
+
+@app.route('/api/apoios/<int:atleta_id>')
+def get_apoios_atleta(atleta_id):
+    print(f"DEBUG: Buscando apoios do atleta {atleta_id}")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT IDAPOIO, NOME, CELULAR, VEICULO, PLACA
+        FROM APOIO 
+        WHERE IDATLETA = %s
+        ORDER BY NOME
+        """
+        cursor.execute(query, (atleta_id,))
+        apoios = cursor.fetchall()
+        cursor.close()
+        
+        resultado = []
+        for apoio in apoios:
+            veiculo_placa = ""
+            if apoio[3] or apoio[4]:  # Se tem veículo ou placa
+                veiculo = apoio[3] or ""
+                placa = apoio[4] or ""
+                veiculo_placa = f"{veiculo} {placa}".strip()
+            
+            resultado.append({
+                'IDAPOIO': apoio[0],
+                'NOME': apoio[1],
+                'CELULAR': apoio[2],
+                'VEICULO_PLACA': veiculo_placa
+            })
+        
+        print(f"DEBUG: {len(resultado)} apoios encontrados")
+        return jsonify(resultado)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar apoios: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+###########
+@app.route('/apoio_organizacao200k')
+def apoio_organizacao200k():
+    """Rota para servir a página HTML de cadastro de apoio"""
+    return render_template('apoio_organizacao200k.html')
+
+@app.route('/obter_pontos_apoio_org200k', methods=['GET'])
+def obter_pontos_apoio_org200k():
+    """Rota para obter todos os pontos de apoio disponíveis"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT IDPONTO, DE_PONTO 
+            FROM PONTO_APOIO_ORG_200k 
+            ORDER BY IDPONTO
+        """)
+        rows = cur.fetchall()
+        cur.close()
+        
+        pontos = []
+        for row in rows:
+            pontos.append({
+                'IDPONTO': row[0],
+                'DE_PONTO': row[1]
+            })
+        
+        return jsonify(pontos)
+    
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter pontos de apoio: {str(e)}'}), 500
+
+@app.route('/obter_proximo_id_apoio_org200k', methods=['GET'])
+def obter_proximo_id_apoio_org200k():
+    """Rota para obter o próximo ID disponível para APOIO_ORG_200k"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT COALESCE(MAX(IDAPOIO_ORG), 0) + 1 as proximo_id 
+            FROM APOIO_ORG_200k
+        """)
+        row = cur.fetchone()
+        cur.close()
+        
+        proximo_id = row[0] if row else 1
+        
+        return jsonify({'proximo_id': proximo_id})
+    
+    except Exception as e:
+        return jsonify({'error': f'Erro ao obter próximo ID: {str(e)}'}), 500
+
+@app.route('/salvar_apoio_org200k', methods=['POST'])
+def salvar_apoio_org200k():
+    """Rota para salvar o apoio da organização e seus itens"""
+    try:
+        print("=== INICIO salvar_apoio_org200k ===")
+        
+        dados = request.get_json()
+        print(f"Dados recebidos: {dados}")
+        
+        # Validar dados recebidos
+        if not dados:
+            print("Erro: Dados não informados")
+            return jsonify({'message': 'Dados não informados'}), 400
+        
+        id_apoio_org = dados.get('idApoioOrg')
+        nome = dados.get('nome', '').strip()
+        celular = dados.get('celular', '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+        itens = dados.get('itens', [])
+        
+        print(f"ID: {id_apoio_org}, Nome: {nome}, Celular: {celular}")
+        print(f"Itens: {itens}")
+        
+        # Validações
+        if not nome:
+            print("Erro: Nome é obrigatório")
+            return jsonify({'message': 'Nome é obrigatório'}), 400
+        
+        if not celular or len(celular) != 11:
+            print(f"Erro: Celular inválido - {celular} - tamanho: {len(celular)}")
+            return jsonify({'message': 'Celular deve ter 11 dígitos'}), 400
+        
+        if not itens:
+            print("Erro: Nenhum item de apoio")
+            return jsonify({'message': 'Pelo menos um item de apoio é obrigatório'}), 400
+        
+        if not id_apoio_org:
+            print("Erro: ID do apoio não informado")
+            return jsonify({'message': 'ID do apoio não informado'}), 400
+        
+        # Validar datas dos itens
+        print("Validando datas dos itens...")
+        data_minima = datetime(2025, 7, 4, 12, 0)
+        data_maxima = datetime(2025, 7, 6, 19, 0)
+        
+        for i, item in enumerate(itens):
+            print(f"Validando item {i}: {item}")
+            try:
+                dt_inicio = datetime.fromisoformat(item['DTHR_INICIO'].replace('T', ' '))
+                dt_final = datetime.fromisoformat(item['DTHR_FINAL'].replace('T', ' '))
+                
+                print(f"Item {i} - Início: {dt_inicio}, Final: {dt_final}")
+                
+                if dt_inicio < data_minima or dt_inicio > data_maxima:
+                    print(f"Erro: Data início fora do intervalo - {dt_inicio}")
+                    return jsonify({'message': 'Data/hora de início deve estar entre 04/07/2025 12:00 e 06/07/2025 19:00'}), 400
+                
+                if dt_final < data_minima or dt_final > data_maxima:
+                    print(f"Erro: Data final fora do intervalo - {dt_final}")
+                    return jsonify({'message': 'Data/hora final deve estar entre 04/07/2025 12:00 e 06/07/2025 19:00'}), 400
+                
+                if dt_final <= dt_inicio:
+                    print(f"Erro: Data final <= início")
+                    return jsonify({'message': 'Data/hora final deve ser posterior à data/hora inicial'}), 400
+                    
+            except ValueError as ve:
+                print(f"Erro no formato da data: {ve}")
+                return jsonify({'message': 'Formato de data/hora inválido'}), 400
+            except Exception as e:
+                print(f"Erro inesperado na validação de data: {e}")
+                return jsonify({'message': f'Erro na validação de data: {str(e)}'}), 400
+        
+        # Iniciar transação
+        print("Iniciando transação com banco de dados...")
+        cur = None
+        
+        try:
+            cur = mysql.connection.cursor()
+            print("Cursor criado com sucesso")
+            
+            # Verificar se o ID já existe
+            print(f"Verificando se ID {id_apoio_org} já existe...")
+            cur.execute("SELECT COUNT(*) FROM APOIO_ORG_200k WHERE IDAPOIO_ORG = %s", (id_apoio_org,))
+            count = cur.fetchone()[0]
+            print(f"Registros encontrados com este ID: {count}")
+            
+            if count > 0:
+                print("Erro: ID já existe")
+                return jsonify({'message': 'ID já existe, recarregue a página'}), 400
+            
+            # Inserir registro principal na APOIO_ORG_200k
+            print("Inserindo registro principal...")
+            sql_principal = """
+                INSERT INTO APOIO_ORG_200k (IDAPOIO_ORG, NOME, CELULAR, DT_CADASTRO) 
+                VALUES (%s, %s, %s, NOW())
+            """
+            parametros_principal = (id_apoio_org, nome, celular)
+            print(f"SQL: {sql_principal}")
+            print(f"Parâmetros: {parametros_principal}")
+            
+            cur.execute(sql_principal, parametros_principal)
+            print("Registro principal inserido com sucesso")
+            
+            # Inserir itens na APOIO_ORG_ITENS_200k
+            print("Inserindo itens...")
+            for i, item in enumerate(itens):
+                dt_inicio_str = item['DTHR_INICIO'].replace('T', ' ')
+                dt_final_str = item['DTHR_FINAL'].replace('T', ' ')
+                
+                # Correção: usar IDPUNTO ao invés de IDPONTO (conforme enviado do frontend)
+                id_ponto = item.get('IDPUNTO') or item.get('IDPONTO')
+                print(f"Item {i} - ID Ponto: {id_ponto}, Início: {dt_inicio_str}, Final: {dt_final_str}")
+                
+                sql_item = """
+                    INSERT INTO APOIO_ORG_ITENS_200k (IDAPOIO_ORG, IDPONTO, DTHR_INICIO, DTHR_FINAL) 
+                    VALUES (%s, %s, %s, %s)
+                """
+                parametros_item = (id_apoio_org, id_ponto, dt_inicio_str, dt_final_str)
+                print(f"SQL Item: {sql_item}")
+                print(f"Parâmetros Item: {parametros_item}")
+                
+                cur.execute(sql_item, parametros_item)
+                print(f"Item {i} inserido com sucesso")
+            
+            # Confirmar transação
+            print("Confirmando transação...")
+            mysql.connection.commit()
+            print("Transação confirmada com sucesso")
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Apoio registrado com sucesso!',
+                'id_apoio': id_apoio_org
+            })
+        
+        except Exception as e:
+            # Desfazer transação em caso de erro
+            print(f"ERRO na transação do banco: {str(e)}")
+            print(f"Tipo do erro: {type(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            if mysql.connection:
+                mysql.connection.rollback()
+                print("Rollback executado")
+            
+            return jsonify({'message': f'Erro ao salvar no banco de dados: {str(e)}'}), 500
+        
+        finally:
+            # Garantir que o cursor seja fechado
+            if cur:
+                cur.close()
+                print("Cursor fechado")
+    
+    except Exception as e:
+        print(f"ERRO GERAL na rota: {str(e)}")
+        print(f"Tipo do erro: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'message': f'Erro interno do servidor: {str(e)}'}), 500
+
+
+@app.route('/consultar_apoio_org200k/<int:id_apoio>', methods=['GET'])
+def consultar_apoio_org200k(id_apoio):
+    """Rota para consultar um apoio específico (para futura página de edição)"""
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Buscar dados principais
+        cur.execute("""
+            SELECT IDAPOIO_ORG, NOME, CELULAR, DT_CADASTRO 
+            FROM APOIO_ORG_200k 
+            WHERE IDAPOIO_ORG = %s
+        """, (id_apoio,))
+        
+        apoio_row = cur.fetchone()
+        if not apoio_row:
+            cur.close()
+            return jsonify({'error': 'Apoio não encontrado'}), 404
+        
+        # Buscar itens
+        cur.execute("""
+            SELECT ai.ID, ai.IDPONTO, p.DE_PONTO, ai.DTHR_INICIO, ai.DTHR_FINAL
+            FROM APOIO_ORG_ITENS_200k ai
+            INNER JOIN PONTO_APOIO_ORG_200k p ON ai.IDPONTO = p.IDPONTO
+            WHERE ai.IDAPOIO_ORG = %s
+            ORDER BY ai.DTHR_INICIO
+        """, (id_apoio,))
+        
+        itens_rows = cur.fetchall()
+        cur.close()
+        
+        # Montar resposta
+        apoio = {
+            'IDAPOIO_ORG': apoio_row[0],
+            'NOME': apoio_row[1],
+            'CELULAR': apoio_row[2],
+            'DT_CADASTRO': apoio_row[3].isoformat() if apoio_row[3] else None,
+            'itens': []
         }
-             
-        cursor.close()
-        return jsonify(response_data)
         
-    except Exception as e:
-        print(f"Erro ao : {str(e)}")
-        return jsonify({
-            'sucesso': False,
-            'mensagem': str(e)
-        }), 500
-
-
-@app.route('/api/busca_motorista')
-@login_required
-def busca_motorista():
-    try:
-        nome = request.args.get('nome', '')
-        cursor = mysql.connection.cursor()
+        for item_row in itens_rows:
+            apoio['itens'].append({
+                'ID': item_row[0],
+                'IDPONTO': item_row[1],
+                'DE_PONTO': item_row[2],
+                'DTHR_INICIO': item_row[3].isoformat() if item_row[3] else None,
+                'DTHR_FINAL': item_row[4].isoformat() if item_row[4] else None
+            })
         
-        if nome:
-            query = """
-            SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
-            FROM TJ_MOTORISTA 
-            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
-            AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
-            ORDER BY NM_MOTORISTA
-            """
-            cursor.execute(query, (f'%{nome}%',))
-        else:
-            query = """
-            SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
-            FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
-            ORDER BY NM_MOTORISTA
-            """
-            cursor.execute(query)
-        
-        columns = ['id_motorista', 'matricula', 'nm_motorista', 'sigla_setor']
-        motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        cursor.close()
-        return jsonify(motoristas)
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-
-@app.route('/veiculos_frota')
-@login_required
-def veiculos_frota():
-    return render_template('veiculos_frota.html')
-	
-@app.route('/api/veiculos', methods=['GET'])
-@login_required
-def lista_veiculos():
-    try:
-        filtro = request.args.get('filtro', '')
-        
-        cursor = mysql.connection.cursor()
-        
-        if filtro:
-            # Busca pelo modelo ou placa
-            query = """
-            SELECT v.*, c.DS_CAT_VEICULO 
-            FROM TJ_VEICULO v
-            LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
-            WHERE v.NU_PLACA LIKE %s OR v.DS_MODELO LIKE %s OR v.MARCA LIKE %s
-            ORDER BY v.ID_VEICULO DESC
-            """
-            cursor.execute(query, (f'%{filtro}%', f'%{filtro}%', f'%{filtro}%'))
-        else:
-            # Busca todos
-            query = """
-            SELECT v.*, c.DS_CAT_VEICULO 
-            FROM TJ_VEICULO v
-            LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
-            ORDER BY v.ID_VEICULO DESC
-            """
-            cursor.execute(query)
-        
-        veiculos = []
-        columns = [column[0] for column in cursor.description]
-        
-        for row in cursor.fetchall():
-            veiculo = {}
-            for i, col in enumerate(columns):
-                veiculo[col.lower()] = row[i]
-            veiculos.append(veiculo)
-        
-        cursor.close()
-        return jsonify(veiculos)
+        return jsonify(apoio)
     
     except Exception as e:
-        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
+        return jsonify({'error': f'Erro ao consultar apoio: {str(e)}'}), 500
 
-
-@app.route('/api/obter_veiculo/<int:id>', methods=['GET'])
-@login_required
-def obter_veiculo(id):
+@app.route('/listar_apoios_org200k', methods=['GET'])
+def listar_apoios_org200k():
+    """Rota para listar todos os apoios (para futura página de administração)"""
     try:
-        cursor = mysql.connection.cursor()
+        cur = mysql.connection.cursor()
         
-        query = """
-        SELECT v.*, c.DS_CAT_VEICULO 
-        FROM TJ_VEICULO v
-        LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
-        WHERE v.ID_VEICULO = %s
-        """
-        cursor.execute(query, (id,))
+        cur.execute("""
+            SELECT a.IDAPOIO_ORG, a.NOME, a.CELULAR, a.DT_CADASTRO,
+                   COUNT(ai.ID) as total_itens
+            FROM APOIO_ORG_200k a
+            LEFT JOIN APOIO_ORG_ITENS_200k ai ON a.IDAPOIO_ORG = ai.IDAPOIO_ORG
+            GROUP BY a.IDAPOIO_ORG, a.NOME, a.CELULAR, a.DT_CADASTRO
+            ORDER BY a.DT_CADASTRO DESC
+        """)
         
-        row = cursor.fetchone()
+        rows = cur.fetchall()
+        cur.close()
         
-        if not row:
-            return jsonify({"erro": "Veículo não encontrado"}), 404
+        apoios = []
+        for row in rows:
+            apoios.append({
+                'IDAPOIO_ORG': row[0],
+                'NOME': row[1],
+                'CELULAR': row[2],
+                'DT_CADASTRO': row[3].isoformat() if row[3] else None,
+                'TOTAL_ITENS': row[4]
+            })
         
-        columns = [column[0] for column in cursor.description]
-        veiculo = {}
-        for i, col in enumerate(columns):
-            veiculo[col.lower()] = row[i]
-        
-        cursor.close()
-        return jsonify(veiculo)
+        return jsonify(apoios)
     
     except Exception as e:
-        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
-    
+        return jsonify({'error': f'Erro ao listar apoios: {str(e)}'}), 500
 
-@app.route('/api/veiculos/cadastrar', methods=['POST'])
-@login_required
-def cadastrar_veiculo():
+# Função auxiliar para popular tabela de pontos de apoio (execute uma vez)
+@app.route('/popular_pontos_apoio_org200k', methods=['POST'])
+def popular_pontos_apoio_org200k():
+    """Rota para popular a tabela de pontos de apoio (usar apenas uma vez para configurar)"""
     try:
-        cursor = mysql.connection.cursor()
+        pontos_exemplo = [
+            'Largada',
+            'KM 5',
+            'KM 10',
+            'KM 20',
+            'KM 30',
+            'KM 50',
+            'KM 70',
+            'KM 100',
+            'KM 130',
+            'KM 150',
+            'KM 170',
+            'KM 190',
+            'Chegada',
+            'Posto Médico',
+            'Hidratação',
+            'Apoio Técnico'
+        ]
         
-        # Get last ID and increment
-        cursor.execute("SELECT COALESCE(MAX(ID_VEICULO), 0) + 1 FROM TJ_VEICULO")
-        novo_id = cursor.fetchone()[0]
-
-        # Form data
-        nu_placa = request.json.get('nu_placa', '').upper()
-        id_categoria = request.json.get('id_categoria')
-        marca = request.json.get('marca', '')
-        ds_modelo = request.json.get('ds_modelo', '')
-        ano_fabmod = request.json.get('ano_fabmod', '')
-        origem_veiculo = request.json.get('origem_veiculo', '')
-        propriedade = request.json.get('propriedade', '')
-        combustivel = request.json.get('combustivel', '')
-        obs = request.json.get('obs', '')
-        ativo = request.json.get('ativo', 'S')
-        fl_atendimento = request.json.get('fl_atendimento', 'N')
-        usuario = session.get('usuario_id')
-
-        # Get current timestamp in Manaus timezone
-        manaus_tz = timezone('America/Manaus')
-        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-
-        # Insert query
-        query = """
-        INSERT INTO TJ_VEICULO (
-            ID_VEICULO, NU_PLACA, ID_CATEGORIA, MARCA, DS_MODELO, 
-            ANO_FABMOD, ORIGEM_VEICULO, PROPRIEDADE, COMBUSTIVEL, 
-            OBS, ATIVO, FL_ATENDIMENTO, USUARIO, DT_TRANSACAO
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
+        cur = mysql.connection.cursor()
         
-        cursor.execute(query, (
-            novo_id, nu_placa, id_categoria, marca, ds_modelo, 
-            ano_fabmod, origem_veiculo, propriedade, combustivel, 
-            obs, ativo, fl_atendimento, usuario, dt_transacao
+        for ponto in pontos_exemplo:
+            cur.execute("""
+                INSERT INTO PONTO_APOIO_ORG_200k (DE_PONTO) 
+                VALUES (%s)
+            """, (ponto,))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({'success': True, 'message': 'Pontos de apoio populados com sucesso!'})
+    
+    except Exception as e:
+        return jsonify({'error': f'Erro ao popular pontos de apoio: {str(e)}'}), 500
+
+# Rota para excluir um apoio (para futura página de administração)
+@app.route('/excluir_apoio_org200k/<int:id_apoio>', methods=['DELETE'])
+def excluir_apoio_org200k(id_apoio):
+    """Rota para excluir um apoio e seus itens"""
+    try:
+        cur = mysql.connection.cursor()
+        
+        try:
+            # Excluir itens primeiro (chave estrangeira)
+            cur.execute("DELETE FROM APOIO_ORG_ITENS_200k WHERE IDAPOIO_ORG = %s", (id_apoio,))
+            
+            # Excluir apoio principal
+            cur.execute("DELETE FROM APOIO_ORG_200k WHERE IDAPOIO_ORG = %s", (id_apoio,))
+            
+            if cur.rowcount == 0:
+                mysql.connection.rollback()
+                cur.close()
+                return jsonify({'error': 'Apoio não encontrado'}), 404
+            
+            mysql.connection.commit()
+            cur.close()
+            
+            return jsonify({'success': True, 'message': 'Apoio excluído com sucesso!'})
+        
+        except Exception as e:
+            mysql.connection.rollback()
+            cur.close()
+            return jsonify({'error': f'Erro ao excluir apoio: {str(e)}'}), 500
+    
+    except Exception as e:
+        return jsonify({'error': f'Erro interno: {str(e)}'}), 500
+
+
+###########
+
+# Rotas Flask para administração do apoio organizacional
+
+@app.route('/api/apoio-admin002', methods=['GET'])
+def listar_apoio_admin002():
+    """Lista todos os registros de apoio com seus itens"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT 
+                a.IDAPOIO_ORG,
+                a.NOME,
+                a.CELULAR,
+                ai.ID as ITEM_ID,
+                ai.IDPONTO,
+                p.DE_PONTO,
+                ai.DTHR_INICIO,
+                ai.DTHR_FINAL
+            FROM APOIO_ORG_200k a
+            LEFT JOIN APOIO_ORG_ITENS_200k ai ON a.IDAPOIO_ORG = ai.IDAPOIO_ORG
+            LEFT JOIN PONTO_APOIO_ORG_200k p ON ai.IDPONTO = p.IDPONTO
+            ORDER BY a.IDAPOIO_ORG, ai.ID
+        """)
+        
+        registros = cur.fetchall()
+        cur.close()
+        
+        # Organizar dados por apoiador
+        apoiadores = {}
+        for registro in registros:
+            id_apoio = registro[0]
+            if id_apoio not in apoiadores:
+                apoiadores[id_apoio] = {
+                    'IDAPOIO_ORG': registro[0],
+                    'NOME': registro[1],
+                    'CELULAR': registro[2],
+                    'itens': []
+                }
+            
+            if registro[3]:  # Se tem item
+                apoiadores[id_apoio]['itens'].append({
+                    'ID': registro[3],
+                    'IDPONTO': registro[4],
+                    'DE_PONTO': registro[5],
+                    'DTHR_INICIO': registro[6].strftime('%Y-%m-%dT%H:%M') if registro[6] else '',
+                    'DTHR_FINAL': registro[7].strftime('%Y-%m-%dT%H:%M') if registro[7] else ''
+                })
+        
+        return jsonify(list(apoiadores.values()))
+    
+    except Exception as e:
+        return jsonify({'error': f'Erro ao listar apoio: {str(e)}'}), 500
+
+# @app.route('/api/apoio-admin002', methods=['GET'])
+# def listar_apoio_admin002():
+#     """Lista todos os registros de apoio com seus itens"""
+#     try:
+#         cur = mysql.connection.cursor()
+#         cur.execute("""
+#             SELECT 
+#                 a.IDAPOIO_ORG,
+#                 a.NOME,
+#                 a.CELULAR,
+#                 ai.ID as ITEM_ID,
+#                 ai.IDPONTO,
+#                 p.DE_PONTO,
+#                 ai.DTHR_INICIO,
+#                 ai.DTHR_FINAL
+#             FROM APOIO_ORG_200k a
+#             LEFT JOIN APOIO_ORG_ITENS_200k ai ON a.IDAPOIO_ORG = ai.IDAPOIO_ORG
+#             LEFT JOIN PONTO_APOIO_ORG_200k p ON ai.IDPONTO = p.IDPONTO
+#             ORDER BY a.IDAPOIO_ORG, ai.ID
+#         """)
+        
+#         registros = cur.fetchall()
+#         cur.close()
+        
+#         # Organizar dados por apoiador
+#         apoiadores = {}
+#         for registro in registros:
+#             id_apoio = registro[0]
+#             if id_apoio not in apoiadores:
+#                 apoiadores[id_apoio] = {
+#                     'IDAPOIO_ORG': registro[0],
+#                     'NOME': registro[1],
+#                     'CELULAR': registro[2],
+#                     'itens': []
+#                 }
+            
+#             if registro[3]:  # Se tem item
+#                 apoiadores[id_apoio]['itens'].append({
+#                     'ID': registro[3],
+#                     'IDPONTO': registro[4],
+#                     'DE_PONTO': registro[5],
+#                     'DTHR_INICIO': registro[6].strftime('%Y-%m-%dT%H:%M') if registro[6] else '',
+#                     'DTHR_FINAL': registro[7].strftime('%Y-%m-%dT%H:%M') if registro[7] else ''
+#                 })
+        
+#         return jsonify(list(apoiadores.values()))
+    
+#     except Exception as e:
+#         return jsonify({'error': f'Erro ao listar apoio: {str(e)}'}), 500
+
+@app.route('/api/pontos-apoio002', methods=['GET'])
+def listar_pontos_apoio002():
+    """Lista todos os pontos de apoio disponíveis"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("SELECT IDPONTO, DE_PONTO FROM PONTO_APOIO_ORG_200k ORDER BY IDPONTO")
+        pontos = cur.fetchall()
+        cur.close()
+        
+        pontos_list = []
+        for ponto in pontos:
+            pontos_list.append({
+                'IDPONTO': ponto[0],
+                'DE_PONTO': ponto[1]
+            })
+        
+        return jsonify(pontos_list)
+    
+    except Exception as e:
+        return jsonify({'error': f'Erro ao listar pontos: {str(e)}'}), 500
+
+@app.route('/api/apoio-item002/<int:item_id>', methods=['PUT'])
+def atualizar_item_apoio002(item_id):
+    """Atualiza um item de apoio (datas/horários e ponto)"""
+    try:
+        data = request.json
+        cur = mysql.connection.cursor()
+        
+        cur.execute("""
+            UPDATE APOIO_ORG_ITENS_200k 
+            SET IDPONTO = %s, DTHR_INICIO = %s, DTHR_FINAL = %s
+            WHERE ID = %s
+        """, (
+            data.get('IDPONTO'),
+            data.get('DTHR_INICIO') if data.get('DTHR_INICIO') else None,
+            data.get('DTHR_FINAL') if data.get('DTHR_FINAL') else None,
+            item_id
         ))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({'success': 'Item atualizado com sucesso'})
+    
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': f'Erro ao atualizar item: {str(e)}'}), 500
+
+@app.route('/api/apoio-org002/<int:apoio_id>', methods=['DELETE'])
+def excluir_apoio002(apoio_id):
+    """Exclui um apoiador e todos os seus itens"""
+    try:
+        cur = mysql.connection.cursor()
+        
+        # Primeiro exclui os itens
+        cur.execute("DELETE FROM APOIO_ORG_ITENS_200k WHERE IDAPOIO_ORG = %s", (apoio_id,))
+        
+        # Depois exclui o apoiador
+        cur.execute("DELETE FROM APOIO_ORG_200k WHERE IDAPOIO_ORG = %s", (apoio_id,))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({'success': 'Apoiador excluído com sucesso'})
+    
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': f'Erro ao excluir apoiador: {str(e)}'}), 500
+
+@app.route('/api/apoio-item002/<int:item_id>', methods=['DELETE'])
+def excluir_item_apoio002(item_id):
+    """Exclui apenas um item específico de apoio"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("DELETE FROM APOIO_ORG_ITENS_200k WHERE ID = %s", (item_id,))
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({'success': 'Item excluído com sucesso'})
+    
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': f'Erro ao excluir item: {str(e)}'}), 500
+
+@app.route('/admin-apoio')
+def admin_apoio002():
+    """Página de administração do apoio"""
+    return render_template('admin_apoio002.html')
+
+#############################
+@app.route('/cronometro200k')
+def cronometro200k():
+    """Página do cronômetro da ultramaratona"""
+    return render_template('cronometro200k.html')
+
+@app.route('/api/evento-data', methods=['GET'])
+def obter_data_evento():
+    """Rota para obter a data/hora do evento"""
+    try:
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT DATAHORAEVENTO 
+            FROM EVENTO 
+            WHERE IDEVENTO = 1
+        """)
+        row = cur.fetchone()
+        cur.close()
+        
+        if row:
+            # Converter para timestamp (assumindo que o banco está em horário local)
+            data_evento = row[0]
+            
+            # Se necessário, ajustar timezone (exemplo para Rondônia - UTC-4)
+            if data_evento.tzinfo is None:
+                # Assumir que é horário local de Rondônia
+                tz_rondonia = pytz.timezone('America/Porto_Velho')
+                data_evento = tz_rondonia.localize(data_evento)
+            
+            # Converter para timestamp em milissegundos
+            timestamp = int(data_evento.timestamp() * 1000)
+            
+            return jsonify({
+                'success': True,
+                'dataHoraEvento': data_evento.isoformat(),
+                'timestamp': timestamp
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Evento não encontrado'}), 404
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Erro ao obter data do evento: {str(e)}'}), 500
+
+@app.route('/api/iniciar-cronometro', methods=['POST'])
+def iniciar_cronometro():
+    """Rota para marcar o início da corrida (opcional - para controle manual)"""
+    try:
+        # Atualizar a data/hora do evento para agora
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            UPDATE EVENTO 
+            SET DATAHORAEVENTO = NOW() 
+            WHERE IDEVENTO = 1
+        """)
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({'success': True, 'message': 'Cronômetro iniciado!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Erro ao iniciar cronômetro: {str(e)}'}), 500
+
+
+########
+
+# Rota para exibir a página do dashboard
+@app.route('/dashboard200k')
+def dashboard200k():
+    return render_template('dashboard200k.html')
+
+# Rota para buscar dados das equipes
+@app.route('/dashboard_api/equipes')
+def dashboard_get_equipes():
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+        SELECT CONCAT(e.NOME_EQUIPE,' (',em.DEREDUZ,')') as EQUIPE,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 25 AND IDEA = e.IDEA) AS KM25,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 50 AND IDEA = e.IDEA) AS KM50,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 75 AND IDEA = e.IDEA) AS KM75,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 100 AND IDEA = e.IDEA) AS KM100,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 125 AND IDEA = e.IDEA) AS KM125,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 150 AND IDEA = e.IDEA) AS KM150,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 175 AND IDEA = e.IDEA) AS KM175,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 200 AND IDEA = e.IDEA) AS KM200,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K
+           WHERE KM = (SELECT MAX(KM) FROM PROVA_PARCIAIS_200K WHERE IDEA = e.IDEA) 
+             AND IDEA = e.IDEA) AS ULTIMAPARCIAL,
+          CONCAT(
+            TIMESTAMPDIFF(HOUR, 
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 0 AND IDEA = e.IDEA),
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K 
+               WHERE KM = (SELECT MAX(KM) FROM PROVA_PARCIAIS_200K WHERE IDEA = e.IDEA) 
+                 AND IDEA = e.IDEA)
+            ),':',
+            LPAD(TIMESTAMPDIFF(MINUTE, 
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 0 AND IDEA = e.IDEA),
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K 
+               WHERE KM = (SELECT MAX(KM) FROM PROVA_PARCIAIS_200K WHERE IDEA = e.IDEA) 
+                 AND IDEA = e.IDEA)
+            ) % 60, 2, '0'),':',
+            LPAD(TIMESTAMPDIFF(SECOND, 
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 0 AND IDEA = e.IDEA),
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K 
+               WHERE KM = (SELECT MAX(KM) FROM PROVA_PARCIAIS_200K WHERE IDEA = e.IDEA) 
+                 AND IDEA = e.IDEA)
+            ) % 60, 2, '0')
+          ) AS TEMPO   
+        FROM EQUIPE e, EVENTO_MODALIDADE em
+        WHERE em.IDITEM = e.IDITEM
+        ORDER BY em.IDITEM
+        """
+        
+        cursor.execute(query)
+        equipes = cursor.fetchall()
+        cursor.close()
+        
+        equipes_list = []
+        for equipe in equipes:
+            equipes_list.append({
+                'EQUIPE': equipe[0],
+                'KM25': equipe[1].strftime('%d/%m/%y %H:%M') if equipe[1] else '',
+                'KM50': equipe[2].strftime('%d/%m/%y %H:%M') if equipe[2] else '',
+                'KM75': equipe[3].strftime('%d/%m/%y %H:%M') if equipe[3] else '',
+                'KM100': equipe[4].strftime('%d/%m/%y %H:%M') if equipe[4] else '',
+                'KM125': equipe[5].strftime('%d/%m/%y %H:%M') if equipe[5] else '',
+                'KM150': equipe[6].strftime('%d/%m/%y %H:%M') if equipe[6] else '',
+                'KM175': equipe[7].strftime('%d/%m/%y %H:%M') if equipe[7] else '',
+                'KM200': equipe[8].strftime('%d/%m/%y %H:%M') if equipe[8] else '',
+                'ULTIMAPARCIAL': equipe[9].strftime('%d/%m/%y %H:%M') if equipe[9] else '',
+                'TEMPO': equipe[10] if equipe[10] else ''
+            })
+        
+        return jsonify(equipes_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar equipes: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Rota para buscar dados dos atletas solo
+@app.route('/dashboard_api/atletas')
+def dashboard_get_atletas():
+    if not session.get('autenticado'):
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+        SELECT CONCAT(i.NUPEITO,' - ',a.NOME,' ',a.SOBRENOME) as NOME,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 25 AND IDATLETA = a.IDATLETA) AS KM25,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 50 AND IDATLETA = a.IDATLETA) AS KM50,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 75 AND IDATLETA = a.IDATLETA) AS KM75,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 100 AND IDATLETA = a.IDATLETA) AS KM100,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 125 AND IDATLETA = a.IDATLETA) AS KM125,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 150 AND IDATLETA = a.IDATLETA) AS KM150,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 175 AND IDATLETA = a.IDATLETA) AS KM175,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 200 AND IDATLETA = a.IDATLETA) AS KM200,
+          (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K
+           WHERE KM = (SELECT MAX(KM) FROM PROVA_PARCIAIS_200K WHERE IDATLETA = a.IDATLETA) 
+             AND IDATLETA = a.IDATLETA) AS ULTIMAPARCIAL,
+          CONCAT(
+            TIMESTAMPDIFF(HOUR, 
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 0 AND IDATLETA = a.IDATLETA),
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K 
+               WHERE KM = (SELECT MAX(KM) FROM PROVA_PARCIAIS_200K WHERE IDATLETA = a.IDATLETA) 
+                 AND IDATLETA = a.IDATLETA)
+            ),':',
+            LPAD(TIMESTAMPDIFF(MINUTE, 
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 0 AND IDATLETA = a.IDATLETA),
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K 
+               WHERE KM = (SELECT MAX(KM) FROM PROVA_PARCIAIS_200K WHERE IDATLETA = a.IDATLETA) 
+                 AND IDATLETA = a.IDATLETA)
+            ) % 60, 2, '0'),':',
+            LPAD(TIMESTAMPDIFF(SECOND, 
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K WHERE KM = 0 AND IDATLETA = a.IDATLETA),
+              (SELECT DATA_HORA FROM PROVA_PARCIAIS_200K 
+               WHERE KM = (SELECT MAX(KM) FROM PROVA_PARCIAIS_200K WHERE IDATLETA = a.IDATLETA) 
+                 AND IDATLETA = a.IDATLETA)
+            ) % 60, 2, '0')
+          ) AS TEMPO   
+        FROM ATLETA a, INSCRICAO i, EVENTO_MODALIDADE em
+        WHERE em.IDITEM = i.IDITEM
+        AND i.IDITEM = 1
+        AND i.IDATLETA = a.IDATLETA
+        ORDER BY a.NOME, a.SOBRENOME
+        """
+        
+        cursor.execute(query)
+        atletas = cursor.fetchall()
+        cursor.close()
+        
+        atletas_list = []
+        for atleta in atletas:
+            atletas_list.append({
+                'NOME': atleta[0],
+                'KM25': atleta[1].strftime('%d/%m/%y %H:%M') if atleta[1] else '',
+                'KM50': atleta[2].strftime('%d/%m/%y %H:%M') if atleta[2] else '',
+                'KM75': atleta[3].strftime('%d/%m/%y %H:%M') if atleta[3] else '',
+                'KM100': atleta[4].strftime('%d/%m/%y %H:%M') if atleta[4] else '',
+                'KM125': atleta[5].strftime('%d/%m/%y %H:%M') if atleta[5] else '',
+                'KM150': atleta[6].strftime('%d/%m/%y %H:%M') if atleta[6] else '',
+                'KM175': atleta[7].strftime('%d/%m/%y %H:%M') if atleta[7] else '',
+                'KM200': atleta[8].strftime('%d/%m/%y %H:%M') if atleta[8] else '',
+                'ULTIMAPARCIAL': atleta[9].strftime('%d/%m/%y %H:%M') if atleta[9] else '',
+                'TEMPO': atleta[10] if atleta[10] else ''
+            })
+        
+        return jsonify(atletas_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar atletas: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+#################
+
+@app.route('/lancamento200k')
+def lancamento200k():
+    """Renderiza a página de lançamento"""
+    return render_template('lancamento200k.html')
+
+@app.route('/api/lanca200k_parciais')
+def lanca200k_parciais():
+    """Busca as parciais disponíveis"""
+    print("DEBUG: Buscando parciais...")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor()
+        print("DEBUG: Conexão com banco estabelecida")
+        
+        cursor.execute("""
+            SELECT KM, DEPARCIAL, IDPARCIAL FROM PARCIAIS_200K
+            WHERE KM <> 0
+            ORDER BY KM
+        """)
+        parciais = cursor.fetchall()
+        cursor.close()
+        
+        print(f"DEBUG: Encontradas {len(parciais)} parciais")
+        
+        parciais_list = []
+        for parcial in parciais:
+            parciais_list.append({
+                'KM': parcial[0],
+                'DEPARCIAL': parcial[1],
+                'IDPARCIAL': parcial[2]
+            })
+        
+        print(f"DEBUG: Retornando parciais: {parciais_list}")
+        return jsonify(parciais_list)
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao buscar parciais: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/lanca200k_pesquisa_atleta', methods=['POST'])
+def lanca200k_pesquisa_atleta():
+    """Pesquisa atleta por número de peito"""
+    print("DEBUG: Pesquisando atleta...")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        km_parcial = data.get('km_parcial')
+        nu_peito = data.get('nu_peito')
+        
+        print(f"DEBUG: Pesquisando atleta - KM: {km_parcial}, Peito: {nu_peito}")
+        
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            SELECT 
+              i.IDATLETA, CONCAT(i.NUPEITO,' - ',a.NOME,' ',a.SOBRENOME) as NOME,
+              COALESCE((SELECT IDEA FROM EQUIPE_ATLETAS WHERE IDATLETA = i.IDATLETA),0) AS IDEA,
+              COALESCE((SELECT KM_INI+1 FROM EQUIPE_ATLETAS WHERE IDATLETA = i.IDATLETA),'N') AS KM_INI,
+              COALESCE((SELECT KM_FIM FROM EQUIPE_ATLETAS WHERE IDATLETA = i.IDATLETA),'N') AS KM_FIM  
+            FROM INSCRICAO i, ATLETA a 
+            WHERE a.IDATLETA = i.IDATLETA
+              AND (COALESCE((SELECT IDEA FROM EQUIPE_ATLETAS WHERE IDATLETA = i.IDATLETA),0) = 0 
+                OR %s BETWEEN COALESCE((SELECT KM_INI+1 FROM EQUIPE_ATLETAS WHERE IDATLETA = i.IDATLETA),'N')
+                AND COALESCE((SELECT KM_FIM FROM EQUIPE_ATLETAS WHERE IDATLETA = i.IDATLETA),'N')) 
+              AND i.NUPEITO = %s
+        """, (km_parcial, nu_peito))
+        
+        atleta = cursor.fetchone()
+        
+        if atleta:
+            # Verificar se já existe lançamento para este atleta/equipe nesta parcial
+            idatleta = atleta[0]
+            idea = atleta[2]
+            
+            # Mapear KM para IDPARCIAL
+            km_to_idparcial = {
+                25: 2, 50: 3, 75: 4, 100: 5, 
+                125: 6, 150: 7, 175: 8, 200: 9
+            }
+            idparcial = km_to_idparcial.get(int(km_parcial), 0)
+            
+            # Verificar duplicatas
+            if idea == 0:
+                # Atleta individual - verificar por IDATLETA
+                cursor.execute("""
+                    SELECT COUNT(*) FROM PROVA_PARCIAIS_200K 
+                    WHERE IDATLETA = %s AND IDPARCIAL = %s
+                """, (idatleta, idparcial))
+            else:
+                # Equipe - verificar por IDEA
+                cursor.execute("""
+                    SELECT COUNT(*) FROM PROVA_PARCIAIS_200K 
+                    WHERE IDEA = %s AND IDPARCIAL = %s
+                """, (idea, idparcial))
+            
+            count = cursor.fetchone()[0]
+            cursor.close()
+            
+            if count > 0:
+                if idea == 0:
+                    message = f"Atleta já possui lançamento nesta parcial de {km_parcial}km"
+                else:
+                    message = f"Equipe já possui lançamento nesta parcial de {km_parcial}km"
+                
+                print(f"DEBUG: Lançamento duplicado detectado: {message}")
+                return jsonify({
+                    'success': False,
+                    'message': message
+                })
+            
+            print(f"DEBUG: Atleta encontrado: {atleta[1]}")
+            return jsonify({
+                'success': True,
+                'atleta': {
+                    'IDATLETA': atleta[0],
+                    'NOME': atleta[1],
+                    'IDEA': atleta[2],
+                    'KM_INI': atleta[3],
+                    'KM_FIM': atleta[4]
+                }
+            })
+        else:
+            cursor.close()
+            print("DEBUG: Nenhum atleta encontrado")
+            return jsonify({
+                'success': False,
+                'message': 'Nº de Peito não existe ou Atleta não permitido para esta parcial'
+            })
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao pesquisar atleta: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/lanca200k_confirmar', methods=['POST'])
+def lanca200k_confirmar():
+    """Confirma o lançamento do atleta"""
+    print("DEBUG: Confirmando lançamento...")
+    
+    if not session.get('autenticado'):
+        print("DEBUG: Usuário não autenticado")
+        return jsonify({'error': 'Não autenticado'}), 401
+    
+    try:
+        data = request.get_json()
+        idea = data.get('idea')
+        idatleta = data.get('idatleta')
+        data_hora = data.get('data_hora')
+        km = data.get('km')
+        
+        # Mapear KM para IDPARCIAL
+        km_to_idparcial = {
+            25: 2, 50: 3, 75: 4, 100: 5, 
+            125: 6, 150: 7, 175: 8, 200: 9
+        }
+        
+        idparcial = km_to_idparcial.get(int(km), 0)
+        
+        print(f"DEBUG: Dados para insert - IDEA: {idea}, IDATLETA: {idatleta}, DATA_HORA: {data_hora}, KM: {km}, IDPARCIAL: {idparcial}")
+        
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            INSERT INTO PROVA_PARCIAIS_200K (IDEA, IDATLETA, DATA_HORA, IDPARCIAL, KM)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (idea, idatleta, data_hora, idparcial, km))
         
         mysql.connection.commit()
         cursor.close()
         
-        return jsonify({'sucesso': True, 'id_veiculo': novo_id})
-    
-    except Exception as e:
-        print(f"Erro ao : {str(e)}")
+        print("DEBUG: Lançamento confirmado com sucesso")
         return jsonify({
-            'sucesso': False,
-            'mensagem': str(e)
-        }), 500
-
-
-@app.route('/api/veiculos/atualizar', methods=['POST'])
-@login_required
-def atualizar_veiculo():
-    try:
-        cursor = mysql.connection.cursor()
-        
-        # Form data
-        id_veiculo = request.json.get('id_veiculo')
-        nu_placa = request.json.get('nu_placa', '').upper()
-        id_categoria = request.json.get('id_categoria')
-        marca = request.json.get('marca', '')
-        ds_modelo = request.json.get('ds_modelo', '')
-        ano_fabmod = request.json.get('ano_fabmod', '')
-        origem_veiculo = request.json.get('origem_veiculo', '')
-        propriedade = request.json.get('propriedade', '')
-        combustivel = request.json.get('combustivel', '')
-        obs = request.json.get('obs', '')
-        ativo = request.json.get('ativo', 'S')
-        fl_atendimento = request.json.get('fl_atendimento', 'N')
-        usuario = session.get('usuario_id')
-
-        # Get current timestamp in Manaus timezone
-        manaus_tz = timezone('America/Manaus')
-        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-
-        # Update query
-        query = """
-        UPDATE TJ_VEICULO SET
-            NU_PLACA = %s,
-            ID_CATEGORIA = %s,
-            MARCA = %s,
-            DS_MODELO = %s,
-            ANO_FABMOD = %s,
-            ORIGEM_VEICULO = %s,
-            PROPRIEDADE = %s,
-            COMBUSTIVEL = %s,
-            OBS = %s,
-            ATIVO = %s,
-            FL_ATENDIMENTO = %s,
-            USUARIO = %s,
-            DT_TRANSACAO = %s
-        WHERE ID_VEICULO = %s
-        """
-        
-        cursor.execute(query, (
-            nu_placa, id_categoria, marca, ds_modelo, 
-            ano_fabmod, origem_veiculo, propriedade, combustivel, 
-            obs, ativo, fl_atendimento, usuario, dt_transacao,
-            id_veiculo
-        ))
-        
-        mysql.connection.commit()
-        cursor.close()
-        
-        return jsonify({'sucesso': True, 'mensagem': 'Veículo atualizado com sucesso'})
+            'success': True,
+            'message': 'Atleta Lançado com sucesso!'
+        })
         
     except Exception as e:
-        print(f"Erro ao : {str(e)}")
-        return jsonify({
-            'sucesso': False,
-            'mensagem': str(e)
-        }), 500
+        print(f"DEBUG: Erro ao confirmar lançamento: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/categorias_veiculos', methods=['GET'])
-@login_required
-def listar_categorias():
-    try:
-        cursor = mysql.connection.cursor()
-        
-        cursor.execute("SELECT * FROM TJ_CATEGORIA_VEICULO ORDER BY DS_CAT_VEICULO")
-        
-        categorias = []
-        columns = [column[0] for column in cursor.description]
-        
-        for row in cursor.fetchall():
-            categoria = {}
-            for i, col in enumerate(columns):
-                categoria[col.lower()] = row[i]
-            categorias.append(categoria)
-        
-        cursor.close()
-        return jsonify(categorias)
-        
-    except Exception as e:
-        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
-	
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
