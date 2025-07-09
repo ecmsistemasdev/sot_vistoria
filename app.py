@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, session
+from flask import Flask, render_template, request, make_response, redirect, url_for, flash, jsonify, send_file, session
+from flask_mail import Mail, Message
 from functools import wraps
 import os
 from flask_mysqldb import MySQL
+import MySQLdb.cursors
 import uuid
 import base64
 from datetime import datetime
@@ -9,6 +11,18 @@ from io import BytesIO
 from pytz import timezone
 
 app = Flask(__name__)
+
+# Configuração do Flask-Mail
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')  # Substitua pelo seu servidor SMTP
+app.config['MAIL_PORT'] = os.getenv('MAIL_PORT') 
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME') 
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD') 
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+app.config['MAIL_USE_TLS'] = True 
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_MAX_EMAILS'] = None
+app.config['MAIL_TIMEOUT'] = 10  # segundos
+mail = Mail(app)
 
 # Configuração do MySQL
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
@@ -19,7 +33,6 @@ mysql = MySQL(app)
 
 # Configuração para segurança
 app.secret_key = os.getenv('SECRET_KEY')
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -69,6 +82,7 @@ def autenticar():
         # Usuário encontrado e senha correta
         session['usuario_logado'] = True
         session['usuario_id'] = usuario[0]
+        session['usuario_login'] = login
         session['usuario_nome'] = usuario[1]
         session['nivel_acesso'] = usuario[2]
         
@@ -76,6 +90,7 @@ def autenticar():
         return jsonify({
             'sucesso': True,
             'usuario_id': usuario[0],
+            'usuario_login': login,
             'usuario_nome': usuario[1],
             'nivel_acesso': usuario[2]
         })
@@ -89,12 +104,11 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-
 @app.route('/nova_vistoria')
 def nova_vistoria():
     # Busca motoristas e veículos do banco de dados
     cur = mysql.connection.cursor()
-    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA")
+    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
     cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
@@ -102,12 +116,11 @@ def nova_vistoria():
     
     return render_template('nova_vistoria.html', motoristas=motoristas, veiculos=veiculos, tipo='SAIDA')
 
-
 @app.route('/nova_vistoria2')
 def nova_vistoria2():
     # Busca motoristas e veículos do banco de dados
     cur = mysql.connection.cursor()
-    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA")
+    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
     cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
@@ -120,7 +133,6 @@ def confirma_vistoria(id):
     
     session['vistoria_id'] = id
     print(f" ID VISTORIA: {id}")
-
     cur = mysql.connection.cursor()
     
     # Buscar detalhes da vistoria
@@ -128,14 +140,13 @@ def confirma_vistoria(id):
         SELECT v.IDVISTORIA, v.IDMOTORISTA, m.NM_MOTORISTA as MOTORISTA, v.IDVEICULO, 
                CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, 
                v.COMBUSTIVEL, v.HODOMETRO, ve.DS_MODELO, v.VISTORIA_SAIDA_ID,  
-               v.ASS_USUARIO, v.ASS_MOTORISTA, v.OBS
+               v.ASS_USUARIO, v.ASS_MOTORISTA, v.OBS, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.TIPO = 'INICIAL' AND v.IDVISTORIA = %s
     """, (id,))
     vistoria = cur.fetchone()
-
     if vistoria:
         return render_template(
             'confirma_vistoria.html',
@@ -146,19 +157,21 @@ def confirma_vistoria(id):
             veiculo_placa=vistoria[4],
             combustivel=vistoria[8],
             hodometro=vistoria[9],
+	    data_saida=vistoria[15],
+	    data_retorno=vistoria[16],
+	    nu_sei=vistoria[17],
             tipo='INICIAL'
         )
     else:
         return redirect(url_for('ver_vistoria2', id=id))
        
-
-
 @app.route('/nova_vistoria_devolucao/<int:vistoria_saida_id>')
 def nova_vistoria_devolucao(vistoria_saida_id):
     # Buscar informações da vistoria de saida
     cur = mysql.connection.cursor()
     cur.execute("""
-        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NM_MOTORISTA, ve.NU_PLACA, v.COMBUSTIVEL
+        SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NM_MOTORISTA, 
+	ve.NU_PLACA, v.COMBUSTIVEL, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -178,6 +191,9 @@ def nova_vistoria_devolucao(vistoria_saida_id):
         veiculo_id=vistoria_saida[2],
         veiculo_placa=vistoria_saida[4],
         vistoria_saida_id=vistoria_saida_id,
+	data_saida=vistoria_saida[6],
+	data_retorno=vistoria_saida[7],
+	nu_sei=vistoria_saida[8],
         tipo='DEVOLUCAO'
     )
 
@@ -192,10 +208,13 @@ def salvar_vistoria():
         combustivel = request.form['combustivel']
         hodometro = request.form['hodometro']
         obs = request.form['observacoes']
+        data_saida = request.form['dataSaida']
+        # Obter data_retorno apenas se estiver presente no formulário
+        data_retorno = request.form.get('dataRetorno', None)
+        nu_sei = request.form.get('numSei', '')  # Tornando campo SEI opcional
         
         # Obter o nome do usuário da sessão
         usuario_nome = session.get('usuario_nome', 'Sistema')
-
         # Obter as assinaturas
         assinatura_usuario_data = request.form.get('assinatura_usuario')
         assinatura_motorista_data = request.form.get('assinatura_motorista')
@@ -218,7 +237,6 @@ def salvar_vistoria():
         # Capturar o último ID antes da inserção
         cur.execute("SELECT MAX(IDVISTORIA) FROM VISTORIAS")
         ultimo_id = cur.fetchone()[0] or 0
-
         data_e_hora_atual = datetime.now()
         fuso_horario = timezone('America/Manaus')
         data_hora = data_e_hora_atual.astimezone(fuso_horario)
@@ -228,17 +246,21 @@ def salvar_vistoria():
             # Para vistorias de SAIDA, definir status como EM_TRANSITO
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO) 
-                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, 
+                   ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, NU_SEI) 
+                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, 
+                 assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, nu_sei)
             )
         else:  # DEVOLUCAO
             # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
             cur.execute(
                 """INSERT INTO VISTORIAS 
-                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO) 
-                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s)""",
-                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome)
+                   (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, 
+                   HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, DATA_RETORNO, NU_SEI) 
+                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, 
+                 assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, data_retorno, nu_sei)
             )
             # Atualizar status da vistoria de saida para finalizada
             cur.execute(
@@ -309,7 +331,6 @@ def salvar_vistoria():
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
         return redirect(url_for('nova_vistoria'))
         
-
 @app.route('/ultima_vistoria')
 def ultima_vistoria():
     try:
@@ -336,7 +357,6 @@ def ultima_vistoria():
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
         return redirect(url_for('nova_vistoria'))
 
-
 @app.route('/salvar_vistoria2', methods=['POST'])
 def salvar_vistoria2():
     try:
@@ -348,6 +368,14 @@ def salvar_vistoria2():
         combustivel = request.form['combustivel']
         hodometro = request.form['hodometro']
         obs = request.form['observacoes']
+        data_saida = request.form['dataSaida']
+        data_retorno = request.form['dataRetorno']
+        nu_sei = request.form['numSei']      
+        
+        print(f"Data Saida { data_saida }")
+        print(f"Data Retorno { data_retorno }")
+        print(f"Sei { nu_sei }")
+        
         
         # Obter o nome do usuário da sessão
         usuario_nome = session.get('usuario_nome')
@@ -364,9 +392,11 @@ def salvar_vistoria2():
     
         cur.execute(
             """INSERT INTO VISTORIAS 
-                (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, OBS, USUARIO) 
-                VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s)""",
-            (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, obs, usuario_nome)
+                (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, 
+                HODOMETRO, OBS, USUARIO, DATA_SAIDA, DATA_RETORNO, NU_SEI) 
+                VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s, %s, %s)""",
+            (id_motorista, id_veiculo, data_hora, tipo, combustivel, 
+             hodometro, obs, usuario_nome, data_saida, data_retorno, nu_sei)
         )
             
         # Realizar o commit para garantir que a vistoria foi salva
@@ -392,13 +422,11 @@ def salvar_vistoria2():
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
         return redirect(url_for('nova_vistoria'))
 
-
 @app.route('/salvar_vistoria3', methods=['POST'])
 def salvar_vistoria3():
     try:
         id_vistoria = session.get('vistoria_id')
         print(f" ID VISTORIA: {id_vistoria}")
-
         if id_vistoria is None:
             # Caso o id não esteja na sessão
             return "ID da vistoria não encontrado na sessão", 400
@@ -505,7 +533,6 @@ def salvar_vistoria3():
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
         return redirect(url_for('nova_vistoria'))
     
-
 @app.route('/salvar_foto', methods=['POST'])
 def salvar_foto():
     try:
@@ -534,7 +561,9 @@ def listar_vistorias():
     
     # Buscar vistorias em trânsito (Saidas não finalizadas)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+        v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -542,10 +571,11 @@ def listar_vistorias():
         ORDER BY v.DATA DESC
     """)
     vistorias_em_transito = cur.fetchall()
-
     # Buscar vistorias em Pendentes
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, v.DATA, v.TIPO, v.STATUS, v.OBS 
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO,
+        v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -553,11 +583,12 @@ def listar_vistorias():
         ORDER BY v.DATA DESC
     """)
     vistorias_pendentes = cur.fetchall()
-
     # Buscar vistorias finalizadas (Saidas com devolução ou devoluções)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
-        v.DATA, v.TIPO, v.STATUS, v.OBS, (SELECT IDVISTORIA FROM VISTORIAS WHERE VISTORIA_SAIDA_ID = v.IDVISTORIA) AS ID_DEVOLUCAO
+        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+        v.DATA, v.TIPO, v.STATUS, v.OBS, 
+        (SELECT IDVISTORIA FROM VISTORIAS WHERE VISTORIA_SAIDA_ID = v.IDVISTORIA) AS ID_DEVOLUCAO
         FROM VISTORIAS v
         JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -580,12 +611,11 @@ def listar_vistorias():
 def ver_vistoria(id):
     try:
         cur = mysql.connection.cursor()
-
         # Buscar detalhes da vistoria
         cur.execute("""
             SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
-                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                   v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
+                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO, v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, 
+		   v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
             FROM VISTORIAS v
             JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
@@ -599,7 +629,6 @@ def ver_vistoria(id):
         vistoria_devolucao = None
         vistoria_devolucao_itens = []
         itens = []
-
         if vistoria:
             # Se for uma vistoria de devolução, buscar também a vistoria de saida
             if vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
@@ -613,7 +642,6 @@ def ver_vistoria(id):
                     WHERE v.IDVISTORIA = %s
                 """, (vistoria[8],))
                 vistoria_saida = cur.fetchone()
-
                 # Buscar fotos da vistoria de saída
                 cur.execute("""
                     SELECT ID, DETALHAMENTO
@@ -621,7 +649,6 @@ def ver_vistoria(id):
                     WHERE IDVISTORIA = %s
                 """, (vistoria[8],))
                 vistoria_saida_itens = cur.fetchall() or []
-
             # Se for uma vistoria de saida, buscar se já existe uma vistoria de devolução
             if vistoria[4] == 'SAIDA':
                 cur.execute("""
@@ -634,7 +661,6 @@ def ver_vistoria(id):
                     WHERE v.VISTORIA_SAIDA_ID = %s
                 """, (id,))
                 vistoria_devolucao = cur.fetchone()
-
                 # Buscar fotos da vistoria de devolução
                 if vistoria_devolucao:
                     cur.execute("""
@@ -643,7 +669,6 @@ def ver_vistoria(id):
                         WHERE IDVISTORIA = %s
                     """, (vistoria_devolucao[0],))
                     vistoria_devolucao_itens = cur.fetchall() or []
-
             # Buscar fotos desta vistoria atual
             cur.execute("""
                 SELECT ID, DETALHAMENTO
@@ -656,9 +681,7 @@ def ver_vistoria(id):
             itens = [{'id': item[0], 'detalhamento': item[1]} for item in itens_raw]
             vistoria_saida_itens = [{'id': item[0], 'detalhamento': item[1]} for item in vistoria_saida_itens]
             vistoria_devolucao_itens = [{'id': item[0], 'detalhamento': item[1]} for item in vistoria_devolucao_itens]
-
         cur.close()
-
         return render_template(
             'ver_vistoria.html', 
             vistoria=vistoria, 
@@ -668,7 +691,6 @@ def ver_vistoria(id):
             vistoria_devolucao=vistoria_devolucao,
             vistoria_devolucao_itens=vistoria_devolucao_itens
         )
-
     except Exception as e:
         # Adiciona log do erro para depuração
         app.logger.error(f"Erro na rota ver_vistoria: {str(e)}")
@@ -720,7 +742,6 @@ def vistoria_finaliza(id):
         itens=itens
     )
 
-
 @app.route('/salvar_assinatura', methods=['POST'])
 def salvar_assinatura():
     try:
@@ -769,7 +790,6 @@ def salvar_assinatura():
                 
             # Commit das alterações
             mysql.connection.commit()
-
             
             # Fecha a conexão
             cur.close()
@@ -783,7 +803,6 @@ def salvar_assinatura():
     except Exception as e:
         app.logger.error(f"Erro interno: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
-
 
 @app.route('/get_foto/<int:item_id>')
 def get_foto(item_id):
@@ -819,7 +838,6 @@ def get_assinatura(tipo, vistoria_id):
     
     assinatura = resultado[0]
     
-
     return send_file(
         BytesIO(assinatura),
         mimetype='image/png',  # ou 'image/jpeg' dependendo do formato da assinatura
@@ -827,7 +845,6 @@ def get_assinatura(tipo, vistoria_id):
         download_name=f'assinatura_{tipo}_{vistoria_id}.png'  # nome do arquivo ao baixar
     )
     
-
 def criptografar(texto):
     key = '123456'
     resultado = ''
@@ -839,7 +856,6 @@ def criptografar(texto):
         resultado += f'{c:02x}'
     
     return resultado
-
 def descriptografar(texto):
     key = '123456'
     resultado = ''
@@ -886,9 +902,11 @@ def listar_motoristas():
         if nome:
             query = """
             SELECT 
-                ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
+                ID_MOTORISTA, CAD_MOTORISTA,
+		CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
+                ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
             FROM TJ_MOTORISTA 
             WHERE ID_MOTORISTA > 0
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
@@ -898,16 +916,18 @@ def listar_motoristas():
         else:
             query = """
             SELECT 
-                ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
+                ID_MOTORISTA, CAD_MOTORISTA, 
+                CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
+                ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA, 
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
             FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA > 0 
+            WHERE ID_MOTORISTA > 0
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
         
-        columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf']
+        columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo']
         motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
         cursor.close()
         return jsonify(motoristas)
@@ -921,10 +941,9 @@ def detalhe_motorista(id_motorista):
         cursor = mysql.connection.cursor()
         query = """
         SELECT 
-            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, 
-            ORDEM_LISTA, SIGLA_SETOR, CAT_CNH, 
-            DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
-            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO
+            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, ORDEM_LISTA, 
+            SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
+            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO, EMAIL
         FROM TJ_MOTORISTA 
         WHERE ID_MOTORISTA = %s
         """
@@ -946,7 +965,8 @@ def detalhe_motorista(id_motorista):
                 'obs_motorista': result[9],
                 'ativo': result[10],
                 'tipo_cadastro_desc': result[11],
-                'nome_arquivo': result[12]
+                'nome_arquivo': result[12],
+                'email': result[13]
             }
             return jsonify(motorista)
         else:
@@ -957,22 +977,19 @@ def detalhe_motorista(id_motorista):
 @app.route('/api/motoristas/cadastrar', methods=['POST'])
 @login_required
 def cadastrar_motorista():
-
     tipo_cad = {
         1: 'Administrativo',
         2: 'Motorista Desembargador',
         3: 'Motorista Atendimento',
-        4: 'Cadastro de Condutores'
+        4: 'Cadastro de Condutores',
+	5: 'Tercerizado'    
     }
-
     try:
-
         cursor = mysql.connection.cursor()
         
         # Get last ID and increment
         cursor.execute("SELECT COALESCE(MAX(ID_MOTORISTA), 0) + 1 FROM TJ_MOTORISTA")
         novo_id = cursor.fetchone()[0]
-
         # Form data
         cad_motorista = request.form.get('cad_motorista')
         nm_motorista = request.form.get('nm_motorista')
@@ -983,9 +1000,9 @@ def cadastrar_motorista():
         ultima_atualizacao = request.form.get('ultima_atualizacao')
         nu_telefone = request.form.get('nu_telefone')
         obs_motorista = request.form.get('obs_motorista', '')
+        email = request.form.get('email', '')
         
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
-
         
         # File handling
         file_pdf = request.files.get('file_pdf')
@@ -994,26 +1011,24 @@ def cadastrar_motorista():
         if file_pdf:
             nome_arquivo = file_pdf.filename
             file_blob = file_pdf.read()
-
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-
         # Insert query
         query = """
         INSERT INTO TJ_MOTORISTA (
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, 
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
             NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, DT_TRANSACAO, 
-            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s)
+            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s)
         """
         
         cursor.execute(query, (
             novo_id, cad_motorista, nm_motorista, tipo_cadastro_desc, 
             sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
             nu_telefone, obs_motorista, session.get('usuario_id'), 
-            dt_transacao, file_blob, nome_arquivo, tipo_cadastro
+            dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email
         ))
         
         mysql.connection.commit()
@@ -1027,18 +1042,15 @@ def cadastrar_motorista():
 @app.route('/api/motoristas/atualizar', methods=['POST'])
 @login_required
 def atualizar_motorista():
-
     tipo_cad = {
         1: 'Administrativo',
         2: 'Motorista Desembargador',
         3: 'Motorista Atendimento',
-        4: 'Cadastro de Condutores'
+        4: 'Cadastro de Condutores',
+	5: 'Tercerizado'
     }
-
-
     try:
         cursor = mysql.connection.cursor()
-
         # Form data
         id_motorista = request.form.get('id_motorista')
         cad_motorista = request.form.get('cad_motorista')
@@ -1050,10 +1062,10 @@ def atualizar_motorista():
         ultima_atualizacao = request.form.get('ultima_atualizacao')
         nu_telefone = request.form.get('nu_telefone')
         obs_motorista = request.form.get('obs_motorista', '')
+        email = request.form.get('email', '')
         ativo = 'S' if request.form.get('ativo') == 'on' else 'N'
-
+        
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
-
         # File 
         file_pdf = request.files.get('file_pdf')
         nome_arquivo = None
@@ -1063,11 +1075,9 @@ def atualizar_motorista():
         if file_pdf:
             nome_arquivo = file_pdf.filename
             file_blob = file_pdf.read()
-
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-
         # Update query 
         if file_pdf:
             # Update with file
@@ -1077,7 +1087,7 @@ def atualizar_motorista():
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
                 ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, 
-                FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s
+                FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s, EMAIL = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1085,7 +1095,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                dt_transacao, file_blob, nome_arquivo, tipo_cadastro, id_motorista
+                dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email, id_motorista
             ))
         else:
             # Update without changing file
@@ -1094,7 +1104,7 @@ def atualizar_motorista():
             SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
-                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, ORDEM_LISTA = %s
+                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, ORDEM_LISTA = %s, EMAIL = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1102,7 +1112,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                dt_transacao, tipo_cadastro, id_motorista
+                dt_transacao, tipo_cadastro, email, id_motorista
             ))
         
         mysql.connection.commit()
@@ -1122,7 +1132,6 @@ def download_cnh(id_motorista):
         cursor.execute(query, (id_motorista,))
         result = cursor.fetchone()
         cursor.close()
-
         if result and result[0]:
             return send_file(
                 BytesIO(result[0]),
@@ -1134,7 +1143,6 @@ def download_cnh(id_motorista):
             return "Arquivo não encontrado", 404
     except Exception as e:
         return str(e), 500
-
 
 @app.route('/controle_locacoes')
 @login_required
@@ -1152,6 +1160,7 @@ def api_processos_locacao():
         FROM TJ_CONTROLE_LOCACAO cl, TJ_FORNECEDOR f
         WHERE f.ID_FORNECEDOR = cl.ID_FORNECEDOR
         AND cl.ATIVO = 'S'
+	ORDER BY cl.ID_CL DESC
         """
         cursor.execute(query)
         processos = cursor.fetchall()
@@ -1179,22 +1188,25 @@ def api_empenhos(id_cl):
     try:
         cursor = mysql.connection.cursor()
         query = """
-        SELECT e.ID_EMPENHO, e.NU_EMPENHO, e.VL_EMPENHO,
-               (SELECT IFNULL(SUM(VL_SUBTOTAL),0) 
-               FROM TJ_CONTROLE_LOCACAO_ITENS
-               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_DIARIAS,      
-               (SELECT IFNULL(SUM(VL_DIFERENCA),0) 
-               FROM TJ_CONTROLE_LOCACAO_ITENS
-               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_DIF,
-               (SELECT IFNULL(SUM(VL_TOTALITEM),0) 
-               FROM TJ_CONTROLE_LOCACAO_ITENS I
-               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_UTILIZADO,
-               e.VL_EMPENHO - e.VL_ANULADO - 
-               (SELECT IFNULL(SUM(VL_TOTALITEM),0) 
-               FROM TJ_CONTROLE_LOCACAO_ITENS I
-               WHERE ID_EMPENHO = e.ID_EMPENHO) AS VL_SALDO
-        FROM TJ_CONTROLE_LOCACAO_EMPENHOS e
-        WHERE e.ATIVO = 'S'
+	SELECT 
+	    e.ID_EMPENHO, 
+	    e.NU_EMPENHO, 
+	    e.VL_EMPENHO,
+	    IFNULL(i.VL_DIARIAS, 0) AS VL_DIARIAS,
+	    IFNULL(i.VL_DIF, 0) AS VL_DIF,
+	    IFNULL(i.VL_UTILIZADO, 0) AS VL_UTILIZADO,
+	    (e.VL_EMPENHO - IFNULL(e.VL_ANULADO, 0) - IFNULL(i.VL_UTILIZADO, 0)) AS VL_SALDO
+	FROM TJ_CONTROLE_LOCACAO_EMPENHOS e
+	LEFT JOIN (
+	    SELECT 
+		ID_EMPENHO,
+		SUM(VL_SUBTOTAL) AS VL_DIARIAS,
+		SUM(VL_DIFERENCA) AS VL_DIF,
+		SUM(VL_TOTALITEM) AS VL_UTILIZADO
+	    FROM TJ_CONTROLE_LOCACAO_ITENS
+	    GROUP BY ID_EMPENHO
+	) i ON e.ID_EMPENHO = i.ID_EMPENHO
+	WHERE e.ATIVO = 'S'
         AND e.ID_CL = %s
         """
         cursor.execute(query, (id_cl,))
@@ -1218,7 +1230,7 @@ def api_empenhos(id_cl):
     except Exception as e:
         app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
+  
 @app.route('/api/saldo_diarias/<int:id_cl>')
 @login_required
 def api_saldo_diarias(id_cl):
@@ -1267,7 +1279,7 @@ def api_saldo_diarias(id_cl):
     except Exception as e:
         app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
+        
 @app.route('/api/dados_pls/<int:id_cl>')
 @login_required
 def api_dados_pls(id_cl):
@@ -1276,7 +1288,8 @@ def api_dados_pls(id_cl):
         query = """
         SELECT CONCAT(m.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
         COUNT(i.ID_ITEM) AS QTD, 
-        SUM(i.VL_TOTALITEM) AS VLTOTAL, i.COMBUSTIVEL
+        SUM(i.VL_TOTALITEM) AS VLTOTAL, i.COMBUSTIVEL,
+	SUM(i.KM_RODADO) AS KM 
         FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MES m
         WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s
         GROUP BY i.ID_EXERCICIO, i.ID_MES, i.COMBUSTIVEL
@@ -1292,7 +1305,8 @@ def api_dados_pls(id_cl):
                 'MES_ANO': pls[0],
                 'QTD': pls[1],
                 'VLTOTAL': float(pls[2]) if pls[2] else 0,
-                'COMBUSTIVEL': pls[3]
+                'COMBUSTIVEL': pls[3],
+		'KM': float(pls[4]) if pls[4] else ''
             })
         
         cursor.close()
@@ -1300,7 +1314,7 @@ def api_dados_pls(id_cl):
     except Exception as e:
         app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
+        
 @app.route('/api/locacoes_transito/<int:id_cl>')
 @login_required
 def api_locacoes_transito(id_cl):
@@ -1317,7 +1331,7 @@ def api_locacoes_transito(id_cl):
            i.NU_SEI, i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
            CASE WHEN i.ID_MOTORISTA=0
            THEN CONCAT('*',i.NC_CONDUTOR,'*')
-           ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
+           ELSE m.NM_MOTORISTA END AS MOTORISTA, 
            i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
         FROM TJ_CONTROLE_LOCACAO_ITENS i
         LEFT JOIN TJ_MOTORISTA m
@@ -1376,7 +1390,7 @@ def api_locacoes_transito(id_cl):
     except Exception as e:
         app.logger.error(f"Erro ao buscar locações em trânsito: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
+        
 @app.route('/api/meses_locacoes/<int:id_cl>')
 @login_required
 def api_meses_locacoes(id_cl):
@@ -1405,7 +1419,7 @@ def api_meses_locacoes(id_cl):
     except Exception as e:
         app.logger.error(f"Erro ao buscar opções de mês/ano: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
+        
 @app.route('/api/locacoes_finalizadas/<int:id_cl>')
 @login_required
 def api_locacoes_finalizadas(id_cl):
@@ -1417,7 +1431,7 @@ def api_locacoes_finalizadas(id_cl):
         i.DT_INICIAL, i.DT_FINAL, i.HR_INICIAL, i.HR_FINAL, i.QT_DIARIA_KM, 
         i.VL_DK, i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, 
         i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
-        CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA, 
+        CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE m.NM_MOTORISTA END AS MOTORISTA, 
         i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV 
         FROM TJ_CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
@@ -1476,7 +1490,7 @@ def api_locacoes_finalizadas(id_cl):
     except Exception as e:
         app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
+        
 @app.route('/api/rel_locacao_analitico/<int:id_cl>')
 @login_required
 def get_rel_locacao_analitico(id_cl):
@@ -1486,8 +1500,7 @@ def get_rel_locacao_analitico(id_cl):
         SELECT i.ID_ITEM, CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
         CASE WHEN i.DT_INICIAL=i.DT_FINAL THEN i.DT_INICIAL
         ELSE CONCAT(i.DT_INICIAL,' - ',i.DT_FINAL) END AS PERIODO,
-        CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, 
-        CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE UPPER(m.NM_MOTORISTA) END AS MOTORISTA,
+        CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, m.NM_MOTORISTA,
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
         FROM TJ_CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
@@ -1503,7 +1516,6 @@ def get_rel_locacao_analitico(id_cl):
         app.logger.info(f"Executando Relatório para ID_CL={id_cl}")
         cursor.execute(query, (id_cl,))
         items = cursor.fetchall()
-
         # Converter para dicionários
         resultado = []
         for item in items:
@@ -1527,13 +1539,12 @@ def get_rel_locacao_analitico(id_cl):
     except Exception as e:
         app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
-
+        
 @app.route('/rel_locacao_analitico')
 @login_required
 def rel_locacao_analitico():
     return render_template('rel_locacao_analitico.html')
-
+    
 # Rota para listar veículos disponíveis por ID_CL
 @app.route('/api/lista_veiculo')
 @login_required
@@ -1558,34 +1569,102 @@ def listar_veiculos():
         return jsonify(veiculos)
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
-
-# Rota para listar motoristas
-@app.route('/api/lista_motorista')
+        
+@app.route('/api/setores_loc')
 @login_required
-def listar_motoristas():
+def listar_setores_loc():
     try:
         cursor = mysql.connection.cursor()
+        cursor.execute("SELECT SIGLA_SETOR FROM TJ_SETORES ORDER BY SIGLA_SETOR")
+               
+        items = cursor.fetchall()
+        setores = []
+        for item in items:
+            lista = {'SIGLA_SETOR': item[0]}
+            setores.append(lista)
+            
+        cursor.close()
+        return jsonify(setores)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+        
+# Rota para listar motoristas
+@app.route('/api/lista_motorista_loc')
+@login_required
+def listar_motoristas_loc():
+    try:
+        print("Iniciando consulta à lista de motoristas")
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, NU_TELEFONE, 
             FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
-            WHERE ID_MOTORISTA <> 0 ORDER BY NM_MOTORISTA
+            WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA
         """)
         
+        results = cursor.fetchall()
+        print(f"Quantidade de resultados encontrados: {len(results)}")
+        
+        if len(results) > 0:
+            print(f"Primeiro registro: ID={results[0][0]}, Nome={results[0][1]}")
+        
         motoristas = []
-        for row in cursor.fetchall():
-            motoristas.append({
-                'ID_MOTORISTA': row[0],
-                'NM_MOTORISTA': row[1],
-                'NU_TELEFONE': row[2],
-                'FILE_PDF': row[3],
-                'NOME_ARQUIVO': row[4]
-            })
-            
+        for i, row in enumerate(results):
+            try:
+                # Verificar se FILE_PDF é None antes de processar
+                file_pdf = row[3] if row[3] is not None else None
+                
+                motorista = {
+                    'ID_MOTORISTA': row[0],
+                    'NM_MOTORISTA': row[1],
+                    'NU_TELEFONE': row[2],
+                    'FILE_PDF': file_pdf is not None,  # Apenas indicar presença, não enviar arquivo
+                    'NOME_ARQUIVO': row[4]
+                }
+                motoristas.append(motorista)
+            except Exception as row_error:
+                print(f"Erro ao processar linha {i}: {str(row_error)}")
+        
         cursor.close()
         return jsonify(motoristas)
     except Exception as e:
+        print(f"ERRO COMPLETO: {str(e)}")
         return jsonify({'erro': str(e)}), 500
-
+        
+@app.route('/api/empenhos_loc')
+@login_required
+def api_empenhos_loc():
+    try:
+        id_cl = request.args.get('id_cl')
+        if not id_cl:
+            return jsonify({'erro': 'ID_CL não fornecido'}), 400
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT ID_EMPENHO, NU_EMPENHO
+        FROM TJ_CONTROLE_LOCACAO_EMPENHOS
+        WHERE ATIVO = 'S'
+        AND ID_CL = %s
+        """
+        cursor.execute(query, (id_cl,))
+        empenhos = cursor.fetchall()
+        
+        # Converter para dicionários
+        resultado = []
+        for empenho in empenhos:
+            resultado.append({
+                'ID_EMPENHO': empenho[0],
+                'NU_EMPENHO': empenho[1]
+            })
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+        
 # Rota para obter o próximo ID_ITEM
 def obter_proximo_id_item():
     cursor = mysql.connection.cursor()
@@ -1595,15 +1674,14 @@ def obter_proximo_id_item():
     
     ultimo_id = resultado[0] if resultado[0] else 0
     return ultimo_id + 1
-
-
-
-# Rota para salvar nova locação
+    
 @app.route('/api/nova_locacao', methods=['POST'])
+@login_required
 def nova_locacao():
     try:
         # Obter dados do formulário
         id_cl = request.form.get('id_cl')
+        id_empenho = request.form.get('empenho')
         setor_solicitante = request.form.get('setor_solicitante')
         objetivo = request.form.get('objetivo')
         id_veiculo_loc = request.form.get('id_veiculo_loc')
@@ -1636,7 +1714,7 @@ def nova_locacao():
         hr_inicial = hora_inicio
         
         # Obter ID do usuário da sessão
-        usuario = session.get('usuario_id')
+        usuario = session.get('usuario_login')
         
         # Verificar se o motorista tem CNH cadastrada
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -1644,59 +1722,69 @@ def nova_locacao():
         motorista_info = cursor.fetchone()
         
         # Verificar se é necessário salvar a CNH
-        file_pdf = motorista_info['FILE_PDF']
-        nome_arquivo_cnh = motorista_info['NOME_ARQUIVO']
+        file_pdf = motorista_info['FILE_PDF'] if motorista_info['FILE_PDF'] else None
+        nome_arquivo_cnh = motorista_info['NOME_ARQUIVO'] if motorista_info['NOME_ARQUIVO'] else None
         
         if not file_pdf and 'file_cnh' in request.files:
             file_cnh = request.files['file_cnh']
             
-            if file_cnh.filename != '':
-                # Salvar o arquivo
-                # (Código real para salvar o arquivo depende da implementação específica)
-                # Aqui estamos assumindo que o arquivo será salvo e o FILE_PDF será atualizado
-                file_pdf = True
+            if file_cnh and file_cnh.filename != '':
+                # Salvar o conteúdo do arquivo
+                file_content = file_cnh.read()
                 nome_arquivo_cnh = file_cnh.filename
                 
                 # Atualizar o motorista com o arquivo da CNH
                 cursor.execute(
                     "UPDATE TJ_MOTORISTA SET FILE_PDF = %s, NOME_ARQUIVO = %s WHERE ID_MOTORISTA = %s",
-                    (file_pdf, nome_arquivo_cnh, id_motorista)
+                    (file_content, nome_arquivo_cnh, id_motorista)
                 )
                 mysql.connection.commit()
+                file_pdf = file_content
         
         # Inserir na tabela TJ_CONTROLE_LOCACAO_ITENS
         cursor.execute("""
             INSERT INTO TJ_CONTROLE_LOCACAO_ITENS (
-                ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, 
-                ID_VEICULO_LOC, ID_MOTORISTA, DATA_INICIO, DATA_FIM, HORA_INICIO, 
+                ID_ITEM, ID_CL, ID_EXERCICIO, ID_EMPENHO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, 
+                ID_VEICULO_LOC, DS_VEICULO_MOD, ID_MOTORISTA, DATA_INICIO, DATA_FIM, HORA_INICIO, 
                 QT_DIARIA_KM, VL_DK, VL_SUBTOTAL, VL_TOTALITEM, NU_SEI, FL_EMAIL, 
-                OBS, FL_STATUS, USUARIO, DT_INICIAL, DT_FINAL, HR_INICIAL
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                OBS, FL_STATUS, USUARIO, DT_INICIAL, DT_FINAL, HR_INICIAL, COMBUSTIVEL
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, '',%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, '')
         """, (
-            id_item, id_cl, id_exercicio, setor_solicitante, objetivo, id_mes, 
+            id_item, id_cl, id_exercicio, id_empenho, setor_solicitante, objetivo, id_mes, 
             id_veiculo_loc, id_motorista, data_inicio, data_fim, hora_inicio, 
             qt_diaria_km, vl_dk, vl_totalitem, vl_totalitem, nu_sei, 'N', 
             obs, 'T', usuario, dt_inicial, dt_final, hr_inicial
         ))
         mysql.connection.commit()
         
-        # Obter informações do veículo
+        # Obter informações do veículo - IMPORTANTE: Também usar dictionary=True aqui
         cursor.execute("SELECT DE_VEICULO FROM TJ_VEICULO_LOCACAO WHERE ID_VEICULO_LOC = %s", (id_veiculo_loc,))
         veiculo_info = cursor.fetchone()
         de_veiculo = veiculo_info['DE_VEICULO']
         
+        # Verificar se o motorista tem Email cadastrado
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("SELECT EMAIL FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
+        motorista_email = cursor.fetchone()        
+        
         # Enviar e-mail para a empresa locadora
-        email_enviado = enviar_email_locacao(
+        email_enviado, erro_email = enviar_email_locacao(
             id_item, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
-            dt_inicial, dt_final, hr_inicial, de_veiculo,
-            nome_arquivo_cnh
+            dt_inicial, dt_final, hr_inicial, de_veiculo, obs,
+            nome_arquivo_cnh, motorista_email, file_pdf  # Passando o conteúdo do PDF
         )
         
-        return jsonify({
+        response_data = {
             'sucesso': True,
             'email_enviado': email_enviado,
             'mensagem': 'Locação cadastrada com sucesso!'
-        })
+        }
+        
+        if not email_enviado and erro_email:
+            response_data['erro_email'] = erro_email
+            
+        cursor.close()
+        return jsonify(response_data)
         
     except Exception as e:
         print(f"Erro ao cadastrar locação: {str(e)}")
@@ -1704,116 +1792,1402 @@ def nova_locacao():
             'sucesso': False,
             'mensagem': str(e)
         }), 500
-
-
-def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, nome_arquivo_cnh):
-    """
-    Função para enviar e-mail de locação de veículo
-    
-    Args:
-        id_item (int): ID da locação
-        nm_motorista (str): Nome do motorista
-        nu_telefone (str): Telefone do motorista
-        dt_inicial (str): Data inicial no formato DD/MM/YYYY
-        dt_final (str): Data final no formato DD/MM/YYYY
-        hr_inicial (str): Hora inicial no formato HH:MM
-        de_veiculo (str): Descrição do veículo
-        nome_arquivo_cnh (str): Nome do arquivo da CNH do motorista
-    
-    Returns:
-        dict: Dicionário com resultado do envio
-    """
+        
+def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
     try:
-        # Definir saudação com base na hora atual
-        from datetime import datetime
+        # Obter hora atual para saudação
         hora_atual = datetime.now().hour
-        saudacao = "Bom dia" if hora_atual < 12 else "Boa tarde" if hora_atual < 18 else "Boa noite"
+        saudacao = "Bom dia" if 5 <= hora_atual < 12 else "Boa tarde" if 12 <= hora_atual < 18 else "Boa noite"
         
-        # Obter informações do usuário da sessão
-        nome_usuario = session.get('usuario_nome')
-        usuario_id = session.get('usuario_id')
+        # Obter nome do usuário da sessão
+        nome_usuario = session.get('usuario_nome', 'Administrador')
         
-        # Configurar destinatários
-        destinatarios = [
-            "atendimentopvh@rovemalocadora.com.br",
-            "atendimento02@rovemalocadora.com.br", 
-            "Carmem@rovemalocadora.com.br"
-        ]
-        
-        # Configurar assunto
+        # Formatação do assunto
         assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
         
-        # Corpo do e-mail
-        corpo_email = f'''
-        {saudacao},
-
-        Prezados, solicito locação de veículo conforme informações abaixo:
-
-            Período: {dt_inicial} ({hr_inicial}) a {dt_final}
-            Veículo: {de_veiculo} ou Similar
-            Condutor: {nm_motorista} - Telefone {nu_telefone}
-
-        Segue anexo CNH do condutor.
-
-        Atenciosamente,
-
-        {nome_usuario}
-        Tribunal de Justiça do Estado de Rondônia
-        Seção de Gestão Operacional do Transporte
-        (69) 3309-6229/6227
-        '''
+        # Corpo do email para a locadora
+        corpo = f'''{saudacao},
+Prezados, solicito locação de veículo conforme informações abaixo:
+    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+    Veículo: {de_veiculo} ou Similar
+    Condutor: {nm_motorista} - Telefone {nu_telefone}
+{obs}
+    
+Segue anexo CNH do condutor.
+Atenciosamente,
+{nome_usuario}
+Tribunal de Justiça do Estado de Rondônia
+Seção de Gestão Operacional do Transporte
+(69) 3309-6229/6227'''
         
-        # Criar mensagem
-        from flask_mail import Message
+        # Criar mensagem para a locadora
         msg = Message(
             subject=assunto,
-            recipients=destinatarios,
-            body=corpo_email,
+            recipients=["Carmem@rovemalocadora.com.br", "atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br"],
+            body=corpo,
             sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
         )
         
-        # Anexar arquivo CNH
-        import os
-        caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo_cnh)
-        with app.open_resource(caminho_arquivo) as fp:
-            msg.attach(nome_arquivo_cnh, "application/pdf", fp.read())
+        # Anexar CNH se disponível
+        if file_pdf_content and nome_arquivo_cnh:
+            msg.attach(f'CNH_{nome_arquivo_cnh}', 'application/pdf', file_pdf_content)
         
-        # Enviar e-mail
+        # Enviar email para a locadora
         mail.send(msg)
         
-        # Registrar informações no banco de dados
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # Registrar email no banco de dados
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
-        # Registrar na tabela TJ_EMAIL_LOCACAO
-        sql_email = """
-        INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA)
-        VALUES (%s, %s, %s, %s, %s, NOW())
-        """
-        cursor.execute(
-            sql_email, 
-            (id_item, request.form.get('id_cl'), ', '.join(destinatarios), assunto, corpo_email)
-        )
+        # Formatação da data e hora atual
+        data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         
-        # Atualizar FL_EMAIL na tabela TJ_CONTROLE_LOCACAO_ITENS
-        sql_update = """
-        UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s
-        """
-        cursor.execute(sql_update, (id_item,))
+        # Obter ID_CL com base no ID_ITEM
+        cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
+        resultado = cursor.fetchone()
+        id_cl = resultado['ID_CL'] if resultado else None
+        if id_cl:
+            # Inserir na tabela de emails (para o email da locadora)
+            cursor.execute(
+                "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
+                (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo, data_hora_atual)
+            )
+            
+            # Atualizar flag de email na tabela de locações
+            cursor.execute(
+                "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
+                (id_item,)
+            )
+            
+            mysql.connection.commit()
+        # Agora enviar email para o motorista, se tiver email cadastrado
+        if email_mot:
+            try:
+                # Corpo do email para o motorista
+                corpo_motorista = f'''{saudacao},
+Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
+    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+    Veículo: {de_veiculo} ou Similar
+    Condutor: {nm_motorista} - Telefone {nu_telefone}
+{obs}
+Atenciosamente,
+{nome_usuario}
+Tribunal de Justiça do Estado de Rondônia
+Seção de Gestão Operacional do Transporte
+(69) 3309-6229/6227
+(Não precisa responder este e-mail)'''
+                # Criar mensagem para o motorista - CORREÇÃO AQUI
+                msg_motorista = Message(
+                    subject=assunto,
+                    recipients=[email_mot],  # Removendo as chaves incorretas
+                    body=corpo_motorista,
+                    sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+                )
+            
+                # Enviar email para o motorista
+                mail.send(msg_motorista)
+                app.logger.info(f"Email enviado para o motorista: {email_mot}")
+                
+            except Exception as e:
+                # Tratar erro específico do email do motorista, mas não interromper a função
+                app.logger.error(f"Erro ao enviar email para o motorista: {str(e)}")
+                # Não retornar aqui, pois o email para a locadora já foi enviado com sucesso
         
-        conn.commit()
         cursor.close()
-        conn.close()
-        
-        return {"success": True, "message": "E-mail enviado com sucesso"}
+        return True, None
     
     except Exception as e:
-        # Registrar erro
-        import traceback
-        app.logger.error(f"Erro ao enviar e-mail: {str(e)}")
-        app.logger.error(traceback.format_exc())
+        app.logger.error(f"Erro ao enviar email: {str(e)}")
+        return False, str(e)
         
-        return {"success": False, "message": str(e)}
+@app.route('/api/download_cnh_loc/<int:id_motorista>')
+@login_required
+def download_cnh_loc(id_motorista):
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # IMPORTANTE: Use dictionary=True aqui também
+        cursor.execute("""
+            SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
+            WHERE ID_MOTORISTA = %s
+        """, (id_motorista,))
+        
+        result = cursor.fetchone()
+        cursor.close()
+        
+        if result and result['FILE_PDF']:  # Acesso usando chave string
+            pdf_data = result['FILE_PDF']
+            filename = result['NOME_ARQUIVO'] or f"cnh_motorista_{id_motorista}.pdf"
+            
+            response = make_response(pdf_data)
+            response.headers['Content-Type'] = 'application/pdf'
+            response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+            return response
+        else:
+            return jsonify({'erro': 'PDF não encontrado'}), 404
+    except Exception as e:
+        print(f"Erro ao baixar PDF: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
+    
+@app.route('/api/excluir_locacao/<int:iditem>', methods=['DELETE'])
+@login_required
+def excluir_locacao(iditem):
+    try:
+        # Verificar se o item existe antes de excluir
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("SELECT ID_ITEM FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (iditem,))
+        item = cursor.fetchone()
+        
+        if not item:
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Item não encontrado'
+            }), 404
+        
+        # Exclui os emails relacionados
+        cursor.execute("""
+            DELETE FROM TJ_EMAIL_LOCACAO
+            WHERE ID_ITEM = %s
+        """, (iditem,))
+        
+        # Exclui a locação
+        cursor.execute("""
+            DELETE FROM TJ_CONTROLE_LOCACAO_ITENS
+            WHERE ID_ITEM = %s
+        """, (iditem,))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Locação excluída com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao excluir locação: {str(e)}")
+        mysql.connection.rollback()
+        return jsonify({
+            'sucesso': False,
+            'mensagem': f'Erro ao excluir locação: {str(e)}'
+        }), 500
+        
+@app.route('/api/locacao_item/<int:iditem>')
+@login_required
+def locacao_item(iditem):
+    try:
+        print(f"Iniciando consulta à Locação Item para ID: {iditem}")
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT i.ID_EXERCICIO, i.ID_MES, i.SETOR_SOLICITANTE, i.OBJETIVO, i.ID_EMPENHO, 
+            i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, i.VL_DK, 
+            i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, i.DATA_INICIO, i.DATA_FIM, 
+            i.HORA_INICIO, i.HORA_FIM, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.OBS
+            FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m
+            WHERE m.ID_MOTORISTA = i.ID_MOTORISTA
+            AND i.ID_ITEM = %s
+        """, (iditem,))
+        result = cursor.fetchone()
+        cursor.close()
+        print(f"Dados: {result}")
+        
+        if result:
+            print("Processando resultado...")
+            import datetime  # Certifique-se que está importado
+            
+            # Debug para cada campo antes da conversão
+            print(f"Tipos de dados dos campos:")
+            print(f"dt_inicio: {type(result[14])}, valor: {result[14]}")
+            print(f"dt_fim: {type(result[15])}, valor: {result[15]}")
+            print(f"hora_inicio: {type(result[16])}, valor: {result[16]}")
+            print(f"hora_fim: {type(result[17])}, valor: {result[17]}")
+            
+            try:
+                # Converter datas para string
+                print("Convertendo datas...")
+                dt_inicio = result[14].strftime('%Y-%m-%d') if result[14] and hasattr(result[14], 'strftime') else result[14]
+                dt_fim = result[15].strftime('%Y-%m-%d') if result[15] and hasattr(result[15], 'strftime') else result[15]
+                print(f"Datas convertidas: {dt_inicio}, {dt_fim}")
+                
+                # Converter tempos
+                print("Convertendo tempos...")
+                def format_timedelta(td):
+                    print(f"Formatando timedelta: {td}, tipo: {type(td)}")
+                    if td is None:
+                        return None
+                    if isinstance(td, datetime.timedelta):
+                        seconds = td.total_seconds()
+                        hours = int(seconds // 3600)
+                        minutes = int((seconds % 3600) // 60)
+                        secs = int(seconds % 60)
+                        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+                    if hasattr(td, 'strftime'):
+                        return td.strftime('%H:%M:%S')
+                    return str(td)
+                
+                hora_inicio = format_timedelta(result[16])
+                hora_fim = format_timedelta(result[17])
+                print(f"Tempos convertidos: {hora_inicio}, {hora_fim}")
+                
+                # Converter valores decimais
+                print("Convertendo valores...")
+                valor_diaria = float(result[9]) if result[9] is not None else None
+                valor_subtotal = float(result[10]) if result[10] is not None else None
+                valor_diferenca = float(result[11]) if result[11] is not None else None
+                valor_total = float(result[12]) if result[12] is not None else None
+                print("Valores convertidos com sucesso")
+                
+                itens = {
+                    'id_exercicio': result[0],
+                    'id_mes': result[1],
+                    'setor_solicitante': result[2],
+                    'objetivo': result[3],
+                    'id_empenho': result[4],
+                    'id_veiculo_loc': result[5],
+                    'id_motorista': result[6],
+                    'nome_motorista': result[7],
+                    'qt_diarias': float(result[8]) if result[8] is not None else None,
+                    'valor_diaria': valor_diaria,
+                    'valor_subtotal': valor_subtotal,
+                    'valor_diferenca': valor_diferenca,
+                    'valor_total': valor_total,
+                    'nu_sei': result[13],
+                    'dt_inicio': dt_inicio,
+                    'dt_fim': dt_fim,
+                    'hora_inicio': hora_inicio,
+                    'hora_fim': hora_fim,
+                    'veiculo_modelo': result[18],
+                    'combustivel': result[19],
+		    'obs': result[20]
+                }
+                print("Dicionário itens criado com sucesso")
+                
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens)
+                return jsonify(itens)
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            print(f"Locação com ID {iditem} não encontrada")
+            return jsonify({'erro': 'Locação não encontrada'}), 400
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500  
+        
+@app.route('/api/busca_modelos_veiculos')
+@login_required
+def busca_modelos_veiculos():
+    try:
+        termo = request.args.get('termo', '')
+        if len(termo) < 3:
+            return jsonify([])
+            
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT DISTINCT DS_VEICULO_MOD 
+            FROM TJ_CONTROLE_LOCACAO_ITENS
+            WHERE DS_VEICULO_MOD LIKE %s
+            LIMIT 10
+        """, (f'%{termo}%',))
+        
+        result = cursor.fetchall()
+        cursor.close()
+        
+        modelos = [row[0] for row in result]
+        return jsonify(modelos)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+@app.route('/api/busca_combustivel')
+@login_required
+def busca_combustivel():
+    try:
+        termo = request.args.get('termo', '')
+            
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT DISTINCT COMBUSTIVEL FROM TJ_CONTROLE_LOCACAO_ITENS
+            WHERE DS_VEICULO_MOD = %s
+        """, (termo,))
+                
+        result = cursor.fetchall()
+        cursor.close()
+        
+        combustivel = [row[0] for row in result]
+        return jsonify(combustivel)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+@app.route('/api/salvar_devolucao/<int:iditem>', methods=['POST'])
+@login_required
+def salvar_devolucao(iditem):
+    try:
+        data = request.form
+        data_inicio = data.get('data_inicio')
+        data_fim = data.get('data_fim')
+        hora_inicio = data.get('hora_inicio')
+        hora_fim = data.get('hora_fim')
+        qt_diarias = data.get('qt_diarias')
+        km_rodado = data.get('km_rodado')
+        
+        #qt_diarias = float(data.get('qt_diarias', 0))
+        # Converter data_inicio e data_fim para objetos datetime
+        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
+        
+        # Extrair ano e mês da data de fim
+        id_exercicio = data_fim_obj.year
+        id_mes = data_fim_obj.month
+        
+        # Converter data para o formato dd/mm/yyyy para os campos de string
+        dt_inicial = data_inicio_obj.strftime('%d/%m/%Y')
+        dt_final = data_fim_obj.strftime('%d/%m/%Y')
+        
+        # Converter hora para string no formato hh:mm
+        hr_inicial = hora_inicio
+        hr_final = hora_fim
+        
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
+            OBJETIVO = %s,
+            SETOR_SOLICITANTE = %s,
+            ID_VEICULO_LOC = %s,
+            ID_MOTORISTA = %s,
+            ID_EXERCICIO = %s,
+            ID_MES = %s,
+            DATA_INICIO = %s,
+            DATA_FIM = %s,
+            HORA_INICIO = %s,
+            HORA_FIM = %s,
+            DT_INICIAL = %s,
+            DT_FINAL = %s,
+            HR_INICIAL = %s,
+            HR_FINAL = %s,
+            QT_DIARIA_KM = %s,
+            VL_DIFERENCA = %s,
+            VL_SUBTOTAL = %s,
+            VL_TOTALITEM = %s,
+            DS_VEICULO_MOD = %s,
+            FL_STATUS = 'F',
+            KM_RODADO = %s,
+            COMBUSTIVEL = %s,
+            OBS_DEV = %s
+            WHERE ID_ITEM = %s
+        """, (
+            data.get('objetivo'),
+            data.get('setor_solicitante'),
+            data.get('id_veiculo'),
+            data.get('id_motorista'),
+            id_exercicio, id_mes,
+            data.get('data_inicio'),
+            data.get('data_fim'),
+            data.get('hora_inicio'),
+            data.get('hora_fim'),
+            dt_inicial, dt_final, hr_inicial, hr_final,
+            qt_diarias,
+            data.get('valor_diferenca'),
+            data.get('valor_subtotal'),
+            data.get('valor_total'),
+            data.get('veiculo_modelo'),
+            km_rodado,
+            data.get('combustivel'),
+            data.get('obs_dev'),
+            iditem
+        ))
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'mensagem': 'Devolução registrada com sucesso!'})
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+@app.route('/api/editar_locacao/<int:iditem>', methods=['POST'])
+@login_required
+def editar_locacao(iditem):
+    try:
+        data = request.form
+        data_inicio = data.get('data_inicio')
+        data_fim = data.get('data_fim')
+        hora_inicio = data.get('hora_inicio')
+        hora_fim = data.get('hora_fim')
+        qt_diarias = data.get('qt_diarias')
+        km_rodado = data.get('km_rodado')
+        
+        #qt_diarias = float(data.get('qt_diarias', 0))
+        # Converter data_inicio e data_fim para objetos datetime
+        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d')
+        
+        # Extrair ano e mês da data de fim
+        id_exercicio = data_fim_obj.year
+        id_mes = data_fim_obj.month
+        
+        # Converter data para o formato dd/mm/yyyy para os campos de string
+        dt_inicial = data_inicio_obj.strftime('%d/%m/%Y')
+        dt_final = data_fim_obj.strftime('%d/%m/%Y')
+        
+        # Converter hora para string no formato hh:mm
+        hr_inicial = hora_inicio
+        hr_final = hora_fim
+        
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
+            OBJETIVO = %s,
+            SETOR_SOLICITANTE = %s,
+            ID_VEICULO_LOC = %s,
+            ID_MOTORISTA = %s,
+            ID_EXERCICIO = %s,
+            ID_MES = %s,
+            DATA_INICIO = %s,
+            DATA_FIM = %s,
+            HORA_INICIO = %s,
+            HORA_FIM = %s,
+            DT_INICIAL = %s,
+            DT_FINAL = %s,
+            HR_INICIAL = %s,
+            HR_FINAL = %s,
+            QT_DIARIA_KM = %s,
+            VL_DIFERENCA = %s,
+            VL_SUBTOTAL = %s,
+            VL_TOTALITEM = %s,
+            DS_VEICULO_MOD = %s,
+            COMBUSTIVEL = %s,
+            OBS = %s
+            WHERE ID_ITEM = %s
+        """, (
+            data.get('objetivo'),
+            data.get('setor_solicitante'),
+            data.get('id_veiculo'),
+            data.get('id_motorista'),
+            id_exercicio, id_mes,
+            data.get('data_inicio'),
+            data.get('data_fim'),
+            data.get('hora_inicio'),
+            data.get('hora_fim'),
+            dt_inicial, dt_final, hr_inicial, hr_final,
+            qt_diarias,
+            data.get('valor_diferenca'),
+            data.get('valor_subtotal'),
+            data.get('valor_total'),
+            data.get('veiculo_modelo'),
+            data.get('combustivel'),
+            data.get('obs'),
+            iditem
+        ))
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'mensagem': 'Alteração registrada com sucesso!'})
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+@app.route('/api/locacao_visualiza/<int:iditem>')
+@login_required
+def locacao_visualiza(iditem):
+    try:
+        print(f"Iniciando consulta à Locação Item para ID: {iditem}")
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+			SELECT e.NU_EMPENHO, i.SETOR_SOLICITANTE, i.OBJETIVO, i.NU_SEI, m.NM_MOTORISTA, 
+            v.DE_VEICULO, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.DATA_INICIO, i.DATA_FIM, 
+            i.HORA_INICIO, i.HORA_FIM, i.QT_DIARIA_KM, i.VL_DK, 
+            i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO, i.OBS, i.OBS_DEV
+            FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m, 
+            TJ_CONTROLE_LOCACAO_EMPENHOS e, TJ_VEICULO_LOCACAO v
+            WHERE v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
+            AND e.ID_EMPENHO = i.ID_EMPENHO 
+            AND m.ID_MOTORISTA = i.ID_MOTORISTA
+            AND i.ID_ITEM = %s
+        """, (iditem,))
+        result = cursor.fetchone()
+        cursor.close()
+        print(f"Dados: {result}")
+        
+        if result:
+            print("Processando resultado...")
+            import datetime  # Certifique-se que está importado
+            
+            # Debug para cada campo antes da conversão
+            print(f"Tipos de dados dos campos:")
+            print(f"dt_inicio: {type(result[8])}, valor: {result[8]}")
+            print(f"dt_fim: {type(result[9])}, valor: {result[9]}")
+            print(f"hora_inicio: {type(result[10])}, valor: {result[10]}")
+            print(f"hora_fim: {type(result[11])}, valor: {result[11]}")
+            
+            try:
+                # Converter datas para string
+                print("Convertendo datas...")
+                dt_inicio = result[8].strftime('%Y-%m-%d') if result[8] and hasattr(result[8], 'strftime') else result[8]
+                dt_fim = result[9].strftime('%Y-%m-%d') if result[9] and hasattr(result[9], 'strftime') else result[9]
+                print(f"Datas convertidas: {dt_inicio}, {dt_fim}")
+                
+                # Converter tempos
+                print("Convertendo tempos...")
+                def format_timedelta(td):
+                    print(f"Formatando timedelta: {td}, tipo: {type(td)}")
+                    if td is None:
+                        return None
+                    if isinstance(td, datetime.timedelta):
+                        seconds = td.total_seconds()
+                        hours = int(seconds // 3600)
+                        minutes = int((seconds % 3600) // 60)
+                        secs = int(seconds % 60)
+                        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+                    if hasattr(td, 'strftime'):
+                        return td.strftime('%H:%M:%S')
+                    return str(td)
+                
+                hora_inicio = format_timedelta(result[10])
+                hora_fim = format_timedelta(result[11])
+                print(f"Tempos convertidos: {hora_inicio}, {hora_fim}")
+                
+                # Converter valores decimais
+                print("Convertendo valores...")
+                valor_diaria = float(result[13]) if result[13] is not None else None
+                valor_subtotal = float(result[14]) if result[14] is not None else None
+                valor_diferenca = float(result[15]) if result[15] is not None else None
+                valor_total = float(result[16]) if result[16] is not None else None
+                print("Valores convertidos com sucesso")
+                
+                itens = {
+                    'nu_empenho': result[0],
+                    'setor_solicitante': result[1],
+                    'objetivo': result[2],
+                    'nu_sei': result[3],
+                    'nome_motorista': result[4],
+                    'de_veiculo': result[5],
+                    'veiculo_modelo': result[6],
+                    'combustivel': result[7],
+                    'dt_inicio': dt_inicio,
+                    'dt_fim': dt_fim,
+                    'hora_inicio': hora_inicio,
+                    'hora_fim': hora_fim,
+                    'qt_diarias': float(result[12]) if result[12] is not None else None,
+                    'valor_diaria': valor_diaria,
+                    'valor_subtotal': valor_subtotal,
+                    'valor_diferenca': valor_diferenca,
+                    'valor_total': valor_total,
+                    'km_rodado': result[17],
+                    'obs': result[18],
+                    'obs_dev': result[19]
+                }
+                print("Dicionário itens criado com sucesso")
+                
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens)
+                return jsonify(itens)
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            print(f"Locação com ID {iditem} não encontrada")
+            return jsonify({'erro': 'Locação não encontrada'}), 400
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500    
+        
+@app.route('/fluxo_veiculos')
+@login_required
+def fluxo_veiculos():
+    return render_template('fluxo_veiculos.html')
+    
+# @app.route('/api/fluxo_lista_setores')
+# @login_required
+# def fluxo_lista_setores():
+#     try:
+#         cursor = mysql.connection.cursor()
+#         cursor.execute("""
+#         SELECT DISTINCT SETOR_SOLICITANTE 
+#         FROM TJ_FLUXO_VEICULOS
+#         ORDER BY SETOR_SOLICITANTE
+#         """)
+               
+#         items = cursor.fetchall()
+#         setores = []
+#         for item in items:
+#             lista = {'SETOR_SOLICITANTE': item[0]}
+#             setores.append(lista)
+            
+#         cursor.close()
+#         return jsonify(setores)
+        
+#     except Exception as e:
+#         app.logger.error(f"Erro ao buscar setores: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/fluxo_busca_setor')
+@login_required
+def fluxo_busca_setor():
+    try:
+        termo = request.args.get('termo', '')
+        if len(termo) < 3:
+            return jsonify([])
+            
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT DISTINCT SETOR_SOLICITANTE 
+            FROM TJ_FLUXO_VEICULOS
+            WHERE SETOR_SOLICITANTE LIKE %s
+            ORDER BY SETOR_SOLICITANTE
+        """, (f'%{termo}%',))
+        
+        result = cursor.fetchall()
+        cursor.close()
+        
+        setores = [row[0] for row in result]
+        return jsonify(setores)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500   
+        
+@app.route('/api/fluxo_busca_destino')
+@login_required
+def fluxo_busca_destino():
+    try:
+        termo = request.args.get('termo', '')
+        if len(termo) < 3:
+            return jsonify([])
+            
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT DISTINCT DESTINO 
+            FROM TJ_FLUXO_VEICULOS
+            WHERE DESTINO LIKE %s
+            ORDER BY DESTINO
+        """, (f'%{termo}%',))
+        
+        result = cursor.fetchall()
+        cursor.close()
+        
+        destinos = [row[0] for row in result]
+        return jsonify(destinos)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500    
+        
+# @app.route('/api/fluxo_lista_destinos')
+# @login_required
+# def fluxo_lista_destinos():
+#     try:
+#         cursor = mysql.connection.cursor()
+#         cursor.execute("""
+#         SELECT DISTINCT DESTINO 
+#         FROM TJ_FLUXO_VEICULOS
+#         ORDER BY DESTINO
+#         """)
+               
+#         items = cursor.fetchall()
+#         destinos = []
+#         for item in items:
+#             lista = {'DESTINO': item[0]}
+#             destinos.append(lista)
+            
+#         cursor.close()
+#         return jsonify(destinos)
+        
+#     except Exception as e:
+#         app.logger.error(f"Erro ao buscar setores: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/fluxo_lista_motorista')
+@login_required
+def fluxo_lista_motorista():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+        SELECT ID_MOTORISTA, NM_MOTORISTA 
+        FROM TJ_MOTORISTA WHERE ATIVO = 'S' AND ID_MOTORISTA <> 0
+        ORDER BY NM_MOTORISTA
+        """)
+               
+        items = cursor.fetchall()
+        motoristas = []
+        for item in items:
+            lista = {'ID_MOTORISTA': item[0],
+                     'NM_MOTORISTA': item[1]}
+            motoristas.append(lista)
+            
+        cursor.close()
+        return jsonify(motoristas)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar setores: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+        
+@app.route('/api/fluxo_lista_veiculos')
+@login_required
+def fluxo_lista_veiculos():
+    try:
+        # SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO 
+        # FROM TJ_VEICULO WHERE FL_ATENDIMENTO = 'S'
+        # ORDER BY DS_MODELO
+  
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+        SELECT v.ID_VEICULO, CONCAT(v.DS_MODELO,' - ',v.NU_PLACA) AS VEICULO 
+        FROM TJ_VEICULO v 
+        WHERE v.ID_VEICULO NOT IN 
+            (SELECT ID_VEICULO FROM TJ_FLUXO_VEICULOS
+			 WHERE FL_STATUS = 'S') 
+        AND v.FL_ATENDIMENTO = 'S'
+        ORDER BY v.DS_MODELO 
+        """)
+               
+        items = cursor.fetchall()
+        veiculos = []
+        for item in items:
+            lista = {'ID_VEICULO': item[0],
+                     'VEICULO': item[1]}
+            veiculos.append(lista)
+            
+        cursor.close()
+        return jsonify(veiculos)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar setores: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+        
+@app.route('/api/fluxo_veiculo_saida_sem_retorno')
+@login_required
+def fluxo_veiculo_saida_sem_retorno():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
+                f.ID_VEICULO, f.ID_MOTORISTA, 
+                CASE WHEN f.ID_MOTORISTA=0 THEN 
+                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v 
+                ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m 
+                ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE f.DATA_RETORNO IS NULL
+            AND f.DATA_SAIDA = CURDATE()
+            ORDER BY f.DATA_SAIDA, f.HORA_SAIDA
+        """)
+        results = cursor.fetchall()  # Altere para fetchall() para obter todos os registros
+        cursor.close()
+        print(f"Número de registros encontrados: {len(results)}")
+        
+        if results:
+            print("Processando resultados...")
+            itens_list = []
+            
+            try:
+                for result in results:
+                    item = {
+                        'id_fluxo': result[0],
+                        'setor_solicitante': result[1],
+                        'destino': result[2],
+                        'veiculo': result[3],
+                        'id_veiculo': result[4],''
+                        'id_motorista': result[5],
+                        'nome_motorista': result[6],
+                        'datahora_saida': result[7],
+                        'obs': result[8]
+                    }
+                    itens_list.append(item)
+                
+                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens_list)
+                return jsonify(itens_list)  # Retorne a lista completa
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            return jsonify([])  # Retorne lista vazia em vez de erro quando não houver dados
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+@app.route('/api/fluxo_veiculo_retorno_dia')
+@login_required
+def fluxo_veiculo_retorno_dia():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
+                f.ID_VEICULO, f.ID_MOTORISTA, 
+                CASE WHEN f.ID_MOTORISTA=0 THEN 
+                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, 
+                CONCAT(f.DT_RETORNO,' ',f.HR_RETORNO) AS RETORNO, f.OBS_RETORNO
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v 
+                ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m 
+                ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE f.DATA_RETORNO IS NOT NULL
+            AND f.DATA_RETORNO = CURDATE()
+            ORDER BY f.DATA_RETORNO, f.HORA_RETORNO
+        """)
+        results = cursor.fetchall()  # Altere para fetchall()
+        cursor.close()
+        print(f"Número de registros encontrados: {len(results)}")
+        
+        if results:
+            print("Processando resultados...")
+            itens_list = []
+            
+            try:
+                for result in results:
+                    item = {
+                        'id_fluxo': result[0],
+                        'setor_solicitante': result[1],
+                        'destino': result[2],
+                        'veiculo': result[3],
+                        'id_veiculo': result[4],
+                        'id_motorista': result[5],
+                        'nome_motorista': result[6],
+                        'datahora_saida': result[7],
+                        'datahora_retorno': result[8],
+                        'obs': result[9]
+                    }
+                    itens_list.append(item)
+                
+                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
+                return jsonify(itens_list)  # Retorne a lista completa
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            return jsonify([])  # Retorne lista vazia
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+@app.route('/api/fluxo_veiculo_saida_retorno_pendente')
+@login_required
+def fluxo_veiculo_saida_retorno_pendente():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO, 
+                f.ID_VEICULO, f.ID_MOTORISTA, 
+                CASE WHEN f.ID_MOTORISTA=0 THEN 
+                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
+                CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v 
+                ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m 
+                ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE f.DATA_RETORNO IS NULL
+            AND f.DATA_SAIDA <> CURDATE()
+            ORDER BY f.DATA_SAIDA, f.HORA_SAIDA
+        """)
+        results = cursor.fetchall()  # Altere para fetchall()
+        cursor.close()
+        print(f"Número de registros encontrados: {len(results)}")
+        
+        if results:
+            print("Processando resultados...")
+            itens_list = []
+            
+            try:
+                for result in results:
+                    item = {
+                        'id_fluxo': result[0],
+                        'setor_solicitante': result[1],
+                        'destino': result[2],
+                        'veiculo': result[3],
+                        'id_veiculo': result[4],
+                        'id_motorista': result[5],
+                        'nome_motorista': result[6],
+                        'datahora_saida': result[7],
+                        'obs': result[8]
+                    }
+                    itens_list.append(item)
+                
+                print(f"Lista de itens criada com sucesso. Total: {len(itens_list)}")
+                return jsonify(itens_list)  # Retorne a lista completa
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            return jsonify([])  # Retorne lista vazia
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+@app.route('/api/fluxo_saida_item/<int:idfluxo>')
+@login_required
+def fluxo_saida_item(idfluxo):
+    try:
+        print(f"Iniciando consulta à Saida para ID: {idfluxo}")
+        cursor = mysql.connection.cursor()
+        
+        print("Executando consulta SQL")
+        cursor.execute("""
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                f.ID_VEICULO, f.ID_MOTORISTA, f.DATA_SAIDA, f.HORA_SAIDA, 
+                f.DATA_RETORNO, f.HORA_RETORNO, f.OBS,
+                CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO,  
+                CASE WHEN f.ID_MOTORISTA=0 THEN 
+                CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v 
+                ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m 
+                ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE f.ID_FLUXO = %s
+        """, (idfluxo,))
+        result = cursor.fetchone()
+        cursor.close()
+        print(f"Dados: {result}")
+        
+        if result:
+            print("Processando resultado...")
+            import datetime  # Certifique-se que está importado
+            
+            # Debug para cada campo antes da conversão
+            print(f"Tipos de dados dos campos:")
+            print(f"dt_saida: {type(result[5])}, valor: {result[5]}")
+            print(f"dt_retorno: {type(result[7])}, valor: {result[7]}")
+            print(f"hora_saida: {type(result[6])}, valor: {result[6]}")
+            print(f"hora_retorno: {type(result[8])}, valor: {result[8]}")
+            
+            try:
+                # Converter datas para string
+                print("Convertendo datas...")
+                dt_saida = result[5].strftime('%Y-%m-%d') if result[5] and hasattr(result[5], 'strftime') else result[5]
+                dt_retorno = result[7].strftime('%Y-%m-%d') if result[7] and hasattr(result[7], 'strftime') else result[7]
+                print(f"Datas convertidas: {dt_saida}, {dt_retorno}")
+                
+                # Converter tempos
+                print("Convertendo tempos...")
+                def format_timedelta(td):
+                    print(f"Formatando timedelta: {td}, tipo: {type(td)}")
+                    if td is None:
+                        return None
+                    if isinstance(td, datetime.timedelta):
+                        seconds = td.total_seconds()
+                        hours = int(seconds // 3600)
+                        minutes = int((seconds % 3600) // 60)
+                        secs = int(seconds % 60)
+                        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+                    if hasattr(td, 'strftime'):
+                        return td.strftime('%H:%M:%S')
+                    return str(td)
+                
+                hora_saida = format_timedelta(result[6])
+                hora_retorno = format_timedelta(result[8])       
+                
+                itens = {
+                    'id_fluxo': result[0],
+                    'setor_solicitante': result[1],
+                    'destino': result[2],
+                    'id_veiculo': result[3],
+                    'veiculo': result[10],
+                    'id_motorista': result[4],
+                    'nome_motorista': result[11],
+                    'dt_saida': dt_saida,
+                    'dt_retorno': dt_retorno,
+                    'hora_saida': hora_saida,
+                    'hora_retorno': hora_retorno,
+		            'obs': result[9]
+                }
+                print("Dicionário itens criado com sucesso")
+                
+                # Debug - veja o que está sendo enviado
+                print("Enviando para o frontend:", itens)
+                return jsonify(itens)
+            
+            except Exception as e:
+                print(f"Erro durante processamento dos dados: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'erro': f"Erro ao processar dados: {str(e)}"}), 500
+        else:
+            print(f"Locação com ID {idfluxo} não encontrada")
+            return jsonify({'erro': 'Locação não encontrada'}), 400
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+# Rota para obter o próximo ID_ITEM
+def obter_proximo_id_fluxo():
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT MAX(ID_FLUXO) FROM TJ_FLUXO_VEICULOS")
+    resultado = cursor.fetchone()
+    cursor.close()
+    
+    ultimo_id = resultado[0] if resultado[0] else 0
+    return ultimo_id + 1
+    
+@app.route('/api/fluxo_nova_saida', methods=['POST'])
+@login_required
+def fluxo_nova_saida():
+    try:
+        setor_solicitante = request.form.get('setorSolicitante_saida')
+        destino = request.form.get('destino_saida')
+        id_veiculo = request.form.get('veiculo_saida')
+        id_motorista = request.form.get('motorista_saida')
+        motorista_nc = request.form.get('motoristanaocad_saida')
+        data_saida = request.form.get('datasaida_saida')
+        hora_saida = request.form.get('horasaida_saida')
+        obs_saida = request.form.get('obs_saida')
+        
+        # Obter o próximo ID_ITEM
+        id_fluxo = obter_proximo_id_fluxo()
+        
+        # Converter data_inicio e data_fim para objetos datetime
+        data_saida_obj = datetime.strptime(data_saida, '%Y-%m-%d')
+        
+        # Converter data para o formato dd/mm/yyyy para os campos de string
+        dt_saida = data_saida_obj.strftime('%d/%m/%Y')
+        
+        # Converter hora para string no formato hh:mm
+        hr_saida = hora_saida
+        
+        # Obter ID do usuário da sessão
+        usuario = session.get('usuario_login')
+        cursor = mysql.connection.cursor() 
+        # Inserir na tabela TJ_FLUXO_VEICULOS
+        cursor.execute("""
+            INSERT INTO TJ_FLUXO_VEICULOS (
+                ID_FLUXO, ID_VEICULO, DT_SAIDA, HR_SAIDA, SETOR_SOLICITANTE, DESTINO, 
+                ID_MOTORISTA, NC_CONDUTOR, OBS, FL_STATUS, USUARIO_SAIDA, DATA_SAIDA, HORA_SAIDA
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (id_fluxo, id_veiculo, dt_saida, hr_saida, setor_solicitante, destino, 
+              id_motorista, motorista_nc, obs_saida, 'S', usuario, data_saida, hora_saida        
+        ))
+        mysql.connection.commit()
+              
+        response_data = {
+            'sucesso': True,
+            'mensagem': 'Saida registrada com sucesso!'
+        }
+             
+        cursor.close()
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Erro ao : {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
+        
+@app.route('/api/fluxo_lanca_retorno/<int:idfluxo>', methods=['POST'])
+@login_required
+def fluxo_lanca_retorno(idfluxo):
+    try:
+        data_retorno = request.form.get('data_retorno')
+        hora_retorno = request.form.get('hora_retorno')
+        obs_retorno = request.form.get('obs_retorno')
+        
+        # Converter data_inicio e data_fim para objetos datetime
+        data_retorno_obj = datetime.strptime(data_retorno, '%Y-%m-%d')
+        
+        # Converter data para o formato dd/mm/yyyy para os campos de string
+        dt_retorno = data_retorno_obj.strftime('%d/%m/%Y')
+        
+        # Converter hora para string no formato hh:mm
+        hr_retorno = hora_retorno
+        
+        # Obter ID do usuário da sessão
+        usuario = session.get('usuario_login')
+        cursor = mysql.connection.cursor() 
+        # Inserir na tabela TJ_FLUXO_VEICULOS
+        cursor.execute("""
+            UPDATE TJ_FLUXO_VEICULOS SET
+                DT_RETORNO = %s,
+                HR_RETORNO = %s,
+                DATA_RETORNO = %s,
+                HORA_RETORNO = %s,
+                FL_STATUS = %s,
+                USUARIO_CHEGADA = %s,
+                OBS_RETORNO = %s
+            WHERE ID_FLUXO = %s
+        """, (dt_retorno, hr_retorno, data_retorno, hora_retorno, 
+              'R', usuario, obs_retorno, idfluxo        
+        ))
+        mysql.connection.commit()
+              
+        response_data = {
+            'sucesso': True,
+            'mensagem': 'Retorno registrado com sucesso!'
+        }
+             
+        cursor.close()
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Erro ao : {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
+        
+@app.route('/api/busca_motorista')
+@login_required
+def busca_motorista():
+    try:
+        nome = request.args.get('nome', '')
+        cursor = mysql.connection.cursor()
+        
+        if nome:
+            query = """
+            SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
+            FROM TJ_MOTORISTA 
+            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
+            AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
+            ORDER BY NM_MOTORISTA
+            """
+            cursor.execute(query, (f'%{nome}%',))
+        else:
+            query = """
+            SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
+            FROM TJ_MOTORISTA
+            WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
+            ORDER BY NM_MOTORISTA
+            """
+            cursor.execute(query)
+        
+        columns = ['id_motorista', 'matricula', 'nm_motorista', 'sigla_setor']
+        motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify(motoristas)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+        
+@app.route('/veiculos_frota')
+@login_required
+def veiculos_frota():
+    return render_template('veiculos_frota.html')
+	
+@app.route('/api/veiculos', methods=['GET'])
+@login_required
+def lista_veiculos():
+    try:
+        filtro = request.args.get('filtro', '')
+        
+        cursor = mysql.connection.cursor()
+        
+        if filtro:
+            # Busca pelo modelo ou placa
+            query = """
+            SELECT v.*, c.DS_CAT_VEICULO 
+            FROM TJ_VEICULO v
+            LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+            WHERE v.NU_PLACA LIKE %s OR v.DS_MODELO LIKE %s OR v.MARCA LIKE %s
+            ORDER BY v.ID_VEICULO DESC
+            """
+            cursor.execute(query, (f'%{filtro}%', f'%{filtro}%', f'%{filtro}%'))
+        else:
+            # Busca todos
+            query = """
+            SELECT v.*, c.DS_CAT_VEICULO 
+            FROM TJ_VEICULO v
+            LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+            ORDER BY v.ID_VEICULO DESC
+            """
+            cursor.execute(query)
+        
+        veiculos = []
+        columns = [column[0] for column in cursor.description]
+        
+        for row in cursor.fetchall():
+            veiculo = {}
+            for i, col in enumerate(columns):
+                veiculo[col.lower()] = row[i]
+            veiculos.append(veiculo)
+        
+        cursor.close()
+        return jsonify(veiculos)
+    
+    except Exception as e:
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
+        
+@app.route('/api/obter_veiculo/<int:id>', methods=['GET'])
+@login_required
+def obter_veiculo(id):
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+        SELECT v.*, c.DS_CAT_VEICULO 
+        FROM TJ_VEICULO v
+        LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+        WHERE v.ID_VEICULO = %s
+        """
+        cursor.execute(query, (id,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({"erro": "Veículo não encontrado"}), 404
+        
+        columns = [column[0] for column in cursor.description]
+        veiculo = {}
+        for i, col in enumerate(columns):
+            veiculo[col.lower()] = row[i]
+        
+        cursor.close()
+        return jsonify(veiculo)
+    
+    except Exception as e:
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
+    
+@app.route('/api/veiculos/cadastrar', methods=['POST'])
+@login_required
+def cadastrar_veiculo():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # Get last ID and increment
+        cursor.execute("SELECT COALESCE(MAX(ID_VEICULO), 0) + 1 FROM TJ_VEICULO")
+        novo_id = cursor.fetchone()[0]
+        # Form data
+        nu_placa = request.json.get('nu_placa', '').upper()
+        id_categoria = request.json.get('id_categoria')
+        marca = request.json.get('marca', '')
+        ds_modelo = request.json.get('ds_modelo', '')
+        ano_fabmod = request.json.get('ano_fabmod', '')
+        origem_veiculo = request.json.get('origem_veiculo', '')
+        propriedade = request.json.get('propriedade', '')
+        combustivel = request.json.get('combustivel', '')
+        obs = request.json.get('obs', '')
+        ativo = request.json.get('ativo', 'S')
+        fl_atendimento = request.json.get('fl_atendimento', 'N')
+        usuario = session.get('usuario_id')
+        # Get current timestamp in Manaus timezone
+        manaus_tz = timezone('America/Manaus')
+        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+        # Insert query
+        query = """
+        INSERT INTO TJ_VEICULO (
+            ID_VEICULO, NU_PLACA, ID_CATEGORIA, MARCA, DS_MODELO, 
+            ANO_FABMOD, ORIGEM_VEICULO, PROPRIEDADE, COMBUSTIVEL, 
+            OBS, ATIVO, FL_ATENDIMENTO, USUARIO, DT_TRANSACAO
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(query, (
+            novo_id, nu_placa, id_categoria, marca, ds_modelo, 
+            ano_fabmod, origem_veiculo, propriedade, combustivel, 
+            obs, ativo, fl_atendimento, usuario, dt_transacao
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'sucesso': True, 'id_veiculo': novo_id})
+    
+    except Exception as e:
+        print(f"Erro ao : {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
+        
+@app.route('/api/veiculos/atualizar', methods=['POST'])
+@login_required
+def atualizar_veiculo():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # Form data
+        id_veiculo = request.json.get('id_veiculo')
+        nu_placa = request.json.get('nu_placa', '').upper()
+        id_categoria = request.json.get('id_categoria')
+        marca = request.json.get('marca', '')
+        ds_modelo = request.json.get('ds_modelo', '')
+        ano_fabmod = request.json.get('ano_fabmod', '')
+        origem_veiculo = request.json.get('origem_veiculo', '')
+        propriedade = request.json.get('propriedade', '')
+        combustivel = request.json.get('combustivel', '')
+        obs = request.json.get('obs', '')
+        ativo = request.json.get('ativo', 'S')
+        fl_atendimento = request.json.get('fl_atendimento', 'N')
+        usuario = session.get('usuario_id')
+        # Get current timestamp in Manaus timezone
+        manaus_tz = timezone('America/Manaus')
+        dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+        # Update query
+        query = """
+        UPDATE TJ_VEICULO SET
+            NU_PLACA = %s,
+            ID_CATEGORIA = %s,
+            MARCA = %s,
+            DS_MODELO = %s,
+            ANO_FABMOD = %s,
+            ORIGEM_VEICULO = %s,
+            PROPRIEDADE = %s,
+            COMBUSTIVEL = %s,
+            OBS = %s,
+            ATIVO = %s,
+            FL_ATENDIMENTO = %s,
+            USUARIO = %s,
+            DT_TRANSACAO = %s
+        WHERE ID_VEICULO = %s
+        """
+        
+        cursor.execute(query, (
+            nu_placa, id_categoria, marca, ds_modelo, 
+            ano_fabmod, origem_veiculo, propriedade, combustivel, 
+            obs, ativo, fl_atendimento, usuario, dt_transacao,
+            id_veiculo
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'sucesso': True, 'mensagem': 'Veículo atualizado com sucesso'})
+        
+    except Exception as e:
+        print(f"Erro ao : {str(e)}")
+        return jsonify({
+            'sucesso': False,
+            'mensagem': str(e)
+        }), 500
+        
+@app.route('/api/categorias_veiculos', methods=['GET'])
+@login_required
+def listar_categorias():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("SELECT * FROM TJ_CATEGORIA_VEICULO ORDER BY DS_CAT_VEICULO")
+        
+        categorias = []
+        columns = [column[0] for column in cursor.description]
+        
+        for row in cursor.fetchall():
+            categoria = {}
+            for i, col in enumerate(columns):
+                categoria[col.lower()] = row[i]
+            categorias.append(categoria)
+        
+        cursor.close()
+        return jsonify(categorias)
+        
+    except Exception as e:
+        return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
+	
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
