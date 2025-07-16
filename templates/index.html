@@ -11,64 +11,16 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-top: 80px; /* Espaço para o header fixo */
-        }
-        
-        /* Header fixo */
-        .fixed-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 10px 0;
-        }
-        
-        .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .logo-img {
-            height: 40px;
-            width: auto;
-        }
-        
-        .title-section {
-            display: flex;
-            flex-direction: column;
-            line-height: 1.2;
-        }
-        
-        .main-title {
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin: 0;
-            color: #333;
-        }
-        
-        .subtitle {
-            font-size: 0.8rem;
-            color: #666666;
-            margin: 0;
+            padding-top: 60px; /* Espaço para o menu fixo */
         }
         
         /* Menu de navegação fixo */
         .fixed-navbar {
             position: fixed;
-            top: 70px; /* Posicionado abaixo do header */
+            top: 0;
             left: 0;
             right: 0;
-            z-index: 1025;
+            z-index: 1030;
             background-color: #d0e4ff !important;
             padding: 0.3rem 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -110,12 +62,35 @@
         .content {
             flex: 1 0 auto;
             padding-bottom: 60px;
-            margin-top: 10px; /* Espaço adicional abaixo do menu fixo */
+        }
+        
+        .logo-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo-img {
+            height: 60px;
+            width: auto;
+        }
+        
+        .main-title {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            color: #666666;
         }
         
         .welcome-message {
             text-align: center;
-            margin: 50px 0;
+            margin: 30px 0;
             color: #6c757d;
         }
         
@@ -139,33 +114,8 @@
         
         /* Responsividade */
         @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .logo-section {
-                gap: 10px;
-            }
-            
-            .logo-img {
-                height: 35px;
-            }
-            
-            .main-title {
-                font-size: 1rem;
-            }
-            
-            .subtitle {
-                font-size: 0.75rem;
-            }
-            
             body {
-                padding-top: 120px; /* Mais espaço para dispositivos móveis */
-            }
-            
-            .fixed-navbar {
-                top: 100px;
+                padding-top: 80px; /* Mais espaço para dispositivos móveis */
             }
         }
     </style>
@@ -173,21 +123,6 @@
     <script src="/static/js/auth-check.js"></script>
 </head>
 <body>
-    <!-- Header fixo -->
-    <header class="fixed-header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo-section">
-                    <img src="/static/img/logo.png" class="logo-img" alt="SOT Logo">
-                    <div class="title-section">
-                        <h1 class="main-title">SOTWeb - TJRO</h1>
-                        <p class="subtitle">Sistema de Operações de Transporte</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-    
     <!-- Menu de navegação fixo -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-navbar">
         <div class="container">
@@ -252,7 +187,13 @@
     
     <!-- Conteúdo principal -->
     <div class="content">
-        <div class="container">
+        <div class="container mt-4">
+            <div class="logo-container">
+                <img src="/static/img/logo.png" class="logo-img" alt="SOT Logo">
+            </div>
+            <h2 class="main-title">SOTWeb - TJRO</h2>
+            <p class="subtitle">Sistema de Operações de Transporte</p>
+            
             <!-- Mensagem de boas-vindas -->
             <div class="welcome-message">
                 <h4>Bem-vindo ao Sistema de Operações de Transporte</h4>
