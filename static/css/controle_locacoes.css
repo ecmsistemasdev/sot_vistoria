@@ -3,6 +3,67 @@ body {
     margin: 0;
     overflow-x: hidden;
 }
+
+/* Menu de navegação */
+body {
+    padding-top: 60px; /* Espaço para o menu fixo */
+}
+
+/* Menu de navegação fixo */
+.fixed-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    background-color: #d0e4ff !important;
+    padding: 0.3rem 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-nav .nav-link {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    color: #333 !important;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255,255,255,0.3);
+    border-radius: 4px;
+}
+
+.nav-item {
+    margin-right: 5px;
+}
+
+.dropdown-divider {
+    margin: 0.3rem 0;
+}
+
+.btn-logout {
+    color: #333 !important;
+    background-color: transparent;
+    border: 1px solid rgba(0,0,0,0.3);
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
+}
+
+.btn-logout:hover {
+    background-color: rgba(0,0,0,0.1);
+    color: #333 !important;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    body {
+        padding-top: 80px; /* Mais espaço para dispositivos móveis */
+    }
+}
+
+/* Fim Menu de navegação */
+
+
+
 .groupbox {
     border: 1px solid #ddd;
     border-radius: 5px;
