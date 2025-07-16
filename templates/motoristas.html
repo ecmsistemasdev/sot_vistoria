@@ -682,6 +682,14 @@
                 });
             });
         });
+        
+        // Função de logout (você pode ajustar conforme sua implementação)
+        function fazerLogout() {
+            localStorage.removeItem('usuario_nome');
+            // Adicione aqui sua lógica de logout
+            window.location.href = '/login'; // ou sua página de login
+        }
+        
     </script>
 </body>
 </html>
