@@ -4,11 +4,6 @@ body {
     overflow-x: hidden;
 }
 
-/* Menu de navegação */
-body {
-    padding-top: 60px; /* Espaço para o menu fixo */
-}
-
 /* Menu de navegação fixo */
 .fixed-navbar {
     position: fixed;
@@ -62,7 +57,10 @@ body {
 
 /* Fim Menu de navegação */
 
-
+/* Conteúdo da página - adiciona espaço apenas para o conteúdo principal */
+.main-content {
+    padding-top: 60px; /* Adicione esta classe ao div principal do conteúdo */
+}
 
 .groupbox {
     border: 1px solid #ddd;
