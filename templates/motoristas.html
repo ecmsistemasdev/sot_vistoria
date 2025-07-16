@@ -684,10 +684,54 @@
         });
         
         // Função de logout (você pode ajustar conforme sua implementação)
+        //function fazerLogout() {
+        //    localStorage.removeItem('usuario_nome');
+        //    // Adicione aqui sua lógica de logout
+        //    window.location.href = '/login'; // ou sua página de login
+        //}
+
+        // Função de logout corrigida
         function fazerLogout() {
-            localStorage.removeItem('usuario_nome');
-            // Adicione aqui sua lógica de logout
-            window.location.href = '/login'; // ou sua página de login
+            const btnLogout = document.getElementById('btnLogout');
+            
+            // Desabilitar o botão para evitar múltiplos cliques
+            btnLogout.disabled = true;
+            btnLogout.textContent = 'Saindo...';
+            
+            // Fazer requisição para o endpoint de logout do backend
+            fetch('/logout', {
+                method: 'GET',
+                credentials: 'same-origin' // Importante para manter os cookies de sessão
+            })
+            .then(response => {
+                // Independente da resposta, limpar o localStorage
+                localStorage.removeItem('usuario_logado');
+                localStorage.removeItem('usuario_id');
+                localStorage.removeItem('usuario_login');
+                localStorage.removeItem('usuario_nome');
+                localStorage.removeItem('nivel_acesso');
+                
+                // Redirecionar para a página de login
+                window.location.href = '/login';
+            })
+            .catch(error => {
+                console.error('Erro durante logout:', error);
+                
+                // Mesmo com erro, limpar o localStorage e redirecionar
+                localStorage.removeItem('usuario_logado');
+                localStorage.removeItem('usuario_id');
+                localStorage.removeItem('usuario_login');
+                localStorage.removeItem('usuario_nome');
+                localStorage.removeItem('nivel_acesso');
+                
+                // Redirecionar para a página de login
+                window.location.href = '/login';
+            })
+            .finally(() => {
+                // Reabilitar o botão (caso algo dê errado)
+                btnLogout.disabled = false;
+                btnLogout.textContent = 'Sair';
+            });
         }
         
     </script>
