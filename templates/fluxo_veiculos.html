@@ -10,6 +10,68 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+    <!-- Menu de navegação fixo -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-navbar">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <!-- Cadastros -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarCadastros" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Cadastros
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarCadastros">
+                            <li><a class="dropdown-item" href="/motoristas">Motorista</a></li>
+                            <li><a class="dropdown-item" href="/veiculos_frota">Veículo da Frota</a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Controles -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarControles" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Controles
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarControles">
+                            <li><a class="dropdown-item" href="/controle_locacoes">Locação de Veículos</a></li>
+                            <li><a class="dropdown-item" href="/fluxo_veiculos">Fluxo de Veículo</a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Vistorias -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarVistorias" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Vistorias
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="navbarVistorias">
+                            <li><a class="dropdown-item" href="/nova_vistoria">Nova Vistoria Completa</a></li>
+                            <li><a class="dropdown-item" href="/nova_vistoria2">Nova Vistoria em Duas Etapas</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/vistorias">Lista Vistorias</a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Relatórios -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarRelatorios" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Relatórios
+                        </a>
+                        <!-- <ul class="dropdown-menu" aria-labelledby="navbarRelatorios">
+                            <li><a class="dropdown-item" href="#">Relatório 1</a></li>
+                            <li><a class="dropdown-item" href="#">Relatório 2</a></li>
+                        </ul> -->
+                    </li>
+                </ul>
+                <!-- Botão Sair -->
+                <div class="ms-auto">
+                    <button class="btn btn-sm btn-logout" id="btnLogout" onclick="fazerLogout()">Sair</button>
+                </div>                
+            </div>
+        </div>
+    </nav>
+    
     <div class="container-fluid mt-2">
         <h4 class="mb-3">Fluxo de Veículos</h4>
         
@@ -1226,6 +1288,51 @@
                 });
             });
         });       
+
+        // Função de logout corrigida
+        function fazerLogout() {
+            const btnLogout = document.getElementById('btnLogout');
+            
+            // Desabilitar o botão para evitar múltiplos cliques
+            btnLogout.disabled = true;
+            btnLogout.textContent = 'Saindo...';
+            
+            // Fazer requisição para o endpoint de logout do backend
+            fetch('/logout', {
+                method: 'GET',
+                credentials: 'same-origin' // Importante para manter os cookies de sessão
+            })
+            .then(response => {
+                // Independente da resposta, limpar o localStorage
+                localStorage.removeItem('usuario_logado');
+                localStorage.removeItem('usuario_id');
+                localStorage.removeItem('usuario_login');
+                localStorage.removeItem('usuario_nome');
+                localStorage.removeItem('nivel_acesso');
+                
+                // Redirecionar para a página de login
+                window.location.href = '/login';
+            })
+            .catch(error => {
+                console.error('Erro durante logout:', error);
+                
+                // Mesmo com erro, limpar o localStorage e redirecionar
+                localStorage.removeItem('usuario_logado');
+                localStorage.removeItem('usuario_id');
+                localStorage.removeItem('usuario_login');
+                localStorage.removeItem('usuario_nome');
+                localStorage.removeItem('nivel_acesso');
+                
+                // Redirecionar para a página de login
+                window.location.href = '/login';
+            })
+            .finally(() => {
+                // Reabilitar o botão (caso algo dê errado)
+                btnLogout.disabled = false;
+                btnLogout.textContent = 'Sair';
+            });
+        }
+        
     </script>
 </body>
 </html>
