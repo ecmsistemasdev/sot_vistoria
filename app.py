@@ -99,10 +99,19 @@ def autenticar():
         flash('Credenciais inválidas. Tente novamente.', 'danger')
         return jsonify({'sucesso': False, 'mensagem': 'Credenciais inválidas'})
 
+#@app.route('/logout')
+#def logout():
+#    session.clear()
+#    return redirect(url_for('login'))
+
 @app.route('/logout')
 def logout():
     session.clear()
+    # Se a requisição vier via AJAX, retornar JSON
+    if request.headers.get('Content-Type') == 'application/json':
+        return jsonify({'success': True})
     return redirect(url_for('login'))
+
 
 @app.route('/nova_vistoria')
 def nova_vistoria():
