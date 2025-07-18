@@ -1,19 +1,34 @@
+/* Reset básico para garantir que não haja espaçamentos indesejados */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
 body {
     padding-bottom: 80px; /* Espaço para o footer */
     margin: 0;
     overflow-x: hidden;
+    /* REMOVIDO: padding-top que estava sendo aplicado em mobile */
 }
 
 /* Menu de navegação fixo */
 .fixed-navbar {
     position: fixed;
-    top: 0;
+    top: 0; /* Garante que fique exatamente no topo */
     left: 0;
     right: 0;
     z-index: 1030;
     background-color: #d0e4ff !important;
     padding: 0.3rem 0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 0; /* Remove qualquer margem */
 }
 
 .navbar-nav .nav-link {
@@ -48,10 +63,23 @@ body {
     color: #333 !important;
 }
 
-/* Responsividade */
+/* Responsividade - CORRIGIDO */
 @media (max-width: 768px) {
     body {
-        padding-top: 80px; /* Mais espaço para dispositivos móveis */
+        /* REMOVIDO: padding-top: 80px; que estava causando o espaço extra */
+        padding-top: 0; /* Garante que não há padding no topo */
+    }
+    
+    /* Se você usar Bootstrap, pode ser necessário também: */
+    .navbar-expand-lg .navbar-collapse {
+        margin-top: 0;
+    }
+    
+    /* Remove qualquer margem extra do container do navbar */
+    .fixed-navbar .container-fluid {
+        margin: 0;
+        padding-left: 15px;
+        padding-right: 15px;
     }
 }
 
@@ -62,6 +90,7 @@ body {
     padding-top: 60px; /* Adicione esta classe ao div principal do conteúdo */
 }
 
+/* Resto do seu CSS permanece igual... */
 .groupbox {
     border: 1px solid #ddd;
     border-radius: 5px;
@@ -71,37 +100,44 @@ body {
     transition: height 0.05s;
     overflow: hidden;    
 }
+
 .groupbox-header {
     background-color: #f5f5f5;
-    padding: 5px 15px; /* Reduzido de 8px para 5px */
+    padding: 5px 15px;
     border-bottom: 1px solid #ddd;
     font-weight: 600;
     border-radius: 4px 4px 0 0;
     font-size: 0.9rem;
 }
+
 .groupbox-body {
-    padding: 0; /* Removido o padding 10px;*/
+    padding: 0;
     overflow-x: auto;
     height: calc(90px + 2rem);
 }
+
 .tabs-body {
-    padding: 0; /* Removido o padding */
+    padding: 0;
     overflow-x: auto;
     height: calc(130px + 2rem);
 }
+
 .lista-grande {
-    height: 300px; /* Altura fixa para desktop calc(100vh - 450px); */ 
+    height: 300px;
     min-height: 250px;
 }
+
 .table-responsive {
     height: 100%;
     overflow-y: auto;
 }
+
 .acao-btn {
     margin-bottom: 5px;
     display: block;
     text-align: center;
 }
+
 .btn-selecionar {
     background-color: #0d6efd;
     color: white;
@@ -110,6 +146,7 @@ body {
     text-decoration: none;
     font-size: 0.75rem;
 }
+
 .btn-abrir {
     background-color: #198754;
     color: white;
@@ -118,6 +155,7 @@ body {
     text-decoration: none;
     font-size: 0.75rem;
 }
+
 .btn-devolucao {
     background-color: #dc3545;
     color: white;
@@ -126,10 +164,12 @@ body {
     text-decoration: none;
     font-size: 0.75rem;
 }
+
 .btn-sm {
     padding: 0.2rem 0.4rem;
     font-size: 0.75rem;
-}        
+}
+
 .sticky-column {
     position: sticky;
     right: 0;
@@ -161,15 +201,17 @@ thead {
     }
     .lista-grande {
         height: calc(100vh - 350px);
-        min-height: 200px; /* 300px; */
+        min-height: 200px;
     }
     .footer .container-fluid {
         padding: 0 10px;
     }
 }
+
 .table-hover tbody tr:hover {
     background-color: rgba(0,0,0,.05);
 }
+
 th {
     position: sticky;
     top: 0;
@@ -177,14 +219,17 @@ th {
     z-index: 998;
     font-size: 0.8rem;
 }
+
 .table {
     font-size: 0.8rem;
-    margin-bottom: 0; /* Removendo a margem inferior das tabelas */
+    margin-bottom: 0;
 }
+
 td {
     padding: 0.25rem 0.5rem !important;
     vertical-align: middle;
 }
+
 .table-sm td, .table-sm th {
     padding: 0.2rem 0.5rem;
 }
@@ -213,10 +258,9 @@ td {
     width: 100%;
 }
 
-/* Estilos ajustados para as guias (tabs) */
 .nav-tabs {
     border-bottom: 1px solid #ddd;
-    margin-bottom: 0; /* Removida a margem inferior */
+    margin-bottom: 0;
     font-size: 0.85rem;
     background-color: #f5f5f5;
     padding-top: 5px;
@@ -239,8 +283,8 @@ td {
 
 .tab-content {
     background-color: #fff;
-    padding: 0; /* Removido o padding */
-    height: calc(100% - 32px); /* Ajuste para considerar a altura das tabs */
+    padding: 0;
+    height: calc(100% - 32px);
     overflow: hidden;
 }
 
@@ -257,7 +301,7 @@ td {
 
 @media print {
     .footer {
-        display: none; /* Ocultar no modo impressão */
+        display: none;
     }
 }
 
@@ -284,7 +328,6 @@ td {
     border-top: 1px solid #dee2e6;
 }
 
-/* Ajustes responsivos */
 @media (max-width: 768px) {
     .modal-dialog {
         margin: 0.5rem;
@@ -295,7 +338,7 @@ td {
     height: 8px;
     background-color: #f0f0f0;
     cursor: row-resize;
-    margin: 0; /* Removido o margin para controlar melhor */
+    margin: 0;
     position: relative;
     border-radius: 3px;
     border: 1px solid #ddd;
@@ -325,30 +368,25 @@ td {
     font-size: 8px;
 }
 
-/* Se necessário, ajustar margens específicas dos containers */
 .container-fluid .row {
     margin-bottom: 5px;
 }
 
-/* Garantir que o conteúdo seja ocultado quando o container encolher */
 .lista-grande {
-    min-height: 50px; /* Permite redução significativa */
+    min-height: 50px;
     overflow: auto;
 }
 
-/* Para melhorar a visualização quando reduzido */
 .groupbox-body.lista-grande.collapsed {
     height: 50px !important;
     overflow: hidden;
 }
 
-/* Adicionar indicador visual quando o splitter estiver ativo */
 .splitter.active {
     background-color: #d0d0d0;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
 }
 
-/* Estilo para o toggle de collapse (opcional) */
 .collapse-toggle {
     cursor: pointer;
     margin-left: 10px;
@@ -356,35 +394,30 @@ td {
 }
 
 .form-control[readonly] {
-    background-color: #f8f9fa; /* Cor de fundo cinza bem claro */
-    border-color: #ced4da; /* Borda suave */
-    color: #6c757d; /* Texto em cinza para indicar que não é editável */
-    cursor: default; /* Cursor padrão em vez de texto */
-    box-shadow: none; /* Remove qualquer sombra */
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+    color: #6c757d;
+    cursor: default;
+    box-shadow: none;
 }
 
-/* Adicionar uma borda sutil quando o campo recebe foco, mesmo sendo readonly */
 .form-control[readonly]:focus {
     border-color: #adb5bd;
     box-shadow: 0 0 0 0.1rem rgba(108, 117, 125, 0.1);
 }
 
-/* Variante com fundo mais colorido, se preferir */
 .form-control.bg-readonly {
-    background-color: #e9ecef; /* Cinza mais escuro */
+    background-color: #e9ecef;
 }
 
-/* Outra opção com tom azulado suave */
 .form-control.bg-readonly-blue {
-    background-color: #e7f1ff; /* Azul bem claro */
+    background-color: #e7f1ff;
 }
 
-/* Opção com tom esverdeado suave */
 .form-control.bg-readonly-green {
-    background-color: #e8f5e9; /* Verde bem claro */
+    background-color: #e8f5e9;
 }
 
-/* Estilos adicionais para os botões de ação */
 .sticky-column {
     position: sticky;
     right: 0;
@@ -392,12 +425,10 @@ td {
     z-index: 1;
 }
 
-/* Adiciona um pouco de espaço entre os botões */
 .sticky-column .btn {
     margin-right: 3px;
 }
 
-/* Estilos para os ícones */
 .btn-primary i {
     color: white;
 }
@@ -406,12 +437,10 @@ td {
     color: white;
 }
 
-/* Efeito de hover nos botões */
 .btn:hover {
     opacity: 0.9;
 }
 
-/* Estilos para destacar a linha selecionada */
 #tabela-processos tr.selecionado {
     background-color: #e8f4ff;
     font-weight: bold;
