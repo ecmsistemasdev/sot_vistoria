@@ -1778,7 +1778,7 @@ def nova_locacao():
         
         # Enviar e-mail para a empresa locadora
         email_enviado, erro_email = enviar_email_locacao(
-            id_item, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
+            id_item, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
             dt_inicial, dt_final, hr_inicial, de_veiculo, obs,
             nome_arquivo_cnh, motorista_email, file_pdf  # Passando o conteúdo do PDF
         )
@@ -1802,7 +1802,7 @@ def nova_locacao():
             'mensagem': str(e)
         }), 500
         
-def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
+def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
     try:
         # Obter hora atual para saudação
         hora_atual = datetime.now().hour
@@ -1814,38 +1814,195 @@ def enviar_email_locacao(id_item, nm_motorista, nu_telefone, dt_inicial, dt_fina
         # Formatação do assunto
         assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
         
-        # Corpo do email para a locadora
-        corpo = f'''{saudacao},
-Prezados, solicito locação de veículo conforme informações abaixo:
+        # Tratamento do campo nu_sei
+        if nu_sei and nu_sei.strip() and nu_sei != 'None':
+            texto_processo = f"Em atenção ao Processo Administrativo nº {nu_sei}, solicito locação de veículo conforme informações abaixo:"
+        else:
+            texto_processo = "Solicito locação de veículo conforme informações abaixo:"
+        
+        # Tratamento do campo telefone
+        if nu_telefone and nu_telefone.strip() and nu_telefone != 'None':
+            info_condutor = f"{nm_motorista} - Telefone {nu_telefone}"
+        else:
+            info_condutor = nm_motorista
+        
+        # Tratamento das observações
+        obs_texto = obs if obs and obs.strip() and obs != 'None' else "Sem observações adicionais"
+
+        if obs_texto and obs_texto.strip() and obs_texto != 'None':
+            obs_texto = f"Obs: {obs_texto}"
+        else:
+            obs_texto = ""
+
+        # Corpo do email em HTML
+        corpo_html = f'''
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Solicitação de Locação de Veículo</title>
+        </head>
+        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+            <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <!-- Header -->
+                <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1e3a8a;">
+                    <h1 style="color: #1e3a8a; margin: 0; font-size: 24px; font-weight: bold;">
+                        TRIBUNAL DE JUSTIÇA DO ESTADO DE RONDÔNIA
+                    </h1>
+                    <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 14px;">
+                        Seção de Gestão Operacional do Transporte
+                    </p>
+                </div>
+                
+                <!-- Saudação -->
+                <div style="margin-bottom: 25px;">
+                    <p style="font-size: 16px; margin: 0; color: #374151;">
+                        <strong>{saudacao},</strong>
+                    </p>
+                </div>
+                
+                <!-- Conteúdo Principal -->
+                <div style="margin-bottom: 30px;">
+                    <p style="margin-bottom: 20px; color: #374151;">
+                        Prezados,
+                    </p>
+                    <p style="margin-bottom: 25px; color: #374151;">
+                        {texto_processo}
+                    </p>
+                </div>
+                
+                <!-- Informações da Locação -->
+                <div style="background-color: #f8fafc; padding: 25px; border-radius: 8px; border-left: 4px solid #1e3a8a; margin-bottom: 25px;">
+                    <h3 style="color: #1e3a8a; margin-top: 0; margin-bottom: 20px; font-size: 18px;">
+                        📋 Detalhes da Solicitação
+                    </h3>
+                    
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #374151; width: 30%;">
+                                🗓️ Período:
+                            </td>
+                            <td style="padding: 8px 0; color: #6b7280;">
+                                {dt_inicial} ({hr_inicial}) a {dt_final}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #374151;">
+                                🚗 Veículo:
+                            </td>
+                            <td style="padding: 8px 0; color: #6b7280;">
+                                {de_veiculo} ou Similar
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #374151;">
+                                👤 Condutor:
+                            </td>
+                            <td style="padding: 8px 0; color: #6b7280;">
+                                {info_condutor}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #374151; vertical-align: top;">
+                                📝 Observações:
+                            </td>
+                            <td style="padding: 8px 0; color: #6b7280;">
+                                {obs_texto}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Anexo -->
+                <div style="background-color: #ecfdf5; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981; margin-bottom: 25px;">
+                    <p style="margin: 0; color: #065f46; font-weight: 500;">
+                        📎 Segue anexo CNH do condutor.
+                    </p>
+                </div>
+                
+                <!-- Assinatura -->
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="margin-bottom: 5px; color: #374151;">
+                        Atenciosamente,
+                    </p>
+                    <p style="margin-bottom: 5px; font-weight: bold; color: #1e3a8a;">
+                        {nome_usuario}
+                    </p>
+                    <p style="margin-bottom: 5px; color: #6b7280; font-size: 14px;">
+                        Tribunal de Justiça do Estado de Rondônia
+                    </p>
+                    <p style="margin-bottom: 5px; color: #6b7280; font-size: 14px;">
+                        Seção de Gestão Operacional do Transporte
+                    </p>
+                    <p style="margin: 0; color: #1e3a8a; font-size: 14px; font-weight: 500;">
+                        📞 (69) 3309-6229/6227
+                    </p>
+                </div>
+                
+                <!-- Footer -->
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                        Este e-mail foi gerado automaticamente pelo sistema de controle de locações do TJRO
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        '''
+        
+        # Versão texto simples (fallback)
+        corpo_texto = f'''{saudacao},
+
+Prezados,
+
+{texto_processo}
+
     Período: {dt_inicial} ({hr_inicial}) a {dt_final}
     Veículo: {de_veiculo} ou Similar
-    Condutor: {nm_motorista} - Telefone {nu_telefone}
-{obs}
-    
+    Condutor: {info_condutor}
+
+{obs_texto}
+
 Segue anexo CNH do condutor.
+
 Atenciosamente,
+
 {nome_usuario}
 Tribunal de Justiça do Estado de Rondônia
 Seção de Gestão Operacional do Transporte
 (69) 3309-6229/6227'''
         
-        # Criar mensagem para a locadora
+        # Criar mensagem
         msg = Message(
             subject=assunto,
-            recipients=["Carmem@rovemalocadora.com.br", "atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br"],
-            body=corpo,
+            recipients=["naicm12@gmail.com", "elienai@tjro.jus.br"],
+            html=corpo_html,  # Versão HTML
+            body=corpo_texto,  # Versão texto (fallback)
             sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
         )
+
+        # msg = Message(
+        #     subject=assunto,
+        #     recipients=["Carmem@rovemalocadora.com.br", "atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br"],
+        #     html=corpo_html,  # Versão HTML
+        #     body=corpo_texto,  # Versão texto (fallback)
+        #     sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+        # )
+
+        # Anexar CNH
+        if nome_arquivo_cnh and nome_arquivo_cnh != 'None':
+            try:
+                with open(nome_arquivo_cnh, 'rb') as f:
+                    msg.attach('CNH_' + os.path.basename(nome_arquivo_cnh), 'application/pdf', f.read())
+            except FileNotFoundError:
+                app.logger.warning(f"Arquivo CNH não encontrado: {nome_arquivo_cnh}")
         
-        # Anexar CNH se disponível
-        if file_pdf_content and nome_arquivo_cnh:
-            msg.attach(f'CNH_{nome_arquivo_cnh}', 'application/pdf', file_pdf_content)
-        
-        # Enviar email para a locadora
+        # Enviar email
         mail.send(msg)
         
         # Registrar email no banco de dados
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor = mysql.connection.cursor()
         
         # Formatação da data e hora atual
         data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -1853,12 +2010,13 @@ Seção de Gestão Operacional do Transporte
         # Obter ID_CL com base no ID_ITEM
         cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
         resultado = cursor.fetchone()
-        id_cl = resultado['ID_CL'] if resultado else None
+        id_cl = resultado[0] if resultado else None
+        
         if id_cl:
-            # Inserir na tabela de emails (para o email da locadora)
+            # Inserir na tabela de emails (salvando a versão HTML)
             cursor.execute(
                 "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
-                (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo, data_hora_atual)
+                (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo_texto, data_hora_atual)
             )
             
             # Atualizar flag de email na tabela de locações
@@ -1868,38 +2026,6 @@ Seção de Gestão Operacional do Transporte
             )
             
             mysql.connection.commit()
-        # Agora enviar email para o motorista, se tiver email cadastrado
-        if email_mot:
-            try:
-                # Corpo do email para o motorista
-                corpo_motorista = f'''{saudacao},
-Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
-    Período: {dt_inicial} ({hr_inicial}) a {dt_final}
-    Veículo: {de_veiculo} ou Similar
-    Condutor: {nm_motorista} - Telefone {nu_telefone}
-{obs}
-Atenciosamente,
-{nome_usuario}
-Tribunal de Justiça do Estado de Rondônia
-Seção de Gestão Operacional do Transporte
-(69) 3309-6229/6227
-(Não precisa responder este e-mail)'''
-                # Criar mensagem para o motorista - CORREÇÃO AQUI
-                msg_motorista = Message(
-                    subject=assunto,
-                    recipients=[email_mot],  # Removendo as chaves incorretas
-                    body=corpo_motorista,
-                    sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
-                )
-            
-                # Enviar email para o motorista
-                mail.send(msg_motorista)
-                app.logger.info(f"Email enviado para o motorista: {email_mot}")
-                
-            except Exception as e:
-                # Tratar erro específico do email do motorista, mas não interromper a função
-                app.logger.error(f"Erro ao enviar email para o motorista: {str(e)}")
-                # Não retornar aqui, pois o email para a locadora já foi enviado com sucesso
         
         cursor.close()
         return True, None
@@ -1907,6 +2033,115 @@ Seção de Gestão Operacional do Transporte
     except Exception as e:
         app.logger.error(f"Erro ao enviar email: {str(e)}")
         return False, str(e)
+
+
+
+# def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
+#     try:
+#         # Obter hora atual para saudação
+#         hora_atual = datetime.now().hour
+#         saudacao = "Bom dia" if 5 <= hora_atual < 12 else "Boa tarde" if 12 <= hora_atual < 18 else "Boa noite"
+        
+#         # Obter nome do usuário da sessão
+#         nome_usuario = session.get('usuario_nome', 'Administrador')
+        
+#         # Formatação do assunto
+#         assunto = f"TJRO - Locação de Veículo {id_item} - {nm_motorista}"
+        
+#         # Corpo do email para a locadora
+#         corpo = f'''{saudacao},
+# Prezados, solicito locação de veículo conforme informações abaixo:
+#     Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+#     Veículo: {de_veiculo} ou Similar
+#     Condutor: {nm_motorista} - Telefone {nu_telefone}
+# {obs}
+    
+# Segue anexo CNH do condutor.
+# Atenciosamente,
+# {nome_usuario}
+# Tribunal de Justiça do Estado de Rondônia
+# Seção de Gestão Operacional do Transporte
+# (69) 3309-6229/6227'''
+        
+#         # Criar mensagem para a locadora
+#         msg = Message(
+#             subject=assunto,
+#             recipients=["Carmem@rovemalocadora.com.br", "atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br"],
+#             body=corpo,
+#             sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+#         )
+        
+#         # Anexar CNH se disponível
+#         if file_pdf_content and nome_arquivo_cnh:
+#             msg.attach(f'CNH_{nome_arquivo_cnh}', 'application/pdf', file_pdf_content)
+        
+#         # Enviar email para a locadora
+#         mail.send(msg)
+        
+#         # Registrar email no banco de dados
+#         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+#         # Formatação da data e hora atual
+#         data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        
+#         # Obter ID_CL com base no ID_ITEM
+#         cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
+#         resultado = cursor.fetchone()
+#         id_cl = resultado['ID_CL'] if resultado else None
+#         if id_cl:
+#             # Inserir na tabela de emails (para o email da locadora)
+#             cursor.execute(
+#                 "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
+#                 (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo, data_hora_atual)
+#             )
+            
+#             # Atualizar flag de email na tabela de locações
+#             cursor.execute(
+#                 "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
+#                 (id_item,)
+#             )
+            
+#             mysql.connection.commit()
+#         # Agora enviar email para o motorista, se tiver email cadastrado
+#         if email_mot:
+#             try:
+#                 # Corpo do email para o motorista
+#                 corpo_motorista = f'''{saudacao},
+# Prezado(a) Usuário(a), foi solicitado locação de veículo conforme informações abaixo:
+#     Período: {dt_inicial} ({hr_inicial}) a {dt_final}
+#     Veículo: {de_veiculo} ou Similar
+#     Condutor: {nm_motorista} - Telefone {nu_telefone}
+# {obs}
+# Atenciosamente,
+# {nome_usuario}
+# Tribunal de Justiça do Estado de Rondônia
+# Seção de Gestão Operacional do Transporte
+# (69) 3309-6229/6227
+# (Não precisa responder este e-mail)'''
+#                 # Criar mensagem para o motorista - CORREÇÃO AQUI
+#                 msg_motorista = Message(
+#                     subject=assunto,
+#                     recipients=[email_mot],  # Removendo as chaves incorretas
+#                     body=corpo_motorista,
+#                     sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+#                 )
+            
+#                 # Enviar email para o motorista
+#                 mail.send(msg_motorista)
+#                 app.logger.info(f"Email enviado para o motorista: {email_mot}")
+                
+#             except Exception as e:
+#                 # Tratar erro específico do email do motorista, mas não interromper a função
+#                 app.logger.error(f"Erro ao enviar email para o motorista: {str(e)}")
+#                 # Não retornar aqui, pois o email para a locadora já foi enviado com sucesso
+        
+#         cursor.close()
+#         return True, None
+    
+#     except Exception as e:
+#         app.logger.error(f"Erro ao enviar email: {str(e)}")
+#         return False, str(e)
+
         
 @app.route('/api/download_cnh_loc/<int:id_motorista>')
 @login_required
