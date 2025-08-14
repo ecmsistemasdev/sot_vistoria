@@ -1727,7 +1727,7 @@ def nova_locacao():
         
         # Verificar se o motorista tem CNH cadastrada
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
+        cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO, EMAIL FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
         motorista_info = cursor.fetchone()
         
         # Verificar se é necessário salvar a CNH
@@ -1766,15 +1766,13 @@ def nova_locacao():
         ))
         mysql.connection.commit()
         
-        # Obter informações do veículo - IMPORTANTE: Também usar dictionary=True aqui
+        # Obter informações do veículo
         cursor.execute("SELECT DE_VEICULO FROM TJ_VEICULO_LOCACAO WHERE ID_VEICULO_LOC = %s", (id_veiculo_loc,))
         veiculo_info = cursor.fetchone()
         de_veiculo = veiculo_info['DE_VEICULO']
         
-        # Verificar se o motorista tem Email cadastrado
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT EMAIL FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
-        motorista_email = cursor.fetchone()        
+        # Obter email do motorista
+        motorista_email = motorista_info['EMAIL']
         
         # Enviar e-mail para a empresa locadora
         email_enviado, erro_email = enviar_email_locacao(
@@ -1801,11 +1799,16 @@ def nova_locacao():
             'sucesso': False,
             'mensagem': str(e)
         }), 500
+		
         
 def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
     try:
-        # Obter hora atual para saudação
-        hora_atual = datetime.now().hour
+        # Importar pytz para timezone
+        from pytz import timezone
+        
+        # Obter hora atual no fuso horário de Manaus
+        tz_manaus = timezone('America/Manaus')
+        hora_atual = datetime.now(tz_manaus).hour
         saudacao = "Bom dia" if 5 <= hora_atual < 12 else "Boa tarde" if 12 <= hora_atual < 18 else "Boa noite"
         
         # Obter nome do usuário da sessão
@@ -1826,13 +1829,11 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
         else:
             info_condutor = nm_motorista
         
-        # Tratamento das observações
-        obs_texto = obs if obs and obs.strip() and obs != 'None' else "Sem observações adicionais"
-
-        if obs_texto and obs_texto.strip() and obs_texto != 'None':
-            obs_texto = f"Obs: {obs_texto}"
+        # Tratamento das observações - removido o "Obs:"
+        if obs and obs.strip() and obs != 'None':
+            obs_texto = obs
         else:
-            obs_texto = ""
+            obs_texto = "Sem observações adicionais"
 
         # Corpo do email em HTML
         corpo_html = f'''
@@ -1847,7 +1848,7 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
             <div style="background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
                 <!-- Header -->
                 <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px solid #1e3a8a;">
-                    <h1 style="color: #1e3a8a; margin: 0; font-size: 24px; font-weight: bold;">
+                    <h1 style="color: #1e3a8a; margin: 0; font-size: 20px; font-weight: bold;">
                         TRIBUNAL DE JUSTIÇA DO ESTADO DE RONDÔNIA
                     </h1>
                     <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 14px;">
@@ -1880,34 +1881,34 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
                     
                     <table style="width: 100%; border-collapse: collapse;">
                         <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #374151; width: 30%;">
+                            <td style="padding: 3px 0; font-weight: bold; color: #1e3a8a; font-size: 15px; width: 30%;">
                                 🗓️ Período:
                             </td>
-                            <td style="padding: 8px 0; color: #6b7280;">
+                            <td style="padding: 3px 0; color: #374151; font-weight: 500;">
                                 {dt_inicial} ({hr_inicial}) a {dt_final}
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #374151;">
+                            <td style="padding: 3px 0; font-weight: bold; color: #1e3a8a; font-size: 15px;">
                                 🚗 Veículo:
                             </td>
-                            <td style="padding: 8px 0; color: #6b7280;">
+                            <td style="padding: 3px 0; color: #374151; font-weight: 500;">
                                 {de_veiculo} ou Similar
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #374151;">
+                            <td style="padding: 3px 0; font-weight: bold; color: #1e3a8a; font-size: 15px;">
                                 👤 Condutor:
                             </td>
-                            <td style="padding: 8px 0; color: #6b7280;">
+                            <td style="padding: 3px 0; color: #374151; font-weight: 500;">
                                 {info_condutor}
                             </td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #374151; vertical-align: top;">
+                            <td style="padding: 3px 0; font-weight: bold; color: #1e3a8a; font-size: 15px; vertical-align: top;">
                                 📝 Observações:
                             </td>
-                            <td style="padding: 8px 0; color: #6b7280;">
+                            <td style="padding: 3px 0; color: #374151; font-weight: 500;">
                                 {obs_texto}
                             </td>
                         </tr>
@@ -1923,16 +1924,16 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
                 
                 <!-- Assinatura -->
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                    <p style="margin-bottom: 5px; color: #374151;">
+                    <p style="margin-bottom: 3px; color: #374151;">
                         Atenciosamente,
                     </p>
-                    <p style="margin-bottom: 5px; font-weight: bold; color: #1e3a8a;">
+                    <p style="margin-bottom: 3px; font-weight: bold; color: #1e3a8a;">
                         {nome_usuario}
                     </p>
-                    <p style="margin-bottom: 5px; color: #6b7280; font-size: 14px;">
+                    <p style="margin-bottom: 3px; color: #6b7280; font-size: 14px;">
                         Tribunal de Justiça do Estado de Rondônia
                     </p>
-                    <p style="margin-bottom: 5px; color: #6b7280; font-size: 14px;">
+                    <p style="margin-bottom: 3px; color: #6b7280; font-size: 14px;">
                         Seção de Gestão Operacional do Transporte
                     </p>
                     <p style="margin: 0; color: #1e3a8a; font-size: 14px; font-weight: 500;">
@@ -1961,8 +1962,7 @@ Prezados,
     Período: {dt_inicial} ({hr_inicial}) a {dt_final}
     Veículo: {de_veiculo} ou Similar
     Condutor: {info_condutor}
-
-{obs_texto}
+    Observações: {obs_texto}
 
 Segue anexo CNH do condutor.
 
@@ -1990,8 +1990,15 @@ Seção de Gestão Operacional do Transporte
         #     sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
         # )
 
-        # Anexar CNH
-        if nome_arquivo_cnh and nome_arquivo_cnh != 'None':
+        # Anexar CNH - Corrigido para usar file_pdf_content primeiro
+        if file_pdf_content:
+            # Se temos o conteúdo do arquivo em memória, usa ele
+            nome_anexo = f"CNH_{nm_motorista.replace(' ', '_')}.pdf"
+            if nome_arquivo_cnh:
+                nome_anexo = 'CNH_' + os.path.basename(nome_arquivo_cnh)
+            msg.attach(nome_anexo, 'application/pdf', file_pdf_content)
+        elif nome_arquivo_cnh and nome_arquivo_cnh != 'None':
+            # Se não temos o conteúdo, tenta ler do arquivo
             try:
                 with open(nome_arquivo_cnh, 'rb') as f:
                     msg.attach('CNH_' + os.path.basename(nome_arquivo_cnh), 'application/pdf', f.read())
@@ -2004,8 +2011,8 @@ Seção de Gestão Operacional do Transporte
         # Registrar email no banco de dados
         cursor = mysql.connection.cursor()
         
-        # Formatação da data e hora atual
-        data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        # Formatação da data e hora atual no fuso de Manaus
+        data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
         # Obter ID_CL com base no ID_ITEM
         cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
@@ -2033,8 +2040,7 @@ Seção de Gestão Operacional do Transporte
     except Exception as e:
         app.logger.error(f"Erro ao enviar email: {str(e)}")
         return False, str(e)
-
-
+		
 
 # def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
 #     try:
