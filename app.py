@@ -1924,23 +1924,23 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
                 
                 <!-- Assinatura -->
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                    <p style="margin-bottom: 4px; color: #374151;">
+                    <p style="margin-bottom: 15px; color: #374151;">
                         Atenciosamente,
                     </p>
-                    <p style="margin-bottom: 1px; font-weight: bold; color: #1e3a8a;">
+                    <p style="margin-bottom: 2px; font-weight: bold; color: #1e3a8a;">
                         {nome_usuario}
                     </p>
-                    <p style="margin-bottom: 1px; color: #6b7280; font-size: 14px;">
+                    <p style="margin-bottom: 2px; color: #6b7280; font-size: 14px;">
                         Tribunal de Justiça do Estado de Rondônia
                     </p>
-                    <p style="margin-bottom: 3px; color: #6b7280; font-size: 14px;">
+                    <p style="margin-bottom: 2px; color: #6b7280; font-size: 14px;">
                         Seção de Gestão Operacional do Transporte
                     </p>
                     <p style="margin: 0; color: #1e3a8a; font-size: 14px; font-weight: 500;">
                         📞 (69) 3309-6229/6227
                     </p>
                 </div>
-                
+	
                 <!-- Footer -->
                 <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                     <p style="margin: 0; color: #9ca3af; font-size: 12px;">
