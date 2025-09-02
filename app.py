@@ -3498,8 +3498,9 @@ def fluxo_lista_motoristas_pesquisa():
 @login_required
 def fluxo_pesquisar():
     try:
-        data_inicio = request.args.get('dataInicio')
-        data_fim = request.args.get('dataFim')
+        usar_periodo = request.args.get('usarPeriodo') == 'true'
+        data_inicio = request.args.get('dataInicio', '')
+        data_fim = request.args.get('dataFim', '')
         id_veiculo = request.args.get('veiculo', '')
         id_motorista = request.args.get('motorista', '')
         
@@ -3509,13 +3510,14 @@ def fluxo_pesquisar():
         where_conditions = []
         params = []
         
-        # Condição de período inteligente
-        where_conditions.append("""
-            (f.DATA_SAIDA BETWEEN %s AND %s 
-             OR f.DATA_RETORNO BETWEEN %s AND %s
-             OR (f.DATA_SAIDA <= %s AND (f.DATA_RETORNO >= %s OR f.DATA_RETORNO IS NULL)))
-        """)
-        params.extend([data_inicio, data_fim, data_inicio, data_fim, data_inicio, data_fim])
+        # Condição de período (somente se checkbox estiver marcado)
+        if usar_periodo and data_inicio and data_fim:
+            where_conditions.append("""
+                (f.DATA_SAIDA BETWEEN %s AND %s 
+                 OR f.DATA_RETORNO BETWEEN %s AND %s
+                 OR (f.DATA_SAIDA <= %s AND (f.DATA_RETORNO >= %s OR f.DATA_RETORNO IS NULL)))
+            """)
+            params.extend([data_inicio, data_fim, data_inicio, data_fim, data_inicio, data_fim])
         
         # Filtro por veículo
         if id_veiculo:
@@ -3527,15 +3529,19 @@ def fluxo_pesquisar():
             where_conditions.append("f.ID_MOTORISTA = %s")
             params.append(id_motorista)
         
+        # Se nenhum filtro foi aplicado, retornar erro
+        if not where_conditions:
+            return jsonify({'erro': 'Pelo menos um filtro deve ser aplicado'}), 400
+        
         where_clause = " AND ".join(where_conditions)
         
         query = f"""
             SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
                    CONCAT(v.DS_MODELO, ' - ', v.NU_PLACA) AS VEICULO,
                    CASE WHEN f.ID_MOTORISTA = 0 THEN 
-                       CONCAT('*', f.NC_CONDUTOR) 
+                       CONCAT('*', COALESCE(f.NC_CONDUTOR, 'NÃO INFORMADO')) 
                    ELSE 
-                       COALESCE(m.NM_MOTORISTA, '') 
+                       COALESCE(m.NM_MOTORISTA, 'NÃO INFORMADO') 
                    END AS NOME_MOTORISTA,
                    CASE WHEN f.DATA_SAIDA IS NOT NULL AND f.HORA_SAIDA IS NOT NULL THEN
                        CONCAT(DATE_FORMAT(f.DATA_SAIDA, '%d/%m/%Y'), ' ', TIME_FORMAT(f.HORA_SAIDA, '%H:%i'))
@@ -3545,17 +3551,18 @@ def fluxo_pesquisar():
                    CASE WHEN f.DATA_RETORNO IS NOT NULL AND f.HORA_RETORNO IS NOT NULL THEN
                        CONCAT(DATE_FORMAT(f.DATA_RETORNO, '%d/%m/%Y'), ' ', TIME_FORMAT(f.HORA_RETORNO, '%H:%i'))
                    ELSE
-                       CASE WHEN f.DT_RETORNO IS NOT NULL AND f.HR_RETORNO IS NOT NULL THEN
+                       CASE WHEN f.DT_RETORNO IS NOT NULL AND f.DT_RETORNO != '' AND f.HR_RETORNO IS NOT NULL AND f.HR_RETORNO != '' THEN
                            CONCAT(f.DT_RETORNO, ' ', f.HR_RETORNO)
                        ELSE NULL
                        END
                    END AS DATAHORA_RETORNO,
-                   COALESCE(f.OBS, f.OBS_RETORNO) AS OBS
+                   COALESCE(NULLIF(f.OBS, ''), NULLIF(f.OBS_RETORNO, ''), '') AS OBS
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m ON f.ID_MOTORISTA = m.ID_MOTORISTA
+            LEFT JOIN TJ_MOTORISTA m ON f.ID_MOTORISTA = m.ID_MOTORISTA AND f.ID_MOTORISTA > 0
             WHERE {where_clause}
             ORDER BY f.DATA_SAIDA DESC, f.HORA_SAIDA DESC
+            LIMIT 500
         """
         
         cursor.execute(query, params)
@@ -3566,19 +3573,19 @@ def fluxo_pesquisar():
         for result in results:
             lista_resultados.append({
                 'id_fluxo': result[0],
-                'setor_solicitante': result[1],
-                'destino': result[2],
-                'veiculo': result[3],
-                'nome_motorista': result[4],
-                'datahora_saida': result[5],
+                'setor_solicitante': result[1] or '',
+                'destino': result[2] or '',
+                'veiculo': result[3] or '',
+                'nome_motorista': result[4] or '',
+                'datahora_saida': result[5] or '',
                 'datahora_retorno': result[6],
-                'obs': result[7]
+                'obs': result[7] or ''
             })
         
         return jsonify(lista_resultados)
     except Exception as e:
+        print(f"Erro na pesquisa: {str(e)}")
         return jsonify({'erro': str(e)}), 500
-
 
 #######################################
 	
