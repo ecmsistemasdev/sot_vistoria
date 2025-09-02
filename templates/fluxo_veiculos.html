@@ -197,6 +197,9 @@
                     <button id="btnRelatorioAnalitico" class="btn btn-info">
                         <i class="fas fa-file-alt"></i> Relatório Analítico
                     </button>
+                    <button id="btnPesquisar" class="btn btn-warning ms-2">
+                        <i class="fas fa-search"></i> Pesquisar
+                    </button>
                 </div>
                 <button id="btnVoltar" class="btn btn-secondary" onclick="window.history.back();">
                     <i class="fas fa-arrow-left"></i> Voltar
@@ -406,6 +409,88 @@
         </div>
     </div>
     
+    <!-- Modal Pesquisa -->
+    <div class="modal fade" id="modalPesquisa" data-bs-backdrop="static" tabindex="-1" aria-labelledby="modalPesquisaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="modalPesquisaLabel">Pesquisar Fluxo de Veículos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formPesquisa" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="dataInicio" class="form-label small">Data Início</label>
+                            <input type="date" class="form-control form-control-sm" id="dataInicio">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dataFim" class="form-label small">Data Fim</label>
+                            <input type="date" class="form-control form-control-sm" id="dataFim">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="veiculoPesquisa" class="form-label small">Veículo</label>
+                            <select class="form-select form-select-sm" id="veiculoPesquisa">
+                                <option value="">Todos os veículos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="motoristaPesquisa" class="form-label small">Motorista</label>
+                            <select class="form-select form-select-sm" id="motoristaPesquisa">
+                                <option value="">Todos os motoristas</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnLimparPesquisa">
+                        <i class="fas fa-eraser"></i> Limpar
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm" id="btnExecutarPesquisa">
+                        <i class="fas fa-search"></i> Pesquisar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultado da Pesquisa -->
+    <div class="row" id="resultadoPesquisa" style="display: none;">
+        <div class="col-12">
+            <div class="groupbox">
+                <div class="groupbox-header">
+                    Resultado da Pesquisa
+                    <button type="button" class="btn btn-sm btn-outline-secondary float-end" id="btnFecharPesquisa">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+                <div class="groupbox-body lista-grande">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Setor Solicitante</th>
+                                    <th>Destino</th>
+                                    <th>Veículo</th>
+                                    <th>Motorista</th>
+                                    <th>Data/Hora Saída</th>
+                                    <th>Data/Hora Retorno</th>
+                                    <th>Obs</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabela-resultado-pesquisa">
+                                <!-- Dados carregados via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ============== HTML DO MODAL DE CARREGAMENTO ============== -->
     <div class="modal fade" id="modalCarregando" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
          <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -1287,6 +1372,160 @@
                     }
                 });
             });
+
+            // Implementação da Pesquisa:
+            // Event handler para o botão Pesquisar
+            $('#btnPesquisar').click(function() {
+                console.log("Botão Pesquisar clicado");
+                
+                // Mostrar modal de carregamento
+                mostrarModalCarregando();
+                
+                // Definir período padrão (último mês)
+                const dataAtual = new Date();
+                const dataInicio = new Date();
+                dataInicio.setMonth(dataAtual.getMonth() - 1);
+                
+                $('#dataInicio').val(dataInicio.toISOString().split('T')[0]);
+                $('#dataFim').val(dataAtual.toISOString().split('T')[0]);
+                
+                // Contador para controlar carregamentos
+                let carregamentosPendentes = 2;
+
+                function verificarCarregamentoPesquisa() {
+                    carregamentosPendentes--;
+                    if (carregamentosPendentes <= 0) {
+                        fecharModalCarregando();
+                        const modalPesquisa = new bootstrap.Modal(document.getElementById('modalPesquisa'));
+                        modalPesquisa.show();
+                    }
+                }
+                
+                // Carregar veículos para pesquisa
+                $.ajax({
+                    url: '/api/fluxo_lista_veiculos_pesquisa',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        let html = '<option value="">Todos os veículos</option>';
+                        data.forEach(function(veiculo) {
+                            html += `<option value="${veiculo.ID_VEICULO}">${veiculo.VEICULO}</option>`;
+                        });
+                        $('#veiculoPesquisa').html(html);
+                        verificarCarregamentoPesquisa();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar veículos para pesquisa:", error);
+                        verificarCarregamentoPesquisa();
+                    }
+                });
+                
+                // Carregar motoristas para pesquisa
+                $.ajax({
+                    url: '/api/fluxo_lista_motoristas_pesquisa',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        let html = '<option value="">Todos os motoristas</option>';
+                        data.forEach(function(motorista) {
+                            html += `<option value="${motorista.ID_MOTORISTA}">${motorista.NM_MOTORISTA}</option>`;
+                        });
+                        $('#motoristaPesquisa').html(html);
+                        verificarCarregamentoPesquisa();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar motoristas para pesquisa:", error);
+                        verificarCarregamentoPesquisa();
+                    }
+                });
+            });
+
+            // Executar pesquisa
+            $('#btnExecutarPesquisa').click(function() {
+                if (!$('#dataInicio').val() || !$('#dataFim').val()) {
+                    alert("Por favor, informe o período de pesquisa.");
+                    return;
+                }
+                
+                const dataInicio = new Date($('#dataInicio').val());
+                const dataFim = new Date($('#dataFim').val());
+                
+                if (dataFim < dataInicio) {
+                    alert("A data fim não pode ser anterior à data início.");
+                    return;
+                }
+                
+                $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Pesquisando...');
+                
+                const params = {
+                    dataInicio: $('#dataInicio').val(),
+                    dataFim: $('#dataFim').val(),
+                    veiculo: $('#veiculoPesquisa').val(),
+                    motorista: $('#motoristaPesquisa').val()
+                };
+                
+                $.ajax({
+                    url: '/api/fluxo_pesquisar',
+                    type: 'GET',
+                    data: params,
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Resultado da pesquisa:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="8" class="text-center">Nenhum resultado encontrado</td></tr>';
+                        } else {
+                            data.forEach(function(item) {
+                                html += `<tr>
+                                    <td>${item.id_fluxo}</td>
+                                    <td>${item.setor_solicitante}</td>
+                                    <td>${item.destino}</td>
+                                    <td>${item.veiculo}</td>
+                                    <td>${item.nome_motorista}</td>
+                                    <td>${item.datahora_saida}</td>
+                                    <td>${item.datahora_retorno || '-'}</td>
+                                    <td>${item.obs || ''}</td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-resultado-pesquisa').html(html);
+                        
+                        // Fechar modal de pesquisa
+                        $('#modalPesquisa').modal('hide');
+                        
+                        // Mostrar resultado
+                        $('#resultadoPesquisa').show();
+                        
+                        // Reset botão
+                        $('#btnExecutarPesquisa').prop('disabled', false).html('<i class="fas fa-search"></i> Pesquisar');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao pesquisar:", error);
+                        alert("Erro ao executar pesquisa: " + error);
+                        $('#btnExecutarPesquisa').prop('disabled', false).html('<i class="fas fa-search"></i> Pesquisar');
+                    }
+                });
+            });
+
+            // Limpar pesquisa
+            $('#btnLimparPesquisa').click(function() {
+                $('#formPesquisa')[0].reset();
+                const dataAtual = new Date();
+                const dataInicio = new Date();
+                dataInicio.setMonth(dataAtual.getMonth() - 1);
+                
+                $('#dataInicio').val(dataInicio.toISOString().split('T')[0]);
+                $('#dataFim').val(dataAtual.toISOString().split('T')[0]);
+                $('#veiculoPesquisa').val('');
+                $('#motoristaPesquisa').val('');
+            });
+
+            // Fechar resultado da pesquisa
+            $('#btnFecharPesquisa').click(function() {
+                $('#resultadoPesquisa').hide();
+            });
+
+            //// fim pesquisa ///////////
         });       
 
         // Função de logout corrigida
