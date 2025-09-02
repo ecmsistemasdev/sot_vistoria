@@ -1583,6 +1583,12 @@
                 // Verificar e corrigir SEJEOP para SEGEOP
                 if (valor === 'SEJEOP') {
                     $(this).val('SEGEOP');
+                } else if (valor === 'ANEXO') {
+                    $(this).val('ANEXO ADM');
+                } else if (valor === 'COMU') {
+                    $(this).val('CCOM');
+                } else if (valor === 'COMUNICACAO') {
+                    $(this).val('CCOM');
                 }
                 
                 // Continuar com a lógica de busca existente
