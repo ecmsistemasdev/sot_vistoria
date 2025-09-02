@@ -1575,6 +1575,23 @@
             });
 
             //// fim pesquisa ///////////
+
+            // Correção automática para SEJEOP -> SEGEOP
+            $('#setorSolicitante_saida').on('input', function() {
+                let valor = $(this).val().toUpperCase();
+                
+                // Verificar e corrigir SEJEOP para SEGEOP
+                if (valor === 'SEJEOP') {
+                    $(this).val('SEGEOP');
+                }
+                
+                // Continuar com a lógica de busca existente
+                const termo = $(this).val().trim();
+                if (termo.length >= 3) {
+                    // ... resto do código de busca de setores permanece igual
+                }
+            });
+
         });       
 
         // Função de logout corrigida
