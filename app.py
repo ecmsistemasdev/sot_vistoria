@@ -3499,80 +3499,99 @@ def fluxo_lista_motoristas_pesquisa():
 def fluxo_pesquisar():
     try:
         usar_periodo = request.args.get('usarPeriodo') == 'true'
-        data_inicio = request.args.get('dataInicio', '')
-        data_fim = request.args.get('dataFim', '')
-        id_veiculo = request.args.get('veiculo', '')
-        id_motorista = request.args.get('motorista', '')
+        data_inicio = request.args.get('dataInicio', '').strip()
+        data_fim = request.args.get('dataFim', '').strip()
+        id_veiculo = request.args.get('veiculo', '').strip()
+        id_motorista = request.args.get('motorista', '').strip()
+        
+        print(f"Parâmetros recebidos: usar_periodo={usar_periodo}, data_inicio={data_inicio}, data_fim={data_fim}, id_veiculo={id_veiculo}, id_motorista={id_motorista}")
         
         cursor = mysql.connection.cursor()
         
-        # Construir query dinamicamente
+        # Query base
+        base_query = """
+            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
+                   CONCAT(v.DS_MODELO, ' - ', v.NU_PLACA) AS VEICULO,
+                   CASE 
+                       WHEN f.ID_MOTORISTA = 0 OR f.ID_MOTORISTA IS NULL THEN 
+                           CONCAT('*', COALESCE(f.NC_CONDUTOR, 'NÃO INFORMADO')) 
+                       ELSE 
+                           COALESCE(m.NM_MOTORISTA, 'MOTORISTA NÃO ENCONTRADO') 
+                   END AS NOME_MOTORISTA,
+                   CASE 
+                       WHEN f.DATA_SAIDA IS NOT NULL AND f.HORA_SAIDA IS NOT NULL THEN
+                           CONCAT(DATE_FORMAT(f.DATA_SAIDA, '%%d/%%m/%%Y'), ' ', TIME_FORMAT(f.HORA_SAIDA, '%%H:%%i'))
+                       WHEN f.DT_SAIDA IS NOT NULL AND f.DT_SAIDA != '' THEN
+                           CONCAT(f.DT_SAIDA, ' ', COALESCE(f.HR_SAIDA, ''))
+                       ELSE 'Data não informada'
+                   END AS DATAHORA_SAIDA,
+                   CASE 
+                       WHEN f.DATA_RETORNO IS NOT NULL AND f.HORA_RETORNO IS NOT NULL THEN
+                           CONCAT(DATE_FORMAT(f.DATA_RETORNO, '%%d/%%m/%%Y'), ' ', TIME_FORMAT(f.HORA_RETORNO, '%%H:%%i'))
+                       WHEN f.DT_RETORNO IS NOT NULL AND f.DT_RETORNO != '' THEN
+                           CONCAT(f.DT_RETORNO, ' ', COALESCE(f.HR_RETORNO, ''))
+                       ELSE NULL
+                   END AS DATAHORA_RETORNO,
+                   COALESCE(
+                       CASE WHEN f.OBS IS NOT NULL AND f.OBS != '' THEN f.OBS END,
+                       CASE WHEN f.OBS_RETORNO IS NOT NULL AND f.OBS_RETORNO != '' THEN f.OBS_RETORNO END,
+                       ''
+                   ) AS OBS
+            FROM TJ_FLUXO_VEICULOS f
+            INNER JOIN TJ_VEICULO v ON v.ID_VEICULO = f.ID_VEICULO
+            LEFT JOIN TJ_MOTORISTA m ON f.ID_MOTORISTA = m.ID_MOTORISTA AND f.ID_MOTORISTA > 0
+        """
+        
+        # Construir condições WHERE
         where_conditions = []
         params = []
         
-        # Condição de período (somente se checkbox estiver marcado)
+        # Filtro por período
         if usar_periodo and data_inicio and data_fim:
             where_conditions.append("""
-                (f.DATA_SAIDA BETWEEN %s AND %s 
-                 OR f.DATA_RETORNO BETWEEN %s AND %s
-                 OR (f.DATA_SAIDA <= %s AND (f.DATA_RETORNO >= %s OR f.DATA_RETORNO IS NULL)))
+                (
+                    (f.DATA_SAIDA BETWEEN %s AND %s) OR
+                    (f.DATA_RETORNO BETWEEN %s AND %s) OR
+                    (f.DATA_SAIDA <= %s AND (f.DATA_RETORNO IS NULL OR f.DATA_RETORNO >= %s))
+                )
             """)
             params.extend([data_inicio, data_fim, data_inicio, data_fim, data_inicio, data_fim])
         
         # Filtro por veículo
         if id_veiculo:
             where_conditions.append("f.ID_VEICULO = %s")
-            params.append(id_veiculo)
+            params.append(int(id_veiculo))
         
         # Filtro por motorista
         if id_motorista:
             where_conditions.append("f.ID_MOTORISTA = %s")
-            params.append(id_motorista)
+            params.append(int(id_motorista))
         
-        # Se nenhum filtro foi aplicado, retornar erro
+        # Verificar se pelo menos um filtro foi aplicado
         if not where_conditions:
             return jsonify({'erro': 'Pelo menos um filtro deve ser aplicado'}), 400
         
-        where_clause = " AND ".join(where_conditions)
+        # Montar query final
+        if where_conditions:
+            query = base_query + " WHERE " + " AND ".join(where_conditions)
+        else:
+            query = base_query
+            
+        query += " ORDER BY f.DATA_SAIDA DESC, f.HORA_SAIDA DESC LIMIT 500"
         
-        query = f"""
-            SELECT f.ID_FLUXO, f.SETOR_SOLICITANTE, f.DESTINO,
-                   CONCAT(v.DS_MODELO, ' - ', v.NU_PLACA) AS VEICULO,
-                   CASE WHEN f.ID_MOTORISTA = 0 THEN 
-                       CONCAT('*', COALESCE(f.NC_CONDUTOR, 'NÃO INFORMADO')) 
-                   ELSE 
-                       COALESCE(m.NM_MOTORISTA, 'NÃO INFORMADO') 
-                   END AS NOME_MOTORISTA,
-                   CASE WHEN f.DATA_SAIDA IS NOT NULL AND f.HORA_SAIDA IS NOT NULL THEN
-                       CONCAT(DATE_FORMAT(f.DATA_SAIDA, '%d/%m/%Y'), ' ', TIME_FORMAT(f.HORA_SAIDA, '%H:%i'))
-                   ELSE
-                       CONCAT(COALESCE(f.DT_SAIDA, ''), ' ', COALESCE(f.HR_SAIDA, ''))
-                   END AS DATAHORA_SAIDA,
-                   CASE WHEN f.DATA_RETORNO IS NOT NULL AND f.HORA_RETORNO IS NOT NULL THEN
-                       CONCAT(DATE_FORMAT(f.DATA_RETORNO, '%d/%m/%Y'), ' ', TIME_FORMAT(f.HORA_RETORNO, '%H:%i'))
-                   ELSE
-                       CASE WHEN f.DT_RETORNO IS NOT NULL AND f.DT_RETORNO != '' AND f.HR_RETORNO IS NOT NULL AND f.HR_RETORNO != '' THEN
-                           CONCAT(f.DT_RETORNO, ' ', f.HR_RETORNO)
-                       ELSE NULL
-                       END
-                   END AS DATAHORA_RETORNO,
-                   COALESCE(NULLIF(f.OBS, ''), NULLIF(f.OBS_RETORNO, ''), '') AS OBS
-            FROM TJ_FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m ON f.ID_MOTORISTA = m.ID_MOTORISTA AND f.ID_MOTORISTA > 0
-            WHERE {where_clause}
-            ORDER BY f.DATA_SAIDA DESC, f.HORA_SAIDA DESC
-            LIMIT 500
-        """
+        print(f"Query final: {query}")
+        print(f"Parâmetros: {params}")
         
         cursor.execute(query, params)
         results = cursor.fetchall()
         cursor.close()
         
+        print(f"Encontrados {len(results)} resultados")
+        
         lista_resultados = []
         for result in results:
             lista_resultados.append({
-                'id_fluxo': result[0],
+                'id_fluxo': result[0] or 0,
                 'setor_solicitante': result[1] or '',
                 'destino': result[2] or '',
                 'veiculo': result[3] or '',
@@ -3583,9 +3602,12 @@ def fluxo_pesquisar():
             })
         
         return jsonify(lista_resultados)
+        
     except Exception as e:
-        print(f"Erro na pesquisa: {str(e)}")
-        return jsonify({'erro': str(e)}), 500
+        print(f"Erro completo na pesquisa: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': f'Erro interno: {str(e)}'}), 500
 
 #######################################
 	
