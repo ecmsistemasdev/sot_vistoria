@@ -419,22 +419,30 @@
                 </div>
                 <div class="modal-body">
                     <form id="formPesquisa" class="row g-3">
-                        <div class="col-md-3">
+                        <div class="col-md-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="usarPeriodo">
+                                <label class="form-check-label" for="usarPeriodo">
+                                    Filtrar por período
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6" id="campoDataInicio" style="display: none;">
                             <label for="dataInicio" class="form-label small">Data Início</label>
                             <input type="date" class="form-control form-control-sm" id="dataInicio">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6" id="campoDataFim" style="display: none;">
                             <label for="dataFim" class="form-label small">Data Fim</label>
                             <input type="date" class="form-control form-control-sm" id="dataFim">
                         </div>
-                        <div class="col-md-3">
-                            <label for="veiculoPesquisa" class="form-label small">Veículo</label>
+                        <div class="col-md-6">
+                            <label for="veiculoPesquisa" class="form-label small">Veículo (opcional)</label>
                             <select class="form-select form-select-sm" id="veiculoPesquisa">
                                 <option value="">Todos os veículos</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label for="motoristaPesquisa" class="form-label small">Motorista</label>
+                        <div class="col-md-6">
+                            <label for="motoristaPesquisa" class="form-label small">Motorista (opcional)</label>
                             <select class="form-select form-select-sm" id="motoristaPesquisa">
                                 <option value="">Todos os motoristas</option>
                             </select>
@@ -1381,13 +1389,10 @@
                 // Mostrar modal de carregamento
                 mostrarModalCarregando();
                 
-                // Definir período padrão (último mês)
-                const dataAtual = new Date();
-                const dataInicio = new Date();
-                dataInicio.setMonth(dataAtual.getMonth() - 1);
-                
-                $('#dataInicio').val(dataInicio.toISOString().split('T')[0]);
-                $('#dataFim').val(dataAtual.toISOString().split('T')[0]);
+                // Limpar formulário
+                $('#formPesquisa')[0].reset();
+                $('#usarPeriodo').prop('checked', false);
+                $('#campoDataInicio, #campoDataFim').hide();
                 
                 // Contador para controlar carregamentos
                 let carregamentosPendentes = 2;
@@ -1440,28 +1445,60 @@
                 });
             });
 
+            // Controle do checkbox de período (adicionar)
+            $('#usarPeriodo').change(function() {
+                if ($(this).is(':checked')) {
+                    $('#campoDataInicio, #campoDataFim').show();
+                    
+                    // Definir período padrão (último mês)
+                    const dataAtual = new Date();
+                    const dataInicio = new Date();
+                    dataInicio.setMonth(dataAtual.getMonth() - 1);
+                    
+                    $('#dataInicio').val(dataInicio.toISOString().split('T')[0]);
+                    $('#dataFim').val(dataAtual.toISOString().split('T')[0]);
+                } else {
+                    $('#campoDataInicio, #campoDataFim').hide();
+                    $('#dataInicio, #dataFim').val('');
+                }
+            });
+
             // Executar pesquisa
             $('#btnExecutarPesquisa').click(function() {
-                if (!$('#dataInicio').val() || !$('#dataFim').val()) {
-                    alert("Por favor, informe o período de pesquisa.");
+                // Verificar se pelo menos um filtro foi aplicado
+                const usaPeriodo = $('#usarPeriodo').is(':checked');
+                const veiculo = $('#veiculoPesquisa').val();
+                const motorista = $('#motoristaPesquisa').val();
+                
+                if (!usaPeriodo && !veiculo && !motorista) {
+                    alert("Por favor, selecione pelo menos um filtro de pesquisa.");
                     return;
                 }
                 
-                const dataInicio = new Date($('#dataInicio').val());
-                const dataFim = new Date($('#dataFim').val());
-                
-                if (dataFim < dataInicio) {
-                    alert("A data fim não pode ser anterior à data início.");
-                    return;
+                // Validar período se estiver sendo usado
+                if (usaPeriodo) {
+                    if (!$('#dataInicio').val() || !$('#dataFim').val()) {
+                        alert("Por favor, informe o período completo (data início e fim).");
+                        return;
+                    }
+                    
+                    const dataInicio = new Date($('#dataInicio').val());
+                    const dataFim = new Date($('#dataFim').val());
+                    
+                    if (dataFim < dataInicio) {
+                        alert("A data fim não pode ser anterior à data início.");
+                        return;
+                    }
                 }
                 
                 $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Pesquisando...');
                 
                 const params = {
-                    dataInicio: $('#dataInicio').val(),
-                    dataFim: $('#dataFim').val(),
-                    veiculo: $('#veiculoPesquisa').val(),
-                    motorista: $('#motoristaPesquisa').val()
+                    usarPeriodo: usaPeriodo,
+                    dataInicio: usaPeriodo ? $('#dataInicio').val() : '',
+                    dataFim: usaPeriodo ? $('#dataFim').val() : '',
+                    veiculo: veiculo,
+                    motorista: motorista
                 };
                 
                 $.ajax({
@@ -1507,15 +1544,11 @@
                 });
             });
 
-            // Limpar pesquisa
+            // Limpar pesquisa (substituir a função anterior)
             $('#btnLimparPesquisa').click(function() {
                 $('#formPesquisa')[0].reset();
-                const dataAtual = new Date();
-                const dataInicio = new Date();
-                dataInicio.setMonth(dataAtual.getMonth() - 1);
-                
-                $('#dataInicio').val(dataInicio.toISOString().split('T')[0]);
-                $('#dataFim').val(dataAtual.toISOString().split('T')[0]);
+                $('#usarPeriodo').prop('checked', false);
+                $('#campoDataInicio, #campoDataFim').hide();
                 $('#veiculoPesquisa').val('');
                 $('#motoristaPesquisa').val('');
             });
