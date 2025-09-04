@@ -1876,7 +1876,7 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
                 <!-- Informações da Locação -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 8px; border-left: 4px solid #1e3a8a; margin-bottom: 25px;">
                     <h3 style="color: #1e3a8a; margin-top: 0; margin-bottom: 20px; font-size: 18px;">
-                        📋 Detalhes da Solicitação
+                        📋 Detalhes da Solicitação - ID {id_item}
                     </h3>
                     
                     <table style="width: 100%; border-collapse: collapse;">
