@@ -93,12 +93,45 @@
         .agenda-table td {
             border: 1px solid #ddd;
             padding: 6px;
-            vertical-align: top;
+            vertical-align: middle; /* Mudado de top para middle */
             font-size: 12px;
             position: relative;
             cursor: pointer;
             transition: background 0.2s;
-            overflow: hidden;
+            overflow: visible; /* Mudado de hidden */
+        }
+
+        .cell-selected {
+            filter: brightness(0.85);
+            box-shadow: inset 0 0 0 2px #1a73e8;
+        }
+        
+        .tipo-locacao {
+            background: #e6d5f5 !important; /* Cor lilás */
+        }        
+
+        /* Adicionar antes de .form-group */
+        .motorista-filter {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .motorista-filter label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-weight: normal;
+            font-size: 14px;
+        }
+        
+        .motorista-filter input[type="radio"] {
+            cursor: pointer;
+            width: auto;
         }
         
         .agenda-table td:hover {
@@ -126,15 +159,17 @@
         
         .cell-content {
             line-height: 1.4;
-            height: 60px;
-            overflow: hidden;
+            min-height: 35px; /* Reduzido de 60px */
+            height: auto; /* Mudado para auto */
+            overflow: visible; /* Mudado de hidden */
             font-size: 11px;
         }
         
         .cell-content-veiculos {
             line-height: 1.4;
-            height: 45px;
-            overflow: hidden;
+            min-height: 30px; /* Reduzido de 45px */
+            height: auto; /* Mudado para auto */
+            overflow: visible; /* Mudado de hidden */
             font-size: 11px;
         }
         
@@ -369,6 +404,18 @@
                 <form id="formDemanda">
                     <input type="hidden" id="idAd" value="">
                     
+                    <div class="motorista-filter" id="motoristaFilter">
+                        <label>
+                            <input type="radio" name="tipoMotorista" value="segeop" checked> SEGEOP
+                        </label>
+                        <label>
+                            <input type="radio" name="tipoMotorista" value="outros"> Outros
+                        </label>
+                        <label>
+                            <input type="radio" name="tipoMotorista" value="todos"> Todos
+                        </label>
+                    </div>
+                    
                     <div class="form-group">
                         <label>Motorista <span class="required">*</span></label>
                         <select id="idMotorista" required></select>
@@ -443,6 +490,8 @@
         let tiposDemanda = [];
         let tiposVeiculo = [];
         let veiculoSelecionadoOriginal = null;
+        let celulaSelecionada = null;
+        let locacoesAtivas = [];
         
         async function init() {
             await carregarSemanas();
@@ -463,7 +512,19 @@
                 }
                 
                 semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
+                await carregarLocacoes(); // NOVO
                 await carregarAgenda();
+            }
+        }
+
+        async function carregarLocacoes() {
+            try {
+                const semana = semanas[semanaAtual];
+                const res = await fetch(`/api/agenda/locacoes?inicio=${semana.inicio}&fim=${semana.fim}`);
+                locacoesAtivas = await res.json();
+            } catch (error) {
+                console.error('Erro ao carregar locações:', error);
+                locacoesAtivas = [];
             }
         }
         
@@ -678,6 +739,7 @@
             
             try {
                 const semana = semanas[semanaAtual];
+                await carregarLocacoes(); // NOVO
                 const res = await fetch(`/api/agenda/dados?inicio=${semana.inicio}&fim=${semana.fim}`);
                 dadosAgenda = await res.json();
                 
@@ -746,7 +808,7 @@
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        html += `<td class="${corClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
+                        html += `<td class="${corClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
                         html += '<div class="cell-content">';
                         html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                         html += `<div>${demanda.destino || ''}</div>`;
@@ -769,6 +831,26 @@
             
             html += '</tbody></table></div>';
             return html;
+        }
+        
+        function handleCellClick(event, idDemanda) {
+            event.stopPropagation();
+            const cell = event.currentTarget;
+            
+            // Se a célula clicada já está selecionada, abre o modal de edição
+            if (cell.classList.contains('cell-selected')) {
+                abrirModalEditar(idDemanda);
+                return;
+            }
+            
+            // Remove seleção anterior
+            if (celulaSelecionada) {
+                celulaSelecionada.classList.remove('cell-selected');
+            }
+            
+            // Seleciona a célula atual
+            cell.classList.add('cell-selected');
+            celulaSelecionada = cell;
         }
         
         function renderizarSecaoVeiculos(dias) {
@@ -810,11 +892,9 @@
             html += '</tbody></table></div>';
             return html;
         }
-        
+                
         function renderizarSecaoVeiculosAlocados(dias) {
-            // const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1);
             const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1 && d.id_tipoveiculo !== null);
-
             
             if (demandasAlocadas.length === 0) return '';
             
@@ -845,6 +925,16 @@
                 html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
                 html += `<div>${grupo.nu_sei || ''}</div>`;
                 html += `<div>${grupo.destino || ''}</div>`;
+                
+                // NOVO: Verificar se existe locação finalizada
+                const primeiraLocacao = locacoesAtivas.find(loc => 
+                    loc.fl_status === 'F' && 
+                    grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
+                );
+                if (primeiraLocacao) {
+                    html += `<div style="color: #6c757d; font-size: 11px; margin-top: 3px;">${primeiraLocacao.ds_veiculo_mod}</div>`;
+                }
+                
                 html += `</td>`;
                 
                 dias.forEach(dia => {
@@ -855,7 +945,17 @@
                     
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
-                        html += `<td class="col-dia" onclick="abrirModalEditar(${demanda.id})">`;
+                        
+                        // NOVO: Verificar se existe locação para este motorista neste dia
+                        const temLocacao = locacoesAtivas.some(loc => 
+                            loc.id_motorista === demanda.id_motorista &&
+                            loc.data_inicio <= dia.data &&
+                            loc.data_fim >= dia.data
+                        );
+                        
+                        const corClass = temLocacao ? 'tipo-locacao' : '';
+                        
+                        html += `<td class="${corClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
                         html += '<div class="cell-content-veiculos">';
                         html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                         html += '</div></td>';
@@ -879,7 +979,11 @@
             document.getElementById('btnExcluir').style.display = 'none';
             veiculoSelecionadoOriginal = null;
             
-            preencherSelectMotoristas();
+            // Mostrar filtro e definir SEGEOP como padrão
+            document.getElementById('motoristaFilter').style.display = 'flex';
+            document.querySelector('input[name="tipoMotorista"][value="segeop"]').checked = true;
+            
+            preencherSelectMotoristas('segeop'); // Passar o tipo
             preencherSelectVeiculos();
             
             // Resetar labels
@@ -895,6 +999,13 @@
             document.getElementById('setor').disabled = false;
             document.getElementById('solicitante').disabled = false;
             document.getElementById('destino').disabled = false;
+            
+            // Adicionar event listeners para o filtro
+            document.querySelectorAll('input[name="tipoMotorista"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    preencherSelectMotoristas(this.value);
+                });
+            });
             
             document.getElementById('modal').style.display = 'block';
         }
@@ -916,6 +1027,9 @@
             document.getElementById('idAd').value = demanda.id;
             document.getElementById('btnExcluir').style.display = 'inline-block';
             
+            // Ocultar filtro na edição
+            document.getElementById('motoristaFilter').style.display = 'none';
+            
             // Guardar veículo original para manter na lista
             if (demanda.id_veiculo) {
                 veiculoSelecionadoOriginal = {
@@ -926,7 +1040,7 @@
                 veiculoSelecionadoOriginal = null;
             }
             
-            preencherSelectMotoristas();
+            preencherSelectMotoristas('todos'); // Sempre mostrar todos na edição
             preencherSelectVeiculos();
             
             document.getElementById('idMotorista').value = demanda.id_motorista;
@@ -952,10 +1066,28 @@
             veiculoSelecionadoOriginal = null;
         }
         
-        function preencherSelectMotoristas() {
+        function preencherSelectMotoristas(tipo = 'segeop') {
             const select = document.getElementById('idMotorista');
             select.innerHTML = '<option value="">Selecione...</option>';
-            motoristas.forEach(m => {
+            
+            let motoristasFiltrados = motoristas;
+            
+            if (tipo === 'segeop') {
+                // Motoristas SEGEOP (padrão atual)
+                motoristasFiltrados = motoristas.filter(m => 
+                    m.tipo === 'Motorista Atendimento' || m.tipo === 'Tercerizado'
+                );
+            } else if (tipo === 'outros') {
+                // Outros motoristas ativos, exceto SEGEOP
+                motoristasFiltrados = dadosAgenda.todos_motoristas.filter(m => 
+                    m.tipo !== 'Motorista Atendimento' && m.tipo !== 'Tercerizado'
+                );
+            } else if (tipo === 'todos') {
+                // Todos os motoristas ativos
+                motoristasFiltrados = dadosAgenda.todos_motoristas || motoristas;
+            }
+            
+            motoristasFiltrados.forEach(m => {
                 select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
             });
         }
@@ -1063,6 +1195,13 @@
                 fecharModal();
             }
         }
+
+        document.addEventListener('click', function(event) {
+            if (celulaSelecionada && !event.target.closest('.agenda-table')) {
+                celulaSelecionada.classList.remove('cell-selected');
+                celulaSelecionada = null;
+            }
+        });
         
         init();
     </script>
