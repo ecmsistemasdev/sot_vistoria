@@ -1041,16 +1041,26 @@
             document.getElementById('dtFim').value = data;
             
             if (idVeiculo) {
+                // Guardar o veículo que será selecionado
+                const veiculoObj = veiculos.find(v => v.id === idVeiculo);
+                if (veiculoObj) {
+                    veiculoSelecionadoOriginal = {
+                        id: veiculoObj.id,
+                        veiculo: veiculoObj.veiculo
+                    };
+                }
+                
                 // Selecionar Tipo de Veículo = 1 (Veículo Oficial)
                 document.getElementById('idTipoVeiculo').value = '1';
                 
-                // Aplicar regras do tipo de veículo
+                // Aplicar regras e aguardar carregar veículos disponíveis
                 aplicarRegrasTipoVeiculo();
                 
-                // Aguardar um momento para o select de veículos ser preenchido
-                setTimeout(() => {
+                // Aguardar a lista de veículos ser atualizada e então selecionar
+                setTimeout(async () => {
+                    await atualizarVeiculosDisponiveis();
                     document.getElementById('idVeiculo').value = idVeiculo;
-                }, 100);
+                }, 150);
             }
         }
         
