@@ -25,36 +25,23 @@
         .header {
             background: #1a73e8;
             color: white;
-            padding: 12px 20px;
-            text-align: center;
-        }
-        
-        .header h1 { font-size: 22px; margin: 0; }
-        
-        .toolbar {
-            padding: 15px 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
+            padding: 10px 20px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: center;
+            gap: 15px;
         }
         
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        .header h1 { 
+            font-size: 18px; 
+            margin: 0; 
+        }
+        
+        .header .periodo {
             font-size: 14px;
-            transition: all 0.3s;
+            color: #fff9c4;
+            font-weight: 500;
         }
-        
-        .btn-primary {
-            background: #1a73e8;
-            color: white;
-        }
-        
-        .btn-primary:hover { background: #1557b0; }
         
         .agenda-wrapper {
             overflow-x: auto;
@@ -93,12 +80,12 @@
         .agenda-table td {
             border: 1px solid #ddd;
             padding: 6px;
-            vertical-align: middle; /* Mudado de top para middle */
+            vertical-align: middle;
             font-size: 12px;
             position: relative;
             cursor: pointer;
             transition: background 0.2s;
-            overflow: visible; /* Mudado de hidden */
+            overflow: visible;
         }
 
         .cell-selected {
@@ -107,10 +94,9 @@
         }
         
         .tipo-locacao {
-            background: #e6d5f5 !important; /* Cor lilás */
+            background: #e6d5f5 !important;
         }        
 
-        /* Adicionar antes de .form-group */
         .motorista-filter {
             display: flex;
             gap: 15px;
@@ -159,17 +145,17 @@
         
         .cell-content {
             line-height: 1.4;
-            min-height: 35px; /* Reduzido de 60px */
-            height: auto; /* Mudado para auto */
-            overflow: visible; /* Mudado de hidden */
+            min-height: 35px;
+            height: auto;
+            overflow: visible;
             font-size: 11px;
         }
         
         .cell-content-veiculos {
             line-height: 1.4;
-            min-height: 30px; /* Reduzido de 45px */
-            height: auto; /* Mudado para auto */
-            overflow: visible; /* Mudado de hidden */
+            min-height: 30px;
+            height: auto;
+            overflow: visible;
             font-size: 11px;
         }
         
@@ -207,11 +193,40 @@
             padding: 15px 20px;
             border-top: 2px solid #dee2e6;
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             gap: 10px;
             z-index: 100;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+        }
+        
+        .btn-primary:hover { background: #1557b0; }
+        
+        .footer-divider {
+            width: 2px;
+            height: 30px;
+            background: #dee2e6;
+            margin: 0 10px;
+        }
+        
+        .week-tabs-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
         .week-tab {
@@ -272,7 +287,7 @@
         .modal-header {
             background: #1a73e8;
             color: white;
-            padding: 20px;
+            padding: 12px 20px;
             border-radius: 8px 8px 0 0;
             display: flex;
             justify-content: space-between;
@@ -282,7 +297,10 @@
             z-index: 10;
         }
         
-        .modal-header h2 { font-size: 20px; }
+        .modal-header h2 { 
+            font-size: 18px;
+            margin: 0;
+        }
         
         .close {
             font-size: 28px;
@@ -377,13 +395,7 @@
     <div class="container">
         <div class="header">
             <h1>📅 AGENDA SEGEOP</h1>
-        </div>
-        
-        <div class="toolbar">
-            <div>
-                <span id="semanaAtual" style="font-weight: 600; color: #333;"></span>
-            </div>
-            <button class="btn btn-primary" onclick="abrirModalNovo()">➕ Nova Demanda</button>
+            <span class="periodo" id="semanaAtual"></span>
         </div>
         
         <div class="agenda-wrapper" id="agendaWrapper">
@@ -391,7 +403,11 @@
         </div>
     </div>
     
-    <div class="footer" id="weekTabs"></div>
+    <div class="footer">
+        <button class="btn btn-primary" onclick="abrirModalNovo()">➕ Nova Demanda</button>
+        <div class="footer-divider"></div>
+        <div class="week-tabs-container" id="weekTabs"></div>
+    </div>
     
     <!-- Modal -->
     <div id="modal" class="modal">
