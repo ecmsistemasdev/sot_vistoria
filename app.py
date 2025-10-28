@@ -3722,6 +3722,24 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
+		# ADICIONAR: Buscar TODOS os motoristas ativos
+		cursor.execute("""
+		    SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
+		    FROM TJ_MOTORISTA
+		    WHERE ATIVO = 'S'
+		    ORDER BY ORDEM_LISTA, NM_MOTORISTA
+		""")
+		todos_motoristas = []
+		for r in cursor.fetchall():
+		    todos_motoristas.append({
+		        'id': r[0], 
+		        'nome': r[1], 
+		        'cad': r[2] if len(r) > 2 else '', 
+		        'telefone': r[3] if len(r) > 3 else '', 
+		        'tipo': r[4] if len(r) > 4 else ''
+		    })
+
+		
         # 2. Demandas dos Motoristas
         cursor.execute("""
 			SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
@@ -3770,6 +3788,7 @@ def buscar_dados_agenda():
 
         return jsonify({
             'motoristas': motoristas,
+			'todos_motoristas': todos_motoristas, 
             'demandas': demandas,
             'veiculos': veiculos
         })
@@ -3945,6 +3964,44 @@ def buscar_tipos_veiculo():
         return jsonify(tipos)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# API: Buscar locações ativas para o período
+@app.route('/api/agenda/locacoes', methods=['GET'])
+def buscar_locacoes():
+    cursor = None
+    try:
+        inicio = request.args.get('inicio')
+        fim = request.args.get('fim')
+        
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            SELECT ID_MOTORISTA, DS_VEICULO_MOD, DATA_INICIO, DATA_FIM, FL_STATUS
+            FROM TJ_CONTROLE_LOCACAO_ITENS
+            WHERE DATA_INICIO <= %s AND DATA_FIM >= %s
+            ORDER BY DATA_INICIO
+        """, (fim, inicio))
+        
+        locacoes = []
+        for r in cursor.fetchall():
+            locacoes.append({
+                'id_motorista': r[0],
+                'ds_veiculo_mod': r[1] or '',
+                'data_inicio': r[2].strftime('%Y-%m-%d') if r[2] else '',
+                'data_fim': r[3].strftime('%Y-%m-%d') if r[3] else '',
+                'fl_status': r[4] or ''
+            })
+        
+        return jsonify(locacoes)
+        
+    except Exception as e:
+        print(f"Erro em buscar_locacoes: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 #######################################
 
