@@ -812,7 +812,9 @@
         }
         
         function renderizarSecaoVeiculosAlocados(dias) {
-            const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1);
+            // const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1);
+            const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1 && d.id_tipoveiculo !== null);
+
             
             if (demandasAlocadas.length === 0) return '';
             
