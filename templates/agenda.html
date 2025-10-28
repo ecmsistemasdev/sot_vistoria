@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda SEGEOP</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #1a73e8;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 { font-size: 24px; margin-bottom: 10px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        
+        .toolbar {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #1a73e8;
+            color: white;
+        }
+        
+        .btn-primary:hover { background: #1557b0; }
+        
+        .agenda-wrapper {
+            overflow-x: auto;
+            padding: 20px;
+        }
+        
+        .agenda-section {
+            margin-bottom: 40px;
+        }
+        
+        .section-title {
+            background: #34495e;
+            color: white;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .agenda-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+        }
+        
+        .agenda-table th {
+            background: #ecf0f1;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .agenda-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            vertical-align: top;
+            min-height: 80px;
+            font-size: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .agenda-table td:hover {
+            background: #f8f9fa !important;
+        }
+        
+        .primeira-coluna {
+            background: #f8f9fa;
+            font-weight: 600;
+            min-width: 150px;
+        }
+        
+        .cell-content {
+            line-height: 1.6;
+            min-height: 60px;
+        }
+        
+        .cell-content div {
+            margin-bottom: 3px;
+        }
+        
+        /* Cores por tipo de demanda */
+        .tipo-1 { background: #cfe2ff; }
+        .tipo-2 { background: #d1e7dd; }
+        .tipo-3 { background: #ffe5d0; }
+        .tipo-4, .tipo-5 { background: #fff3cd; }
+        .tipo-6, .tipo-7, .tipo-8 { background: #fff9c4; }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .week-tab {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        
+        .week-tab:hover {
+            background: #e9ecef;
+        }
+        
+        .week-tab.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 0;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-header {
+            background: #1a73e8;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 { font-size: 20px; }
+        
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            opacity: 0.8;
+        }
+        
+        .close:hover { opacity: 1; }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .modal-footer {
+            padding: 20px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover { background: #5a6268; }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover { background: #c82333; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-cell {
+            background: #fafafa;
+            min-height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 AGENDA SEGEOP</h1>
+            <p>Sistema de Gerenciamento de Demandas e Veículos</p>
+        </div>
+        
+        <div class="toolbar">
+            <div>
+                <span id="semanaAtual" style="font-weight: 600; color: #333;"></span>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalNovo()">➕ Nova Demanda</button>
+        </div>
+        
+        <div class="agenda-wrapper" id="agendaWrapper">
+            <div class="loading">⏳ Carregando agenda...</div>
+        </div>
+        
+        <div class="footer" id="weekTabs"></div>
+    </div>
+    
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nova Demanda</h2>
+                <span class="close" onclick="fecharModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="formDemanda">
+                    <input type="hidden" id="idAd" value="">
+                    
+                    <div class="form-group">
+                        <label>Motorista *</label>
+                        <select id="idMotorista" required></select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo de Demanda *</label>
+                            <select id="idTipoDemanda" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Veículo *</label>
+                            <select id="idTipoVeiculo" required></select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Veículo *</label>
+                        <select id="idVeiculo" required></select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Início *</label>
+                            <input type="date" id="dtInicio" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Data Fim *</label>
+                            <input type="date" id="dtFim" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Setor</label>
+                        <input type="text" id="setor" maxlength="35">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Solicitante</label>
+                        <input type="text" id="solicitante" maxlength="30">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Destino</label>
+                        <input type="text" id="destino" maxlength="25">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nº SEI</label>
+                        <input type="text" id="nuSei" maxlength="25">
+                    </div>
+                    
+                    <input type="hidden" id="usuario" value="ADMIN">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+                <button class="btn btn-danger" id="btnExcluir" onclick="excluirDemanda()" style="display:none;">🗑️ Excluir</button>
+                <button class="btn btn-primary" onclick="salvarDemanda()">💾 Salvar</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let semanas = [];
+        let semanaAtual = 0;
+        let dadosAgenda = null;
+        let motoristas = [];
+        let veiculos = [];
+        let tiposDemanda = [];
+        let tiposVeiculo = [];
+        
+        // Inicializar
+        async function init() {
+            await carregarSemanas();
+            await carregarSelectsFixos();
+            if (semanas.length > 0) {
+                semanaAtual = semanas.length - 1; // Última semana
+                await carregarAgenda();
+            }
+        }
+        
+        // Carregar semanas disponíveis
+        async function carregarSemanas() {
+            try {
+                const res = await fetch('/api/agenda/semanas');
+                semanas = await res.json();
+                renderizarAbas();
+            } catch (error) {
+                console.error('Erro ao carregar semanas:', error);
+            }
+        }
+        
+        // Carregar selects fixos (tipos)
+        async function carregarSelectsFixos() {
+            try {
+                const [resTiposDemanda, resTiposVeiculo] = await Promise.all([
+                    fetch('/api/agenda/tipos-demanda'),
+                    fetch('/api/agenda/tipos-veiculo')
+                ]);
+                
+                tiposDemanda = await resTiposDemanda.json();
+                tiposVeiculo = await resTiposVeiculo.json();
+                
+                // Preencher selects
+                const selectTipoDemanda = document.getElementById('idTipoDemanda');
+                const selectTipoVeiculo = document.getElementById('idTipoVeiculo');
+                
+                selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
+                tiposDemanda.forEach(t => {
+                    selectTipoDemanda.innerHTML += `<option value="${t.id}">${t.descricao}</option>`;
+                });
+                
+                selectTipoVeiculo.innerHTML = '<option value="">Selecione...</option>';
+                tiposVeiculo.forEach(t => {
+                    selectTipoVeiculo.innerHTML += `<option value="${t.id}">${t.descricao}</option>`;
+                });
+            } catch (error) {
+                console.error('Erro ao carregar selects:', error);
+            }
+        }
+        
+        // Renderizar abas de semanas
+        function renderizarAbas() {
+            const tabs = document.getElementById('weekTabs');
+            tabs.innerHTML = semanas.map((s, i) => 
+                `<div class="week-tab ${i === semanaAtual ? 'active' : ''}" 
+                      onclick="mudarSemana(${i})">${s.label}</div>`
+            ).join('');
+        }
+        
+        // Mudar semana
+        async function mudarSemana(index) {
+            semanaAtual = index;
+            renderizarAbas();
+            await carregarAgenda();
+        }
+        
+        // Carregar agenda
+        async function carregarAgenda() {
+            const wrapper = document.getElementById('agendaWrapper');
+            wrapper.innerHTML = '<div class="loading">⏳ Carregando agenda...</div>';
+            
+            try {
+                const semana = semanas[semanaAtual];
+                const res = await fetch(`/api/agenda/dados?inicio=${semana.inicio}&fim=${semana.fim}`);
+                dadosAgenda = await res.json();
+                
+                motoristas = dadosAgenda.motoristas;
+                veiculos = dadosAgenda.veiculos;
+                
+                document.getElementById('semanaAtual').textContent = semana.label;
+                
+                renderizarAgenda();
+            } catch (error) {
+                wrapper.innerHTML = '<div class="loading">❌ Erro ao carregar agenda</div>';
+                console.error('Erro:', error);
+            }
+        }
+        
+        // Renderizar agenda completa
+        function renderizarAgenda() {
+            const semana = semanas[semanaAtual];
+            const dias = gerarDiasSemana(semana.inicio);
+            
+            let html = '';
+            
+            // 1. Seção Motoristas
+            html += renderizarSecaoMotoristas(dias);
+            
+            // 2. Seção Veículos Oficiais
+            html += renderizarSecaoVeiculos(dias);
+            
+            // 3. Seção Veículos Alocados (ID_TIPOVEICULO != 1)
+            html += renderizarSecaoVeiculosAlocados(dias);
+            
+            document.getElementById('agendaWrapper').innerHTML = html;
+        }
+        
+        // Gerar array de dias da semana
+        function gerarDiasSemana(inicioStr) {
+            const dias = [];
+            const inicio = new Date(inicioStr + 'T00:00:00');
+            
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(inicio);
+                d.setDate(inicio.getDate() + i);
+                dias.push({
+                    data: d.toISOString().split('T')[0],
+                    diaNum: d.getDate(),
+                    mes: d.getMonth() + 1,
+                    diaNome: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][d.getDay()]
+                });
+            }
+            return dias;
+        }
+        
+        // Renderizar seção de motoristas
+        function renderizarSecaoMotoristas(dias) {
+            let html = '<div class="agenda-section">';
+            html += '<div class="section-title">🚗 SEGEOP - MOTORISTAS</div>';
+            html += '<table class="agenda-table"><thead><tr>';
+            html += '<th>N.</th><th>Nome</th>';
+            dias.forEach(d => html += `<th>${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+            html += '</tr></thead><tbody>';
+            
+            motoristas.forEach((m, index) => {
+                html += `<tr><td class="primeira-coluna" style="text-align: center;">${index + 1}</td>`;
+                html += `<td class="primeira-coluna">${m.nome}</td>`;
+                
+                dias.forEach(dia => {
+                    const demandasDia = dadosAgenda.demandas.filter(d => 
+                        d.id_motorista === m.id && 
+                        d.dt_inicio <= dia.data && 
+                        d.dt_fim >= dia.data
+                    );
+                    
+                    if (demandasDia.length > 0) {
+                        const demanda = demandasDia[0];
+                        const corClass = `tipo-${demanda.id_tipodemanda}`;
+                        html += `<td class="${corClass}" onclick="abrirModalEditar(${demanda.id})">`;
+                        html += '<div class="cell-content">';
+                        html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                        html += `<div>${demanda.destino || ''}</div>`;
+                        html += `<div>${demanda.nu_sei || ''}</div>`;
+                        html += '<div>&nbsp;</div><div>&nbsp;</div><div>&nbsp;</div>';
+                        html += '</div></td>';
+                    } else {
+                        html += `<td class="empty-cell" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                    }
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            return html;
+        }
+        
+        // Renderizar seção de veículos oficiais
+        function renderizarSecaoVeiculos(dias) {
+            let html = '<div class="agenda-section">';
+            html += '<div class="section-title">🚙 SEGEOP - VEÍCULOS OFICIAIS</div>';
+            html += '<table class="agenda-table"><thead><tr>';
+            html += '<th>N.</th><th>Veículo</th>';
+            dias.forEach(d => html += `<th>${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+            html += '</tr></thead><tbody>';
+            
+            veiculos.forEach((v, index) => {
+                html += `<tr><td class="primeira-coluna" style="text-align: center;">${index + 1}</td>`;
+                html += `<td class="primeira-coluna">${v.veiculo}</td>`;
+                
+                dias.forEach(dia => {
+                    const demandasDia = dadosAgenda.demandas.filter(d => 
+                        d.id_veiculo === v.id && 
+                        d.dt_inicio <= dia.data && 
+                        d.dt_fim >= dia.data
+                    );
+                    
+                    if (demandasDia.length > 0) {
+                        const demanda = demandasDia[0];
+                        const corClass = `tipo-${demanda.id_tipodemanda}`;
+                        html += `<td class="${corClass}" onclick="abrirModalEditar(${demanda.id})">`;
+                        html += '<div class="cell-content">';
+                        html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                        html += `<div>${demanda.nu_sei || ''}</div>`;
+                        html += '<div>&nbsp;</div>';
+                        html += '</div></td>';
+                    } else {
+                        html += '<td class="empty-cell"></td>';
+                    }
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            return html;
+        }
+        
+        // Renderizar seção de veículos alocados
+        function renderizarSecaoVeiculosAlocados(dias) {
+            const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1);
+            
+            if (demandasAlocadas.length === 0) return '';
+            
+            // Agrupar por tipo de veículo
+            const grupos = {};
+            demandasAlocadas.forEach(d => {
+                const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.destino}`;
+                if (!grupos[key]) {
+                    grupos[key] = {
+                        de_tipoveiculo: d.de_tipoveiculo,
+                        nu_sei: d.nu_sei,
+                        destino: d.destino,
+                        demandas: []
+                    };
+                }
+                grupos[key].demandas.push(d);
+            });
+            
+            let html = '<div class="agenda-section">';
+            html += '<div class="section-title">🚐 SEGEOP - VEÍCULOS ALOCADOS</div>';
+            html += '<table class="agenda-table"><thead><tr>';
+            html += '<th>N.</th><th>Tipo Veículo / SEI / Destino</th>';
+            dias.forEach(d => html += `<th>${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+            html += '</tr></thead><tbody>';
+            
+            Object.values(grupos).forEach((grupo, index) => {
+                html += `<tr><td class="primeira-coluna" style="text-align: center;">${index + 1}</td>`;
+                html += `<td class="primeira-coluna">`;
+                html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
+                html += `<div>${grupo.nu_sei || ''}</div>`;
+                html += `<div>${grupo.destino || ''}</div>`;
+                html += `</td>`;
+                
+                dias.forEach(dia => {
+                    const demandasDia = grupo.demandas.filter(d => 
+                        d.dt_inicio <= dia.data && 
+                        d.dt_fim >= dia.data
+                    );
+                    
+                    if (demandasDia.length > 0) {
+                        const demanda = demandasDia[0];
+                        const corClass = `tipo-${demanda.id_tipodemanda}`;
+                        html += `<td class="${corClass}" onclick="abrirModalEditar(${demanda.id})">`;
+                        html += '<div class="cell-content">';
+                        html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                        html += '</div></td>';
+                    } else {
+                        html += '<td class="empty-cell"></td>';
+                    }
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            return html;
+        }
+        
+        // Modal - Abrir para novo
+        function abrirModalNovo() {
+            document.getElementById('modalTitle').textContent = 'Nova Demanda';
+            document.getElementById('idAd').value = '';
+            document.getElementById('formDemanda').reset();
+            document.getElementById('btnExcluir').style.display = 'none';
+            
+            // Preencher selects
+            preencherSelectMotoristas();
+            preencherSelectVeiculos();
+            
+            document.getElementById('modal').style.display = 'block';
+        }
+        
+        // Modal - Abrir para novo com data pré-selecionada
+        function abrirModalNovoComData(data, idMotorista = null) {
+            abrirModalNovo();
+            document.getElementById('dtInicio').value = data;
+            document.getElementById('dtFim').value = data;
+            if (idMotorista) {
+                document.getElementById('idMotorista').value = idMotorista;
+            }
+        }
+        
+        // Modal - Abrir para editar
+        function abrirModalEditar(idAd) {
+            const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
+            if (!demanda) return;
+            
+            document.getElementById('modalTitle').textContent = 'Editar Demanda';
+            document.getElementById('idAd').value = demanda.id;
+            document.getElementById('btnExcluir').style.display = 'inline-block';
+            
+            // Preencher selects
+            preencherSelectMotoristas();
+            preencherSelectVeiculos();
+            
+            // Preencher campos
+            document.getElementById('idMotorista').value = demanda.id_motorista;
+            document.getElementById('idTipoDemanda').value = demanda.id_tipodemanda;
+            document.getElementById('idTipoVeiculo').value = demanda.id_tipoveiculo;
+            document.getElementById('idVeiculo').value = demanda.id_veiculo;
+            document.getElementById('dtInicio').value = demanda.dt_inicio;
+            document.getElementById('dtFim').value = demanda.dt_fim;
+            document.getElementById('setor').value = demanda.setor || '';
+            document.getElementById('solicitante').value = demanda.solicitante || '';
+            document.getElementById('destino').value = demanda.destino || '';
+            document.getElementById('nuSei').value = demanda.nu_sei || '';
+            
+            document.getElementById('modal').style.display = 'block';
+        }
+        
+        // Modal - Fechar
+        function fecharModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+        
+        // Preencher select de motoristas
+        function preencherSelectMotoristas() {
+            const select = document.getElementById('idMotorista');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            motoristas.forEach(m => {
+                select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+            });
+        }
+        
+        // Preencher select de veículos
+        function preencherSelectVeiculos() {
+            const select = document.getElementById('idVeiculo');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            veiculos.forEach(v => {
+                select.innerHTML += `<option value="${v.id}">${v.veiculo}</option>`;
+            });
+        }
+        
+        // Salvar demanda
+        async function salvarDemanda() {
+            const idAd = document.getElementById('idAd').value;
+            const dados = {
+                id_motorista: document.getElementById('idMotorista').value,
+                id_tipodemanda: document.getElementById('idTipoDemanda').value,
+                id_tipoveiculo: document.getElementById('idTipoVeiculo').value,
+                id_veiculo: document.getElementById('idVeiculo').value,
+                dt_inicio: document.getElementById('dtInicio').value,
+                dt_fim: document.getElementById('dtFim').value,
+                setor: document.getElementById('setor').value,
+                solicitante: document.getElementById('solicitante').value,
+                destino: document.getElementById('destino').value,
+                nu_sei: document.getElementById('nuSei').value,
+                usuario: document.getElementById('usuario').value
+            };
+            
+            // Validação
+            if (!dados.id_motorista || !dados.id_tipodemanda || !dados.id_tipoveiculo || 
+                !dados.id_veiculo || !dados.dt_inicio || !dados.dt_fim) {
+                alert('Preencha todos os campos obrigatórios!');
+                return;
+            }
+            
+            try {
+                let res;
+                if (idAd) {
+                    // Atualizar
+                    res = await fetch(`/api/agenda/demanda/${idAd}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dados)
+                    });
+                } else {
+                    // Criar
+                    res = await fetch('/api/agenda/demanda', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dados)
+                    });
+                }
+                
+                const result = await res.json();
+                
+                if (result.success || result.id) {
+                    fecharModal();
+                    await carregarSemanas();
+                    await carregarAgenda();
+                    alert('Demanda salva com sucesso!');
+                } else {
+                    alert('Erro ao salvar: ' + (result.error || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao salvar demanda!');
+            }
+        }
+        
+        // Excluir demanda
+        async function excluirDemanda() {
+            const idAd = document.getElementById('idAd').value;
+            if (!idAd) return;
+            
+            if (!confirm('Deseja realmente excluir esta demanda?')) return;
+            
+            try {
+                const res = await fetch(`/api/agenda/demanda/${idAd}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    fecharModal();
+                    await carregarSemanas();
+                    await carregarAgenda();
+                    alert('Demanda excluída com sucesso!');
+                } else {
+                    alert('Erro ao excluir: ' + (result.error || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao excluir demanda!');
+            }
+        }
+        
+        // Fechar modal ao clicar fora
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target == modal) {
+                fecharModal();
+            }
+        }
+        
+        // Inicializar ao carregar página
+        init();
+    </script>
+</body>
+</html>
