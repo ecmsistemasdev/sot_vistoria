@@ -11,7 +11,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
             padding: 20px;
-            padding-bottom: 80px; /* Espaço para o footer fixo */
+            padding-bottom: 80px;
         }
         
         .container {
@@ -29,10 +29,7 @@
             text-align: center;
         }
         
-        .header h1 { 
-            font-size: 22px; 
-            margin: 0;
-        }
+        .header h1 { font-size: 22px; margin: 0; }
         
         .toolbar {
             padding: 15px 20px;
@@ -93,65 +90,57 @@
             font-weight: 600;
         }
         
-        /* Colunas fixas */
-        .agenda-table th:first-child,
-        .agenda-table td:first-child {
-            width: 40px;
-            min-width: 40px;
-            max-width: 40px;
-        }
-        
-        .agenda-table th:nth-child(2),
-        .agenda-table td:nth-child(2) {
-            width: 120px;
-            min-width: 120px;
-            max-width: 120px;
-        }
-        
-        /* Dias da semana - largura uniforme */
-        .agenda-table th:nth-child(n+3),
-        .agenda-table td:nth-child(n+3) {
-            width: calc((100% - 160px) / 7);
-        }
-        
         .agenda-table td {
             border: 1px solid #ddd;
-            padding: 4px 6px;
+            padding: 6px;
             vertical-align: top;
-            font-size: 11px;
+            font-size: 12px;
             position: relative;
             cursor: pointer;
             transition: background 0.2s;
-            height: 60px;
             overflow: hidden;
-        }
-        
-        /* Altura diferente para tabelas de veículos */
-        .agenda-section:not(:first-child) .agenda-table td {
-            height: 45px;
         }
         
         .agenda-table td:hover {
             background: #f8f9fa !important;
         }
         
-        .primeira-coluna {
+        /* Larguras específicas para colunas */
+        .col-numero {
+            width: 40px;
+            background: #f8f9fa;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .col-nome {
+            width: 120px;
             background: #f8f9fa;
             font-weight: 600;
             word-wrap: break-word;
-            overflow-wrap: break-word;
             white-space: normal;
+        }
+        
+        .col-dia {
+            width: calc((100% - 160px) / 7);
         }
         
         .cell-content {
             line-height: 1.4;
+            height: 60px;
+            overflow: hidden;
+            font-size: 11px;
+        }
+        
+        .cell-content-veiculos {
+            line-height: 1.4;
+            height: 45px;
+            overflow: hidden;
             font-size: 11px;
         }
         
         .cell-content div {
             margin-bottom: 2px;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
         
         /* Cores por tipo de demanda */
@@ -161,16 +150,20 @@
         .tipo-4, .tipo-5 { background: #fff3cd; }
         .tipo-6, .tipo-7, .tipo-8 { background: #fff9c4; }
         
+        /* Domingo e Sábado vazios em cinza */
         .empty-cell {
             background: #fafafa;
         }
         
-        /* Finais de semana vazios em cinza */
-        .weekend-empty {
-            background: #e0e0e0 !important;
+        .empty-cell.weekend-empty {
+            background: #e0e0e0;
         }
         
         .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             background: #f8f9fa;
             padding: 15px 20px;
             border-top: 2px solid #dee2e6;
@@ -178,10 +171,6 @@
             justify-content: center;
             align-items: center;
             gap: 10px;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
             z-index: 100;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
@@ -437,7 +426,7 @@
             await carregarSemanas();
             await carregarSelectsFixos();
             if (semanas.length > 0) {
-                semanaAtual = semanas.length - 1; // Última semana
+                semanaAtual = semanas.length - 1;
                 await carregarAgenda();
             }
         }
@@ -448,7 +437,6 @@
                 const res = await fetch('/api/agenda/semanas');
                 const data = await res.json();
                 
-                // Verificar se retornou erro ou array vazio
                 if (data.error) {
                     console.error('Erro na API:', data.error);
                     semanas = data.semanas || [];
@@ -462,7 +450,6 @@
             } catch (error) {
                 console.error('Erro ao carregar semanas:', error);
                 semanas = [];
-                // Criar semana atual como fallback
                 const hoje = new Date();
                 const domingo = new Date(hoje);
                 domingo.setDate(hoje.getDate() - ((hoje.getDay() + 7) % 7));
@@ -489,7 +476,6 @@
                 tiposDemanda = await resTiposDemanda.json();
                 tiposVeiculo = await resTiposVeiculo.json();
                 
-                // Preencher selects
                 const selectTipoDemanda = document.getElementById('idTipoDemanda');
                 const selectTipoVeiculo = document.getElementById('idTipoVeiculo');
                 
@@ -552,13 +538,8 @@
             
             let html = '';
             
-            // 1. Seção Motoristas
             html += renderizarSecaoMotoristas(dias);
-            
-            // 2. Seção Veículos Oficiais
             html += renderizarSecaoVeiculos(dias);
-            
-            // 3. Seção Veículos Alocados (ID_TIPOVEICULO != 1)
             html += renderizarSecaoVeiculosAlocados(dias);
             
             document.getElementById('agendaWrapper').innerHTML = html;
@@ -572,14 +553,12 @@
             for (let i = 0; i < 7; i++) {
                 const d = new Date(inicio);
                 d.setDate(inicio.getDate() + i);
-                const dayOfWeek = d.getDay();
                 dias.push({
                     data: d.toISOString().split('T')[0],
                     diaNum: d.getDate(),
                     mes: d.getMonth() + 1,
-                    diaNome: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dayOfWeek],
-                    isDomingo: dayOfWeek === 0,
-                    isSabado: dayOfWeek === 6
+                    diaNome: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][d.getDay()],
+                    diaIndex: d.getDay()
                 });
             }
             return dias;
@@ -590,13 +569,13 @@
             let html = '<div class="agenda-section">';
             html += '<div class="section-title">🚗 SEGEOP - MOTORISTAS</div>';
             html += '<table class="agenda-table"><thead><tr>';
-            html += '<th>N.</th><th>Nome</th>';
-            dias.forEach(d => html += `<th>${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+            html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
+            dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
             html += '</tr></thead><tbody>';
             
             motoristas.forEach((m, index) => {
-                html += `<tr><td class="primeira-coluna" style="text-align: center;">${index + 1}</td>`;
-                html += `<td class="primeira-coluna">${m.nome}</td>`;
+                html += `<tr><td class="col-numero">${index + 1}</td>`;
+                html += `<td class="col-nome">${m.nome}</td>`;
                 
                 dias.forEach(dia => {
                     const demandasDia = dadosAgenda.demandas.filter(d => 
@@ -608,15 +587,16 @@
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        html += `<td class="${corClass}" onclick="abrirModalEditar(${demanda.id})">`;
+                        html += `<td class="${corClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
                         html += '<div class="cell-content">';
                         html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                         html += `<div>${demanda.destino || ''}</div>`;
                         html += `<div>${demanda.nu_sei || ''}</div>`;
                         html += '</div></td>';
                     } else {
-                        const weekendClass = (dia.isDomingo || dia.isSabado) ? 'weekend-empty' : '';
-                        html += `<td class="empty-cell ${weekendClass}" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                        const weekendClass = isWeekend ? 'weekend-empty' : '';
+                        html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
                     }
                 });
                 html += '</tr>';
@@ -631,13 +611,13 @@
             let html = '<div class="agenda-section">';
             html += '<div class="section-title">🚙 SEGEOP - VEÍCULOS OFICIAIS</div>';
             html += '<table class="agenda-table"><thead><tr>';
-            html += '<th>N.</th><th>Veículo</th>';
-            dias.forEach(d => html += `<th>${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+            html += '<th class="col-numero">N.</th><th class="col-nome">Veículo</th>';
+            dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
             html += '</tr></thead><tbody>';
             
             veiculos.forEach((v, index) => {
-                html += `<tr><td class="primeira-coluna" style="text-align: center;">${index + 1}</td>`;
-                html += `<td class="primeira-coluna">${v.veiculo}</td>`;
+                html += `<tr><td class="col-numero">${index + 1}</td>`;
+                html += `<td class="col-nome">${v.veiculo}</td>`;
                 
                 dias.forEach(dia => {
                     const demandasDia = dadosAgenda.demandas.filter(d => 
@@ -649,14 +629,15 @@
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        html += `<td class="${corClass}" onclick="abrirModalEditar(${demanda.id})">`;
-                        html += '<div class="cell-content">';
+                        html += `<td class="${corClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
+                        html += '<div class="cell-content-veiculos">';
                         html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                         html += `<div>${demanda.nu_sei || ''}</div>`;
                         html += '</div></td>';
                     } else {
-                        const weekendClass = (dia.isDomingo || dia.isSabado) ? 'weekend-empty' : '';
-                        html += `<td class="empty-cell ${weekendClass}"></td>`;
+                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                        const weekendClass = isWeekend ? 'weekend-empty' : '';
+                        html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
                     }
                 });
                 html += '</tr>';
@@ -672,7 +653,6 @@
             
             if (demandasAlocadas.length === 0) return '';
             
-            // Agrupar por tipo de veículo
             const grupos = {};
             demandasAlocadas.forEach(d => {
                 const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.destino}`;
@@ -690,13 +670,13 @@
             let html = '<div class="agenda-section">';
             html += '<div class="section-title">🚐 SEGEOP - VEÍCULOS ALOCADOS</div>';
             html += '<table class="agenda-table"><thead><tr>';
-            html += '<th>N.</th><th>Tipo Veículo / SEI / Destino</th>';
-            dias.forEach(d => html += `<th>${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+            html += '<th class="col-numero">N.</th><th class="col-nome">Tipo Veículo / SEI / Destino</th>';
+            dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
             html += '</tr></thead><tbody>';
             
             Object.values(grupos).forEach((grupo, index) => {
-                html += `<tr><td class="primeira-coluna" style="text-align: center;">${index + 1}</td>`;
-                html += `<td class="primeira-coluna">`;
+                html += `<tr><td class="col-numero">${index + 1}</td>`;
+                html += `<td class="col-nome">`;
                 html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
                 html += `<div>${grupo.nu_sei || ''}</div>`;
                 html += `<div>${grupo.destino || ''}</div>`;
@@ -711,13 +691,14 @@
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        html += `<td class="${corClass}" onclick="abrirModalEditar(${demanda.id})">`;
-                        html += '<div class="cell-content">';
+                        html += `<td class="${corClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
+                        html += '<div class="cell-content-veiculos">';
                         html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                         html += '</div></td>';
                     } else {
-                        const weekendClass = (dia.isDomingo || dia.isSabado) ? 'weekend-empty' : '';
-                        html += `<td class="empty-cell ${weekendClass}"></td>`;
+                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                        const weekendClass = isWeekend ? 'weekend-empty' : '';
+                        html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
                     }
                 });
                 html += '</tr>';
@@ -734,7 +715,6 @@
             document.getElementById('formDemanda').reset();
             document.getElementById('btnExcluir').style.display = 'none';
             
-            // Preencher selects
             preencherSelectMotoristas();
             preencherSelectVeiculos();
             
@@ -760,11 +740,9 @@
             document.getElementById('idAd').value = demanda.id;
             document.getElementById('btnExcluir').style.display = 'inline-block';
             
-            // Preencher selects
             preencherSelectMotoristas();
             preencherSelectVeiculos();
             
-            // Preencher campos
             document.getElementById('idMotorista').value = demanda.id_motorista;
             document.getElementById('idTipoDemanda').value = demanda.id_tipodemanda;
             document.getElementById('idTipoVeiculo').value = demanda.id_tipoveiculo;
@@ -819,7 +797,6 @@
                 usuario: document.getElementById('usuario').value
             };
             
-            // Validação
             if (!dados.id_motorista || !dados.id_tipodemanda || !dados.id_tipoveiculo || 
                 !dados.id_veiculo || !dados.dt_inicio || !dados.dt_fim) {
                 alert('Preencha todos os campos obrigatórios!');
@@ -829,14 +806,12 @@
             try {
                 let res;
                 if (idAd) {
-                    // Atualizar
                     res = await fetch(`/api/agenda/demanda/${idAd}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(dados)
                     });
                 } else {
-                    // Criar
                     res = await fetch('/api/agenda/demanda', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
