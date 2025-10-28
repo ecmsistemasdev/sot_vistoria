@@ -114,7 +114,7 @@
         }
         
         .col-nome {
-            width: 120px;
+            width: 216px;
             background: #f8f9fa;
             font-weight: 600;
             word-wrap: break-word;
@@ -122,7 +122,7 @@
         }
         
         .col-dia {
-            width: calc((100% - 160px) / 7);
+            width: calc((100% - 256px) / 7);
         }
         
         .cell-content {
@@ -426,7 +426,23 @@
             await carregarSemanas();
             await carregarSelectsFixos();
             if (semanas.length > 0) {
-                semanaAtual = semanas.length - 1;
+                // Encontrar a semana que contém a data atual
+                const hoje = new Date();
+                hoje.setHours(0, 0, 0, 0);
+                
+                let semanaEncontrada = -1;
+                for (let i = 0; i < semanas.length; i++) {
+                    const inicio = new Date(semanas[i].inicio + 'T00:00:00');
+                    const fim = new Date(semanas[i].fim + 'T00:00:00');
+                    
+                    if (hoje >= inicio && hoje <= fim) {
+                        semanaEncontrada = i;
+                        break;
+                    }
+                }
+                
+                // Se encontrou a semana atual, usa ela; senão usa a última
+                semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
                 await carregarAgenda();
             }
         }
