@@ -402,10 +402,35 @@
         async function carregarSemanas() {
             try {
                 const res = await fetch('/api/agenda/semanas');
-                semanas = await res.json();
+                const data = await res.json();
+                
+                // Verificar se retornou erro ou array vazio
+                if (data.error) {
+                    console.error('Erro na API:', data.error);
+                    semanas = data.semanas || [];
+                } else if (Array.isArray(data)) {
+                    semanas = data;
+                } else {
+                    semanas = [];
+                }
+                
                 renderizarAbas();
             } catch (error) {
                 console.error('Erro ao carregar semanas:', error);
+                semanas = [];
+                // Criar semana atual como fallback
+                const hoje = new Date();
+                const domingo = new Date(hoje);
+                domingo.setDate(hoje.getDate() - ((hoje.getDay() + 7) % 7));
+                const sabado = new Date(domingo);
+                sabado.setDate(domingo.getDate() + 6);
+                
+                semanas = [{
+                    inicio: domingo.toISOString().split('T')[0],
+                    fim: sabado.toISOString().split('T')[0],
+                    label: `${domingo.getDate()}/${domingo.getMonth()+1} - ${sabado.getDate()}/${sabado.getMonth()+1}/${sabado.getFullYear()}`
+                }];
+                renderizarAbas();
             }
         }
         
