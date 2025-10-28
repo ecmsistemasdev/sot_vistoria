@@ -3704,7 +3704,7 @@ def buscar_dados_agenda():
 
         cursor = mysql.connection.cursor()
 
-        # 1. Lista de Motoristas
+        # 1. Lista de Motoristas SEGEOP
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
@@ -3722,35 +3722,34 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
-		# ADICIONAR: Buscar TODOS os motoristas ativos
-		cursor.execute("""
-		    SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
-		    FROM TJ_MOTORISTA
-		    WHERE ATIVO = 'S'
-		    ORDER BY ORDEM_LISTA, NM_MOTORISTA
-		""")
-		todos_motoristas = []
-		for r in cursor.fetchall():
-		    todos_motoristas.append({
-		        'id': r[0], 
-		        'nome': r[1], 
-		        'cad': r[2] if len(r) > 2 else '', 
-		        'telefone': r[3] if len(r) > 3 else '', 
-		        'tipo': r[4] if len(r) > 4 else ''
-		    })
+        # 1.1 TODOS os Motoristas Ativos (para select na edição/outros)
+        cursor.execute("""
+            SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
+            FROM TJ_MOTORISTA
+            WHERE ATIVO = 'S'
+            ORDER BY ORDEM_LISTA, NM_MOTORISTA
+        """)
+        todos_motoristas = []
+        for r in cursor.fetchall():
+            todos_motoristas.append({
+                'id': r[0], 
+                'nome': r[1], 
+                'cad': r[2] if len(r) > 2 else '', 
+                'telefone': r[3] if len(r) > 3 else '', 
+                'tipo': r[4] if len(r) > 4 else ''
+            })
 
-		
         # 2. Demandas dos Motoristas
         cursor.execute("""
-			SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
-			       ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
-			       tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
-			       ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
-			       ae.DT_LANCAMENTO, ae.USUARIO
-			FROM ATENDIMENTO_DEMANDAS ae
-			JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
-			LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
-			LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+            SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
+                   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+                   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+                   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+                   ae.DT_LANCAMENTO, ae.USUARIO
+            FROM ATENDIMENTO_DEMANDAS ae
+            JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+            LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
             WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
             ORDER BY ae.DT_INICIO
         """, (fim, inicio))
@@ -3770,7 +3769,7 @@ def buscar_dados_agenda():
                 'usuario': r[15] or ''
             })
 
-        # 3. Lista de Veículos (TODOS para visualização na agenda)
+        # 3. Lista de Veículos
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
@@ -3788,7 +3787,7 @@ def buscar_dados_agenda():
 
         return jsonify({
             'motoristas': motoristas,
-			'todos_motoristas': todos_motoristas, 
+            'todos_motoristas': todos_motoristas,
             'demandas': demandas,
             'veiculos': veiculos
         })
@@ -3797,7 +3796,13 @@ def buscar_dados_agenda():
         print(f"Erro em buscar_dados_agenda: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e), 'motoristas': [], 'demandas': [], 'veiculos': []}), 500
+        return jsonify({
+            'error': str(e), 
+            'motoristas': [], 
+            'todos_motoristas': [],
+            'demandas': [], 
+            'veiculos': []
+        }), 500
     finally:
         if cursor:
             cursor.close()
@@ -3965,7 +3970,6 @@ def buscar_tipos_veiculo():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# API: Buscar locações ativas para o período
 @app.route('/api/agenda/locacoes', methods=['GET'])
 def buscar_locacoes():
     cursor = None
@@ -3998,7 +4002,7 @@ def buscar_locacoes():
         print(f"Erro em buscar_locacoes: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify([])
     finally:
         if cursor:
             cursor.close()
