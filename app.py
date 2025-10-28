@@ -3701,9 +3701,9 @@ def buscar_dados_agenda():
     try:
         inicio = request.args.get('inicio')
         fim = request.args.get('fim')
-        
+
         cursor = mysql.connection.cursor()
-        
+
         # 1. Lista de Motoristas
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
@@ -3721,7 +3721,7 @@ def buscar_dados_agenda():
                 'telefone': r[3] if len(r) > 3 else '', 
                 'tipo': r[4] if len(r) > 4 else ''
             })
-        
+
         # 2. Demandas dos Motoristas
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
@@ -3736,7 +3736,7 @@ def buscar_dados_agenda():
             WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
             ORDER BY ae.DT_INICIO
         """, (fim, inicio))
-        
+
         demandas = []
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
@@ -3751,8 +3751,8 @@ def buscar_dados_agenda():
                 'dt_lancamento': dt_lancamento,
                 'usuario': r[15] or ''
             })
-        
-        # 3. Lista de Veículos
+
+        # 3. Lista de Veículos (TODOS para visualização na agenda)
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
@@ -3767,18 +3767,85 @@ def buscar_dados_agenda():
                 'modelo': r[1], 
                 'placa': r[2]
             })
-        
+
         return jsonify({
             'motoristas': motoristas,
             'demandas': demandas,
             'veiculos': veiculos
         })
-        
+
     except Exception as e:
         print(f"Erro em buscar_dados_agenda: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e), 'motoristas': [], 'demandas': [], 'veiculos': []}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+# API: Buscar veículos disponíveis para um período específico
+@app.route('/api/agenda/veiculos-disponiveis', methods=['GET'])
+def buscar_veiculos_disponiveis():
+    cursor = None
+    try:
+        dt_inicio = request.args.get('inicio')
+        dt_fim = request.args.get('fim')
+        id_demanda_atual = request.args.get('id_demanda', '')  # Para excluir a própria demanda na edição
+
+        cursor = mysql.connection.cursor()
+
+        # Buscar veículos que NÃO estão comprometidos no período
+        if id_demanda_atual:
+            # Na edição, excluir a própria demanda da verificação
+            cursor.execute("""
+                SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                FROM TJ_VEICULO v
+                WHERE v.FL_ATENDIMENTO = 'S' 
+                  AND v.ATIVO = 'S'
+                  AND v.ID_VEICULO NOT IN (
+                      SELECT ad.ID_VEICULO
+                      FROM ATENDIMENTO_DEMANDAS ad
+                      WHERE ad.ID_TIPOVEICULO = 1
+                        AND ad.ID_AD != %s
+                        AND ad.DT_INICIO <= %s 
+                        AND ad.DT_FIM >= %s
+                  )
+                ORDER BY v.DS_MODELO
+            """, (id_demanda_atual, dt_fim, dt_inicio))
+        else:
+            # Nova demanda
+            cursor.execute("""
+                SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                FROM TJ_VEICULO v
+                WHERE v.FL_ATENDIMENTO = 'S' 
+                  AND v.ATIVO = 'S'
+                  AND v.ID_VEICULO NOT IN (
+                      SELECT ad.ID_VEICULO
+                      FROM ATENDIMENTO_DEMANDAS ad
+                      WHERE ad.ID_TIPOVEICULO = 1
+                        AND ad.DT_INICIO <= %s 
+                        AND ad.DT_FIM >= %s
+                  )
+                ORDER BY v.DS_MODELO
+            """, (dt_fim, dt_inicio))
+
+        veiculos = []
+        for r in cursor.fetchall():
+            veiculos.append({
+                'id': r[0],
+                'veiculo': f"{r[1]} - {r[2]}",
+                'modelo': r[1],
+                'placa': r[2]
+            })
+
+        return jsonify(veiculos)
+
+    except Exception as e:
+        print(f"Erro em buscar_veiculos_disponiveis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
     finally:
         if cursor:
             cursor.close()
