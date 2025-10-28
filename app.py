@@ -3616,42 +3616,88 @@ def fluxo_pesquisar():
 def agenda():
     return render_template('agenda.html')
 
+# Rota de teste para verificar conexão
+@app.route('/api/agenda/teste', methods=['GET'])
+def teste_conexao():
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # Testar consulta simples
+        cursor.execute("SELECT COUNT(*) FROM ATENDIMENTO_DEMANDAS")
+        count = cursor.fetchone()[0]
+        
+        return jsonify({
+            'status': 'ok',
+            'total_demandas': count,
+            'mensagem': 'Conexão funcionando!'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'erro',
+            'mensagem': str(e)
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+
 # API: Listar semanas com dados
 @app.route('/api/agenda/semanas', methods=['GET'])
 def listar_semanas():
+    cursor = None
     try:
         cursor = mysql.connection.cursor()
         cursor.execute("""
             SELECT DISTINCT 
-                YEARWEEK(DT_INICIO, 0) as semana,
-                MIN(DT_INICIO) as inicio_semana
+                DATE(DT_INICIO) as data_inicio
             FROM ATENDIMENTO_DEMANDAS
             WHERE DT_INICIO IS NOT NULL
-            GROUP BY YEARWEEK(DT_INICIO, 0)
-            ORDER BY inicio_semana
+            ORDER BY DT_INICIO
         """)
         
-        semanas = []
-        for row in cursor.fetchall():
-            dt = row[1]
+        rows = cursor.fetchall()
+        
+        # Se não houver dados, retornar semana atual
+        if not rows:
+            hoje = datetime.now().date()
+            domingo = hoje - timedelta(days=hoje.weekday() + 1 if hoje.weekday() != 6 else 0)
+            fim = domingo + timedelta(days=6)
+            return jsonify([{
+                'inicio': domingo.strftime('%Y-%m-%d'),
+                'fim': fim.strftime('%Y-%m-%d'),
+                'label': f"{domingo.strftime('%d/%m')} - {fim.strftime('%d/%m/%Y')}"
+            }])
+        
+        semanas_dict = {}
+        for row in rows:
+            dt = row[0]
             # Ajustar para domingo (início da semana)
-            inicio = dt - timedelta(days=dt.weekday() + 1 if dt.weekday() != 6 else 0)
+            dias_ate_domingo = (dt.weekday() + 1) % 7
+            inicio = dt - timedelta(days=dias_ate_domingo)
             fim = inicio + timedelta(days=6)
             
-            semanas.append({
-                'inicio': inicio.strftime('%Y-%m-%d'),
-                'fim': fim.strftime('%Y-%m-%d'),
-                'label': f"{inicio.strftime('%d/%m')} - {fim.strftime('%d/%m/%Y')}"
-            })
+            chave = inicio.strftime('%Y-%m-%d')
+            if chave not in semanas_dict:
+                semanas_dict[chave] = {
+                    'inicio': inicio.strftime('%Y-%m-%d'),
+                    'fim': fim.strftime('%Y-%m-%d'),
+                    'label': f"{inicio.strftime('%d/%m')} - {fim.strftime('%d/%m/%Y')}"
+                }
         
-        cursor.close()
+        semanas = sorted(semanas_dict.values(), key=lambda x: x['inicio'])
         return jsonify(semanas)
+        
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Erro em listar_semanas: {str(e)}")
+        return jsonify({'error': str(e), 'semanas': []}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 # API: Buscar dados da agenda por semana
 @app.route('/api/agenda/dados', methods=['GET'])
 def buscar_dados_agenda():
+    cursor = None
     try:
         inicio = request.args.get('inicio')
         fim = request.args.get('fim')
@@ -3666,8 +3712,15 @@ def buscar_dados_agenda():
               AND ATIVO = 'S'
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
         """)
-        motoristas = [{'id': r[0], 'nome': r[1], 'cad': r[2], 'telefone': r[3], 'tipo': r[4]} 
-                     for r in cursor.fetchall()]
+        motoristas = []
+        for r in cursor.fetchall():
+            motoristas.append({
+                'id': r[0], 
+                'nome': r[1], 
+                'cad': r[2] if len(r) > 2 else '', 
+                'telefone': r[3] if len(r) > 3 else '', 
+                'tipo': r[4] if len(r) > 4 else ''
+            })
         
         # 2. Demandas dos Motoristas
         cursor.execute("""
@@ -3686,28 +3739,34 @@ def buscar_dados_agenda():
         
         demandas = []
         for r in cursor.fetchall():
+            dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
             demandas.append({
                 'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
                 'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
                 'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
                 'dt_inicio': r[8].strftime('%Y-%m-%d'), 
                 'dt_fim': r[9].strftime('%Y-%m-%d'),
-                'setor': r[10], 'solicitante': r[11], 'destino': r[12], 
-                'nu_sei': r[13], 'dt_lancamento': r[14].strftime('%Y-%m-%d %H:%M:%S'),
-                'usuario': r[15]
+                'setor': r[10] or '', 'solicitante': r[11] or '', 
+                'destino': r[12] or '', 'nu_sei': r[13] or '', 
+                'dt_lancamento': dt_lancamento,
+                'usuario': r[15] or ''
             })
         
         # 3. Lista de Veículos
         cursor.execute("""
-            SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, DS_MODELO, NU_PLACA
+            SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
             WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S'
             ORDER BY DS_MODELO
         """)
-        veiculos = [{'id': r[0], 'veiculo': r[1], 'modelo': r[2], 'placa': r[3]} 
-                   for r in cursor.fetchall()]
-        
-        cursor.close()
+        veiculos = []
+        for r in cursor.fetchall():
+            veiculos.append({
+                'id': r[0], 
+                'veiculo': f"{r[1]} - {r[2]}", 
+                'modelo': r[1], 
+                'placa': r[2]
+            })
         
         return jsonify({
             'motoristas': motoristas,
@@ -3716,7 +3775,13 @@ def buscar_dados_agenda():
         })
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Erro em buscar_dados_agenda: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e), 'motoristas': [], 'demandas': [], 'veiculos': []}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 # API: Criar nova demanda
 @app.route('/api/agenda/demanda', methods=['POST'])
