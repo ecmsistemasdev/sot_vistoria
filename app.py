@@ -3724,15 +3724,15 @@ def buscar_dados_agenda():
 
         # 2. Demandas dos Motoristas
         cursor.execute("""
-            SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
-                   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
-                   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
-                   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
-                   ae.DT_LANCAMENTO, ae.USUARIO
-            FROM ATENDIMENTO_DEMANDAS ae
-            JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
-            JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
-            JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+			SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
+			       ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+			       tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+			       ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+			       ae.DT_LANCAMENTO, ae.USUARIO
+			FROM ATENDIMENTO_DEMANDAS ae
+			JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+			LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+			LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
             WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
             ORDER BY ae.DT_INICIO
         """, (fim, inicio))
