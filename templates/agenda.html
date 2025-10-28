@@ -105,7 +105,6 @@
             background: #f8f9fa !important;
         }
         
-        /* Larguras específicas para colunas */
         .col-numero {
             width: 40px;
             background: #f8f9fa;
@@ -143,6 +142,12 @@
             margin-bottom: 2px;
         }
         
+        .informar-veiculo {
+            color: #dc3545;
+            font-style: italic;
+            font-size: 10px;
+        }
+        
         /* Cores por tipo de demanda */
         .tipo-1 { background: #cfe2ff; }
         .tipo-2 { background: #d1e7dd; }
@@ -150,7 +155,6 @@
         .tipo-4, .tipo-5 { background: #fff3cd; }
         .tipo-6, .tipo-7, .tipo-8 { background: #fff9c4; }
         
-        /* Domingo e Sábado vazios em cinza */
         .empty-cell {
             background: #fafafa;
         }
@@ -195,7 +199,6 @@
             border-color: #1a73e8;
         }
         
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -222,6 +225,8 @@
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             animation: slideDown 0.3s;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         
         @keyframes slideDown {
@@ -237,6 +242,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         
         .modal-header h2 { font-size: 20px; }
@@ -267,6 +275,10 @@
             color: #333;
         }
         
+        .form-group label .required {
+            color: #dc3545;
+        }
+        
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -275,6 +287,12 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 14px;
+        }
+        
+        .form-group input:disabled,
+        .form-group select:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
         }
         
         .form-group textarea {
@@ -295,6 +313,8 @@
             justify-content: flex-end;
             gap: 10px;
             border-radius: 0 0 8px 8px;
+            position: sticky;
+            bottom: 0;
         }
         
         .btn-secondary {
@@ -350,49 +370,48 @@
                     <input type="hidden" id="idAd" value="">
                     
                     <div class="form-group">
-                        <label>Motorista *</label>
+                        <label>Motorista <span class="required">*</span></label>
                         <select id="idMotorista" required></select>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Tipo de Demanda *</label>
-                            <select id="idTipoDemanda" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>Tipo de Veículo *</label>
-                            <select id="idTipoVeiculo" required></select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Veículo *</label>
-                        <select id="idVeiculo" required></select>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Data Início *</label>
+                            <label>Data Início <span class="required">*</span></label>
                             <input type="date" id="dtInicio" required>
                         </div>
                         <div class="form-group">
-                            <label>Data Fim *</label>
+                            <label>Data Fim <span class="required">*</span></label>
                             <input type="date" id="dtFim" required>
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label>Setor</label>
+                        <label>Tipo de Demanda <span class="required">*</span></label>
+                        <select id="idTipoDemanda" required></select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label id="labelTipoVeiculo">Tipo de Veículo</label>
+                        <select id="idTipoVeiculo"></select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label id="labelVeiculo">Veículo</label>
+                        <select id="idVeiculo"></select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label id="labelSetor">Setor</label>
                         <input type="text" id="setor" maxlength="35">
                     </div>
                     
                     <div class="form-group">
-                        <label>Solicitante</label>
+                        <label id="labelSolicitante">Solicitante</label>
                         <input type="text" id="solicitante" maxlength="30">
                     </div>
                     
                     <div class="form-group">
-                        <label>Destino</label>
+                        <label id="labelDestino">Destino</label>
                         <input type="text" id="destino" maxlength="25">
                     </div>
                     
@@ -420,13 +439,12 @@
         let veiculos = [];
         let tiposDemanda = [];
         let tiposVeiculo = [];
+        let veiculoSelecionadoOriginal = null;
         
-        // Inicializar
         async function init() {
             await carregarSemanas();
             await carregarSelectsFixos();
             if (semanas.length > 0) {
-                // Encontrar a semana que contém a data atual
                 const hoje = new Date();
                 hoje.setHours(0, 0, 0, 0);
                 
@@ -441,13 +459,11 @@
                     }
                 }
                 
-                // Se encontrou a semana atual, usa ela; senão usa a última
                 semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
                 await carregarAgenda();
             }
         }
         
-        // Carregar semanas disponíveis
         async function carregarSemanas() {
             try {
                 const res = await fetch('/api/agenda/semanas');
@@ -481,7 +497,6 @@
             }
         }
         
-        // Carregar selects fixos (tipos)
         async function carregarSelectsFixos() {
             try {
                 const [resTiposDemanda, resTiposVeiculo] = await Promise.all([
@@ -497,19 +512,149 @@
                 
                 selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
                 tiposDemanda.forEach(t => {
-                    selectTipoDemanda.innerHTML += `<option value="${t.id}">${t.descricao}</option>`;
+                    selectTipoDemanda.innerHTML += `<option value="${t.id}" data-descricao="${t.descricao}">${t.descricao}</option>`;
                 });
                 
                 selectTipoVeiculo.innerHTML = '<option value="">Selecione...</option>';
                 tiposVeiculo.forEach(t => {
                     selectTipoVeiculo.innerHTML += `<option value="${t.id}">${t.descricao}</option>`;
                 });
+                
+                // Event listeners para regras de negócio
+                selectTipoDemanda.addEventListener('change', aplicarRegrasTipoDemanda);
+                selectTipoVeiculo.addEventListener('change', aplicarRegrasTipoVeiculo);
+                document.getElementById('dtInicio').addEventListener('change', atualizarVeiculosDisponiveis);
+                document.getElementById('dtFim').addEventListener('change', atualizarVeiculosDisponiveis);
             } catch (error) {
                 console.error('Erro ao carregar selects:', error);
             }
         }
         
-        // Renderizar abas de semanas
+        function aplicarRegrasTipoDemanda() {
+            const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
+            const selectTipoDemanda = document.getElementById('idTipoDemanda');
+            const optionSelecionada = selectTipoDemanda.options[selectTipoDemanda.selectedIndex];
+            const descricaoTipoDemanda = optionSelecionada ? optionSelecionada.getAttribute('data-descricao') : '';
+            
+            const tipoVeiculo = document.getElementById('idTipoVeiculo');
+            const veiculo = document.getElementById('idVeiculo');
+            const setor = document.getElementById('setor');
+            const solicitante = document.getElementById('solicitante');
+            const destino = document.getElementById('destino');
+            
+            const labelTipoVeiculo = document.getElementById('labelTipoVeiculo');
+            const labelVeiculo = document.getElementById('labelVeiculo');
+            const labelSetor = document.getElementById('labelSetor');
+            const labelSolicitante = document.getElementById('labelSolicitante');
+            const labelDestino = document.getElementById('labelDestino');
+            
+            // Resetar labels
+            labelTipoVeiculo.innerHTML = 'Tipo de Veículo';
+            labelVeiculo.innerHTML = 'Veículo';
+            labelSetor.innerHTML = 'Setor';
+            labelSolicitante.innerHTML = 'Solicitante';
+            labelDestino.innerHTML = 'Destino';
+            
+            // Habilitar todos primeiro
+            tipoVeiculo.disabled = false;
+            veiculo.disabled = false;
+            setor.disabled = false;
+            solicitante.disabled = false;
+            destino.disabled = false;
+            
+            if (idTipoDemanda >= 6 && idTipoDemanda <= 8) {
+                // ID 6-8: Fecha e desobriga Tipo Veículo, Veículo, Setor, Solicitante, Destino
+                tipoVeiculo.disabled = true;
+                tipoVeiculo.value = '';
+                veiculo.disabled = true;
+                veiculo.value = '';
+                setor.disabled = true;
+                setor.value = '';
+                solicitante.disabled = true;
+                solicitante.value = '';
+                destino.disabled = true;
+                if (!destino.value) {
+                    destino.value = descricaoTipoDemanda;
+                }
+            } else if (idTipoDemanda === 4 || idTipoDemanda === 5) {
+                // ID 4-5: Setor e Solicitante podem ficar em branco, Destino = DE_TIPODEMANDA
+                if (!destino.value) {
+                    destino.value = descricaoTipoDemanda;
+                }
+            } else if (idTipoDemanda === 3) {
+                // ID 3: Setor e Solicitante podem ficar em branco, Destino usuário preenche
+                // Não preenche automaticamente
+            } else if (idTipoDemanda === 1 || idTipoDemanda === 2) {
+                // ID 1-2: Setor e Solicitante obrigatórios
+                labelSetor.innerHTML = 'Setor <span class="required">*</span>';
+                labelSolicitante.innerHTML = 'Solicitante <span class="required">*</span>';
+            }
+        }
+        
+        function aplicarRegrasTipoVeiculo() {
+            const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
+            const veiculo = document.getElementById('idVeiculo');
+            
+            if (!idTipoVeiculo) {
+                veiculo.disabled = false;
+                veiculo.innerHTML = '<option value="">Selecione...</option>';
+                return;
+            }
+            
+            if (idTipoVeiculo !== 1) {
+                // Tipo diferente de 1: bloqueia veículo
+                veiculo.disabled = true;
+                veiculo.value = '';
+            } else {
+                // Tipo 1: habilita e carrega veículos disponíveis
+                veiculo.disabled = false;
+                atualizarVeiculosDisponiveis();
+            }
+        }
+        
+        async function atualizarVeiculosDisponiveis() {
+            const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
+            const dtInicio = document.getElementById('dtInicio').value;
+            const dtFim = document.getElementById('dtFim').value;
+            const selectVeiculo = document.getElementById('idVeiculo');
+            const idAd = document.getElementById('idAd').value;
+            
+            // Só atualiza se for tipo veículo 1 e tiver datas
+            if (idTipoVeiculo !== 1 || !dtInicio || !dtFim) {
+                return;
+            }
+            
+            try {
+                let url = `/api/agenda/veiculos-disponiveis?inicio=${dtInicio}&fim=${dtFim}`;
+                if (idAd) {
+                    url += `&id_demanda=${idAd}`;
+                }
+                
+                const res = await fetch(url);
+                const veiculosDisponiveis = await res.json();
+                
+                const veiculoAtual = selectVeiculo.value;
+                
+                selectVeiculo.innerHTML = '<option value="">Selecione...</option>';
+                
+                // Adiciona veículos disponíveis
+                veiculosDisponiveis.forEach(v => {
+                    selectVeiculo.innerHTML += `<option value="${v.id}">${v.veiculo}</option>`;
+                });
+                
+                // Se tinha um veículo selecionado e ele não está na lista, adiciona
+                if (veiculoAtual && veiculoSelecionadoOriginal) {
+                    const existe = Array.from(selectVeiculo.options).some(opt => opt.value == veiculoAtual);
+                    if (!existe) {
+                        selectVeiculo.innerHTML += `<option value="${veiculoSelecionadoOriginal.id}">${veiculoSelecionadoOriginal.veiculo}</option>`;
+                    }
+                    selectVeiculo.value = veiculoAtual;
+                }
+            } catch (error) {
+                console.error('Erro ao carregar veículos disponíveis:', error);
+            }
+        }
+        
         function renderizarAbas() {
             const tabs = document.getElementById('weekTabs');
             tabs.innerHTML = semanas.map((s, i) => 
@@ -518,14 +663,12 @@
             ).join('');
         }
         
-        // Mudar semana
         async function mudarSemana(index) {
             semanaAtual = index;
             renderizarAbas();
             await carregarAgenda();
         }
         
-        // Carregar agenda
         async function carregarAgenda() {
             const wrapper = document.getElementById('agendaWrapper');
             wrapper.innerHTML = '<div class="loading">⏳ Carregando agenda...</div>';
@@ -547,7 +690,6 @@
             }
         }
         
-        // Renderizar agenda completa
         function renderizarAgenda() {
             const semana = semanas[semanaAtual];
             const dias = gerarDiasSemana(semana.inicio);
@@ -561,7 +703,6 @@
             document.getElementById('agendaWrapper').innerHTML = html;
         }
         
-        // Gerar array de dias da semana
         function gerarDiasSemana(inicioStr) {
             const dias = [];
             const inicio = new Date(inicioStr + 'T00:00:00');
@@ -580,7 +721,6 @@
             return dias;
         }
         
-        // Renderizar seção de motoristas
         function renderizarSecaoMotoristas(dias) {
             let html = '<div class="agenda-section">';
             html += '<div class="section-title">🚗 SEGEOP - MOTORISTAS</div>';
@@ -608,6 +748,12 @@
                         html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                         html += `<div>${demanda.destino || ''}</div>`;
                         html += `<div>${demanda.nu_sei || ''}</div>`;
+                        
+                        // Mostrar (INFORMAR VEÍCULO) se não tiver tipo de veículo
+                        if (!demanda.id_tipoveiculo) {
+                            html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
+                        }
+                        
                         html += '</div></td>';
                     } else {
                         const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
@@ -622,7 +768,6 @@
             return html;
         }
         
-        // Renderizar seção de veículos oficiais
         function renderizarSecaoVeiculos(dias) {
             let html = '<div class="agenda-section">';
             html += '<div class="section-title">🚙 SEGEOP - VEÍCULOS OFICIAIS</div>';
@@ -663,7 +808,6 @@
             return html;
         }
         
-        // Renderizar seção de veículos alocados
         function renderizarSecaoVeiculosAlocados(dias) {
             const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1);
             
@@ -684,7 +828,7 @@
             });
             
             let html = '<div class="agenda-section">';
-            html += '<div class="section-title">🚐 SEGEOP - VEÍCULOS ALOCADOS</div>';
+            html += '<div class="section-title">🚌 SEGEOP - VEÍCULOS ALOCADOS</div>';
             html += '<table class="agenda-table"><thead><tr>';
             html += '<th class="col-numero">N.</th><th class="col-nome">Tipo Veículo / SEI / Destino</th>';
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
@@ -706,8 +850,7 @@
                     
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
-                        const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        html += `<td class="${corClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
+                        html += `<td class="col-dia" onclick="abrirModalEditar(${demanda.id})">`;
                         html += '<div class="cell-content-veiculos">';
                         html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                         html += '</div></td>';
@@ -724,20 +867,33 @@
             return html;
         }
         
-        // Modal - Abrir para novo
         function abrirModalNovo() {
             document.getElementById('modalTitle').textContent = 'Nova Demanda';
             document.getElementById('idAd').value = '';
             document.getElementById('formDemanda').reset();
             document.getElementById('btnExcluir').style.display = 'none';
+            veiculoSelecionadoOriginal = null;
             
             preencherSelectMotoristas();
             preencherSelectVeiculos();
             
+            // Resetar labels
+            document.getElementById('labelTipoVeiculo').innerHTML = 'Tipo de Veículo';
+            document.getElementById('labelVeiculo').innerHTML = 'Veículo';
+            document.getElementById('labelSetor').innerHTML = 'Setor';
+            document.getElementById('labelSolicitante').innerHTML = 'Solicitante';
+            document.getElementById('labelDestino').innerHTML = 'Destino';
+            
+            // Habilitar todos os campos
+            document.getElementById('idTipoVeiculo').disabled = false;
+            document.getElementById('idVeiculo').disabled = false;
+            document.getElementById('setor').disabled = false;
+            document.getElementById('solicitante').disabled = false;
+            document.getElementById('destino').disabled = false;
+            
             document.getElementById('modal').style.display = 'block';
         }
         
-        // Modal - Abrir para novo com data pré-selecionada
         function abrirModalNovoComData(data, idMotorista = null) {
             abrirModalNovo();
             document.getElementById('dtInicio').value = data;
@@ -747,7 +903,6 @@
             }
         }
         
-        // Modal - Abrir para editar
         function abrirModalEditar(idAd) {
             const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
             if (!demanda) return;
@@ -756,29 +911,42 @@
             document.getElementById('idAd').value = demanda.id;
             document.getElementById('btnExcluir').style.display = 'inline-block';
             
+            // Guardar veículo original para manter na lista
+            if (demanda.id_veiculo) {
+                veiculoSelecionadoOriginal = {
+                    id: demanda.id_veiculo,
+                    veiculo: veiculos.find(v => v.id === demanda.id_veiculo)?.veiculo || ''
+                };
+            } else {
+                veiculoSelecionadoOriginal = null;
+            }
+            
             preencherSelectMotoristas();
             preencherSelectVeiculos();
             
             document.getElementById('idMotorista').value = demanda.id_motorista;
-            document.getElementById('idTipoDemanda').value = demanda.id_tipodemanda;
-            document.getElementById('idTipoVeiculo').value = demanda.id_tipoveiculo;
-            document.getElementById('idVeiculo').value = demanda.id_veiculo;
             document.getElementById('dtInicio').value = demanda.dt_inicio;
             document.getElementById('dtFim').value = demanda.dt_fim;
+            document.getElementById('idTipoDemanda').value = demanda.id_tipodemanda;
+            document.getElementById('idTipoVeiculo').value = demanda.id_tipoveiculo || '';
+            document.getElementById('idVeiculo').value = demanda.id_veiculo || '';
             document.getElementById('setor').value = demanda.setor || '';
             document.getElementById('solicitante').value = demanda.solicitante || '';
             document.getElementById('destino').value = demanda.destino || '';
             document.getElementById('nuSei').value = demanda.nu_sei || '';
             
+            // Aplicar regras após preencher
+            aplicarRegrasTipoDemanda();
+            aplicarRegrasTipoVeiculo();
+            
             document.getElementById('modal').style.display = 'block';
         }
         
-        // Modal - Fechar
         function fecharModal() {
             document.getElementById('modal').style.display = 'none';
+            veiculoSelecionadoOriginal = null;
         }
         
-        // Preencher select de motoristas
         function preencherSelectMotoristas() {
             const select = document.getElementById('idMotorista');
             select.innerHTML = '<option value="">Selecione...</option>';
@@ -787,7 +955,6 @@
             });
         }
         
-        // Preencher select de veículos
         function preencherSelectVeiculos() {
             const select = document.getElementById('idVeiculo');
             select.innerHTML = '<option value="">Selecione...</option>';
@@ -796,14 +963,15 @@
             });
         }
         
-        // Salvar demanda
         async function salvarDemanda() {
             const idAd = document.getElementById('idAd').value;
+            const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
+            
             const dados = {
                 id_motorista: document.getElementById('idMotorista').value,
-                id_tipodemanda: document.getElementById('idTipoDemanda').value,
-                id_tipoveiculo: document.getElementById('idTipoVeiculo').value,
-                id_veiculo: document.getElementById('idVeiculo').value,
+                id_tipodemanda: idTipoDemanda,
+                id_tipoveiculo: document.getElementById('idTipoVeiculo').value || null,
+                id_veiculo: document.getElementById('idVeiculo').value || null,
                 dt_inicio: document.getElementById('dtInicio').value,
                 dt_fim: document.getElementById('dtFim').value,
                 setor: document.getElementById('setor').value,
@@ -813,9 +981,15 @@
                 usuario: document.getElementById('usuario').value
             };
             
-            if (!dados.id_motorista || !dados.id_tipodemanda || !dados.id_tipoveiculo || 
-                !dados.id_veiculo || !dados.dt_inicio || !dados.dt_fim) {
-                alert('Preencha todos os campos obrigatórios!');
+            // Validações obrigatórias
+            if (!dados.id_motorista || !dados.id_tipodemanda || !dados.dt_inicio || !dados.dt_fim) {
+                alert('Preencha todos os campos obrigatórios: Motorista, Tipo de Demanda, Data Início e Data Fim!');
+                return;
+            }
+            
+            // Validação para ID 1 ou 2: Setor e Solicitante obrigatórios
+            if ((idTipoDemanda === 1 || idTipoDemanda === 2) && (!dados.setor || !dados.solicitante)) {
+                alert('Para este tipo de demanda, Setor e Solicitante são obrigatórios!');
                 return;
             }
             
@@ -851,7 +1025,6 @@
             }
         }
         
-        // Excluir demanda
         async function excluirDemanda() {
             const idAd = document.getElementById('idAd').value;
             if (!idAd) return;
@@ -879,7 +1052,6 @@
             }
         }
         
-        // Fechar modal ao clicar fora
         window.onclick = function(event) {
             const modal = document.getElementById('modal');
             if (event.target == modal) {
@@ -887,7 +1059,6 @@
             }
         }
         
-        // Inicializar ao carregar página
         init();
     </script>
 </body>
