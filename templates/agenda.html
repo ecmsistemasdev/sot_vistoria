@@ -11,6 +11,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
             padding: 20px;
+            padding-bottom: 80px; /* Espaço para o footer fixo */
         }
         
         .container {
@@ -24,12 +25,14 @@
         .header {
             background: #1a73e8;
             color: white;
-            padding: 20px;
+            padding: 12px 20px;
             text-align: center;
         }
         
-        .header h1 { font-size: 24px; margin-bottom: 10px; }
-        .header p { font-size: 14px; opacity: 0.9; }
+        .header h1 { 
+            font-size: 22px; 
+            margin: 0;
+        }
         
         .toolbar {
             padding: 15px 20px;
@@ -78,6 +81,7 @@
             width: 100%;
             border-collapse: collapse;
             border: 1px solid #ddd;
+            table-layout: fixed;
         }
         
         .agenda-table th {
@@ -89,15 +93,42 @@
             font-weight: 600;
         }
         
+        /* Colunas fixas */
+        .agenda-table th:first-child,
+        .agenda-table td:first-child {
+            width: 40px;
+            min-width: 40px;
+            max-width: 40px;
+        }
+        
+        .agenda-table th:nth-child(2),
+        .agenda-table td:nth-child(2) {
+            width: 120px;
+            min-width: 120px;
+            max-width: 120px;
+        }
+        
+        /* Dias da semana - largura uniforme */
+        .agenda-table th:nth-child(n+3),
+        .agenda-table td:nth-child(n+3) {
+            width: calc((100% - 160px) / 7);
+        }
+        
         .agenda-table td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 4px 6px;
             vertical-align: top;
-            min-height: 80px;
-            font-size: 12px;
+            font-size: 11px;
             position: relative;
             cursor: pointer;
             transition: background 0.2s;
+            height: 60px;
+            overflow: hidden;
+        }
+        
+        /* Altura diferente para tabelas de veículos */
+        .agenda-section:not(:first-child) .agenda-table td {
+            height: 45px;
         }
         
         .agenda-table td:hover {
@@ -107,16 +138,20 @@
         .primeira-coluna {
             background: #f8f9fa;
             font-weight: 600;
-            min-width: 150px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
         }
         
         .cell-content {
-            line-height: 1.6;
-            min-height: 60px;
+            line-height: 1.4;
+            font-size: 11px;
         }
         
         .cell-content div {
-            margin-bottom: 3px;
+            margin-bottom: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         /* Cores por tipo de demanda */
@@ -126,14 +161,29 @@
         .tipo-4, .tipo-5 { background: #fff3cd; }
         .tipo-6, .tipo-7, .tipo-8 { background: #fff9c4; }
         
+        .empty-cell {
+            background: #fafafa;
+        }
+        
+        /* Finais de semana vazios em cinza */
+        .weekend-empty {
+            background: #e0e0e0 !important;
+        }
+        
         .footer {
             background: #f8f9fa;
             padding: 15px 20px;
-            border-top: 1px solid #dee2e6;
+            border-top: 2px solid #dee2e6;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
         
         .week-tab {
@@ -277,18 +327,12 @@
             padding: 40px;
             color: #666;
         }
-        
-        .empty-cell {
-            background: #fafafa;
-            min-height: 80px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>📅 AGENDA SEGEOP</h1>
-            <p>Sistema de Gerenciamento de Demandas e Veículos</p>
         </div>
         
         <div class="toolbar">
@@ -301,9 +345,9 @@
         <div class="agenda-wrapper" id="agendaWrapper">
             <div class="loading">⏳ Carregando agenda...</div>
         </div>
-        
-        <div class="footer" id="weekTabs"></div>
     </div>
+    
+    <div class="footer" id="weekTabs"></div>
     
     <!-- Modal -->
     <div id="modal" class="modal">
@@ -528,11 +572,14 @@
             for (let i = 0; i < 7; i++) {
                 const d = new Date(inicio);
                 d.setDate(inicio.getDate() + i);
+                const dayOfWeek = d.getDay();
                 dias.push({
                     data: d.toISOString().split('T')[0],
                     diaNum: d.getDate(),
                     mes: d.getMonth() + 1,
-                    diaNome: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][d.getDay()]
+                    diaNome: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][dayOfWeek],
+                    isDomingo: dayOfWeek === 0,
+                    isSabado: dayOfWeek === 6
                 });
             }
             return dias;
@@ -566,10 +613,10 @@
                         html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                         html += `<div>${demanda.destino || ''}</div>`;
                         html += `<div>${demanda.nu_sei || ''}</div>`;
-                        html += '<div>&nbsp;</div><div>&nbsp;</div><div>&nbsp;</div>';
                         html += '</div></td>';
                     } else {
-                        html += `<td class="empty-cell" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                        const weekendClass = (dia.isDomingo || dia.isSabado) ? 'weekend-empty' : '';
+                        html += `<td class="empty-cell ${weekendClass}" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
                     }
                 });
                 html += '</tr>';
@@ -606,10 +653,10 @@
                         html += '<div class="cell-content">';
                         html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                         html += `<div>${demanda.nu_sei || ''}</div>`;
-                        html += '<div>&nbsp;</div>';
                         html += '</div></td>';
                     } else {
-                        html += '<td class="empty-cell"></td>';
+                        const weekendClass = (dia.isDomingo || dia.isSabado) ? 'weekend-empty' : '';
+                        html += `<td class="empty-cell ${weekendClass}"></td>`;
                     }
                 });
                 html += '</tr>';
@@ -669,7 +716,8 @@
                         html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                         html += '</div></td>';
                     } else {
-                        html += '<td class="empty-cell"></td>';
+                        const weekendClass = (dia.isDomingo || dia.isSabado) ? 'weekend-empty' : '';
+                        html += `<td class="empty-cell ${weekendClass}"></td>`;
                     }
                 });
                 html += '</tr>';
