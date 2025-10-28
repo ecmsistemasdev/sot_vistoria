@@ -528,7 +528,7 @@
                 }
                 
                 semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
-                await carregarLocacoes(); // NOVO
+                await carregarLocacoes();
                 await carregarAgenda();
             }
         }
@@ -739,7 +739,7 @@
             const tabs = document.getElementById('weekTabs');
             tabs.innerHTML = semanas.map((s, i) => 
                 `<div class="week-tab ${i === semanaAtual ? 'active' : ''}" 
-                      onclick="mudarSemana(${i})">${s.label}</div>`
+                    onclick="mudarSemana(${i})">${s.label}</div>`
             ).join('');
         }
         
@@ -755,7 +755,7 @@
             
             try {
                 const semana = semanas[semanaAtual];
-                await carregarLocacoes(); // NOVO
+                await carregarLocacoes();
                 const res = await fetch(`/api/agenda/dados?inicio=${semana.inicio}&fim=${semana.fim}`);
                 dadosAgenda = await res.json();
                 
@@ -899,7 +899,7 @@
                     } else {
                         const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                         const weekendClass = isWeekend ? 'weekend-empty' : '';
-                        html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                        html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})"></td>`;
                     }
                 });
                 html += '</tr>';
@@ -942,7 +942,7 @@
                 html += `<div>${grupo.nu_sei || ''}</div>`;
                 html += `<div>${grupo.destino || ''}</div>`;
                 
-                // NOVO: Verificar se existe locação finalizada
+                // Verificar se existe locação finalizada
                 const primeiraLocacao = locacoesAtivas.find(loc => 
                     loc.fl_status === 'F' && 
                     grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
@@ -962,7 +962,7 @@
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
                         
-                        // NOVO: Verificar se existe locação para este motorista neste dia
+                        // Verificar se existe locação para este motorista neste dia
                         const temLocacao = locacoesAtivas.some(loc => 
                             loc.id_motorista === demanda.id_motorista &&
                             loc.data_inicio <= dia.data &&
@@ -999,7 +999,7 @@
             document.getElementById('motoristaFilter').style.display = 'flex';
             document.querySelector('input[name="tipoMotorista"][value="segeop"]').checked = true;
             
-            preencherSelectMotoristas('segeop'); // Passar o tipo
+            preencherSelectMotoristas('segeop');
             preencherSelectVeiculos();
             
             // Resetar labels
@@ -1035,6 +1035,25 @@
             }
         }
         
+        function abrirModalNovoComVeiculo(data, idVeiculo = null) {
+            abrirModalNovo();
+            document.getElementById('dtInicio').value = data;
+            document.getElementById('dtFim').value = data;
+            
+            if (idVeiculo) {
+                // Selecionar Tipo de Veículo = 1 (Veículo Oficial)
+                document.getElementById('idTipoVeiculo').value = '1';
+                
+                // Aplicar regras do tipo de veículo
+                aplicarRegrasTipoVeiculo();
+                
+                // Aguardar um momento para o select de veículos ser preenchido
+                setTimeout(() => {
+                    document.getElementById('idVeiculo').value = idVeiculo;
+                }, 100);
+            }
+        }
+        
         function abrirModalEditar(idAd) {
             const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
             if (!demanda) return;
@@ -1056,7 +1075,7 @@
                 veiculoSelecionadoOriginal = null;
             }
             
-            preencherSelectMotoristas('todos'); // Sempre mostrar todos na edição
+            preencherSelectMotoristas('todos');
             preencherSelectVeiculos();
             
             document.getElementById('idMotorista').value = demanda.id_motorista;
@@ -1119,7 +1138,7 @@
         async function salvarDemanda() {
             const idAd = document.getElementById('idAd').value;
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
-            
+
             const dados = {
                 id_motorista: document.getElementById('idMotorista').value,
                 id_tipodemanda: idTipoDemanda,
