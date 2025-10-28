@@ -3610,6 +3610,211 @@ def fluxo_pesquisar():
         return jsonify({'erro': f'Erro interno: {str(e)}'}), 500
 
 #######################################
-	
+
+# Rota principal da agenda
+@app.route('/agenda')
+def agenda():
+    return render_template('agenda.html')
+
+# API: Listar semanas com dados
+@app.route('/api/agenda/semanas', methods=['GET'])
+def listar_semanas():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT DISTINCT 
+                YEARWEEK(DT_INICIO, 0) as semana,
+                MIN(DT_INICIO) as inicio_semana
+            FROM ATENDIMENTO_DEMANDAS
+            WHERE DT_INICIO IS NOT NULL
+            GROUP BY YEARWEEK(DT_INICIO, 0)
+            ORDER BY inicio_semana
+        """)
+        
+        semanas = []
+        for row in cursor.fetchall():
+            dt = row[1]
+            # Ajustar para domingo (início da semana)
+            inicio = dt - timedelta(days=dt.weekday() + 1 if dt.weekday() != 6 else 0)
+            fim = inicio + timedelta(days=6)
+            
+            semanas.append({
+                'inicio': inicio.strftime('%Y-%m-%d'),
+                'fim': fim.strftime('%Y-%m-%d'),
+                'label': f"{inicio.strftime('%d/%m')} - {fim.strftime('%d/%m/%Y')}"
+            })
+        
+        cursor.close()
+        return jsonify(semanas)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API: Buscar dados da agenda por semana
+@app.route('/api/agenda/dados', methods=['GET'])
+def buscar_dados_agenda():
+    try:
+        inicio = request.args.get('inicio')
+        fim = request.args.get('fim')
+        
+        cursor = mysql.connection.cursor()
+        
+        # 1. Lista de Motoristas
+        cursor.execute("""
+            SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
+            FROM TJ_MOTORISTA
+            WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Tercerizado')
+              AND ATIVO = 'S'
+            ORDER BY ORDEM_LISTA, NM_MOTORISTA
+        """)
+        motoristas = [{'id': r[0], 'nome': r[1], 'cad': r[2], 'telefone': r[3], 'tipo': r[4]} 
+                     for r in cursor.fetchall()]
+        
+        # 2. Demandas dos Motoristas
+        cursor.execute("""
+            SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
+                   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+                   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+                   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+                   ae.DT_LANCAMENTO, ae.USUARIO
+            FROM ATENDIMENTO_DEMANDAS ae
+            JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+            JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+            WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
+            ORDER BY ae.DT_INICIO
+        """, (fim, inicio))
+        
+        demandas = []
+        for r in cursor.fetchall():
+            demandas.append({
+                'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
+                'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
+                'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
+                'dt_inicio': r[8].strftime('%Y-%m-%d'), 
+                'dt_fim': r[9].strftime('%Y-%m-%d'),
+                'setor': r[10], 'solicitante': r[11], 'destino': r[12], 
+                'nu_sei': r[13], 'dt_lancamento': r[14].strftime('%Y-%m-%d %H:%M:%S'),
+                'usuario': r[15]
+            })
+        
+        # 3. Lista de Veículos
+        cursor.execute("""
+            SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, DS_MODELO, NU_PLACA
+            FROM TJ_VEICULO 
+            WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S'
+            ORDER BY DS_MODELO
+        """)
+        veiculos = [{'id': r[0], 'veiculo': r[1], 'modelo': r[2], 'placa': r[3]} 
+                   for r in cursor.fetchall()]
+        
+        cursor.close()
+        
+        return jsonify({
+            'motoristas': motoristas,
+            'demandas': demandas,
+            'veiculos': veiculos
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API: Criar nova demanda
+@app.route('/api/agenda/demanda', methods=['POST'])
+def criar_demanda():
+    try:
+        data = request.get_json()
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            INSERT INTO ATENDIMENTO_DEMANDAS 
+            (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
+             DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
+             DT_LANCAMENTO, USUARIO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+        """, (
+            data['id_motorista'], data['id_tipoveiculo'], data['id_veiculo'],
+            data['id_tipodemanda'], data['dt_inicio'], data['dt_fim'],
+            data['setor'], data['solicitante'], data['destino'], data['nu_sei'],
+            data['usuario']
+        ))
+        
+        mysql.connection.commit()
+        id_ad = cursor.lastrowid
+        cursor.close()
+        
+        return jsonify({'success': True, 'id': id_ad})
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# API: Atualizar demanda
+@app.route('/api/agenda/demanda/<int:id_ad>', methods=['PUT'])
+def atualizar_demanda(id_ad):
+    try:
+        data = request.get_json()
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            UPDATE ATENDIMENTO_DEMANDAS 
+            SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
+                ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
+                SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
+                USUARIO = %s
+            WHERE ID_AD = %s
+        """, (
+            data['id_motorista'], data['id_tipoveiculo'], data['id_veiculo'],
+            data['id_tipodemanda'], data['dt_inicio'], data['dt_fim'],
+            data['setor'], data['solicitante'], data['destino'], data['nu_sei'],
+            data['usuario'], id_ad
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# API: Excluir demanda
+@app.route('/api/agenda/demanda/<int:id_ad>', methods=['DELETE'])
+def excluir_demanda(id_ad):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("DELETE FROM ATENDIMENTO_DEMANDAS WHERE ID_AD = %s", (id_ad,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# API: Buscar tipos de demanda
+@app.route('/api/agenda/tipos-demanda', methods=['GET'])
+def buscar_tipos_demanda():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT ID_TIPODEMANDA, DE_TIPODEMANDA FROM TIPO_DEMANDA ORDER BY ID_TIPODEMANDA")
+        tipos = [{'id': r[0], 'descricao': r[1]} for r in cursor.fetchall()]
+        cursor.close()
+        return jsonify(tipos)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API: Buscar tipos de veículo
+@app.route('/api/agenda/tipos-veiculo', methods=['GET'])
+def buscar_tipos_veiculo():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT ID_TIPOVEICULO, DE_TIPOVEICULO FROM TIPO_VEICULO ORDER BY ID_TIPOVEICULO")
+        tipos = [{'id': r[0], 'descricao': r[1]} for r in cursor.fetchall()]
+        cursor.close()
+        return jsonify(tipos)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+#######################################
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
