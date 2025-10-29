@@ -174,7 +174,10 @@
         .tipo-2 { background: #79f183; }
         .tipo-3 { background: #f8c295; }
         .tipo-4, .tipo-5 { background: #f8c295; }
-        .tipo-6, .tipo-7, .tipo-8 { background: #f3f183; }
+        .tipo-6, .tipo-7, .tipo-8 { 
+            background: #f3f183; 
+            font-weight: bold;
+        }
         .tipo-9 { 
             background: #fa8484 !important; 
             /*color: rgb(12, 12, 12);*/
@@ -885,9 +888,9 @@
                         html += `<div>${demanda.nu_sei || ''}</div>`;
                         
                         // Mostrar (INFORMAR VEÍCULO) se não tiver tipo de veículo
-                        if (!demanda.id_tipoveiculo) {
+                        if (!demanda.id_tipoveiculo && ![6, 7, 8].includes(demanda.id_tipodemanda)) {
                             html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
-                        }
+                        }                        
                         
                         html += '</div></td>';
                     } else {
