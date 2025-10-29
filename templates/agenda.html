@@ -439,7 +439,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Motorista <span class="required">*</span></label>
+                        <label id="labelMotorista">Motorista <span class="required">*</span></label>
                         <select id="idMotorista" required></select>
                     </div>
                     
@@ -635,6 +635,7 @@
             const labelSetor = document.getElementById('labelSetor');
             const labelSolicitante = document.getElementById('labelSolicitante');
             const labelDestino = document.getElementById('labelDestino');
+            const labelMotorista = document.getElementById('labelMotorista');
             
             // Resetar labels
             labelTipoVeiculo.innerHTML = 'Tipo de Veículo';
@@ -643,8 +644,19 @@
             labelSolicitante.innerHTML = 'Solicitante';
             labelDestino.innerHTML = 'Destino';
             
+            if (labelMotorista) {
+                labelMotorista.innerHTML = 'Motorista <span class="required">*</span>';
+            }
+
+            // Resetar obrigatoriedade do motorista (remover asterisco se existir)
+            const motoristaLabel = motorista.closest('.form-group').querySelector('label');
+            if (motoristaLabel) {
+                motoristaLabel.innerHTML = 'Motorista <span class="required">*</span>';
+            }
+            
             // Habilitar todos primeiro
             motorista.disabled = false;
+            motorista.required = true;
             tipoVeiculo.disabled = false;
             veiculo.disabled = false;
             setor.disabled = false;
@@ -654,14 +666,17 @@
             if (idTipoDemanda === 9) {
                 // ID 9 (Oficina): Fecha Motorista, Setor, Solicitante e preenche Destino com 'Oficina'
                 motorista.disabled = true;
+                motorista.required = false;
                 motorista.value = '';
+                if (motoristaLabel) {
+                    motoristaLabel.innerHTML = 'Motorista';
+                }               
                 setor.disabled = true;
                 setor.value = '';
                 solicitante.disabled = true;
                 solicitante.value = '';
-                if (!destino.value) {
-                    destino.value = 'Oficina';
-                }
+                
+                destino.value = 'Oficina';
             } else if (idTipoDemanda >= 6 && idTipoDemanda <= 8) {
                 // ID 6-8: Fecha e desobriga Tipo Veículo, Veículo, Setor, Solicitante, Destino
                 tipoVeiculo.disabled = true;
@@ -1186,11 +1201,11 @@
             selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
             
             tiposDemanda.forEach(t => {
-                // Filtrar ID 9 quando contexto for motorista
+                // Quando aberto da seção MOTORISTAS: esconder ID 9
                 if (contextoAbertura === 'motorista' && t.id === 9) {
                     return;
                 }
-                // Filtrar IDs 6, 7, 8 quando contexto for veículo
+                // Quando aberto da seção VEÍCULOS OFICIAIS: esconder IDs 6, 7, 8
                 if (contextoAbertura === 'veiculo' && (t.id === 6 || t.id === 7 || t.id === 8)) {
                     return;
                 }
@@ -1204,7 +1219,7 @@
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
 
             const dados = {
-                id_motorista: document.getElementById('idMotorista').value,
+                id_motorista: document.getElementById('idMotorista').value || null,
                 id_tipodemanda: idTipoDemanda,
                 id_tipoveiculo: document.getElementById('idTipoVeiculo').value || null,
                 id_veiculo: document.getElementById('idVeiculo').value || null,
@@ -1217,9 +1232,15 @@
                 usuario: document.getElementById('usuario').value
             };
             
-            // Validações obrigatórias
-            if (!dados.id_motorista || !dados.id_tipodemanda || !dados.dt_inicio || !dados.dt_fim) {
-                alert('Preencha todos os campos obrigatórios: Motorista, Tipo de Demanda, Data Início e Data Fim!');
+            // Validações obrigatórias básicas
+            if (!dados.id_tipodemanda || !dados.dt_inicio || !dados.dt_fim) {
+                alert('Preencha todos os campos obrigatórios: Tipo de Demanda, Data Início e Data Fim!');
+                return;
+            }
+            
+            // Validação de Motorista: obrigatório exceto para ID 9
+            if (idTipoDemanda !== 9 && !dados.id_motorista) {
+                alert('O campo Motorista é obrigatório!');
                 return;
             }
             
