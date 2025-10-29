@@ -3745,12 +3745,12 @@ def buscar_dados_agenda():
                    ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
                    tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
-                   ae.DT_LANCAMENTO, ae.USUARIO
+                   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO
             FROM ATENDIMENTO_DEMANDAS ae
             LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
             LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
-            WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
+            WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s AND m.ID_MOTORISTA <> 0
             ORDER BY ae.DT_INICIO
         """, (fim, inicio))
 
@@ -3766,7 +3766,9 @@ def buscar_dados_agenda():
                 'setor': r[10] or '', 'solicitante': r[11] or '', 
                 'destino': r[12] or '', 'nu_sei': r[13] or '', 
                 'dt_lancamento': dt_lancamento,
-                'usuario': r[15] or ''
+                'usuario': r[15] or '',
+                'obs': r[16] or '',
+                'solicitado': r[17] or 'N'
             })
 
         # 3. Lista de Veículos
@@ -3884,12 +3886,21 @@ def criar_demanda():
             INSERT INTO ATENDIMENTO_DEMANDAS 
             (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
              DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
-             DT_LANCAMENTO, USUARIO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+             OBS, SOLICITADO, DT_LANCAMENTO, USUARIO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
         """, (
-            data['id_motorista'], data['id_tipoveiculo'], data['id_veiculo'],
-            data['id_tipodemanda'], data['dt_inicio'], data['dt_fim'],
-            data['setor'], data['solicitante'], data['destino'], data['nu_sei'],
+            data.get('id_motorista'), 
+            data.get('id_tipoveiculo'), 
+            data.get('id_veiculo'),
+            data['id_tipodemanda'], 
+            data['dt_inicio'], 
+            data['dt_fim'],
+            data.get('setor'), 
+            data.get('solicitante'), 
+            data.get('destino'), 
+            data.get('nu_sei'),
+            data.get('obs'),
+            data.get('solicitado', 'N'),
             data['usuario']
         ))
         
@@ -3900,6 +3911,9 @@ def criar_demanda():
         return jsonify({'success': True, 'id': id_ad})
     except Exception as e:
         mysql.connection.rollback()
+        print(f"Erro ao criar demanda: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 # API: Atualizar demanda
@@ -3914,13 +3928,23 @@ def atualizar_demanda(id_ad):
             SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
                 ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
                 SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
-                USUARIO = %s
+                OBS = %s, SOLICITADO = %s, USUARIO = %s
             WHERE ID_AD = %s
         """, (
-            data['id_motorista'], data['id_tipoveiculo'], data['id_veiculo'],
-            data['id_tipodemanda'], data['dt_inicio'], data['dt_fim'],
-            data['setor'], data['solicitante'], data['destino'], data['nu_sei'],
-            data['usuario'], id_ad
+            data.get('id_motorista'), 
+            data.get('id_tipoveiculo'), 
+            data.get('id_veiculo'),
+            data['id_tipodemanda'], 
+            data['dt_inicio'], 
+            data['dt_fim'],
+            data.get('setor'), 
+            data.get('solicitante'), 
+            data.get('destino'), 
+            data.get('nu_sei'),
+            data.get('obs'),
+            data.get('solicitado', 'N'),
+            data['usuario'], 
+            id_ad
         ))
         
         mysql.connection.commit()
@@ -3929,7 +3953,11 @@ def atualizar_demanda(id_ad):
         return jsonify({'success': True})
     except Exception as e:
         mysql.connection.rollback()
+        print(f"Erro ao atualizar demanda: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+		
 
 # API: Excluir demanda
 @app.route('/api/agenda/demanda/<int:id_ad>', methods=['DELETE'])
