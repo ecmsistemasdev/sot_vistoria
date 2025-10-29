@@ -3647,18 +3647,18 @@ def listar_semanas():
     cursor = None
     try:
         cursor = mysql.connection.cursor()
+        # Otimizado: usar MIN e MAX ao invés de DISTINCT com subconsulta
         cursor.execute("""
-            SELECT DISTINCT 
-                DATE(DT_INICIO) as data_inicio
+            SELECT MIN(DATE(DT_INICIO)) as data_inicio,
+                   MAX(DATE(DT_INICIO)) as data_fim
             FROM ATENDIMENTO_DEMANDAS
             WHERE DT_INICIO IS NOT NULL
-            ORDER BY DT_INICIO
         """)
         
-        rows = cursor.fetchall()
+        result = cursor.fetchone()
         
         # Se não houver dados, retornar semana atual
-        if not rows:
+        if not result or not result[0]:
             hoje = datetime.now().date()
             domingo = hoje - timedelta(days=hoje.weekday() + 1 if hoje.weekday() != 6 else 0)
             fim = domingo + timedelta(days=6)
@@ -3668,12 +3668,17 @@ def listar_semanas():
                 'label': f"{domingo.strftime('%d/%m')} - {fim.strftime('%d/%m/%Y')}"
             }])
         
+        # Gerar semanas entre min e max
+        data_min = result[0]
+        data_max = result[1]
+        
         semanas_dict = {}
-        for row in rows:
-            dt = row[0]
+        data_atual = data_min
+        
+        while data_atual <= data_max:
             # Ajustar para domingo (início da semana)
-            dias_ate_domingo = (dt.weekday() + 1) % 7
-            inicio = dt - timedelta(days=dias_ate_domingo)
+            dias_ate_domingo = (data_atual.weekday() + 1) % 7
+            inicio = data_atual - timedelta(days=dias_ate_domingo)
             fim = inicio + timedelta(days=6)
             
             chave = inicio.strftime('%Y-%m-%d')
@@ -3683,6 +3688,8 @@ def listar_semanas():
                     'fim': fim.strftime('%Y-%m-%d'),
                     'label': f"{inicio.strftime('%d/%m')} - {fim.strftime('%d/%m/%Y')}"
                 }
+            
+            data_atual += timedelta(days=7)
         
         semanas = sorted(semanas_dict.values(), key=lambda x: x['inicio'])
         return jsonify(semanas)
@@ -3704,12 +3711,12 @@ def buscar_dados_agenda():
 
         cursor = mysql.connection.cursor()
 
-        # 1. Lista de Motoristas SEGEOP
+        # 1. Lista de Motoristas SEGEOP (otimizada com índice)
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
-            WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Tercerizado')
-              AND ATIVO = 'S'
+            WHERE ATIVO = 'S'
+              AND TIPO_CADASTRO IN ('Motorista Atendimento','Tercerizado')
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
         """)
         motoristas = []
@@ -3717,12 +3724,12 @@ def buscar_dados_agenda():
             motoristas.append({
                 'id': r[0], 
                 'nome': r[1], 
-                'cad': r[2] if len(r) > 2 else '', 
-                'telefone': r[3] if len(r) > 3 else '', 
-                'tipo': r[4] if len(r) > 4 else ''
+                'cad': r[2] or '', 
+                'telefone': r[3] or '', 
+                'tipo': r[4] or ''
             })
 
-        # 1.1 TODOS os Motoristas Ativos (para select na edição/outros)
+        # 1.1 TODOS os Motoristas Ativos
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
@@ -3734,12 +3741,12 @@ def buscar_dados_agenda():
             todos_motoristas.append({
                 'id': r[0], 
                 'nome': r[1], 
-                'cad': r[2] if len(r) > 2 else '', 
-                'telefone': r[3] if len(r) > 3 else '', 
-                'tipo': r[4] if len(r) > 4 else ''
+                'cad': r[2] or '', 
+                'telefone': r[3] or '', 
+                'tipo': r[4] or ''
             })
 
-        # 2. Demandas dos Motoristas
+        # 2. Demandas (OTIMIZADA - ordem dos JOINs e WHERE)
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
                    ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
@@ -3747,10 +3754,11 @@ def buscar_dados_agenda():
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
                    ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO
             FROM ATENDIMENTO_DEMANDAS ae
-            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA AND m.ID_MOTORISTA <> 0
+            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
             LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
-            WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
+            WHERE ae.DT_INICIO <= %s 
+              AND ae.DT_FIM >= %s
             ORDER BY ae.DT_INICIO
         """, (fim, inicio))
 
@@ -3758,9 +3766,9 @@ def buscar_dados_agenda():
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
             demandas.append({
-                'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
-                'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
-                'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
+                'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2] or '',
+                'id_tipoveiculo': r[3], 'de_tipodemanda': r[4] or '', 'id_tipodemanda': r[5],
+                'de_tipoveiculo': r[6] or '', 'id_veiculo': r[7], 
                 'dt_inicio': r[8].strftime('%Y-%m-%d'), 
                 'dt_fim': r[9].strftime('%Y-%m-%d'),
                 'setor': r[10] or '', 'solicitante': r[11] or '', 
@@ -3771,11 +3779,12 @@ def buscar_dados_agenda():
                 'solicitado': r[17] or 'N'
             })
 
-        # 3. Lista de Veículos
+        # 3. Lista de Veículos (otimizada com índice)
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
-            WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S'
+            WHERE FL_ATENDIMENTO = 'S' 
+              AND ATIVO = 'S'
             ORDER BY DS_MODELO
         """)
         veiculos = []
@@ -3816,22 +3825,22 @@ def buscar_veiculos_disponiveis():
     try:
         dt_inicio = request.args.get('inicio')
         dt_fim = request.args.get('fim')
-        id_demanda_atual = request.args.get('id_demanda', '')  # Para excluir a própria demanda na edição
+        id_demanda_atual = request.args.get('id_demanda', '')
 
         cursor = mysql.connection.cursor()
 
-        # Buscar veículos que NÃO estão comprometidos no período
+        # OTIMIZADA: usando EXISTS ao invés de NOT IN para melhor performance
         if id_demanda_atual:
-            # Na edição, excluir a própria demanda da verificação
             cursor.execute("""
                 SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
                 FROM TJ_VEICULO v
                 WHERE v.FL_ATENDIMENTO = 'S' 
                   AND v.ATIVO = 'S'
-                  AND v.ID_VEICULO NOT IN (
-                      SELECT ad.ID_VEICULO
+                  AND NOT EXISTS (
+                      SELECT 1
                       FROM ATENDIMENTO_DEMANDAS ad
-                      WHERE ad.ID_TIPOVEICULO = 1
+                      WHERE ad.ID_VEICULO = v.ID_VEICULO
+                        AND ad.ID_TIPOVEICULO = 1
                         AND ad.ID_AD != %s
                         AND ad.DT_INICIO <= %s 
                         AND ad.DT_FIM >= %s
@@ -3839,16 +3848,16 @@ def buscar_veiculos_disponiveis():
                 ORDER BY v.DS_MODELO
             """, (id_demanda_atual, dt_fim, dt_inicio))
         else:
-            # Nova demanda
             cursor.execute("""
                 SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
                 FROM TJ_VEICULO v
                 WHERE v.FL_ATENDIMENTO = 'S' 
                   AND v.ATIVO = 'S'
-                  AND v.ID_VEICULO NOT IN (
-                      SELECT ad.ID_VEICULO
+                  AND NOT EXISTS (
+                      SELECT 1
                       FROM ATENDIMENTO_DEMANDAS ad
-                      WHERE ad.ID_TIPOVEICULO = 1
+                      WHERE ad.ID_VEICULO = v.ID_VEICULO
+                        AND ad.ID_TIPOVEICULO = 1
                         AND ad.DT_INICIO <= %s 
                         AND ad.DT_FIM >= %s
                   )
