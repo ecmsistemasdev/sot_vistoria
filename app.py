@@ -3704,12 +3704,12 @@ def buscar_dados_agenda():
 
         cursor = mysql.connection.cursor()
 
-        # 1. Lista de Motoristas SEGEOP (otimizada com índice)
+        # 1. Lista de Motoristas SEGEOP
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
-            WHERE ATIVO = 'S'
-              AND TIPO_CADASTRO IN ('Motorista Atendimento','Tercerizado')
+            WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Tercerizado')
+              AND ATIVO = 'S'
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
         """)
         motoristas = []
@@ -3717,12 +3717,12 @@ def buscar_dados_agenda():
             motoristas.append({
                 'id': r[0], 
                 'nome': r[1], 
-                'cad': r[2] or '', 
-                'telefone': r[3] or '', 
-                'tipo': r[4] or ''
+                'cad': r[2] if len(r) > 2 else '', 
+                'telefone': r[3] if len(r) > 3 else '', 
+                'tipo': r[4] if len(r) > 4 else ''
             })
 
-        # 1.1 TODOS os Motoristas Ativos
+        # 1.1 TODOS os Motoristas Ativos (para select na edição/outros)
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
@@ -3734,12 +3734,12 @@ def buscar_dados_agenda():
             todos_motoristas.append({
                 'id': r[0], 
                 'nome': r[1], 
-                'cad': r[2] or '', 
-                'telefone': r[3] or '', 
-                'tipo': r[4] or ''
+                'cad': r[2] if len(r) > 2 else '', 
+                'telefone': r[3] if len(r) > 3 else '', 
+                'tipo': r[4] if len(r) > 4 else ''
             })
 
-        # 2. Demandas (OTIMIZADA - ordem dos JOINs e WHERE)
+        # 2. Demandas dos Motoristas
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
                    ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
@@ -3747,11 +3747,10 @@ def buscar_dados_agenda():
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
                    ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO
             FROM ATENDIMENTO_DEMANDAS ae
-            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA AND m.ID_MOTORISTA <> 0
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
             LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
-            WHERE ae.DT_INICIO <= %s 
-              AND ae.DT_FIM >= %s
+            WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
             ORDER BY ae.DT_INICIO
         """, (fim, inicio))
 
@@ -3759,9 +3758,9 @@ def buscar_dados_agenda():
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
             demandas.append({
-                'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2] or '',
-                'id_tipoveiculo': r[3], 'de_tipodemanda': r[4] or '', 'id_tipodemanda': r[5],
-                'de_tipoveiculo': r[6] or '', 'id_veiculo': r[7], 
+                'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
+                'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
+                'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
                 'dt_inicio': r[8].strftime('%Y-%m-%d'), 
                 'dt_fim': r[9].strftime('%Y-%m-%d'),
                 'setor': r[10] or '', 'solicitante': r[11] or '', 
@@ -3772,12 +3771,11 @@ def buscar_dados_agenda():
                 'solicitado': r[17] or 'N'
             })
 
-        # 3. Lista de Veículos (otimizada com índice)
+        # 3. Lista de Veículos
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
-            WHERE FL_ATENDIMENTO = 'S' 
-              AND ATIVO = 'S'
+            WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S'
             ORDER BY DS_MODELO
         """)
         veiculos = []
