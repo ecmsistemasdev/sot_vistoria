@@ -334,7 +334,7 @@
         .modal-header {
             background: #1a73e8;
             color: white;
-            padding: 12px 20px;
+            padding: 10px 20px;
             border-radius: 8px 8px 0 0;
             display: flex;
             justify-content: space-between;
@@ -343,9 +343,9 @@
             top: 0;
             z-index: 10;
         }
-        
+
         .modal-header h2 { 
-            font-size: 18px;
+            font-size: 16px;
             margin: 0;
         }
         
@@ -360,54 +360,54 @@
         .close:hover { opacity: 1; }
         
         .modal-body {
-            padding: 25px;
+            padding: 15px 20px;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             color: #333;
         }
         
         .form-group label .required {
             color: #dc3545;
         }
-        
+
         .form-group input,
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 13px;
         }
-        
+
         .form-group input:disabled,
         .form-group select:disabled {
             background: #e9ecef;
             cursor: not-allowed;
         }
-        
+
         .form-group textarea {
             resize: vertical;
-            min-height: 60px;
+            min-height: 50px;
         }
         
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 10px;
         }
         
         .modal-footer {
-            padding: 20px;
+            padding: 12px 20px;
             background: #f8f9fa;
             display: flex;
             justify-content: flex-end;
@@ -1127,17 +1127,6 @@
                 html += `<tr><td class="col-numero">${index + 1}</td>`;
                 html += `<td class="col-nome">`;
                 html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
-                
-                // if (isIdEspecial) {
-                //     // Para IDs 7, 8, 9: mostrar Setor - Destino (se houver)
-                //     const partes = [];
-                //     if (grupo.setor) partes.push(grupo.setor);
-                //     if (grupo.destino) partes.push(grupo.destino);
-                //     if (partes.length > 0) {
-                //         html += `<div>${partes.join(' - ')}</div>`;
-                //     }
-                // } else {
-                //     // Para outros IDs: formato original
                 html += `<div>${grupo.nu_sei || ''}</div>`;
                 
                 // Montar linha Setor - Destino com setor em negrito
@@ -1157,7 +1146,6 @@
                 if (primeiraLocacao) {
                     html += `<div style="color: #6c757d; font-size: 11px; margin-top: 3px;">${primeiraLocacao.ds_veiculo_mod}</div>`;
                 }
-                // }
                 
                 html += `</td>`;
                 
