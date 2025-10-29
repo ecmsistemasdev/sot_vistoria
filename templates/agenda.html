@@ -1039,19 +1039,15 @@
                         
                         // ID 9 (Oficina): mostra descrição do tipo (negrito) e destino (regular)
                         if (demanda.id_tipodemanda === 9) {
-                            html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
+                            html += `<div>${demanda.de_tipodemanda || 'Oficina'}</div>`;
                             if (demanda.destino) {
-                                html += `<div>${demanda.destino}</div>`;
+                                html += `<div><strong>${demanda.destino}</strong></div>`;
                             }
                         }
 
                         // ID 10 (Cedência): mostra descrição do tipo (negrito), setor (negrito) e nº SEI (regular)
                         else if (demanda.id_tipodemanda === 10) {
-                            html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
-                            html += `<div>${demanda.de_tipodemanda || 'Cedência'}<strong>${' - ' + demanda.setor}</strong></div>`;
-                            if (demanda.setor) {
-                                html += `<div><strong>${demanda.setor}</strong></div>`;
-                            }
+                            html += `<div>${demanda.de_tipodemanda || 'Cedência'}<strong>${' - ' + demanda.setor || ''}</strong></div>`;
                             if (demanda.nu_sei) {
                                 html += `<div>${demanda.nu_sei}</div>`;
                             }
