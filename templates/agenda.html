@@ -276,7 +276,7 @@
             flex-wrap: wrap;
         }
         
-        .week-tab {
+        /* .week-tab {
             padding: 8px 16px;
             background: white;
             border: 1px solid #dee2e6;
@@ -284,7 +284,7 @@
             cursor: pointer;
             font-size: 13px;
             transition: all 0.3s;
-        }
+        } */
         
         .week-tab:hover {
             background: #e9ecef;
@@ -551,6 +551,59 @@
             );
             pointer-events: none;
         }
+
+        .week-tabs-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .week-tabs-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            flex: 1;
+        }
+
+        .week-nav-btn {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 8px 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .week-nav-btn:hover:not(:disabled) {
+            background: #e9ecef;
+        }
+
+        .week-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .week-tab {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
     </style>
 </head>
 <body>
@@ -569,7 +622,13 @@
     <div class="footer">
         <button class="btn btn-primary" onclick="abrirModalNovoGeral()">➕ Nova Demanda</button>
         <div class="footer-divider"></div>
-        <div class="week-tabs-container" id="weekTabs"></div>
+        <div class="week-tabs-wrapper">
+            <button class="week-nav-btn" id="btnPrevWeek" onclick="scrollWeekTabs(-1)">◀</button>
+            <div class="week-tabs-scroll" id="weekTabsScroll">
+                <div class="week-tabs-container" id="weekTabs"></div>
+            </div>
+            <button class="week-nav-btn" id="btnNextWeek" onclick="scrollWeekTabs(1)">▶</button>
+        </div>
     </div>
     
     <!-- Modal -->
@@ -729,6 +788,7 @@
         let locacoesAtivas = [];
         let contextoAbertura = null; // 'motorista', 'veiculo' ou null
         let feriadosPeriodo = [];
+        let scrollPosition = 0;
 
         async function init() {
             await carregarSemanas();
@@ -1152,6 +1212,12 @@
                 `<div class="week-tab ${i === semanaAtual ? 'active' : ''}" 
                     onclick="mudarSemana(${i})">${s.label}</div>`
             ).join('');
+            
+            // Scroll para a aba ativa após renderizar
+            setTimeout(() => {
+                scrollToActiveTab();
+                atualizarBotoesNavegacao();
+            }, 100);
         }
         
         async function mudarSemana(index) {
@@ -1864,6 +1930,72 @@
             const modalFeriados = document.getElementById('modalFeriados');
             if (event.target == modalFeriados) {
                 fecharModalFeriados();
+            }
+        });
+
+        function scrollWeekTabs(direction) {
+            const scrollContainer = document.getElementById('weekTabsScroll');
+            const scrollAmount = 200; // pixels
+            
+            scrollPosition += (direction * scrollAmount);
+            scrollContainer.scrollLeft = scrollPosition;
+            
+            // Atualizar posição real após scroll
+            setTimeout(() => {
+                scrollPosition = scrollContainer.scrollLeft;
+                atualizarBotoesNavegacao();
+            }, 100);
+        }
+
+        function atualizarBotoesNavegacao() {
+            const scrollContainer = document.getElementById('weekTabsScroll');
+            const btnPrev = document.getElementById('btnPrevWeek');
+            const btnNext = document.getElementById('btnNextWeek');
+            
+            if (!scrollContainer || !btnPrev || !btnNext) return;
+            
+            const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+            
+            // Desabilitar botão esquerdo se estiver no início
+            btnPrev.disabled = scrollContainer.scrollLeft <= 0;
+            
+            // Desabilitar botão direito se estiver no fim
+            btnNext.disabled = scrollContainer.scrollLeft >= maxScroll;
+        }
+
+        function scrollToActiveTab() {
+            const scrollContainer = document.getElementById('weekTabsScroll');
+            const activeTab = document.querySelector('.week-tab.active');
+            
+            if (!scrollContainer || !activeTab) return;
+            
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const tabRect = activeTab.getBoundingClientRect();
+            
+            // Verificar se a aba está fora da visão
+            if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
+                // Centralizar a aba ativa
+                const scrollLeft = activeTab.offsetLeft - (scrollContainer.clientWidth / 2) + (activeTab.clientWidth / 2);
+                scrollContainer.scrollLeft = scrollLeft;
+                scrollPosition = scrollLeft;
+            }
+            
+            atualizarBotoesNavegacao();
+        }
+
+        // Atualizar botões ao redimensionar janela
+        window.addEventListener('resize', () => {
+            atualizarBotoesNavegacao();
+        });
+
+        // Atualizar botões ao scroll manual
+        document.addEventListener('DOMContentLoaded', () => {
+            const scrollContainer = document.getElementById('weekTabsScroll');
+            if (scrollContainer) {
+                scrollContainer.addEventListener('scroll', () => {
+                    scrollPosition = scrollContainer.scrollLeft;
+                    atualizarBotoesNavegacao();
+                });
             }
         });
 
