@@ -180,6 +180,11 @@
             /*color: rgb(12, 12, 12);*/
             font-weight: bold;
         }        
+        .tipo-10 { 
+            background: hsl(320, 96%, 79%) !important; 
+            /*color: rgb(12, 12, 12);*/
+            font-weight: bold;
+        }        
         
         .empty-cell {
             background: #fafafa;
@@ -663,7 +668,21 @@
             solicitante.disabled = false;
             destino.disabled = false;
             
-            if (idTipoDemanda === 9) {
+            if (idTipoDemanda === 10) {
+                // ID 10 (Cedência): Fecha Motorista, Setor, Solicitante e preenche Destino com 'Cedencia'
+                motorista.disabled = true;
+                motorista.required = false;
+                motorista.value = '';
+                if (motoristaLabel) {
+                    motoristaLabel.innerHTML = 'Motorista';
+                }               
+                setor.disabled = true;
+                setor.value = '';
+                solicitante.disabled = true;
+                solicitante.value = '';
+                
+                destino.value = 'Cedência';
+            } else if (idTipoDemanda === 9) {
                 // ID 9 (Oficina): Fecha Motorista, Setor, Solicitante e preenche Destino com 'Oficina'
                 motorista.disabled = true;
                 motorista.required = false;
@@ -930,7 +949,9 @@
                         html += '<div class="cell-content-veiculos">';
                         
                         // Se for tipo 9 (Oficina), mostrar destino em vez de motorista
-                        if (demanda.id_tipodemanda === 9) {
+                        if (demanda.id_tipodemanda === 10) {
+                            html += `<div><strong>${demanda.destino || 'Cedência'}</strong></div>`;
+                        } else if (demanda.id_tipodemanda === 9) {
                             html += `<div><strong>${demanda.destino || 'Oficina'}</strong></div>`;
                         } else {
                             html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
@@ -1264,7 +1285,7 @@
             }
             
             // Validação de Motorista: obrigatório exceto para ID 9
-            if (idTipoDemanda !== 9 && !dados.id_motorista) {
+            if (idTipoDemanda !== 9 && idTipoDemanda !== 10 && !dados.id_motorista) {
                 alert('O campo Motorista é obrigatório!');
                 return;
             }
