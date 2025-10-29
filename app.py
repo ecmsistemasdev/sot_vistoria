@@ -3647,9 +3647,9 @@ def listar_semanas():
     cursor = None
     try:
         cursor = mysql.connection.cursor()
-        # Buscar todas as datas distintas
         cursor.execute("""
-            SELECT DISTINCT DATE(DT_INICIO) as data_inicio
+            SELECT DISTINCT 
+                DATE(DT_INICIO) as data_inicio
             FROM ATENDIMENTO_DEMANDAS
             WHERE DT_INICIO IS NOT NULL
             ORDER BY DT_INICIO
@@ -3671,11 +3671,6 @@ def listar_semanas():
         semanas_dict = {}
         for row in rows:
             dt = row[0]
-            
-            # Converter string para date se necessário
-            if isinstance(dt, str):
-                dt = datetime.strptime(dt, '%Y-%m-%d').date()
-            
             # Ajustar para domingo (início da semana)
             dias_ate_domingo = (dt.weekday() + 1) % 7
             inicio = dt - timedelta(days=dias_ate_domingo)
@@ -3694,8 +3689,6 @@ def listar_semanas():
         
     except Exception as e:
         print(f"Erro em listar_semanas: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'error': str(e), 'semanas': []}), 500
     finally:
         if cursor:
