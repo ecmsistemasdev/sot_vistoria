@@ -887,16 +887,20 @@
                         html += `<td class="${corClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
                         html += '<div class="cell-content">';
                         
-                        // ID 9 (Oficina): mostra tipo de demanda e destino
+                        // ID 9 (Oficina): mostra tipo de demanda (negrito) e destino (regular)
                         if (demanda.id_tipodemanda === 9) {
                             html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
                             html += `<div>${demanda.destino || ''}</div>`;
                         }
-                        // ID 10 (Cedência): mostra tipo de demanda, setor e nº SEI
+                        // ID 10 (Cedência): mostra tipo de demanda (negrito), setor (negrito) e nº SEI (regular)
                         else if (demanda.id_tipodemanda === 10) {
                             html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
-                            html += `<div>${demanda.setor || ''}</div>`;
-                            html += `<div>${demanda.nu_sei || ''}</div>`;
+                            if (demanda.setor) {
+                                html += `<div><strong>${demanda.setor}</strong></div>`;
+                            }
+                            if (demanda.nu_sei) {
+                                html += `<div>${demanda.nu_sei}</div>`;
+                            }
                         }
                         // Outros tipos: formato padrão
                         else {
@@ -1354,7 +1358,6 @@
                     fecharModal();
                     await carregarSemanas();
                     await carregarAgenda();
-                    alert('Demanda salva com sucesso!');
                 } else {
                     alert('Erro ao salvar: ' + (result.error || 'Erro desconhecido'));
                 }
@@ -1381,7 +1384,6 @@
                     fecharModal();
                     await carregarSemanas();
                     await carregarAgenda();
-                    // alert('Demanda excluída com sucesso!');
                 } else {
                     alert('Erro ao excluir: ' + (result.error || 'Erro desconhecido'));
                 }
