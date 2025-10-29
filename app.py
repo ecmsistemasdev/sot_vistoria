@@ -3727,7 +3727,7 @@ def buscar_dados_agenda():
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
             WHERE ATIVO = 'S'
-            ORDER BY ORDEM_LISTA, NM_MOTORISTA
+            ORDER BY NM_MOTORISTA
         """)
         todos_motoristas = []
         for r in cursor.fetchall():
@@ -3747,7 +3747,7 @@ def buscar_dados_agenda():
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
                    ae.DT_LANCAMENTO, ae.USUARIO
             FROM ATENDIMENTO_DEMANDAS ae
-            JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
             LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
             WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
@@ -3806,8 +3806,7 @@ def buscar_dados_agenda():
     finally:
         if cursor:
             cursor.close()
-
-
+			
 # API: Buscar veículos disponíveis para um período específico
 @app.route('/api/agenda/veiculos-disponiveis', methods=['GET'])
 def buscar_veiculos_disponiveis():
