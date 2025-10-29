@@ -273,29 +273,9 @@
         .week-tabs-container {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
-        
-        /* .week-tab {
-            padding: 8px 16px;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.3s;
-        } */
-        
-        .week-tab:hover {
-            background: #e9ecef;
-        }
-        
-        .week-tab.active {
-            background: #1a73e8;
-            color: white;
-            border-color: #1a73e8;
-        }
-        
+                
         .modal {
             display: none;
             position: fixed;
@@ -566,6 +546,13 @@
             overflow-x: hidden;
             scroll-behavior: smooth;
             flex: 1;
+            position: relative;
+        }
+
+        .week-tabs-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: nowrap;
         }
 
         .week-nav-btn {
@@ -602,6 +589,16 @@
             transition: all 0.3s;
             white-space: nowrap;
             flex-shrink: 0;
+        }
+
+        .week-tab:hover {
+            background: #e9ecef;
+        }
+
+        .week-tab.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
         }
 
     </style>
