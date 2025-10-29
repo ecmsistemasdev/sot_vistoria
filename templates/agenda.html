@@ -409,7 +409,7 @@
     </div>
     
     <div class="footer">
-        <button class="btn btn-primary" onclick="abrirModalNovo()">➕ Nova Demanda</button>
+        <button class="btn btn-primary" onclick="abrirModalNovoGeral()">➕ Nova Demanda</button>
         <div class="footer-divider"></div>
         <div class="week-tabs-container" id="weekTabs"></div>
     </div>
@@ -1036,7 +1036,7 @@
             document.getElementById('formDemanda').reset();
             document.getElementById('btnExcluir').style.display = 'none';
             veiculoSelecionadoOriginal = null;
-            contextoAbertura = null;
+            // NÃO definir contextoAbertura = null aqui, deixar para cada função específica
             
             // Mostrar filtro e definir SEGEOP como padrão
             document.getElementById('motoristaFilter').style.display = 'flex';
@@ -1044,7 +1044,7 @@
             
             preencherSelectMotoristas('segeop');
             preencherSelectVeiculos();
-            await preencherSelectTiposDemanda(); // Aguardar carregamento
+            // NÃO chamar preencherSelectTiposDemanda() aqui
             
             // Resetar labels
             document.getElementById('labelTipoVeiculo').innerHTML = 'Tipo de Veículo';
@@ -1072,9 +1072,9 @@
         }
         
         async function abrirModalNovoComData(data, idMotorista = null) {
-            contextoAbertura = 'motorista';
+            contextoAbertura = 'motorista'; // Definir ANTES
             await abrirModalNovo();
-            await preencherSelectTiposDemanda(); // Recarregar com filtro
+            await preencherSelectTiposDemanda(); // Carregar depois que contexto está definido
             document.getElementById('dtInicio').value = data;
             document.getElementById('dtFim').value = data;
             if (idMotorista) {
@@ -1083,9 +1083,9 @@
         }
         
         async function abrirModalNovoComVeiculo(data, idVeiculo = null) {
-            contextoAbertura = 'veiculo';
+            contextoAbertura = 'veiculo'; // Definir ANTES
             await abrirModalNovo();
-            await preencherSelectTiposDemanda(); // Recarregar com filtro
+            await preencherSelectTiposDemanda(); // Carregar depois que contexto está definido
             document.getElementById('dtInicio').value = data;
             document.getElementById('dtFim').value = data;
             
@@ -1113,6 +1113,12 @@
             }
         }
         
+        async function abrirModalNovoGeral() {
+            contextoAbertura = null; // Sem contexto específico
+            await abrirModalNovo();
+            await preencherSelectTiposDemanda(); // Carregar todos os tipos
+        }
+
         async function abrirModalEditar(idAd) {
             const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
             if (!demanda) return;
@@ -1209,8 +1215,12 @@
                     url += `?contexto=${contextoAbertura}`;
                 }
                 
+                console.log('Carregando tipos com contexto:', contextoAbertura, 'URL:', url); // Debug
+                
                 const res = await fetch(url);
                 const tipos = await res.json();
+                
+                console.log('Tipos carregados:', tipos); // Debug
                 
                 selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
                 tipos.forEach(t => {
