@@ -3726,7 +3726,7 @@ def buscar_dados_agenda():
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
-            WHERE ATIVO = 'S'
+            WHERE ATIVO = 'S' AND ID_MOTORISTA <> 0
             ORDER BY NM_MOTORISTA
         """)
         todos_motoristas = []
@@ -3775,7 +3775,7 @@ def buscar_dados_agenda():
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
-            WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S' ID_MOTORISTA <> 0
+            WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S'
             ORDER BY DS_MODELO
         """)
         veiculos = []
