@@ -672,17 +672,20 @@
             destino.disabled = false;
             
             if (idTipoDemanda === 10) {
-                // ID 10 (Cedência): Fecha Motorista, Setor, Solicitante e preenche Destino com 'Cedencia'
+                // ID 10 (Cedência): Fecha Motorista, abre Setor (obrigatório), abre Solicitante (não obrigatório) e preenche Destino com 'Cedência'
                 motorista.disabled = true;
                 motorista.required = false;
                 motorista.value = '';
                 if (motoristaLabel) {
                     motoristaLabel.innerHTML = 'Motorista';
-                }               
-                setor.disabled = true;
-                setor.value = '';
-                solicitante.disabled = true;
-                solicitante.value = '';
+                }
+                
+                // Setor obrigatório
+                setor.disabled = false;
+                labelSetor.innerHTML = 'Setor <span class="required">*</span>';
+                
+                // Solicitante aberto mas não obrigatório
+                solicitante.disabled = false;
                 
                 destino.value = 'Cedência';
             } else if (idTipoDemanda === 9) {
@@ -883,12 +886,27 @@
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
                         html += `<td class="${corClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
                         html += '<div class="cell-content">';
-                        html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
-                        html += `<div>${demanda.destino || ''}</div>`;
-                        html += `<div>${demanda.nu_sei || ''}</div>`;
+                        
+                        // ID 9 (Oficina): mostra tipo de demanda e destino
+                        if (demanda.id_tipodemanda === 9) {
+                            html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
+                            html += `<div>${demanda.destino || ''}</div>`;
+                        }
+                        // ID 10 (Cedência): mostra tipo de demanda, setor e nº SEI
+                        else if (demanda.id_tipodemanda === 10) {
+                            html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
+                            html += `<div>${demanda.setor || ''}</div>`;
+                            html += `<div>${demanda.nu_sei || ''}</div>`;
+                        }
+                        // Outros tipos: formato padrão
+                        else {
+                            html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                            html += `<div>${demanda.destino || ''}</div>`;
+                            html += `<div>${demanda.nu_sei || ''}</div>`;
+                        }
                         
                         // Mostrar (INFORMAR VEÍCULO) se não tiver tipo de veículo
-                        if (!demanda.id_tipoveiculo && ![6, 7, 8].includes(demanda.id_tipodemanda)) {
+                        if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10].includes(demanda.id_tipodemanda)) {
                             html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
                         }                        
                         
@@ -982,11 +1000,12 @@
             
             const grupos = {};
             demandasAlocadas.forEach(d => {
-                const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.destino}`;
+                const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.setor}|${d.destino}`;
                 if (!grupos[key]) {
                     grupos[key] = {
                         de_tipoveiculo: d.de_tipoveiculo,
                         nu_sei: d.nu_sei,
+                        setor: d.setor,
                         destino: d.destino,
                         demandas: []
                     };
@@ -1006,7 +1025,15 @@
                 html += `<td class="col-nome">`;
                 html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
                 html += `<div>${grupo.nu_sei || ''}</div>`;
-                html += `<div>${grupo.destino || ''}</div>`;
+                
+                // Montar linha Setor - Destino com setor em negrito
+                if (grupo.setor && grupo.destino) {
+                    html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
+                } else if (grupo.setor) {
+                    html += `<div><strong>${grupo.setor}</strong></div>`;
+                } else if (grupo.destino) {
+                    html += `<div>${grupo.destino}</div>`;
+                }
                 
                 // Verificar se existe locação finalizada
                 const primeiraLocacao = locacoesAtivas.find(loc => 
@@ -1287,9 +1314,15 @@
                 return;
             }
             
-            // Validação de Motorista: obrigatório exceto para ID 9
+            // Validação de Motorista: obrigatório exceto para ID 9 e 10
             if (idTipoDemanda !== 9 && idTipoDemanda !== 10 && !dados.id_motorista) {
                 alert('O campo Motorista é obrigatório!');
+                return;
+            }
+            
+            // Validação para ID 10: Setor obrigatório
+            if (idTipoDemanda === 10 && !dados.setor) {
+                alert('Para Cedência, o campo Setor é obrigatório!');
                 return;
             }
             
@@ -1348,7 +1381,7 @@
                     fecharModal();
                     await carregarSemanas();
                     await carregarAgenda();
-                    alert('Demanda excluída com sucesso!');
+                    // alert('Demanda excluída com sucesso!');
                 } else {
                     alert('Erro ao excluir: ' + (result.error || 'Erro desconhecido'));
                 }
