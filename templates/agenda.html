@@ -1030,7 +1030,7 @@
             return html;
         }
         
-        function abrirModalNovo() {
+        async function abrirModalNovo() {
             document.getElementById('modalTitle').textContent = 'Nova Demanda';
             document.getElementById('idAd').value = '';
             document.getElementById('formDemanda').reset();
@@ -1044,7 +1044,7 @@
             
             preencherSelectMotoristas('segeop');
             preencherSelectVeiculos();
-            preencherSelectTiposDemanda(); // Nova função
+            await preencherSelectTiposDemanda(); // Aguardar carregamento
             
             // Resetar labels
             document.getElementById('labelTipoVeiculo').innerHTML = 'Tipo de Veículo';
@@ -1071,10 +1071,10 @@
             document.getElementById('modal').style.display = 'block';
         }
         
-        function abrirModalNovoComData(data, idMotorista = null) {
+        async function abrirModalNovoComData(data, idMotorista = null) {
             contextoAbertura = 'motorista';
-            abrirModalNovo();
-            preencherSelectTiposDemanda(); // Recarregar com filtro
+            await abrirModalNovo();
+            await preencherSelectTiposDemanda(); // Recarregar com filtro
             document.getElementById('dtInicio').value = data;
             document.getElementById('dtFim').value = data;
             if (idMotorista) {
@@ -1082,10 +1082,10 @@
             }
         }
         
-        function abrirModalNovoComVeiculo(data, idVeiculo = null) {
+        async function abrirModalNovoComVeiculo(data, idVeiculo = null) {
             contextoAbertura = 'veiculo';
-            abrirModalNovo();
-            preencherSelectTiposDemanda(); // Recarregar com filtro
+            await abrirModalNovo();
+            await preencherSelectTiposDemanda(); // Recarregar com filtro
             document.getElementById('dtInicio').value = data;
             document.getElementById('dtFim').value = data;
             
@@ -1113,13 +1113,12 @@
             }
         }
         
-        function abrirModalEditar(idAd) {
+        async function abrirModalEditar(idAd) {
             const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
             if (!demanda) return;
             
             document.getElementById('modalTitle').textContent = 'Editar Demanda';
             contextoAbertura = null; // Na edição, mostrar todos os tipos
-            preencherSelectTiposDemanda(); // Recarregar tipos de demanda
             document.getElementById('idAd').value = demanda.id;
             document.getElementById('btnExcluir').style.display = 'inline-block';
             
@@ -1139,7 +1138,10 @@
             preencherSelectMotoristas('todos');
             preencherSelectVeiculos();
             
-            document.getElementById('idMotorista').value = demanda.id_motorista;
+            // Carregar tipos de demanda antes de preencher o formulário
+            await preencherSelectTiposDemanda();
+            
+            document.getElementById('idMotorista').value = demanda.id_motorista || '';
             document.getElementById('dtInicio').value = demanda.dt_inicio;
             document.getElementById('dtFim').value = demanda.dt_fim;
             document.getElementById('idTipoDemanda').value = demanda.id_tipodemanda;
@@ -1196,22 +1198,35 @@
             });
         }
         
-        function preencherSelectTiposDemanda() {
-            const selectTipoDemanda = document.getElementById('idTipoDemanda');
-            selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
-            
-            tiposDemanda.forEach(t => {
-                // Quando aberto da seção MOTORISTAS: esconder ID 9
-                if (contextoAbertura === 'motorista' && t.id === 9) {
-                    return;
-                }
-                // Quando aberto da seção VEÍCULOS OFICIAIS: esconder IDs 6, 7, 8
-                if (contextoAbertura === 'veiculo' && (t.id === 6 || t.id === 7 || t.id === 8)) {
-                    return;
+        async function preencherSelectTiposDemanda() {
+            try {
+                const selectTipoDemanda = document.getElementById('idTipoDemanda');
+                const valorAtual = selectTipoDemanda.value; // Guardar valor atual para edição
+                
+                // Montar URL com contexto
+                let url = '/api/agenda/tipos-demanda-filtrados';
+                if (contextoAbertura) {
+                    url += `?contexto=${contextoAbertura}`;
                 }
                 
-                selectTipoDemanda.innerHTML += `<option value="${t.id}" data-descricao="${t.descricao}">${t.descricao}</option>`;
-            });
+                const res = await fetch(url);
+                const tipos = await res.json();
+                
+                selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
+                tipos.forEach(t => {
+                    selectTipoDemanda.innerHTML += `<option value="${t.id}" data-descricao="${t.descricao}">${t.descricao}</option>`;
+                });
+                
+                // Restaurar valor na edição (se ainda existir nas opções)
+                if (valorAtual) {
+                    const opcaoExiste = Array.from(selectTipoDemanda.options).some(opt => opt.value == valorAtual);
+                    if (opcaoExiste) {
+                        selectTipoDemanda.value = valorAtual;
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar tipos de demanda filtrados:', error);
+            }
         }
 
         async function salvarDemanda() {
