@@ -95,7 +95,7 @@
 
         .tipo-locacao {
             background: #c7a3e7 !important;
-        }        
+        }
 
         .motorista-filter {
             display: flex;
@@ -213,13 +213,13 @@
             font-weight: bold;
         }
         .tipo-9 { 
-            background: #fa8484 !important; 
+            background: #fa8484 !important;
             font-weight: bold;
-        }        
+        }
         .tipo-10 { 
-            background: hsl(320, 96%, 79%) !important; 
+            background: hsl(320, 96%, 79%) !important;
             font-weight: bold;
-        }        
+        }
 
         .empty-cell {
             background: #fafafa;
@@ -229,21 +229,22 @@
             background: #e0e0e0;
         }
 
+        /* FOOTER COM TABS ESTILO EXCEL/DELPHI */
         .footer {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-top: 2px solid #dee2e6;
+            background: #e8e8e8;
+            padding: 0;
+            border-top: 1px solid #c0c0c0;
             display: flex;
             justify-content: flex-start;
-            align-items: center;
-            gap: 10px;
+            align-items: flex-end;
+            gap: 0;
             z-index: 100;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            max-width: 100vw; /* NOVO: limitar largura da tela */
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            height: 65px;
         }
 
         .btn {
@@ -253,6 +254,8 @@
             cursor: pointer;
             font-size: 14px;
             transition: all 0.3s;
+            margin: 10px 0 10px 15px;
+            align-self: center;
         }
 
         .btn-primary {
@@ -263,121 +266,137 @@
         .btn-primary:hover { background: #1557b0; }
 
         .footer-divider {
-            width: 2px;
-            height: 30px;
-            background: #dee2e6;
+            width: 1px;
+            height: 40px;
+            background: #c0c0c0;
             margin: 0 10px;
+            align-self: center;
         }
 
-        /* === NAVEGAÇÃO DE ABAS ESTILO EXCEL === */
+        /* TABS NAVEGAÇÃO ESTILO EXCEL */
         .week-tabs-wrapper {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            align-items: flex-end;
+            gap: 0;
             flex: 1;
             overflow: hidden;
-            min-width: 0; /* NOVO: permite flex-shrink funcionar */
-            max-width: 100%; /* NOVO: não ultrapassar container pai */
+            height: 100%;
+            background: #e8e8e8;
+            padding-bottom: 0;
+        }
+
+        .week-nav-btn {
+            background: #f0f0f0;
+            border: 1px solid #c0c0c0;
+            border-bottom: none;
+            cursor: pointer;
+            padding: 8px 10px;
+            font-size: 14px;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 2px 0 8px;
+            align-self: flex-end;
+            margin-bottom: 2px;
+        }
+
+        .week-nav-btn:hover:not(:disabled) {
+            background: #fff;
+        }
+
+        .week-nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #e0e0e0;
         }
 
         .week-tabs-scroll {
             display: flex;
-            gap: 10px;
+            gap: 0;
             overflow-x: auto;
             overflow-y: hidden;
             scroll-behavior: smooth;
             flex: 1;
-            position: relative;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e0 #f7fafc;
-            min-width: 0; /* NOVO: permite scroll */
-            max-width: 100%; /* NOVO */
-            -webkit-overflow-scrolling: touch; /* NOVO: smooth scroll mobile */
+            height: 100%;
+            align-items: flex-end;
+            background: #e8e8e8;
+            padding: 0 4px 0 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
 
         .week-tabs-scroll::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .week-tabs-scroll::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        .week-tabs-scroll::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        .week-tabs-scroll::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            display: none;
         }
 
         .week-tabs-container {
-            display: inline-flex; /* MUDANÇA IMPORTANTE: de flex para inline-flex */
-            gap: 10px;
+            display: inline-flex;
+            gap: -1px;
             flex-wrap: nowrap;
-            padding: 2px 0;
-            min-width: min-content; /* NOVO: força o tamanho mínimo necessário */
-        }
-
-        .week-nav-btn {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            cursor: pointer;
-            padding: 8px 12px;
-            font-size: 16px;
-            transition: all 0.3s;
-            flex-shrink: 0;
-            min-width: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .week-nav-btn:hover:not(:disabled) {
-            background: #e9ecef;
-        }
-
-        .week-nav-btn:active:not(:disabled) {
-            transform: scale(0.95);
-        }
-
-        .week-nav-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            background: #f5f5f5;
+            align-items: flex-end;
+            height: 100%;
+            padding: 0;
+            margin: 0;
         }
 
         .week-tab {
-            padding: 8px 16px;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
+            padding: 10px 20px;
+            background: #d4d4d4;
+            border: 1px solid #c0c0c0;
+            border-bottom: none;
             cursor: pointer;
             font-size: 13px;
-            transition: all 0.2s;
+            transition: all 0.15s;
             white-space: nowrap;
             flex-shrink: 0;
             user-select: none;
-            display: inline-block; /* NOVO */
+            display: inline-flex;
+            align-items: center;
+            height: 32px;
+            margin: 0;
+            border-radius: 6px 6px 0 0;
+            position: relative;
+            color: #333;
+            font-weight: 500;
         }
 
         .week-tab:hover:not(.active) {
-            background: #e9ecef;
-            border-color: #bbb;
+            background: #e8e8e8;
+            border-color: #b0b0b0;
+            z-index: 1;
         }
 
         .week-tab.active {
-            background: #1a73e8;
-            color: white;
-            border-color: #1a73e8;
+            background: #ffffff;
+            color: #000;
+            border-color: #c0c0c0;
+            border-bottom: 1px solid #ffffff;
             font-weight: 600;
-            box-shadow: 0 2px 4px rgba(26, 115, 232, 0.3);
+            z-index: 2;
+            height: 35px;
+            padding: 10px 22px;
+            margin-bottom: -1px;
         }
-        /* === FIM NAVEGAÇÃO DE ABAS === */
 
+        .week-tab.active::before {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #ffffff;
+        }
+
+        .week-tab:not(.active) {
+            box-shadow: inset 0 -2px 3px rgba(0,0,0,0.05);
+        }
+
+        /* MODALS */
         .modal {
             display: none;
             position: fixed;
@@ -652,11 +671,11 @@
         <button class="btn btn-primary" onclick="abrirModalNovoGeral()">➕ Nova Demanda</button>
         <div class="footer-divider"></div>
         <div class="week-tabs-wrapper">
-            <button class="week-nav-btn" id="btnPrevWeek" onclick="scrollWeekTabs(-1)">◀</button>
+            <button class="week-nav-btn" id="btnPrevWeek" onclick="scrollWeekTabs(-1)" title="Anterior">◀</button>
             <div class="week-tabs-scroll" id="weekTabsScroll">
                 <div class="week-tabs-container" id="weekTabs"></div>
             </div>
-            <button class="week-nav-btn" id="btnNextWeek" onclick="scrollWeekTabs(1)">▶</button>
+            <button class="week-nav-btn" id="btnNextWeek" onclick="scrollWeekTabs(1)" title="Próxima">▶</button>
         </div>
     </div>
     
