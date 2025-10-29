@@ -170,11 +170,16 @@
         }
         
         /* Cores por tipo de demanda */
-        .tipo-1 { background: #cfe2ff; }
-        .tipo-2 { background: #d1e7dd; }
-        .tipo-3 { background: #ffe5d0; }
-        .tipo-4, .tipo-5 { background: #fff3cd; }
-        .tipo-6, .tipo-7, .tipo-8 { background: #fff9c4; }
+        .tipo-1 { background: #adb3e9; }
+        .tipo-2 { background: #79f183; }
+        .tipo-3 { background: #f8c295; }
+        .tipo-4, .tipo-5 { background: #ffe89b; }
+        .tipo-6, .tipo-7, .tipo-8 { background: #f3f183; }
+        .tipo-9 { 
+            background: #ff6b6b !important; 
+            color: white;
+            font-weight: bold;
+        }        
         
         .empty-cell {
             background: #fafafa;
@@ -421,6 +426,7 @@
                     <input type="hidden" id="idAd" value="">
                     
                     <div class="motorista-filter" id="motoristaFilter">
+                        <strong style="margin-right: 10px;">Filtrar Motorista:</strong>
                         <label>
                             <input type="radio" name="tipoMotorista" value="segeop" checked> SEGEOP
                         </label>
@@ -508,6 +514,7 @@
         let veiculoSelecionadoOriginal = null;
         let celulaSelecionada = null;
         let locacoesAtivas = [];
+        let contextoAbertura = null; // 'motorista', 'veiculo' ou null
         
         async function init() {
             await carregarSemanas();
@@ -616,6 +623,7 @@
             const optionSelecionada = selectTipoDemanda.options[selectTipoDemanda.selectedIndex];
             const descricaoTipoDemanda = optionSelecionada ? optionSelecionada.getAttribute('data-descricao') : '';
             
+            const motorista = document.getElementById('idMotorista');
             const tipoVeiculo = document.getElementById('idTipoVeiculo');
             const veiculo = document.getElementById('idVeiculo');
             const setor = document.getElementById('setor');
@@ -636,13 +644,25 @@
             labelDestino.innerHTML = 'Destino';
             
             // Habilitar todos primeiro
+            motorista.disabled = false;
             tipoVeiculo.disabled = false;
             veiculo.disabled = false;
             setor.disabled = false;
             solicitante.disabled = false;
             destino.disabled = false;
             
-            if (idTipoDemanda >= 6 && idTipoDemanda <= 8) {
+            if (idTipoDemanda === 9) {
+                // ID 9 (Oficina): Fecha Motorista, Setor, Solicitante e preenche Destino com 'Oficina'
+                motorista.disabled = true;
+                motorista.value = '';
+                setor.disabled = true;
+                setor.value = '';
+                solicitante.disabled = true;
+                solicitante.value = '';
+                if (!destino.value) {
+                    destino.value = 'Oficina';
+                }
+            } else if (idTipoDemanda >= 6 && idTipoDemanda <= 8) {
                 // ID 6-8: Fecha e desobriga Tipo Veículo, Veículo, Setor, Solicitante, Destino
                 tipoVeiculo.disabled = true;
                 tipoVeiculo.value = '';
@@ -893,7 +913,14 @@
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
                         html += `<td class="${corClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
                         html += '<div class="cell-content-veiculos">';
-                        html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                        
+                        // Se for tipo 9 (Oficina), mostrar destino em vez de motorista
+                        if (demanda.id_tipodemanda === 9) {
+                            html += `<div><strong>${demanda.destino || 'Oficina'}</strong></div>`;
+                        } else {
+                            html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                        }
+                        
                         html += `<div>${demanda.nu_sei || ''}</div>`;
                         html += '</div></td>';
                     } else {
@@ -994,6 +1021,7 @@
             document.getElementById('formDemanda').reset();
             document.getElementById('btnExcluir').style.display = 'none';
             veiculoSelecionadoOriginal = null;
+            contextoAbertura = null;
             
             // Mostrar filtro e definir SEGEOP como padrão
             document.getElementById('motoristaFilter').style.display = 'flex';
@@ -1001,6 +1029,7 @@
             
             preencherSelectMotoristas('segeop');
             preencherSelectVeiculos();
+            preencherSelectTiposDemanda(); // Nova função
             
             // Resetar labels
             document.getElementById('labelTipoVeiculo').innerHTML = 'Tipo de Veículo';
@@ -1010,6 +1039,7 @@
             document.getElementById('labelDestino').innerHTML = 'Destino';
             
             // Habilitar todos os campos
+            document.getElementById('idMotorista').disabled = false;
             document.getElementById('idTipoVeiculo').disabled = false;
             document.getElementById('idVeiculo').disabled = false;
             document.getElementById('setor').disabled = false;
@@ -1027,7 +1057,9 @@
         }
         
         function abrirModalNovoComData(data, idMotorista = null) {
+            contextoAbertura = 'motorista';
             abrirModalNovo();
+            preencherSelectTiposDemanda(); // Recarregar com filtro
             document.getElementById('dtInicio').value = data;
             document.getElementById('dtFim').value = data;
             if (idMotorista) {
@@ -1036,7 +1068,9 @@
         }
         
         function abrirModalNovoComVeiculo(data, idVeiculo = null) {
+            contextoAbertura = 'veiculo';
             abrirModalNovo();
+            preencherSelectTiposDemanda(); // Recarregar com filtro
             document.getElementById('dtInicio').value = data;
             document.getElementById('dtFim').value = data;
             
@@ -1069,6 +1103,8 @@
             if (!demanda) return;
             
             document.getElementById('modalTitle').textContent = 'Editar Demanda';
+            contextoAbertura = null; // Na edição, mostrar todos os tipos
+            preencherSelectTiposDemanda(); // Recarregar tipos de demanda
             document.getElementById('idAd').value = demanda.id;
             document.getElementById('btnExcluir').style.display = 'inline-block';
             
@@ -1145,6 +1181,24 @@
             });
         }
         
+        function preencherSelectTiposDemanda() {
+            const selectTipoDemanda = document.getElementById('idTipoDemanda');
+            selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
+            
+            tiposDemanda.forEach(t => {
+                // Filtrar ID 9 quando contexto for motorista
+                if (contextoAbertura === 'motorista' && t.id === 9) {
+                    return;
+                }
+                // Filtrar IDs 6, 7, 8 quando contexto for veículo
+                if (contextoAbertura === 'veiculo' && (t.id === 6 || t.id === 7 || t.id === 8)) {
+                    return;
+                }
+                
+                selectTipoDemanda.innerHTML += `<option value="${t.id}" data-descricao="${t.descricao}">${t.descricao}</option>`;
+            });
+        }
+
         async function salvarDemanda() {
             const idAd = document.getElementById('idAd').value;
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
