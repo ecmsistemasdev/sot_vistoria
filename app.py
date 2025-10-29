@@ -3747,7 +3747,7 @@ def buscar_dados_agenda():
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
                    ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO
             FROM ATENDIMENTO_DEMANDAS ae
-            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA AND m.ID_MOTORISTA <> 0
+            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
             LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
             WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
@@ -3775,7 +3775,7 @@ def buscar_dados_agenda():
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
-            WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S'
+            WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S' ID_MOTORISTA <> 0
             ORDER BY DS_MODELO
         """)
         veiculos = []
