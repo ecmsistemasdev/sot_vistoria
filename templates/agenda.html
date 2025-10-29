@@ -436,14 +436,130 @@
             padding: 40px;
             color: #666;
         }
+
+        .header-icon {
+            cursor: pointer;
+            font-size: 20px;
+            opacity: 0.85;
+            transition: opacity 0.2s, transform 0.2s;
+            margin-left: auto;
+            padding: 5px 10px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .header-icon:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .feriados-container {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .feriado-form {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .feriado-form-row {
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .feriados-lista {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .feriado-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+
+        .feriado-item:hover {
+            background: #f8f9fa;
+        }
+
+        .feriado-info {
+            flex: 1;
+        }
+
+        .feriado-descricao {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .feriado-data {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px 10px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .btn-icon:hover {
+            opacity: 1;
+        }
+
+        .cell-feriado {
+            background: #f3f183 !important;
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .cell-feriado-com-demanda {
+            position: relative;
+        }
+
+        .cell-feriado-com-demanda::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(243, 241, 131, 0.3) 10px,
+                rgba(243, 241, 131, 0.3) 20px
+            );
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>📅 AGENDA SEGEOP</h1>
-            <span class="periodo" id="semanaAtual"></span>
-        </div>
+    <div class="header">
+        <h1>📅 AGENDA SEGEOP</h1>
+        <span class="periodo" id="semanaAtual"></span>
+        <a href="#" class="header-icon" onclick="abrirModalFeriados(); return false;" title="Gerenciar Feriados">🎉</a>
+    </div>
         
         <div class="agenda-wrapper" id="agendaWrapper">
             <div class="loading">⏳ Carregando agenda...</div>
@@ -560,6 +676,46 @@
         </div>
     </div>
     
+    <!-- Modal Feriados -->
+    <div id="modalFeriados" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🗓️ Gerenciar Feriados</h2>
+                <span class="close" onclick="fecharModalFeriados()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="feriados-container">
+                    <!-- Formulário de Inclusão -->
+                    <div class="feriado-form">
+                        <div class="feriado-form-row">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Tipo</label>
+                                <select id="tipoFeriado">
+                                    <option value="FERIADO">FERIADO</option>
+                                    <option value="PONTO FACULTATIVO">PONTO FACULTATIVO</option>
+                                    <option value="OUTRO">OUTRO</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Data</label>
+                                <input type="date" id="dataFeriado" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-primary" onclick="adicionarFeriado()">➕ Adicionar</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lista de Feriados -->
+                    <div class="feriados-lista" id="feriadosLista">
+                        <div class="loading">Carregando feriados...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let semanas = [];
         let semanaAtual = 0;
@@ -572,7 +728,8 @@
         let celulaSelecionada = null;
         let locacoesAtivas = [];
         let contextoAbertura = null; // 'motorista', 'veiculo' ou null
-        
+        let feriadosPeriodo = [];
+
         async function init() {
             await carregarSemanas();
             await carregarSelectsFixos();
@@ -593,9 +750,131 @@
                 
                 semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
                 await carregarLocacoes();
+                await carregarFeriadosPeriodo();
                 await carregarAgenda();
             }
         }
+
+        // Carregar feriados do período atual
+        async function carregarFeriadosPeriodo() {
+            try {
+                const semana = semanas[semanaAtual];
+                const res = await fetch(`/api/agenda/feriados-periodo?inicio=${semana.inicio}&fim=${semana.fim}`);
+                feriadosPeriodo = await res.json();
+            } catch (error) {
+                console.error('Erro ao carregar feriados do período:', error);
+                feriadosPeriodo = [];
+            }
+        }
+
+        // Abrir modal de feriados
+        async function abrirModalFeriados() {
+            document.getElementById('modalFeriados').style.display = 'block';
+            await carregarListaFeriados();
+        }
+
+        // Fechar modal de feriados
+        function fecharModalFeriados() {
+            document.getElementById('modalFeriados').style.display = 'none';
+        }
+
+        // Carregar lista de todos os feriados
+        async function carregarListaFeriados() {
+            const lista = document.getElementById('feriadosLista');
+            lista.innerHTML = '<div class="loading">Carregando...</div>';
+            
+            try {
+                const res = await fetch('/api/agenda/feriados');
+                const feriados = await res.json();
+                
+                if (feriados.length === 0) {
+                    lista.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Nenhum feriado cadastrado</div>';
+                    return;
+                }
+                
+                lista.innerHTML = feriados.map(f => {
+                    const data = new Date(f.dt_feriado + 'T00:00:00');
+                    const dataFormatada = data.toLocaleDateString('pt-BR', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric',
+                        weekday: 'short'
+                    });
+                    
+                    return `
+                        <div class="feriado-item">
+                            <div class="feriado-info">
+                                <div class="feriado-descricao">${f.descricao}</div>
+                                <div class="feriado-data">${dataFormatada}</div>
+                            </div>
+                            <button class="btn-icon" onclick="excluirFeriado(${f.id})" title="Excluir">🗑️</button>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Erro ao carregar lista de feriados:', error);
+                lista.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;">Erro ao carregar feriados</div>';
+            }
+        }
+
+        // Adicionar novo feriado
+        async function adicionarFeriado() {
+            const tipo = document.getElementById('tipoFeriado').value;
+            const data = document.getElementById('dataFeriado').value;
+            
+            if (!data) {
+                alert('Informe a data do feriado!');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/agenda/feriado', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        descricao: tipo,
+                        dt_feriado: data
+                    })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    document.getElementById('dataFeriado').value = '';
+                    await carregarListaFeriados();
+                    await carregarFeriadosPeriodo();
+                    await carregarAgenda();
+                }
+            } catch (error) {
+                console.error('Erro ao adicionar feriado:', error);
+            }
+        }
+
+        // Excluir feriado
+        async function excluirFeriado(id) {
+            try {
+                const res = await fetch(`/api/agenda/feriado/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    await carregarListaFeriados();
+                    await carregarFeriadosPeriodo();
+                    await carregarAgenda();
+                }
+            } catch (error) {
+                console.error('Erro ao excluir feriado:', error);
+            }
+        }
+
+        // Verificar se uma data é feriado
+        function isFeriado(data) {
+            return feriadosPeriodo.find(f => f.dt_feriado === data);
+        }
+
 
         async function carregarLocacoes() {
             try {
@@ -868,6 +1147,7 @@
         async function mudarSemana(index) {
             semanaAtual = index;
             renderizarAbas();
+            await carregarFeriadosPeriodo();
             await carregarAgenda();
         }
         
@@ -937,6 +1217,7 @@
                 html += `<td class="col-nome">${m.nome}</td>`;
                 
                 dias.forEach(dia => {
+                    const feriado = isFeriado(dia.data);
                     const demandasDia = dadosAgenda.demandas.filter(d => 
                         d.id_motorista === m.id && 
                         d.dt_inicio <= dia.data && 
@@ -946,7 +1227,8 @@
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        html += `<td class="${corClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                        const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                        html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
                         html += '<div class="cell-content">';
                         
                         // ID 9 (Oficina): mostra descrição do tipo (negrito) e destino (regular)
@@ -979,6 +1261,9 @@
                         }                        
                         
                         html += '</div></td>';
+                    } else if (feriado) {
+                        // Célula de feriado sem demanda
+                        html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
                     } else {
                         const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                         const weekendClass = isWeekend ? 'weekend-empty' : '';
@@ -1025,6 +1310,7 @@
                 html += `<td class="col-nome">${v.veiculo}</td>`;
                 
                 dias.forEach(dia => {
+                    const feriado = isFeriado(dia.data);
                     const demandasDia = dadosAgenda.demandas.filter(d => 
                         d.id_veiculo === v.id && 
                         d.dt_inicio <= dia.data && 
@@ -1034,7 +1320,8 @@
                     if (demandasDia.length > 0) {
                         const demanda = demandasDia[0];
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        html += `<td class="${corClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
+                        const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                        html += `<td class="${corClass} ${feriadoClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
                         html += '<div class="cell-content-veiculos">';
                         
                         // ID 9 (Oficina): mostra descrição do tipo (negrito) e destino (regular)
@@ -1061,6 +1348,9 @@
                         }
                         
                         html += '</div></td>';
+                    } else if (feriado) {
+                        // Célula de feriado sem demanda
+                        html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})">${feriado.descricao}</td>`;
                     } else {
                         const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                         const weekendClass = isWeekend ? 'weekend-empty' : '';
@@ -1148,6 +1438,7 @@
                 html += `</td>`;
                 
                 dias.forEach(dia => {
+                    const feriado = isFeriado(dia.data);
                     const demandasDia = grupo.demandas.filter(d => 
                         d.dt_inicio <= dia.data && 
                         d.dt_fim >= dia.data
@@ -1171,11 +1462,12 @@
                             corClass = temLocacao ? 'tipo-locacao' : '';
                         }
                         
-                        html += `<td class="${corClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                        const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                        html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
                         html += '<div class="cell-content-veiculos">';
                         
                         if (isIdEspecial) {
-                            // Para IDs 7, 8, 9: mostrar apenas OBS (se houver)
+                            // Para IDs 7, 8, 9: mostrar apenas setor e destino
                             if (demanda.setor) {
                                 html += `<div><strong>${demanda.setor}</strong></div>`;
                             }
@@ -1184,7 +1476,7 @@
                             }                            
 
                         } else {
-                            // Para outros IDs: mostrar motorista e SEI
+                            // Para outros IDs: mostrar motorista e setor
                             html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                             if (demanda.setor) {
                                 html += `<div>${demanda.setor}</div>`;
@@ -1192,6 +1484,9 @@
                         }
                         
                         html += '</div></td>';
+                    } else if (feriado) {
+                        // Célula de feriado sem demanda
+                        html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
                     } else {
                         const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                         const weekendClass = isWeekend ? 'weekend-empty' : '';
@@ -1540,6 +1835,14 @@
             }
         });
         
+        // Fechar modal de feriados ao clicar fora
+        window.addEventListener('click', function(event) {
+            const modalFeriados = document.getElementById('modalFeriados');
+            if (event.target == modalFeriados) {
+                fecharModalFeriados();
+            }
+        });
+
         init();
     </script>
 </body>
