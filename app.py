@@ -4077,6 +4077,114 @@ def buscar_tipos_demanda_filtrados():
         if cursor:
             cursor.close()
 
+# API: Listar feriados
+@app.route('/api/agenda/feriados', methods=['GET'])
+def listar_feriados():
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT ID_FERIADO, DESCRICAO, DT_FERIADO
+            FROM AGENDA_FERIADOS
+            ORDER BY DT_FERIADO
+        """)
+        
+        feriados = []
+        for r in cursor.fetchall():
+            feriados.append({
+                'id': r[0],
+                'descricao': r[1],
+                'dt_feriado': r[2].strftime('%Y-%m-%d')
+            })
+        
+        return jsonify(feriados)
+        
+    except Exception as e:
+        print(f"Erro em listar_feriados: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+# API: Criar feriado
+@app.route('/api/agenda/feriado', methods=['POST'])
+def criar_feriado():
+    cursor = None
+    try:
+        data = request.get_json()
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            INSERT INTO AGENDA_FERIADOS (DESCRICAO, DT_FERIADO)
+            VALUES (%s, %s)
+        """, (data['descricao'], data['dt_feriado']))
+        
+        mysql.connection.commit()
+        id_feriado = cursor.lastrowid
+        
+        return jsonify({'success': True, 'id': id_feriado})
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"Erro ao criar feriado: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+# API: Excluir feriado
+@app.route('/api/agenda/feriado/<int:id_feriado>', methods=['DELETE'])
+def excluir_feriado(id_feriado):
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("DELETE FROM AGENDA_FERIADOS WHERE ID_FERIADO = %s", (id_feriado,))
+        mysql.connection.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"Erro ao excluir feriado: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+# API: Buscar feriados por período
+@app.route('/api/agenda/feriados-periodo', methods=['GET'])
+def buscar_feriados_periodo():
+    cursor = None
+    try:
+        inicio = request.args.get('inicio')
+        fim = request.args.get('fim')
+        
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT ID_FERIADO, DESCRICAO, DT_FERIADO
+            FROM AGENDA_FERIADOS
+            WHERE DT_FERIADO BETWEEN %s AND %s
+            ORDER BY DT_FERIADO
+        """, (inicio, fim))
+        
+        feriados = []
+        for r in cursor.fetchall():
+            feriados.append({
+                'id': r[0],
+                'descricao': r[1],
+                'dt_feriado': r[2].strftime('%Y-%m-%d')
+            })
+        
+        return jsonify(feriados)
+        
+    except Exception as e:
+        print(f"Erro em buscar_feriados_periodo: {str(e)}")
+        return jsonify([])
+    finally:
+        if cursor:
+            cursor.close()
+
+
 #######################################
 
 if __name__ == '__main__':
