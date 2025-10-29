@@ -1128,36 +1128,36 @@
                 html += `<td class="col-nome">`;
                 html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
                 
-                if (isIdEspecial) {
-                    // Para IDs 7, 8, 9: mostrar Setor - Destino (se houver)
-                    const partes = [];
-                    if (grupo.setor) partes.push(grupo.setor);
-                    if (grupo.destino) partes.push(grupo.destino);
-                    if (partes.length > 0) {
-                        html += `<div>${partes.join(' - ')}</div>`;
-                    }
-                } else {
-                    // Para outros IDs: formato original
-                    html += `<div>${grupo.nu_sei || ''}</div>`;
-                    
-                    // Montar linha Setor - Destino com setor em negrito
-                    if (grupo.setor && grupo.destino) {
-                        html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
-                    } else if (grupo.setor) {
-                        html += `<div><strong>${grupo.setor}</strong></div>`;
-                    } else if (grupo.destino) {
-                        html += `<div>${grupo.destino}</div>`;
-                    }
-                    
-                    // Verificar se existe locação finalizada
-                    const primeiraLocacao = locacoesAtivas.find(loc => 
-                        loc.fl_status === 'F' && 
-                        grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
-                    );
-                    if (primeiraLocacao) {
-                        html += `<div style="color: #6c757d; font-size: 11px; margin-top: 3px;">${primeiraLocacao.ds_veiculo_mod}</div>`;
-                    }
+                // if (isIdEspecial) {
+                //     // Para IDs 7, 8, 9: mostrar Setor - Destino (se houver)
+                //     const partes = [];
+                //     if (grupo.setor) partes.push(grupo.setor);
+                //     if (grupo.destino) partes.push(grupo.destino);
+                //     if (partes.length > 0) {
+                //         html += `<div>${partes.join(' - ')}</div>`;
+                //     }
+                // } else {
+                //     // Para outros IDs: formato original
+                html += `<div>${grupo.nu_sei || ''}</div>`;
+                
+                // Montar linha Setor - Destino com setor em negrito
+                if (grupo.setor && grupo.destino) {
+                    html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
+                } else if (grupo.setor) {
+                    html += `<div><strong>${grupo.setor}</strong></div>`;
+                } else if (grupo.destino) {
+                    html += `<div>${grupo.destino}</div>`;
                 }
+                
+                // Verificar se existe locação finalizada
+                const primeiraLocacao = locacoesAtivas.find(loc => 
+                    loc.fl_status === 'F' && 
+                    grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
+                );
+                if (primeiraLocacao) {
+                    html += `<div style="color: #6c757d; font-size: 11px; margin-top: 3px;">${primeiraLocacao.ds_veiculo_mod}</div>`;
+                }
+                // }
                 
                 html += `</td>`;
                 
@@ -1190,14 +1190,18 @@
                         
                         if (isIdEspecial) {
                             // Para IDs 7, 8, 9: mostrar apenas OBS (se houver)
-                            if (demanda.obs) {
-                                html += `<div>${demanda.obs}</div>`;
+                            if (demanda.setor) {
+                                html += `<div><strong>${demanda.setor}</strong></div>`;
                             }
+                            if (demanda.destino) {
+                                html += `<div>${demanda.destino}</div>`;
+                            }                            
+
                         } else {
                             // Para outros IDs: mostrar motorista e SEI
                             html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
-                            if (demanda.nu_sei) {
-                                html += `<div>${demanda.nu_sei}</div>`;
+                            if (demanda.setor) {
+                                html += `<div>${demanda.setor}</div>`;
                             }
                         }
                         
