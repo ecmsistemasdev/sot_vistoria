@@ -6,14 +6,14 @@
     <title>Agenda SEGEOP</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
             padding: 20px;
             padding-bottom: 80px;
         }
-        
+
         .container {
             max-width: 100%;
             background: white;
@@ -21,7 +21,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             overflow: hidden;
         }
-        
+
         .header {
             background: #1a73e8;
             color: white;
@@ -31,27 +31,27 @@
             justify-content: center;
             gap: 15px;
         }
-        
+
         .header h1 { 
             font-size: 18px; 
             margin: 0; 
         }
-        
+
         .header .periodo {
             font-size: 14px;
             color: #fff9c4;
             font-weight: 500;
         }
-        
+
         .agenda-wrapper {
             overflow-x: auto;
             padding: 20px;
         }
-        
+
         .agenda-section {
             margin-bottom: 40px;
         }
-        
+
         .section-title {
             background: #34495e;
             color: white;
@@ -60,14 +60,14 @@
             font-weight: bold;
             border-radius: 4px 4px 0 0;
         }
-        
+
         .agenda-table {
             width: 100%;
             border-collapse: collapse;
             border: 1px solid #ddd;
             table-layout: fixed;
         }
-        
+
         .agenda-table th {
             background: #ecf0f1;
             padding: 10px;
@@ -76,7 +76,7 @@
             font-size: 13px;
             font-weight: 600;
         }
-        
+
         .agenda-table td {
             border: 1px solid #ddd;
             padding: 6px;
@@ -92,7 +92,7 @@
             filter: brightness(0.85);
             box-shadow: inset 0 0 0 2px #1a73e8;
         }
-        
+
         .tipo-locacao {
             background: #c7a3e7 !important;
         }        
@@ -105,7 +105,7 @@
             background: #f8f9fa;
             border-radius: 4px;
         }
-        
+
         .motorista-filter label {
             display: flex;
             align-items: center;
@@ -114,12 +114,12 @@
             font-weight: normal;
             font-size: 14px;
         }
-        
+
         .motorista-filter input[type="radio"] {
             cursor: pointer;
             width: auto;
         }
-        
+
         .motorista-inline-filter {
             display: flex;
             gap: 20px;
@@ -157,14 +157,14 @@
         .agenda-table td:hover {
             background: #f8f9fa !important;
         }
-        
+
         .col-numero {
             width: 40px;
             background: #f8f9fa;
             font-weight: 600;
             text-align: center;
         }
-        
+
         .col-nome {
             width: 216px;
             background: #f8f9fa;
@@ -172,11 +172,11 @@
             word-wrap: break-word;
             white-space: normal;
         }
-        
+
         .col-dia {
             width: calc((100% - 256px) / 7);
         }
-        
+
         .cell-content {
             line-height: 1.4;
             min-height: 35px;
@@ -184,7 +184,7 @@
             overflow: visible;
             font-size: 11px;
         }
-        
+
         .cell-content-veiculos {
             line-height: 1.4;
             min-height: 30px;
@@ -192,17 +192,17 @@
             overflow: visible;
             font-size: 11px;
         }
-        
+
         .cell-content div {
             margin-bottom: 2px;
         }
-        
+
         .informar-veiculo {
             color: #dc3545;
             font-style: italic;
             font-size: 10px;
         }
-        
+
         /* Cores por tipo de demanda */
         .tipo-1 { background: #5fa1df; }
         .tipo-2 { background: #79f183; }
@@ -214,23 +214,21 @@
         }
         .tipo-9 { 
             background: #fa8484 !important; 
-            /*color: rgb(12, 12, 12);*/
             font-weight: bold;
         }        
         .tipo-10 { 
             background: hsl(320, 96%, 79%) !important; 
-            /*color: rgb(12, 12, 12);*/
             font-weight: bold;
         }        
-        
+
         .empty-cell {
             background: #fafafa;
         }
-        
+
         .empty-cell.weekend-empty {
             background: #e0e0e0;
         }
-        
+
         .footer {
             position: fixed;
             bottom: 0;
@@ -246,7 +244,7 @@
             z-index: 100;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
-        
+
         .btn {
             padding: 8px 16px;
             border: none;
@@ -255,27 +253,117 @@
             font-size: 14px;
             transition: all 0.3s;
         }
-        
+
         .btn-primary {
             background: #1a73e8;
             color: white;
         }
-        
+
         .btn-primary:hover { background: #1557b0; }
-        
+
         .footer-divider {
             width: 2px;
             height: 30px;
             background: #dee2e6;
             margin: 0 10px;
         }
-        
+
+        /* === NAVEGAÇÃO DE ABAS ESTILO EXCEL === */
+        .week-tabs-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .week-tabs-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;  /* IMPORTANTE: permite scroll horizontal */
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            flex: 1;
+            position: relative;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e0 #f7fafc;
+        }
+
+        .week-tabs-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .week-tabs-scroll::-webkit-scrollbar-track {
+            background: #f7fafc;
+        }
+
+        .week-tabs-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+
+        .week-tabs-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
         .week-tabs-container {
             display: flex;
             gap: 10px;
-            flex-wrap: nowrap;
+            flex-wrap: nowrap;  /* Não quebra linha */
+            padding: 2px 0;
         }
-                
+
+        .week-nav-btn {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 8px 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .week-nav-btn:hover:not(:disabled) {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+
+        .week-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .week-tab {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .week-tab:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .week-tab.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+            font-weight: 600;
+        }
+        /* === FIM NAVEGAÇÃO DE ABAS === */
+
         .modal {
             display: none;
             position: fixed;
@@ -287,12 +375,12 @@
             background: rgba(0,0,0,0.5);
             animation: fadeIn 0.3s;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        
+
         .modal-content {
             background: white;
             margin: 50px auto;
@@ -305,12 +393,12 @@
             max-height: 90vh;
             overflow-y: auto;
         }
-        
+
         @keyframes slideDown {
             from { transform: translateY(-50px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        
+
         .modal-header {
             background: #1a73e8;
             color: white;
@@ -328,7 +416,7 @@
             font-size: 16px;
             margin: 0;
         }
-        
+
         .close {
             font-size: 28px;
             font-weight: bold;
@@ -336,17 +424,17 @@
             color: white;
             opacity: 0.8;
         }
-        
+
         .close:hover { opacity: 1; }
-        
+
         .modal-body {
             padding: 15px 20px;
         }
-        
+
         .form-group {
             margin-bottom: 12px;
         }
-        
+
         .form-group label {
             display: block;
             margin-bottom: 4px;
@@ -354,7 +442,7 @@
             font-size: 13px;
             color: #333;
         }
-        
+
         .form-group label .required {
             color: #dc3545;
         }
@@ -379,13 +467,13 @@
             resize: vertical;
             min-height: 50px;
         }
-        
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
-        
+
         .modal-footer {
             padding: 12px 20px;
             background: #f8f9fa;
@@ -396,21 +484,21 @@
             position: sticky;
             bottom: 0;
         }
-        
+
         .btn-secondary {
             background: #6c757d;
             color: white;
         }
-        
+
         .btn-secondary:hover { background: #5a6268; }
-        
+
         .btn-danger {
             background: #dc3545;
             color: white;
         }
-        
+
         .btn-danger:hover { background: #c82333; }
-        
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -531,76 +619,6 @@
             );
             pointer-events: none;
         }
-
-        .week-tabs-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .week-tabs-scroll {
-            display: flex;
-            gap: 10px;
-            overflow-x: hidden;
-            scroll-behavior: smooth;
-            flex: 1;
-            position: relative;
-        }
-
-        .week-tabs-container {
-            display: flex;
-            gap: 10px;
-            flex-wrap: nowrap;
-        }
-
-        .week-nav-btn {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            cursor: pointer;
-            padding: 8px 12px;
-            font-size: 16px;
-            transition: all 0.3s;
-            flex-shrink: 0;
-            min-width: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .week-nav-btn:hover:not(:disabled) {
-            background: #e9ecef;
-        }
-
-        .week-nav-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .week-tab {
-            padding: 8px 16px;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            transition: all 0.3s;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .week-tab:hover {
-            background: #e9ecef;
-        }
-
-        .week-tab.active {
-            background: #1a73e8;
-            color: white;
-            border-color: #1a73e8;
-        }
-
     </style>
 </head>
 <body>
