@@ -4006,6 +4006,49 @@ def buscar_locacoes():
         if cursor:
             cursor.close()
 
+# API: Buscar tipos de demanda filtrados por contexto
+@app.route('/api/agenda/tipos-demanda-filtrados', methods=['GET'])
+def buscar_tipos_demanda_filtrados():
+    cursor = None
+    try:
+        contexto = request.args.get('contexto', '')  # 'motorista', 'veiculo', ou vazio
+        
+        cursor = mysql.connection.cursor()
+        
+        if contexto == 'motorista':
+            # Excluir ID 9 quando contexto for motorista
+            cursor.execute("""
+                SELECT ID_TIPODEMANDA, DE_TIPODEMANDA 
+                FROM TIPO_DEMANDA 
+                WHERE ID_TIPODEMANDA NOT IN (9, 10)
+                ORDER BY ID_TIPODEMANDA
+            """)
+        elif contexto == 'veiculo':
+            # Excluir IDs 6, 7, 8 quando contexto for veículo
+            cursor.execute("""
+                SELECT ID_TIPODEMANDA, DE_TIPODEMANDA 
+                FROM TIPO_DEMANDA 
+                WHERE ID_TIPODEMANDA NOT IN (6, 7, 8)
+                ORDER BY ID_TIPODEMANDA
+            """)
+        else:
+            # Retornar todos quando não houver contexto (edição)
+            cursor.execute("""
+                SELECT ID_TIPODEMANDA, DE_TIPODEMANDA 
+                FROM TIPO_DEMANDA 
+                ORDER BY ID_TIPODEMANDA
+            """)
+        
+        tipos = [{'id': r[0], 'descricao': r[1]} for r in cursor.fetchall()]
+        return jsonify(tipos)
+        
+    except Exception as e:
+        print(f"Erro em buscar_tipos_demanda_filtrados: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
 #######################################
 
 if __name__ == '__main__':
