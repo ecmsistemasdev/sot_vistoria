@@ -1089,7 +1089,17 @@
             } else {
                 // Tipo 1: habilita e carrega veículos disponíveis
                 veiculo.disabled = false;
-                atualizarVeiculosDisponiveis();
+                
+                const dtInicio = document.getElementById('dtInicio').value;
+                const dtFim = document.getElementById('dtFim').value;
+                
+                if (dtInicio && dtFim) {
+                    // Se tem datas, carrega veículos disponíveis
+                    atualizarVeiculosDisponiveis();
+                } else {
+                    // Se não tem datas, carrega todos os veículos
+                    preencherSelectVeiculos();
+                }
             }
         }
         
@@ -1674,10 +1684,24 @@
         
         function preencherSelectVeiculos() {
             const select = document.getElementById('idVeiculo');
+            const veiculoAtual = select.value;
+            
             select.innerHTML = '<option value="">Selecione...</option>';
             veiculos.forEach(v => {
                 select.innerHTML += `<option value="${v.id}">${v.veiculo}</option>`;
             });
+            
+            // Restaurar veículo selecionado se existir
+            if (veiculoAtual && veiculoSelecionadoOriginal) {
+                const existe = Array.from(select.options).some(opt => opt.value == veiculoAtual);
+                if (existe) {
+                    select.value = veiculoAtual;
+                } else {
+                    // Se não existe na lista, adiciona
+                    select.innerHTML += `<option value="${veiculoSelecionadoOriginal.id}">${veiculoSelecionadoOriginal.veiculo}</option>`;
+                    select.value = veiculoAtual;
+                }
+            }
         }
         
         async function preencherSelectTiposDemanda() {
