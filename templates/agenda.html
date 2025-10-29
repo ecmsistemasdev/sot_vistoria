@@ -975,17 +975,31 @@
                         html += `<td class="${corClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
                         html += '<div class="cell-content-veiculos">';
                         
-                        // Se for tipo 9 (Oficina), mostrar destino em vez de motorista
-                        if (demanda.id_tipodemanda === 10) {
-                            html += `<div><strong>${demanda.setor || 'Cedência'}</strong></div>`;
-                        } else if (demanda.id_tipodemanda === 9) {
-                            html += `<div><strong>${demanda.destino || 'Oficina'}</strong></div>`;
-                        } else {
+                        // ID 9 (Oficina): mostra descrição do tipo (negrito) e destino (regular)
+                        if (demanda.id_tipodemanda === 9) {
+                            html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
+                            if (demanda.destino) {
+                                html += `<div>${demanda.destino}</div>`;
+                            }
+                        }
+                        // ID 10 (Cedência): mostra descrição do tipo (negrito), setor (negrito) e nº SEI (regular)
+                        else if (demanda.id_tipodemanda === 10) {
+                            html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
+                            if (demanda.setor) {
+                                html += `<div><strong>${demanda.setor}</strong></div>`;
+                            }
+                            if (demanda.nu_sei) {
+                                html += `<div>${demanda.nu_sei}</div>`;
+                            }
+                        }
+                        // Outros tipos: formato padrão (motorista e nº SEI)
+                        else {
                             html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                            if (demanda.nu_sei) {
+                                html += `<div>${demanda.nu_sei}</div>`;
+                            }
                         }
                         
-                        
-                        html += `<div>${demanda.nu_sei || ''}</div>`;
                         html += '</div></td>';
                     } else {
                         const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
