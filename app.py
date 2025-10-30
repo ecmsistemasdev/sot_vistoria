@@ -3830,43 +3830,66 @@ def buscar_veiculos_disponiveis():
         dt_inicio = request.args.get('inicio')
         dt_fim = request.args.get('fim')
         id_demanda_atual = request.args.get('id_demanda', '')
+        tem_horario = request.args.get('tem_horario', 'false') == 'true'
 
         cursor = mysql.connection.cursor()
 
-        # OTIMIZADA: usando EXISTS ao invés de NOT IN para melhor performance
-        if id_demanda_atual:
-            cursor.execute("""
-                SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                FROM TJ_VEICULO v
-                WHERE v.FL_ATENDIMENTO = 'S' 
-                  AND v.ATIVO = 'S'
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM ATENDIMENTO_DEMANDAS ad
-                      WHERE ad.ID_VEICULO = v.ID_VEICULO
-                        AND ad.ID_TIPOVEICULO = 1
-                        AND ad.ID_AD != %s
-                        AND ad.DT_INICIO <= %s 
-                        AND ad.DT_FIM >= %s
-                  )
-                ORDER BY v.DS_MODELO
-            """, (id_demanda_atual, dt_fim, dt_inicio))
+        # Se a demanda tem horário definido, não verificar conflitos de data
+        # (permite múltiplas demandas no mesmo dia com horários diferentes)
+        if tem_horario:
+            if id_demanda_atual:
+                cursor.execute("""
+                    SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                    FROM TJ_VEICULO v
+                    WHERE v.FL_ATENDIMENTO = 'S' 
+                      AND v.ATIVO = 'S'
+                    ORDER BY v.DS_MODELO
+                """)
+            else:
+                cursor.execute("""
+                    SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                    FROM TJ_VEICULO v
+                    WHERE v.FL_ATENDIMENTO = 'S' 
+                      AND v.ATIVO = 'S'
+                    ORDER BY v.DS_MODELO
+                """)
         else:
-            cursor.execute("""
-                SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                FROM TJ_VEICULO v
-                WHERE v.FL_ATENDIMENTO = 'S' 
-                  AND v.ATIVO = 'S'
-                  AND NOT EXISTS (
-                      SELECT 1
-                      FROM ATENDIMENTO_DEMANDAS ad
-                      WHERE ad.ID_VEICULO = v.ID_VEICULO
-                        AND ad.ID_TIPOVEICULO = 1
-                        AND ad.DT_INICIO <= %s 
-                        AND ad.DT_FIM >= %s
-                  )
-                ORDER BY v.DS_MODELO
-            """, (dt_fim, dt_inicio))
+            # Lógica original: verificar se veículo já está alocado SEM horário
+            if id_demanda_atual:
+                cursor.execute("""
+                    SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                    FROM TJ_VEICULO v
+                    WHERE v.FL_ATENDIMENTO = 'S' 
+                      AND v.ATIVO = 'S'
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM ATENDIMENTO_DEMANDAS ad
+                          WHERE ad.ID_VEICULO = v.ID_VEICULO
+                            AND ad.ID_TIPOVEICULO = 1
+                            AND ad.ID_AD != %s
+                            AND ad.DT_INICIO <= %s 
+                            AND ad.DT_FIM >= %s
+                            AND (ad.HORARIO IS NULL OR ad.HORARIO = '00:00:00')
+                      )
+                    ORDER BY v.DS_MODELO
+                """, (id_demanda_atual, dt_fim, dt_inicio))
+            else:
+                cursor.execute("""
+                    SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                    FROM TJ_VEICULO v
+                    WHERE v.FL_ATENDIMENTO = 'S' 
+                      AND v.ATIVO = 'S'
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM ATENDIMENTO_DEMANDAS ad
+                          WHERE ad.ID_VEICULO = v.ID_VEICULO
+                            AND ad.ID_TIPOVEICULO = 1
+                            AND ad.DT_INICIO <= %s 
+                            AND ad.DT_FIM >= %s
+                            AND (ad.HORARIO IS NULL OR ad.HORARIO = '00:00:00')
+                      )
+                    ORDER BY v.DS_MODELO
+                """, (dt_fim, dt_inicio))
 
         veiculos = []
         for r in cursor.fetchall():
