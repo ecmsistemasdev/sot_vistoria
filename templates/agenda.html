@@ -28,8 +28,41 @@
             padding: 10px 20px;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             gap: 15px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: white;
+            color: #1a73e8;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
         .header h1 { 
@@ -244,7 +277,7 @@
             gap: 0;
             z-index: 100;
             box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-            height: 65px;
+            height: 45px;
         }
 
         .btn {
@@ -265,13 +298,13 @@
 
         .btn-primary:hover { background: #1557b0; }
 
-        .footer-divider {
+        /* .footer-divider {
             width: 1px;
             height: 40px;
             background: #c0c0c0;
             margin: 0 10px;
             align-self: center;
-        }
+        } */
 
         /* TABS NAVEGAÇÃO ESTILO EXCEL */
         .week-tabs-wrapper {
@@ -538,7 +571,7 @@
             color: #666;
         }
 
-        .header-icon {
+        /* .header-icon {
             cursor: pointer;
             font-size: 20px;
             opacity: 0.85;
@@ -552,7 +585,7 @@
         .header-icon:hover {
             opacity: 1;
             transform: scale(1.1);
-        }
+        } */
 
         .feriados-container {
             padding: 20px;
@@ -655,21 +688,22 @@
     </style>
 </head>
 <body>
-    <div class="container">
     <div class="header">
-        <h1>📅 AGENDA SEGEOP</h1>
-        <span class="periodo" id="semanaAtual"></span>
-        <a href="#" class="header-icon" onclick="abrirModalFeriados(); return false;" title="Gerenciar Feriados">🎉</a>
-    </div>
-        
-        <div class="agenda-wrapper" id="agendaWrapper">
-            <div class="loading">⏳ Carregando agenda...</div>
+        <div class="header-left">
+            <h1>📅 AGENDA SEGEOP</h1>
+            <span class="periodo" id="semanaAtual"></span>
+        </div>
+        <div class="header-right">
+            <button class="header-btn" onclick="abrirModalFeriados()" title="Gerenciar Feriados">
+                🗓️ Feriados
+            </button>
+            <button class="header-btn" onclick="abrirModalNovoGeral()" title="Nova Demanda">
+                ➕ Nova Demanda
+            </button>
         </div>
     </div>
     
     <div class="footer">
-        <button class="btn btn-primary" onclick="abrirModalNovoGeral()">➕ Nova Demanda</button>
-        <div class="footer-divider"></div>
         <div class="week-tabs-wrapper">
             <button class="week-nav-btn" id="btnPrevWeek" onclick="scrollWeekTabs(-1)" title="Anterior">◀</button>
             <div class="week-tabs-scroll" id="weekTabsScroll">
