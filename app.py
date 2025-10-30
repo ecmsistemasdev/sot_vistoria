@@ -3770,7 +3770,30 @@ def buscar_dados_agenda():
 		demandas = []
 		for r in cursor.fetchall():
 		    dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
-		    horario = r[18].strftime('%H:%M') if r[18] and r[18] != datetime.strptime('00:00:00', '%H:%M:%S').time() else ''
+		    
+		    # Corrigir conversão de horário - BUGFIX
+		    horario = ''
+		    if r[18]:  # Se existe valor de horário
+		        try:
+		            if isinstance(r[18], str):
+		                # Se já é string, usar apenas primeiros 5 caracteres (HH:MM)
+		                horario = r[18][:5] if len(r[18]) >= 5 else ''
+		            elif hasattr(r[18], 'total_seconds'):  # timedelta
+		                # Converter timedelta para string HH:MM
+		                total_seconds = int(r[18].total_seconds())
+		                hours = total_seconds // 3600
+		                minutes = (total_seconds % 3600) // 60
+		                if hours > 0 or minutes > 0:  # Não mostrar 00:00
+		                    horario = f"{hours:02d}:{minutes:02d}"
+		            elif hasattr(r[18], 'strftime'):  # time object
+		                # Formatar objeto time
+		                horario_formatted = r[18].strftime('%H:%M')
+		                if horario_formatted != '00:00':  # Não mostrar 00:00
+		                    horario = horario_formatted
+		        except Exception as e:
+		            print(f"Erro ao formatar horário: {e}, tipo: {type(r[18])}, valor: {r[18]}")
+		            horario = ''
+		    
 		    demandas.append({
 		        'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
 		        'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
