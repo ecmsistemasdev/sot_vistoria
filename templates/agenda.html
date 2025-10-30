@@ -1555,7 +1555,7 @@
             cell.classList.add('cell-selected');
             celulaSelecionada = cell;
         }
-        
+                
         function renderizarSecaoVeiculos(dias) {
             let html = '<div class="agenda-section">';
             html += '<div class="section-title">🚙 SEGEOP - VEÍCULOS OFICIAIS</div>';
@@ -1611,6 +1611,7 @@
                 
                 dias.forEach(dia => {
                     const feriado = isFeriado(dia.data);
+                    const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                     const demandasDia = dadosAgenda.demandas.filter(d => 
                         d.id_veiculo === v.id && 
                         d.dt_inicio <= dia.data && 
@@ -1665,10 +1666,9 @@
                             if (linhaIndex === 0) {
                                 html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})">${feriado.descricao}</td>`;
                             } else {
-                                html += `<td class="cell-feriado col-dia"></td>`;
+                                html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
                             }
                         } else {
-                            const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                             const weekendClass = isWeekend ? 'weekend-empty' : '';
                             if (linhaIndex === 0) {
                                 html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})"></td>`;
@@ -1676,7 +1676,15 @@
                                 html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
                             }
                         }
-                    }                    
+                    } else {
+                        // Linhas extras quando há menos demandas que o total de linhas
+                        if (feriado) {
+                            html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
+                        } else {
+                            const weekendClass = isWeekend ? 'weekend-empty' : '';
+                            html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                        }
+                    }
                 });
                 html += '</tr>';
             });
