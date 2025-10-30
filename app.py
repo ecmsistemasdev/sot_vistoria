@@ -3649,9 +3649,10 @@ def listar_semanas():
         cursor = mysql.connection.cursor()
         cursor.execute("""
             SELECT DISTINCT 
-                DATE(DT_INICIO) as data_inicio
+                DATE(DT_INICIO) as data_inicio,
+                DATE(DT_FIM) as data_fim
             FROM ATENDIMENTO_DEMANDAS
-            WHERE DT_INICIO IS NOT NULL
+            WHERE DT_INICIO IS NOT NULL AND DT_FIM IS NOT NULL
             ORDER BY DT_INICIO
         """)
         
@@ -3669,26 +3670,38 @@ def listar_semanas():
             }])
         
         semanas_dict = {}
+        
+        # Para cada demanda, processar TODAS as semanas entre início e fim
         for row in rows:
-            dt = row[0]
-            # Ajustar para domingo (início da semana)
-            dias_ate_domingo = (dt.weekday() + 1) % 7
-            inicio = dt - timedelta(days=dias_ate_domingo)
-            fim = inicio + timedelta(days=6)
+            dt_inicio = row[0]
+            dt_fim = row[1]
             
-            chave = inicio.strftime('%Y-%m-%d')
-            if chave not in semanas_dict:
-                semanas_dict[chave] = {
-                    'inicio': inicio.strftime('%Y-%m-%d'),
-                    'fim': fim.strftime('%Y-%m-%d'),
-                    'label': f"{inicio.strftime('%d/%m')} - {fim.strftime('%d/%m/%Y')}"
-                }
+            # Processar cada dia entre início e fim da demanda
+            dias_diff = (dt_fim - dt_inicio).days + 1
+            
+            for i in range(dias_diff):
+                dt_atual = dt_inicio + timedelta(days=i)
+                
+                # Ajustar para domingo (início da semana)
+                dias_ate_domingo = (dt_atual.weekday() + 1) % 7
+                inicio_semana = dt_atual - timedelta(days=dias_ate_domingo)
+                fim_semana = inicio_semana + timedelta(days=6)
+                
+                chave = inicio_semana.strftime('%Y-%m-%d')
+                if chave not in semanas_dict:
+                    semanas_dict[chave] = {
+                        'inicio': inicio_semana.strftime('%Y-%m-%d'),
+                        'fim': fim_semana.strftime('%Y-%m-%d'),
+                        'label': f"{inicio_semana.strftime('%d/%m')} - {fim_semana.strftime('%d/%m/%Y')}"
+                    }
         
         semanas = sorted(semanas_dict.values(), key=lambda x: x['inicio'])
         return jsonify(semanas)
         
     except Exception as e:
         print(f"Erro em listar_semanas: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e), 'semanas': []}), 500
     finally:
         if cursor:
