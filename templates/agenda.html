@@ -1331,12 +1331,12 @@
                 }
             }
 
-            // Event listeners para atualizar lista quando horário mudar
-            document.getElementById('definirHorario').addEventListener('change', function() {
-                if (document.getElementById('idTipoVeiculo').value === '1') {
-                    atualizarVeiculosDisponiveis();
-                }
-            });
+            // // Event listeners para atualizar lista quando horário mudar
+            // document.getElementById('definirHorario').addEventListener('change', function() {
+            //     if (document.getElementById('idTipoVeiculo').value === '1') {
+            //         atualizarVeiculosDisponiveis();
+            //     }
+            // });
         }
         
         async function atualizarVeiculosDisponiveis() {
@@ -1659,19 +1659,24 @@
                         }
                         
                         html += '</div></td>';
-                    } else if (linhaIndex === 0 && demandasDia.length === 0) {
-                        // Apenas na primeira linha, mostrar célula vazia ou feriado
+                    } else if (demandasDia.length === 0) {
+                        // Todas as linhas devem mostrar feriado ou final de semana corretamente
                         if (feriado) {
-                            html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})">${feriado.descricao}</td>`;
+                            if (linhaIndex === 0) {
+                                html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})">${feriado.descricao}</td>`;
+                            } else {
+                                html += `<td class="cell-feriado col-dia"></td>`;
+                            }
                         } else {
                             const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                             const weekendClass = isWeekend ? 'weekend-empty' : '';
-                            html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})"></td>`;
+                            if (linhaIndex === 0) {
+                                html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})"></td>`;
+                            } else {
+                                html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                            }
                         }
-                    } else {
-                        // Linhas extras sem demanda ficam vazias
-                        html += `<td class="empty-cell col-dia"></td>`;
-                    }
+                    }                    
                 });
                 html += '</tr>';
             });
