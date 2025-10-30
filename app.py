@@ -3754,35 +3754,37 @@ def buscar_dados_agenda():
 
         # 2. Demandas dos Motoristas
         cursor.execute("""
-            SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
-                   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
-                   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
-                   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
-                   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO
-            FROM ATENDIMENTO_DEMANDAS ae
-            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
-            LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
-            LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
-            WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
-            ORDER BY ae.DT_INICIO
-        """, (fim, inicio))
-
-        demandas = []
-        for r in cursor.fetchall():
-            dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
-            demandas.append({
-                'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
-                'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
-                'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
-                'dt_inicio': r[8].strftime('%Y-%m-%d'), 
-                'dt_fim': r[9].strftime('%Y-%m-%d'),
-                'setor': r[10] or '', 'solicitante': r[11] or '', 
-                'destino': r[12] or '', 'nu_sei': r[13] or '', 
-                'dt_lancamento': dt_lancamento,
-                'usuario': r[15] or '',
-                'obs': r[16] or '',
-                'solicitado': r[17] or 'N'
-            })
+		    SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
+		           ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+		           tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+		           ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+		           ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO
+		    FROM ATENDIMENTO_DEMANDAS ae
+		    LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+		    LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+		    LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+		    WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
+		    ORDER BY ae.DT_INICIO
+		""", (fim, inicio))
+		
+		demandas = []
+		for r in cursor.fetchall():
+		    dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
+		    horario = r[18].strftime('%H:%M') if r[18] and r[18] != datetime.strptime('00:00:00', '%H:%M:%S').time() else ''
+		    demandas.append({
+		        'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
+		        'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
+		        'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
+		        'dt_inicio': r[8].strftime('%Y-%m-%d'), 
+		        'dt_fim': r[9].strftime('%Y-%m-%d'),
+		        'setor': r[10] or '', 'solicitante': r[11] or '', 
+		        'destino': r[12] or '', 'nu_sei': r[13] or '', 
+		        'dt_lancamento': dt_lancamento,
+		        'usuario': r[15] or '',
+		        'obs': r[16] or '',
+		        'solicitado': r[17] or 'N',
+		        'horario': horario
+		    })
 
         # 3. Lista de Veículos
         cursor.execute("""
@@ -3918,12 +3920,19 @@ def criar_demanda():
         data = request.get_json()
         cursor = mysql.connection.cursor()
         
+        # Converter horário para formato TIME ou NULL
+        horario = data.get('horario')
+        if horario and horario.strip():
+            horario_value = horario + ':00'  # Adicionar segundos
+        else:
+            horario_value = None
+        
         cursor.execute("""
             INSERT INTO ATENDIMENTO_DEMANDAS 
             (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
              DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
-             OBS, SOLICITADO, DT_LANCAMENTO, USUARIO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+             OBS, SOLICITADO, HORARIO, DT_LANCAMENTO, USUARIO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
         """, (
             data.get('id_motorista'), 
             data.get('id_tipoveiculo'), 
@@ -3937,6 +3946,7 @@ def criar_demanda():
             data.get('nu_sei'),
             data.get('obs'),
             data.get('solicitado', 'N'),
+            horario_value,
             data['usuario']
         ))
         
@@ -3959,12 +3969,19 @@ def atualizar_demanda(id_ad):
         data = request.get_json()
         cursor = mysql.connection.cursor()
         
+        # Converter horário para formato TIME ou NULL
+        horario = data.get('horario')
+        if horario and horario.strip():
+            horario_value = horario + ':00'  # Adicionar segundos
+        else:
+            horario_value = None
+        
         cursor.execute("""
             UPDATE ATENDIMENTO_DEMANDAS 
             SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
                 ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
                 SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
-                OBS = %s, SOLICITADO = %s, USUARIO = %s
+                OBS = %s, SOLICITADO = %s, HORARIO = %s, USUARIO = %s
             WHERE ID_AD = %s
         """, (
             data.get('id_motorista'), 
@@ -3979,6 +3996,7 @@ def atualizar_demanda(id_ad):
             data.get('nu_sei'),
             data.get('obs'),
             data.get('solicitado', 'N'),
+            horario_value,
             data['usuario'], 
             id_ad
         ))
@@ -4220,6 +4238,51 @@ def buscar_feriados_periodo():
         if cursor:
             cursor.close()
 
+# API: Verificar se veículo tem demandas com horário no período
+@app.route('/api/agenda/verificar-horario-veiculo', methods=['GET'])
+def verificar_horario_veiculo():
+    cursor = None
+    try:
+        id_veiculo = request.args.get('id_veiculo')
+        dt_inicio = request.args.get('inicio')
+        dt_fim = request.args.get('fim')
+        id_demanda_atual = request.args.get('id_demanda', '')
+        
+        cursor = mysql.connection.cursor()
+        
+        if id_demanda_atual:
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM ATENDIMENTO_DEMANDAS
+                WHERE ID_VEICULO = %s
+                  AND ID_AD != %s
+                  AND DT_INICIO <= %s
+                  AND DT_FIM >= %s
+                  AND HORARIO IS NOT NULL
+                  AND HORARIO != '00:00:00'
+            """, (id_veiculo, id_demanda_atual, dt_fim, dt_inicio))
+        else:
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM ATENDIMENTO_DEMANDAS
+                WHERE ID_VEICULO = %s
+                  AND DT_INICIO <= %s
+                  AND DT_FIM >= %s
+                  AND HORARIO IS NOT NULL
+                  AND HORARIO != '00:00:00'
+            """, (id_veiculo, dt_fim, dt_inicio))
+        
+        resultado = cursor.fetchone()
+        tem_horario = resultado[0] > 0
+        
+        return jsonify({'tem_horario': tem_horario})
+        
+    except Exception as e:
+        print(f"Erro em verificar_horario_veiculo: {str(e)}")
+        return jsonify({'error': str(e), 'tem_horario': False}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 #######################################
 
