@@ -3754,60 +3754,60 @@ def buscar_dados_agenda():
 
         # 2. Demandas dos Motoristas
         cursor.execute("""
-		    SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
-		           ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
-		           tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
-		           ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
-		           ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO
-		    FROM ATENDIMENTO_DEMANDAS ae
-		    LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
-		    LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
-		    LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
-		    WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
-		    ORDER BY ae.DT_INICIO
-		""", (fim, inicio))
-		
-		demandas = []
-		for r in cursor.fetchall():
-		    dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
-		    
-		    # Corrigir conversão de horário - BUGFIX
-		    horario = ''
-		    if r[18]:  # Se existe valor de horário
-		        try:
-		            if isinstance(r[18], str):
-		                # Se já é string, usar apenas primeiros 5 caracteres (HH:MM)
-		                horario = r[18][:5] if len(r[18]) >= 5 else ''
-		            elif hasattr(r[18], 'total_seconds'):  # timedelta
-		                # Converter timedelta para string HH:MM
-		                total_seconds = int(r[18].total_seconds())
-		                hours = total_seconds // 3600
-		                minutes = (total_seconds % 3600) // 60
-		                if hours > 0 or minutes > 0:  # Não mostrar 00:00
-		                    horario = f"{hours:02d}:{minutes:02d}"
-		            elif hasattr(r[18], 'strftime'):  # time object
-		                # Formatar objeto time
-		                horario_formatted = r[18].strftime('%H:%M')
-		                if horario_formatted != '00:00':  # Não mostrar 00:00
-		                    horario = horario_formatted
-		        except Exception as e:
-		            print(f"Erro ao formatar horário: {e}, tipo: {type(r[18])}, valor: {r[18]}")
-		            horario = ''
-		    
-		    demandas.append({
-		        'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
-		        'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
-		        'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
-		        'dt_inicio': r[8].strftime('%Y-%m-%d'), 
-		        'dt_fim': r[9].strftime('%Y-%m-%d'),
-		        'setor': r[10] or '', 'solicitante': r[11] or '', 
-		        'destino': r[12] or '', 'nu_sei': r[13] or '', 
-		        'dt_lancamento': dt_lancamento,
-		        'usuario': r[15] or '',
-		        'obs': r[16] or '',
-		        'solicitado': r[17] or 'N',
-		        'horario': horario
-		    })
+            SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
+                   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+                   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+                   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+                   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO
+            FROM ATENDIMENTO_DEMANDAS ae
+            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+            LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+            WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
+            ORDER BY ae.DT_INICIO
+        """, (fim, inicio))
+        
+        demandas = []
+        for r in cursor.fetchall():
+            dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
+            
+            # Corrigir conversão de horário - BUGFIX
+            horario = ''
+            if r[18]:  # Se existe valor de horário
+                try:
+                    if isinstance(r[18], str):
+                        # Se já é string, usar apenas primeiros 5 caracteres (HH:MM)
+                        horario = r[18][:5] if len(r[18]) >= 5 else ''
+                    elif hasattr(r[18], 'total_seconds'):  # timedelta
+                        # Converter timedelta para string HH:MM
+                        total_seconds = int(r[18].total_seconds())
+                        hours = total_seconds // 3600
+                        minutes = (total_seconds % 3600) // 60
+                        if hours > 0 or minutes > 0:  # Não mostrar 00:00
+                            horario = f"{hours:02d}:{minutes:02d}"
+                    elif hasattr(r[18], 'strftime'):  # time object
+                        # Formatar objeto time
+                        horario_formatted = r[18].strftime('%H:%M')
+                        if horario_formatted != '00:00':  # Não mostrar 00:00
+                            horario = horario_formatted
+                except Exception as e:
+                    print(f"Erro ao formatar horário: {e}, tipo: {type(r[18])}, valor: {r[18]}")
+                    horario = ''
+            
+            demandas.append({
+                'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
+                'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
+                'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
+                'dt_inicio': r[8].strftime('%Y-%m-%d'), 
+                'dt_fim': r[9].strftime('%Y-%m-%d'),
+                'setor': r[10] or '', 'solicitante': r[11] or '', 
+                'destino': r[12] or '', 'nu_sei': r[13] or '', 
+                'dt_lancamento': dt_lancamento,
+                'usuario': r[15] or '',
+                'obs': r[16] or '',
+                'solicitado': r[17] or 'N',
+                'horario': horario
+            })
 
         # 3. Lista de Veículos
         cursor.execute("""
