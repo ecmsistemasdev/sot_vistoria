@@ -692,6 +692,23 @@
             );
             pointer-events: none;
         }
+
+        #horario:disabled {
+            background: #e9ecef;
+            cursor: not-allowed;
+        }
+        
+        .demanda-horario {
+            font-size: 10px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .cell-divider {
+            border-top: 1px dashed #999;
+            margin: 5px 0;
+            padding-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -780,7 +797,21 @@
                             <input type="date" id="dtFim" required>
                         </div>
                     </div>
-
+                    
+                    <!-- Linha 4.5: Checkbox Horário e Input Horário -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="definirHorario" style="width: auto; margin-right: 8px;" onchange="toggleHorario()">
+                                Definir Horário
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Horário</label>
+                            <input type="text" id="horario" maxlength="5" placeholder="HH:MM" disabled>
+                        </div>
+                    </div>
+                    
                     <!-- Linha 5: Setor e Solicitante -->
                     <div class="form-row">
                         <div class="form-group">
@@ -885,6 +916,49 @@
         let feriadosPeriodo = [];
         let scrollPosition = 0;
 
+        // Máscara para o campo horário
+        function aplicarMascaraHorario(input) {
+            let valor = input.value.replace(/\D/g, '');
+            
+            if (valor.length >= 2) {
+                valor = valor.substring(0, 2) + ':' + valor.substring(2, 4);
+            }
+            
+            input.value = valor;
+        }
+        
+        // Toggle do campo horário
+        function toggleHorario() {
+            const checkbox = document.getElementById('definirHorario');
+            const inputHorario = document.getElementById('horario');
+            
+            if (checkbox.checked) {
+                inputHorario.disabled = false;
+                inputHorario.focus();
+            } else {
+                inputHorario.disabled = true;
+                inputHorario.value = '';
+            }
+        }
+        
+        // Validar formato de horário
+        function validarHorario(horario) {
+            if (!horario) return true; // Vazio é válido
+            
+            const regex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+            return regex.test(horario);
+        }
+        
+        // Event listener para máscara (adicionar no init ou após DOMContentLoaded)
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputHorario = document.getElementById('horario');
+            if (inputHorario) {
+                inputHorario.addEventListener('input', function() {
+                    aplicarMascaraHorario(this);
+                });
+            }
+        });
+        
         async function init() {
             await carregarSemanas();
             await carregarSelectsFixos();
@@ -1256,6 +1330,13 @@
                     preencherSelectVeiculos();
                 }
             }
+
+            // Event listeners para atualizar lista quando horário mudar
+            document.getElementById('definirHorario').addEventListener('change', function() {
+                if (document.getElementById('idTipoVeiculo').value === '1') {
+                    atualizarVeiculosDisponiveis();
+                }
+            });
         }
         
         async function atualizarVeiculosDisponiveis() {
@@ -1264,6 +1345,7 @@
             const dtFim = document.getElementById('dtFim').value;
             const selectVeiculo = document.getElementById('idVeiculo');
             const idAd = document.getElementById('idAd').value;
+            const temHorario = document.getElementById('definirHorario').checked;
             
             // Só atualiza se for tipo veículo 1 e tiver datas
             if (idTipoVeiculo !== 1 || !dtInicio || !dtFim) {
@@ -1271,7 +1353,7 @@
             }
             
             try {
-                let url = `/api/agenda/veiculos-disponiveis?inicio=${dtInicio}&fim=${dtFim}`;
+                let url = `/api/agenda/veiculos-disponiveis?inicio=${dtInicio}&fim=${dtFim}&tem_horario=${temHorario}`;
                 if (idAd) {
                     url += `&id_demanda=${idAd}`;
                 }
@@ -1419,6 +1501,12 @@
                                 html += `<div>${demanda.nu_sei}</div>`;
                             }
                         }
+                        // ID 1 ou 2 com horário: mostrar horário após destino
+                        else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
+                            html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                            html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
+                            html += `<div>${demanda.nu_sei || ''}</div>`;
+                        }
                         // Outros tipos: formato padrão
                         else {
                             html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
@@ -1476,9 +1564,50 @@
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
             html += '</tr></thead><tbody>';
             
-            veiculos.forEach((v, index) => {
-                html += `<tr><td class="col-numero">${index + 1}</td>`;
-                html += `<td class="col-nome">${v.veiculo}</td>`;
+            // Criar mapa de veículos com linhas duplicadas se necessário
+            const veiculosComLinhas = [];
+            
+            veiculos.forEach(v => {
+                // Para cada dia, verificar quantas demandas diferentes existem
+                const maxDemandasPorDia = Math.max(...dias.map(dia => {
+                    const demandasDia = dadosAgenda.demandas.filter(d => 
+                        d.id_veiculo === v.id && 
+                        d.dt_inicio <= dia.data && 
+                        d.dt_fim >= dia.data
+                    );
+                    return demandasDia.length;
+                }));
+                
+                // Se há mais de uma demanda em algum dia, criar linhas duplicadas
+                const numLinhas = maxDemandasPorDia > 0 ? maxDemandasPorDia : 1;
+                
+                for (let linha = 0; linha < numLinhas; linha++) {
+                    veiculosComLinhas.push({
+                        veiculo: v,
+                        linhaIndex: linha,
+                        totalLinhas: numLinhas
+                    });
+                }
+            });
+            
+            veiculosComLinhas.forEach((item, index) => {
+                const v = item.veiculo;
+                const linhaIndex = item.linhaIndex;
+                const totalLinhas = item.totalLinhas;
+                
+                html += `<tr>`;
+                
+                // Mostrar número e nome apenas na primeira linha de cada veículo
+                if (linhaIndex === 0) {
+                    const veiculoIndex = veiculos.findIndex(vei => vei.id === v.id) + 1;
+                    if (totalLinhas > 1) {
+                        html += `<td class="col-numero" rowspan="${totalLinhas}">${veiculoIndex}</td>`;
+                        html += `<td class="col-nome" rowspan="${totalLinhas}">${v.veiculo}</td>`;
+                    } else {
+                        html += `<td class="col-numero">${veiculoIndex}</td>`;
+                        html += `<td class="col-nome">${v.veiculo}</td>`;
+                    }
+                }
                 
                 dias.forEach(dia => {
                     const feriado = isFeriado(dia.data);
@@ -1488,8 +1617,10 @@
                         d.dt_fim >= dia.data
                     );
                     
-                    if (demandasDia.length > 0) {
-                        const demanda = demandasDia[0];
+                    // Pegar a demanda correspondente a esta linha
+                    const demanda = demandasDia[linhaIndex];
+                    
+                    if (demanda) {
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
                         const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
                         html += `<td class="${corClass} ${feriadoClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
@@ -1502,12 +1633,21 @@
                                 html += `<div><strong>${demanda.destino}</strong></div>`;
                             }
                         }
-
                         // ID 10 (Cedência): mostra descrição do tipo (negrito), setor (negrito) e nº SEI (regular)
                         else if (demanda.id_tipodemanda === 10) {
                             html += `<div>${demanda.de_tipodemanda || 'Cedência'}<strong>${' - ' + demanda.setor || ''}</strong></div>`;
                             if (demanda.nu_sei) {
                                 html += `<div>${demanda.nu_sei}</div>`;
+                            }
+                        }
+                        // ID 1 ou 2 com horário: mostrar destino com horário
+                        else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
+                            html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                            if (demanda.nu_sei) {
+                                html += `<div>${demanda.nu_sei}</div>`;
+                            }
+                            if (demanda.destino) {
+                                html += `<div>${demanda.destino} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                             }
                         }
                         // Outros tipos: formato padrão (motorista e nº SEI)
@@ -1519,13 +1659,18 @@
                         }
                         
                         html += '</div></td>';
-                    } else if (feriado) {
-                        // Célula de feriado sem demanda
-                        html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})">${feriado.descricao}</td>`;
+                    } else if (linhaIndex === 0 && demandasDia.length === 0) {
+                        // Apenas na primeira linha, mostrar célula vazia ou feriado
+                        if (feriado) {
+                            html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})">${feriado.descricao}</td>`;
+                        } else {
+                            const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                            const weekendClass = isWeekend ? 'weekend-empty' : '';
+                            html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})"></td>`;
+                        }
                     } else {
-                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
-                        const weekendClass = isWeekend ? 'weekend-empty' : '';
-                        html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})"></td>`;
+                        // Linhas extras sem demanda ficam vazias
+                        html += `<td class="empty-cell col-dia"></td>`;
                     }
                 });
                 html += '</tr>';
@@ -1670,13 +1815,19 @@
             html += '</tbody></table></div>';
             return html;
         }
-        
+                
         async function abrirModalNovo() {
             document.getElementById('modalTitle').textContent = 'Nova Demanda';
             document.getElementById('idAd').value = '';
             document.getElementById('formDemanda').reset();
             document.getElementById('btnExcluir').style.display = 'none';
             veiculoSelecionadoOriginal = null;
+            
+            // Reset de horário
+            document.getElementById('definirHorario').checked = false;
+            document.getElementById('definirHorario').disabled = false;
+            document.getElementById('horario').value = '';
+            document.getElementById('horario').disabled = true;
             
             // Mostrar filtro e definir SEGEOP como padrão
             document.getElementById('motoristaFilter').style.display = 'flex';
@@ -1805,6 +1956,19 @@
             document.getElementById('obs').value = demanda.obs || '';
             document.getElementById('solicitado').checked = demanda.solicitado === 'S';
             
+            // Carregar horário
+            if (demanda.horario) {
+                document.getElementById('definirHorario').checked = true;
+                document.getElementById('definirHorario').disabled = false;
+                document.getElementById('horario').value = demanda.horario;
+                document.getElementById('horario').disabled = false;
+            } else {
+                document.getElementById('definirHorario').checked = false;
+                document.getElementById('definirHorario').disabled = false;
+                document.getElementById('horario').value = '';
+                document.getElementById('horario').disabled = true;
+            }
+            
             // Aplicar regras após preencher
             aplicarRegrasTipoDemanda();
             aplicarRegrasTipoVeiculo();
@@ -1903,7 +2067,21 @@
         async function salvarDemanda() {
             const idAd = document.getElementById('idAd').value;
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
-
+            const definirHorario = document.getElementById('definirHorario').checked;
+            const horario = document.getElementById('horario').value;
+        
+            // Validar horário se checkbox estiver marcado
+            if (definirHorario) {
+                if (!horario) {
+                    alert('Informe o horário!');
+                    return;
+                }
+                if (!validarHorario(horario)) {
+                    alert('Horário inválido! Use o formato HH:MM (ex: 08:30)');
+                    return;
+                }
+            }
+        
             const dados = {
                 id_motorista: document.getElementById('idMotorista').value || null,
                 id_tipodemanda: idTipoDemanda,
@@ -1917,6 +2095,7 @@
                 nu_sei: document.getElementById('nuSei').value,
                 obs: document.getElementById('obs').value,
                 solicitado: document.getElementById('solicitado').checked ? 'S' : 'N',
+                horario: definirHorario ? horario : '',
                 usuario: document.getElementById('usuario').value
             };
             
@@ -2094,7 +2273,45 @@
             }
         });
 
+        // Verificar se veículo já possui demandas com horário no mesmo período
+        async function verificarObrigatoriedadeHorario() {
+            const idVeiculo = document.getElementById('idVeiculo').value;
+            const dtInicio = document.getElementById('dtInicio').value;
+            const dtFim = document.getElementById('dtFim').value;
+            const idAd = document.getElementById('idAd').value;
+            
+            if (!idVeiculo || !dtInicio || !dtFim) return;
+            
+            try {
+                let url = `/api/agenda/verificar-horario-veiculo?id_veiculo=${idVeiculo}&inicio=${dtInicio}&fim=${dtFim}`;
+                if (idAd) {
+                    url += `&id_demanda=${idAd}`;
+                }
+                
+                const res = await fetch(url);
+                const result = await res.json();
+                
+                if (result.tem_horario) {
+                    // Forçar checkbox de horário
+                    document.getElementById('definirHorario').checked = true;
+                    document.getElementById('definirHorario').disabled = true;
+                    document.getElementById('horario').disabled = false;
+                    
+                    alert('Este veículo já possui demandas com horário definido neste período. É obrigatório informar o horário.');
+                } else {
+                    document.getElementById('definirHorario').disabled = false;
+                }
+            } catch (error) {
+                console.error('Erro ao verificar obrigatoriedade de horário:', error);
+            }
+        }
+        
+        // Adicionar event listener ao select de veículo
+        // (adicionar na função init ou após DOMContentLoaded)
+        document.getElementById('idVeiculo').addEventListener('change', verificarObrigatoriedadeHorario);
+        
         init();
+        
     </script>
 </body>
 </html>
