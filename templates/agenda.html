@@ -273,7 +273,7 @@
             border-top: 1px solid #c0c0c0;
             display: flex;
             justify-content: flex-start;
-            align-items: flex-end;
+            align-items: flex-start;
             gap: 0;
             z-index: 100;
             box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
@@ -285,10 +285,10 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.3s;
             margin: 10px 0 10px 15px;
-            align-self: center;
+            align-self: flex-start;
         }
 
         .btn-primary {
@@ -309,13 +309,14 @@
         /* TABS NAVEGAÇÃO ESTILO EXCEL */
         .week-tabs-wrapper {
             display: flex;
-            align-items: flex-end;
+            align-items: flex-start;
             gap: 0;
             flex: 1;
             overflow: hidden;
             height: 100%;
             background: #e8e8e8;
             padding-bottom: 0;
+            padding-top: 0;
         }
 
         .week-nav-btn {
@@ -324,7 +325,7 @@
             border-bottom: none;
             cursor: pointer;
             padding: 8px 10px;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.2s;
             flex-shrink: 0;
             width: 32px;
@@ -332,9 +333,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 2px 0 8px;
-            align-self: flex-end;
-            margin-bottom: 2px;
+            margin: 2px 2px 0 8px;
+            align-self: flex-start;
         }
 
         .week-nav-btn:hover:not(:disabled) {
@@ -355,7 +355,7 @@
             scroll-behavior: smooth;
             flex: 1;
             height: 100%;
-            align-items: flex-end;
+            align-items: flex-start;
             background: #e8e8e8;
             padding: 0 4px 0 0;
             scrollbar-width: none;
@@ -370,7 +370,7 @@
             display: inline-flex;
             gap: -1px;
             flex-wrap: nowrap;
-            align-items: flex-end;
+            align-items: flex-start;
             height: 100%;
             padding: 0;
             margin: 0;
@@ -381,7 +381,7 @@
             background: #d4d4d4;
             border: 1px solid #c0c0c0;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             transition: all 0.15s;
             white-space: nowrap;
             flex-shrink: 0;
@@ -390,9 +390,9 @@
             align-items: center;
             height: 32px;
             margin: 0;
-            border-radius: 0 0 6px 6px;
-            border-top: none;
-            border-bottom: 1px solid #c0c0c0;
+            border-radius: 6px 6px 0 0;
+            border-top: 1px solid #c0c0c0;
+            border-bottom: none;
             position: relative;
             color: #333;
             font-weight: 500;
@@ -408,18 +408,20 @@
             background: #ffffff;
             color: #000;
             border-color: #c0c0c0;
-            border-top: 1px solid #ffffff;
+            border-top: 1px solid #c0c0c0;  
+            border-bottom: 1px solid #ffffff; 
             font-weight: 600;
             z-index: 2;
             height: 35px;
             padding: 10px 22px;
-            margin-top: -1px;
+            margin-top: 0;  
+            margin-bottom: -1px;  
         }
 
         .week-tab.active::before {
             content: '';
             position: absolute;
-            top: -1px;
+            bottom: -1px;  
             left: 0;
             right: 0;
             height: 2px;
