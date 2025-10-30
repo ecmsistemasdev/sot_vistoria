@@ -688,18 +688,24 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-left">
-            <h1>📅 AGENDA SEGEOP</h1>
-            <span class="periodo" id="semanaAtual"></span>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>📅 AGENDA SEGEOP</h1>
+                <span class="periodo" id="semanaAtual"></span>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" onclick="abrirModalNovoGeral()" title="Nova Demanda">
+                    ➕ Nova Demanda
+                </button>
+                <button class="header-btn" onclick="abrirModalFeriados()" title="Gerenciar Feriados">
+                    🗓️
+                </button>                
+            </div>
         </div>
-        <div class="header-right">
-            <button class="header-btn" onclick="abrirModalFeriados()" title="Gerenciar Feriados">
-                🗓️ Feriados
-            </button>
-            <button class="header-btn" onclick="abrirModalNovoGeral()" title="Nova Demanda">
-                ➕ Nova Demanda
-            </button>
+
+        <div class="agenda-wrapper" id="agendaWrapper">
+            <div class="loading">⏳ Carregando agenda...</div>
         </div>
     </div>
     
