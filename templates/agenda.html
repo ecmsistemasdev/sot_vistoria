@@ -380,7 +380,7 @@
             background: #d4d4d4;
             border: 1px solid #c0c0c0;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             transition: all 0.15s;
             white-space: nowrap;
             flex-shrink: 0;
@@ -389,9 +389,9 @@
             align-items: center;
             height: 32px;
             margin: 0;
-            border-radius: 6px 6px 0 0;
-            border-top: 1px solid #c0c0c0;
-            border-bottom: none;
+            border-radius: 0 0 6px 6px;  /* MANTÉM: arredondado embaixo */
+            border-top: none;  /* SEM borda em cima */
+            border-bottom: 1px solid #c0c0c0;  /* COM borda embaixo */
             position: relative;
             color: #333;
             font-weight: 500;
@@ -407,20 +407,20 @@
             background: #ffffff;
             color: #000;
             border-color: #c0c0c0;
-            border-top: 1px solid #c0c0c0;  
-            border-bottom: 1px solid #ffffff; 
+            border-top: none;  /* SEM borda em cima */
+            border-bottom: 1px solid #c0c0c0;  /* COM borda embaixo */
             font-weight: 600;
             z-index: 2;
             height: 35px;
             padding: 10px 22px;
-            margin-top: 0;  
-            margin-bottom: -1px;  
+            margin-top: 0;
+            margin-bottom: 0;  /* SEM margin negativo */
         }
 
         .week-tab.active::before {
             content: '';
             position: absolute;
-            bottom: -1px;  
+            top: -1px;  /* NO topo */
             left: 0;
             right: 0;
             height: 2px;
