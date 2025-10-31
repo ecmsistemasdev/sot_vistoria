@@ -776,7 +776,33 @@
                 <form id="formDemanda">
                     <input type="hidden" id="idAd" value="">
                     
-                    <!-- Linha 1: Tipo de Demanda e Tipo de Veículo -->
+                    <!-- Linha 1: Datas -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Início <span class="required">*</span></label>
+                            <input type="date" id="dtInicio" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Data Fim <span class="required">*</span></label>
+                            <input type="date" id="dtFim" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Linha 2: Checkbox Horário e Input Horário -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="definirHorario" style="width: auto; margin-right: 8px;" onchange="toggleHorario()">
+                                Definir Horário
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Horário</label>
+                            <input type="text" id="horario" maxlength="5" placeholder="HH:MM" disabled>
+                        </div>
+                    </div>
+                                        
+                    <!-- Linha 3: Tipo de Demanda e Tipo de Veículo -->
                     <div class="form-row">
                         <div class="form-group">
                             <label>Tipo de Demanda <span class="required">*</span></label>
@@ -788,7 +814,7 @@
                         </div>
                     </div>
                     
-                    <!-- Linha 2: Motorista com Radio Inline -->
+                    <!-- Linha 4: Motorista com Radio Inline -->
                     <div class="form-group">
                         <label id="labelMotorista">Motorista <span class="required">*</span></label>
                         <div class="motorista-inline-filter" id="motoristaFilter">
@@ -802,32 +828,6 @@
                         <select id="idMotorista" required></select>
                     </div>
                     
-                    <!-- Linha 3: Datas -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Data Início <span class="required">*</span></label>
-                            <input type="date" id="dtInicio" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Data Fim <span class="required">*</span></label>
-                            <input type="date" id="dtFim" required>
-                        </div>
-                    </div>
-                    
-                    <!-- Linha 4: Checkbox Horário e Input Horário -->
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>
-                                <input type="checkbox" id="definirHorario" style="width: auto; margin-right: 8px;" onchange="toggleHorario()">
-                                Definir Horário
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label>Horário</label>
-                            <input type="text" id="horario" maxlength="5" placeholder="HH:MM" disabled>
-                        </div>
-                    </div>
-
                     <!-- Linha 5: Veículo -->
                     <div class="form-group">
                         <label id="labelVeiculo">Veículo</label>
