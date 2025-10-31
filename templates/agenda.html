@@ -1601,167 +1601,142 @@
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
             html += '</tr></thead><tbody>';
             
-            // Criar mapa de motoristas com linhas duplicadas se necessário
-            const motoristasComLinhas = [];
-            
-            motoristas.forEach(m => {
+            motoristas.forEach((m, motoristaGlobalIndex) => {
                 // Para cada dia, verificar quantas demandas diferentes existem
-                const maxDemandasPorDia = Math.max(...dias.map(dia => {
-                    const demandasDia = dadosAgenda.demandas.filter(d => 
+                const demandasPorDia = dias.map(dia => {
+                    return dadosAgenda.demandas.filter(d => 
                         d.id_motorista === m.id && 
                         d.dt_inicio <= dia.data && 
                         d.dt_fim >= dia.data
                     );
-                    return demandasDia.length;
-                }));
-                
-                // Se há mais de uma demanda em algum dia, criar linhas duplicadas
-                const numLinhas = maxDemandasPorDia > 0 ? maxDemandasPorDia : 1;
-                
-                for (let linha = 0; linha < numLinhas; linha++) {
-                    motoristasComLinhas.push({
-                        motorista: m,
-                        linhaIndex: linha,
-                        totalLinhas: numLinhas
-                    });
-                }
-            });
-            
-            // Mapa para controlar células que já foram mescladas (skip)
-            const celulasSkip = new Set();
-            
-            motoristasComLinhas.forEach((item, globalIndex) => {
-                const m = item.motorista;
-                const linhaIndex = item.linhaIndex;
-                const totalLinhas = item.totalLinhas;
-                
-                html += `<tr>`;
-                
-                // Mostrar número e nome apenas na primeira linha de cada motorista
-                if (linhaIndex === 0) {
-                    const motoristaIndex = motoristas.findIndex(mot => mot.id === m.id) + 1;
-                    if (totalLinhas > 1) {
-                        html += `<td class="col-numero" rowspan="${totalLinhas}">${motoristaIndex}</td>`;
-                        html += `<td class="col-nome" rowspan="${totalLinhas}">${m.nome}</td>`;
-                    } else {
-                        html += `<td class="col-numero">${motoristaIndex}</td>`;
-                        html += `<td class="col-nome">${m.nome}</td>`;
-                    }
-                }
-                
-                dias.forEach((dia, diaIndex) => {
-                    const skipKey = `${m.id}-${diaIndex}-${linhaIndex}`;
-                    
-                    // Se esta célula já foi mesclada, não renderizar
-                    if (celulasSkip.has(skipKey)) {
-                        return;
-                    }
-                    
-                    const feriado = isFeriado(dia.data);
-                    const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
-                    const demandasDia = dadosAgenda.demandas.filter(d => 
-                        d.id_motorista === m.id && 
-                        d.dt_inicio <= dia.data && 
-                        d.dt_fim >= dia.data
-                    );
-                    
-                    // Pegar a demanda correspondente a esta linha
-                    const demanda = demandasDia[linhaIndex];
-                    
-                    if (demanda) {
-                        const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                        html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
-                        html += '<div class="cell-content">';
-                        
-                        // ID 9 (Oficina): mostra descrição do tipo (negrito) e destino (regular)
-                        if (demanda.id_tipodemanda === 9) {
-                            html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
-                            if (demanda.destino) {
-                                html += `<div>${demanda.destino}</div>`;
-                            }
-                        }
-                        // ID 10 (Cedência): mostra descrição do tipo (negrito), setor (negrito) e nº SEI (regular)
-                        else if (demanda.id_tipodemanda === 10) {
-                            html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
-                            if (demanda.setor) {
-                                html += `<div><strong>${demanda.setor}</strong></div>`;
-                            }
-                            if (demanda.nu_sei) {
-                                html += `<div>${demanda.nu_sei}</div>`;
-                            }
-                        }
-                        // ID 1 ou 2 com horário: mostrar horário após destino
-                        else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
-                            html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
-                            html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
-                            html += `<div>${demanda.nu_sei || ''}</div>`;
-                        }
-                        // Outros tipos: formato padrão
-                        else {
-                            html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
-                            html += `<div>${demanda.destino || ''}</div>`;
-                            html += `<div>${demanda.nu_sei || ''}</div>`;
-                        }
-                        
-                        // Mostrar (INFORMAR VEÍCULO) se não tiver tipo de veículo
-                        if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10].includes(demanda.id_tipodemanda)) {
-                            html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
-                        }                        
-                        
-                        html += '</div></td>';
-                    } else if (demandasDia.length === 0) {
-                        // Calcular quantas linhas abaixo também estão vazias para este dia
-                        let rowspanCount = 1;
-                        for (let proxLinha = linhaIndex + 1; proxLinha < totalLinhas; proxLinha++) {
-                            const proximaDemanda = demandasDia[proxLinha];
-                            if (!proximaDemanda) {
-                                rowspanCount++;
-                                // Marcar células que serão mescladas para não renderizar depois
-                                celulasSkip.add(`${m.id}-${diaIndex}-${proxLinha}`);
-                            } else {
-                                break;
-                            }
-                        }
-                        
-                        // Todas as linhas devem mostrar feriado ou final de semana corretamente
-                        if (feriado) {
-                            if (linhaIndex === 0) {
-                                html += `<td class="cell-feriado col-dia" rowspan="${rowspanCount}" onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
-                            } else {
-                                html += `<td class="cell-feriado col-dia" rowspan="${rowspanCount}">${feriado.descricao}</td>`;
-                            }
-                        } else {
-                            const weekendClass = isWeekend ? 'weekend-empty' : '';
-                            if (linhaIndex === 0) {
-                                html += `<td class="empty-cell ${weekendClass} col-dia" rowspan="${rowspanCount}" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
-                            } else {
-                                html += `<td class="empty-cell ${weekendClass} col-dia" rowspan="${rowspanCount}"></td>`;
-                            }
-                        }
-                    } else {
-                        // Linhas extras quando há menos demandas que o total de linhas
-                        // Calcular rowspan para células vazias
-                        let rowspanCount = 1;
-                        for (let proxLinha = linhaIndex + 1; proxLinha < totalLinhas; proxLinha++) {
-                            const proximaDemanda = demandasDia[proxLinha];
-                            if (!proximaDemanda) {
-                                rowspanCount++;
-                                celulasSkip.add(`${m.id}-${diaIndex}-${proxLinha}`);
-                            } else {
-                                break;
-                            }
-                        }
-                        
-                        if (feriado) {
-                            html += `<td class="cell-feriado col-dia" rowspan="${rowspanCount}">${feriado.descricao}</td>`;
-                        } else {
-                            const weekendClass = isWeekend ? 'weekend-empty' : '';
-                            html += `<td class="empty-cell ${weekendClass} col-dia" rowspan="${rowspanCount}"></td>`;
-                        }
-                    }
                 });
-                html += '</tr>';
+                
+                const maxDemandasPorDia = Math.max(...demandasPorDia.map(d => d.length), 1);
+                
+                // Criar matriz de controle de células (qual célula já foi renderizada)
+                const celulasRenderizadas = Array(maxDemandasPorDia).fill(0).map(() => Array(dias.length).fill(false));
+                
+                // Renderizar cada linha deste motorista
+                for (let linhaIndex = 0; linhaIndex < maxDemandasPorDia; linhaIndex++) {
+                    html += `<tr>`;
+                    
+                    // Mostrar número e nome apenas na primeira linha
+                    if (linhaIndex === 0) {
+                        if (maxDemandasPorDia > 1) {
+                            html += `<td class="col-numero" rowspan="${maxDemandasPorDia}">${motoristaGlobalIndex + 1}</td>`;
+                            html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">${m.nome}</td>`;
+                        } else {
+                            html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
+                            html += `<td class="col-nome">${m.nome}</td>`;
+                        }
+                    }
+                    
+                    // Renderizar células de cada dia
+                    for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
+                        // Se esta célula já foi renderizada (mesclada), pular
+                        if (celulasRenderizadas[linhaIndex][diaIndex]) {
+                            continue;
+                        }
+                        
+                        const dia = dias[diaIndex];
+                        const feriado = isFeriado(dia.data);
+                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                        const demandasDia = demandasPorDia[diaIndex];
+                        
+                        // Pegar a demanda correspondente a esta linha
+                        const demanda = demandasDia[linhaIndex];
+                        
+                        if (demanda) {
+                            // Tem demanda - verificar se pode mesclar com linhas vazias abaixo
+                            let rowspanCount = 1;
+                            
+                            // Contar quantas linhas abaixo estão vazias para este dia
+                            for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                if (!demandasDia[proxLinha]) {
+                                    rowspanCount++;
+                                    celulasRenderizadas[proxLinha][diaIndex] = true;
+                                } else {
+                                    break;
+                                }
+                            }
+                            
+                            const corClass = `tipo-${demanda.id_tipodemanda}`;
+                            const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                            html += '<div class="cell-content">';
+                            
+                            // ID 9 (Oficina)
+                            if (demanda.id_tipodemanda === 9) {
+                                html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
+                                if (demanda.destino) {
+                                    html += `<div>${demanda.destino}</div>`;
+                                }
+                            }
+                            // ID 10 (Cedência)
+                            else if (demanda.id_tipodemanda === 10) {
+                                html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
+                                if (demanda.setor) {
+                                    html += `<div><strong>${demanda.setor}</strong></div>`;
+                                }
+                                if (demanda.nu_sei) {
+                                    html += `<div>${demanda.nu_sei}</div>`;
+                                }
+                            }
+                            // ID 1 ou 2 com horário
+                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
+                                html += `<div>${demanda.nu_sei || ''}</div>`;
+                            }
+                            // Outros tipos
+                            else {
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div>${demanda.destino || ''}</div>`;
+                                html += `<div>${demanda.nu_sei || ''}</div>`;
+                            }
+                            
+                            if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10].includes(demanda.id_tipodemanda)) {
+                                html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
+                            }
+                            
+                            html += '</div></td>';
+                            celulasRenderizadas[linhaIndex][diaIndex] = true;
+                            
+                        } else {
+                            // Não tem demanda - calcular rowspan (mesclar com células vazias abaixo)
+                            let rowspanCount = 1;
+                            
+                            // Contar quantas linhas abaixo também não têm demanda para este dia
+                            for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                if (!demandasDia[proxLinha]) {
+                                    rowspanCount++;
+                                    celulasRenderizadas[proxLinha][diaIndex] = true;
+                                } else {
+                                    break;
+                                }
+                            }
+                            
+                            // Renderizar célula vazia com rowspan
+                            if (feriado) {
+                                if (linhaIndex === 0 && demandasDia.length === 0) {
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
+                                } else {
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
+                                }
+                            } else {
+                                const weekendClass = isWeekend ? 'weekend-empty' : '';
+                                if (linhaIndex === 0 && demandasDia.length === 0) {
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                                } else {
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
+                                }
+                            }
+                            celulasRenderizadas[linhaIndex][diaIndex] = true;
+                        }
+                    }
+                    
+                    html += '</tr>';
+                }
             });
             
             html += '</tbody></table></div>';
