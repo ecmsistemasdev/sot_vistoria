@@ -3612,9 +3612,9 @@ def fluxo_pesquisar():
 #######################################
 
 # Rota principal da agenda
-@app.route('/agenda')
-def agenda():
-    return render_template('agenda.html')
+@app.route('/agendasegeop')
+def agendasegeop():
+    return render_template('agenda_segeop.html')
 
 # Rota de teste para verificar conexão
 @app.route('/api/agenda/teste', methods=['GET'])
