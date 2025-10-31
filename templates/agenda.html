@@ -1781,10 +1781,20 @@
                     if (linhaIndex === 0) {
                         if (maxDemandasPorDia > 1) {
                             html += `<td class="col-numero" rowspan="${maxDemandasPorDia}">${motoristaGlobalIndex + 1}</td>`;
-                            html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">${m.nome}</td>`;
+                            html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">`;
+                            html += `<div><strong>${m.nome}</strong></div>`;
+                            if (m.tipo) {
+                                html += `<div style="font-size: 11px; color: #666; font-weight: normal;">${m.tipo}</div>`;
+                            }
+                            html += `</td>`;
                         } else {
                             html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
-                            html += `<td class="col-nome">${m.nome}</td>`;
+                            html += `<td class="col-nome">`;
+                            html += `<div><strong>${m.nome}</strong></div>`;
+                            if (m.tipo) {
+                                html += `<div style="font-size: 11px; color: #666; font-weight: normal;">${m.tipo}</div>`;
+                            }
+                            html += `</td>`;
                         }
                     }
                     
