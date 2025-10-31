@@ -119,6 +119,11 @@
                                         aria-controls="saldo-diarias" aria-selected="false">Saldo Diárias</button>
                             </li>
                             <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="sintetico-mensal-tab" data-bs-toggle="tab" 
+                                        data-bs-target="#sintetico-mensal" type="button" role="tab" 
+                                        aria-controls="sintetico-mensal" aria-selected="false">Sintético Mensal</button>
+                            </li>                            
+                            <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="dados-pls-tab" data-bs-toggle="tab" 
                                         data-bs-target="#dados-pls" type="button" role="tab" 
                                         aria-controls="dados-pls" aria-selected="true">Dados PLS</button>
@@ -134,11 +139,11 @@
                                         <thead>
                                             <tr>
                                                 <th>Nº Empenho</th>
-                                                <th>Vl. Empenho</th>
-                                                <th>Vl. Diárias</th>
-                                                <th>Vl. Dif.</th>
-                                                <th>Vl. Total Util.</th>
-                                                <th>Valor Saldo</th>
+                                                <th>Vlr. Empenho</th>
+                                                <th>Vlr. Liquidado</th>
+                                                <th>Vlr. Saldo</th>
+                                                <th>Vlr. À Liquidar</th>
+                                                <th>Vlr. Saldo Disponível</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tabela-empenhos">
@@ -170,6 +175,25 @@
                                     </table>
                                 </div>
                             </div>
+
+                            <!-- Guia Sintético Mensal -->
+                            <div class="tab-pane fade" id="sintetico-mensal" role="tabpanel" aria-labelledby="sintetico-mensal-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Mês/Ano</th>
+                                                <th>Vlr. Subtotal</th>
+                                                <th>Vlr. Hora Extra</th>
+                                                <th>Vlr. Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tabela-sintetico-mensal">
+                                            <!-- Dados carregados via AJAX -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>                            
 
                             <!-- Guia Dados PLS -->
                             <div class="tab-pane fade" id="dados-pls" role="tabpanel" aria-labelledby="dados-pls-tab">
@@ -1221,10 +1245,10 @@
                                 html += `<tr>
                                     <td>${item.NU_EMPENHO}</td>
                                     <td>R$ ${formatarValor(item.VL_EMPENHO)}</td>
-                                    <td>R$ ${formatarValor(item.VL_DIARIAS)}</td>
-                                    <td>R$ ${formatarValor(item.VL_DIF)}</td>
-                                    <td>R$ ${formatarValor(item.VL_UTILIZADO)}</td>
+                                    <td>R$ ${formatarValor(item.VL_LIQUIDADO)}</td>
                                     <td>R$ ${formatarValor(item.VL_SALDO)}</td>
+                                    <td>R$ ${formatarValor(item.VL_ALIQUIDAR)}</td>
+                                    <td>R$ ${formatarValor(item.VL_SALDO_DISPONIVEL)}</td>
                                 </tr>`;
                             });
                         }
@@ -1265,6 +1289,34 @@
                     error: function(xhr, status, error) {
                         console.error("Erro ao carregar saldo de diárias:", error);
                         $('#tabela-saldo-diarias').html('<tr><td colspan="8" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    }
+                });
+
+                // Carregar sintético mensal
+                $.ajax({
+                    url: `/api/sintetico_mensal/${id_cl}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Sintético mensal carregado:", data);
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="4" class="text-center">Nenhum registro encontrado</td></tr>';
+                        } else {
+                            data.forEach(function(item) {
+                                html += `<tr>
+                                    <td>${item.MESANO}</td>
+                                    <td>R$ ${formatarValor(item.SUBTOTAL)}</td>
+                                    <td>R$ ${formatarValor(item.HORA_EXTRA)}</td>
+                                    <td>R$ ${formatarValor(item.TOTAL)}</td>
+                                </tr>`;
+                            });
+                        }
+                        $('#tabela-sintetico-mensal').html(html);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar sintético mensal:", error);
+                        $('#tabela-sintetico-mensal').html('<tr><td colspan="4" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                     }
                 });
 
@@ -1600,7 +1652,7 @@
                 $('#horaInicio').val('07:00');
 
                 // Contador para controlar carregamentos pendentes
-                let carregamentosPendentes = 4; // Quantidade de carregamentos assíncronos
+                let carregamentosPendentes = 5; // Quantidade de carregamentos assíncronos
 
                 function verificarCarregamentoCompleto() {
                     carregamentosPendentes--;
@@ -3280,7 +3332,7 @@
             $(`#tabela-processos tr[data-id="${id_cl}"] .btn-danger`).show();
         
             // Contador para controlar carregamentos pendentes
-            let carregamentosPendentes = 6; // Quantidade de carregamentos assíncronos
+            let carregamentosPendentes = 7; // Quantidade de carregamentos assíncronos
         
             function verificarCarregamentoCompleto() {
                 carregamentosPendentes--;
@@ -3305,10 +3357,10 @@
                             html += `<tr>
                                 <td>${item.NU_EMPENHO}</td>
                                 <td>R$ ${formatarValor(item.VL_EMPENHO)}</td>
-                                <td>R$ ${formatarValor(item.VL_DIARIAS)}</td>
-                                <td>R$ ${formatarValor(item.VL_DIF)}</td>
-                                <td>R$ ${formatarValor(item.VL_UTILIZADO)}</td>
+                                <td>R$ ${formatarValor(item.VL_LIQUIDADO)}</td>
                                 <td>R$ ${formatarValor(item.VL_SALDO)}</td>
+                                <td>R$ ${formatarValor(item.VL_ALIQUIDAR)}</td>
+                                <td>R$ ${formatarValor(item.VL_SALDO_DISPONIVEL)}</td>
                             </tr>`;
                         });
                     }
@@ -3356,6 +3408,36 @@
                 }
             });
         
+            // Carregar sintético mensal
+            $.ajax({
+                url: `/api/sintetico_mensal/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Sintético mensal carregado:", data);
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="4" class="text-center">Nenhum registro encontrado</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.MESANO}</td>
+                                <td>R$ ${formatarValor(item.SUBTOTAL)}</td>
+                                <td>R$ ${formatarValor(item.HORA_EXTRA)}</td>
+                                <td>R$ ${formatarValor(item.TOTAL)}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-sintetico-mensal').html(html);
+                    verificarCarregamentoCompleto();
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar sintético mensal:", error);
+                    $('#tabela-sintetico-mensal').html('<tr><td colspan="4" class="text-center text-danger">Erro ao carregar dados</td></tr>');
+                    verificarCarregamentoCompleto();
+                }
+            });           
+            
             // Carregar dados do PLS
             $.ajax({
                 url: `/api/dados_pls/${id_cl}`,
@@ -3516,6 +3598,7 @@
             // Limpar todas as tabelas
             $('#tabela-empenhos').html('<tr><td colspan="6" class="text-center">Selecione um processo para visualizar os empenhos</td></tr>');
             $('#tabela-saldo-diarias').html('<tr><td colspan="8" class="text-center">Selecione um processo para visualizar o saldo de diárias</td></tr>');
+            $('#tabela-sintetico-mensal').html('<tr><td colspan="4" class="text-center">Selecione um processo para visualizar o sintético mensal</td></tr>');
             $('#tabela-dados-pls').html('<tr><td colspan="5" class="text-center">Selecione um processo para visualizar os dados do PLS</td></tr>');
             $('#tabela-transito').html('<tr><td colspan="10" class="text-center">Selecione um processo para visualizar as locações em trânsito</td></tr>');
             $('#tabela-finalizadas').html('<tr><td colspan="10" class="text-center">Selecione um processo para visualizar as locações finalizadas</td></tr>');
