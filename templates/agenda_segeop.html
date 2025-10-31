@@ -269,6 +269,9 @@
             background: linear-gradient(to bottom, hsl(320, 1%, 61%), hsl(330, 7%, 84%)) !important;
             font-weight: bold;
         }
+        .tipo-11 { 
+            background: linear-gradient(to bottom, #ffb3d9, #ffd9ec);
+        }        
 
         .empty-cell {
             background: #fafafa;
@@ -1334,7 +1337,7 @@
             } else if (idTipoDemanda === 3) {
                 // ID 3: Setor e Solicitante podem ficar em branco, Destino usuário preenche
                 // Não preenche automaticamente
-            } else if (idTipoDemanda === 1 || idTipoDemanda === 2) {
+            } else if (idTipoDemanda === 1 || idTipoDemanda === 2 || idTipoDemanda === 11) {
                 // ID 1-2: Setor e Solicitante obrigatórios
                 labelSetor.innerHTML = 'Setor <span class="required">*</span>';
                 labelSolicitante.innerHTML = 'Solicitante <span class="required">*</span>';
@@ -1697,8 +1700,8 @@
                                     html += `<div>${demanda.nu_sei}</div>`;
                                 }
                             }
-                            // ID 1 ou 2 com horário
-                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
+                            // ID 1, 2 ou 11 com horário
+                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
                                 html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
@@ -1866,8 +1869,8 @@
                                     html += `<div>${demanda.nu_sei}</div>`;
                                 }
                             }
-                            // ID 1 ou 2 com horário
-                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
+                            // ID 1, 2 ou 11 com horário
+                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
                                 html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
@@ -2057,8 +2060,8 @@
                                     html += `<div>${demanda.nu_sei}</div>`;
                                 }
                             }
-                            // ID 1 ou 2 com horário
-                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
+                            // ID 1, 2 ou 11 com horário
+                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
                                 html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                                 if (demanda.nu_sei) {
                                     html += `<div>${demanda.nu_sei}</div>`;
