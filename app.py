@@ -3735,6 +3735,28 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
+        # 1.2 NOVO: Lista de Outros Motoristas (NÃO SEGEOP) com demandas no período
+        cursor.execute("""
+            SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, m.NU_TELEFONE, m.TIPO_CADASTRO
+            FROM TJ_MOTORISTA m
+            INNER JOIN ATENDIMENTO_DEMANDAS ad ON ad.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Tercerizado')
+              AND m.ATIVO = 'S'
+              AND ad.DT_INICIO <= %s 
+              AND ad.DT_FIM >= %s
+            ORDER BY m.NM_MOTORISTA
+        """, (fim, inicio))
+        
+        outros_motoristas = []
+        for r in cursor.fetchall():
+            outros_motoristas.append({
+                'id': r[0], 
+                'nome': r[1], 
+                'cad': r[2] if len(r) > 2 else '', 
+                'telefone': r[3] if len(r) > 3 else '', 
+                'tipo': r[4] if len(r) > 4 else ''
+            })
+
         # 1.1 TODOS os Motoristas Ativos (para select na edição/outros)
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
@@ -3752,7 +3774,7 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
-        # 2. Demandas dos Motoristas (ADICIONAR TODOS_VEICULOS)
+        # 2. Demandas dos Motoristas (código existente continua igual...)
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
                    ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
@@ -3772,7 +3794,6 @@ def buscar_dados_agenda():
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
             
-            # Corrigir conversão de horário
             horario = ''
             if r[18]:
                 try:
@@ -3808,7 +3829,7 @@ def buscar_dados_agenda():
                 'todos_veiculos': r[19] or 'N'
             })
 
-        # 3. Lista de Veículos PADRÃO (FL_ATENDIMENTO = 'S')
+        # 3. Lista de Veículos PADRÃO (código existente continua igual...)
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
@@ -3824,7 +3845,7 @@ def buscar_dados_agenda():
                 'placa': r[2]
             })
 
-        # 4. Veículos EXTRAS com demandas no período (que não estão na lista padrão)
+        # 4. Veículos EXTRAS (código existente continua igual...)
         cursor.execute("""
             SELECT DISTINCT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
             FROM TJ_VEICULO v
@@ -3847,6 +3868,7 @@ def buscar_dados_agenda():
 
         return jsonify({
             'motoristas': motoristas,
+            'outros_motoristas': outros_motoristas,  # NOVO
             'todos_motoristas': todos_motoristas,
             'demandas': demandas,
             'veiculos': veiculos,
@@ -3859,7 +3881,8 @@ def buscar_dados_agenda():
         traceback.print_exc()
         return jsonify({
             'error': str(e), 
-            'motoristas': [], 
+            'motoristas': [],
+            'outros_motoristas': [],  # NOVO
             'todos_motoristas': [],
             'demandas': [], 
             'veiculos': [],
