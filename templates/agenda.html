@@ -1627,6 +1627,9 @@
                 }
             });
             
+            // Mapa para controlar células que já foram mescladas (skip)
+            const celulasSkip = new Set();
+            
             motoristasComLinhas.forEach((item, globalIndex) => {
                 const m = item.motorista;
                 const linhaIndex = item.linhaIndex;
@@ -1646,7 +1649,14 @@
                     }
                 }
                 
-                dias.forEach(dia => {
+                dias.forEach((dia, diaIndex) => {
+                    const skipKey = `${m.id}-${diaIndex}-${linhaIndex}`;
+                    
+                    // Se esta célula já foi mesclada, não renderizar
+                    if (celulasSkip.has(skipKey)) {
+                        return;
+                    }
+                    
                     const feriado = isFeriado(dia.data);
                     const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                     const demandasDia = dadosAgenda.demandas.filter(d => 
@@ -1701,28 +1711,53 @@
                         
                         html += '</div></td>';
                     } else if (demandasDia.length === 0) {
+                        // Calcular quantas linhas abaixo também estão vazias para este dia
+                        let rowspanCount = 1;
+                        for (let proxLinha = linhaIndex + 1; proxLinha < totalLinhas; proxLinha++) {
+                            const proximaDemanda = demandasDia[proxLinha];
+                            if (!proximaDemanda) {
+                                rowspanCount++;
+                                // Marcar células que serão mescladas para não renderizar depois
+                                celulasSkip.add(`${m.id}-${diaIndex}-${proxLinha}`);
+                            } else {
+                                break;
+                            }
+                        }
+                        
                         // Todas as linhas devem mostrar feriado ou final de semana corretamente
                         if (feriado) {
                             if (linhaIndex === 0) {
-                                html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
+                                html += `<td class="cell-feriado col-dia" rowspan="${rowspanCount}" onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
                             } else {
-                                html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
+                                html += `<td class="cell-feriado col-dia" rowspan="${rowspanCount}">${feriado.descricao}</td>`;
                             }
                         } else {
                             const weekendClass = isWeekend ? 'weekend-empty' : '';
                             if (linhaIndex === 0) {
-                                html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                                html += `<td class="empty-cell ${weekendClass} col-dia" rowspan="${rowspanCount}" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
                             } else {
-                                html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                                html += `<td class="empty-cell ${weekendClass} col-dia" rowspan="${rowspanCount}"></td>`;
                             }
                         }
                     } else {
                         // Linhas extras quando há menos demandas que o total de linhas
+                        // Calcular rowspan para células vazias
+                        let rowspanCount = 1;
+                        for (let proxLinha = linhaIndex + 1; proxLinha < totalLinhas; proxLinha++) {
+                            const proximaDemanda = demandasDia[proxLinha];
+                            if (!proximaDemanda) {
+                                rowspanCount++;
+                                celulasSkip.add(`${m.id}-${diaIndex}-${proxLinha}`);
+                            } else {
+                                break;
+                            }
+                        }
+                        
                         if (feriado) {
-                            html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
+                            html += `<td class="cell-feriado col-dia" rowspan="${rowspanCount}">${feriado.descricao}</td>`;
                         } else {
                             const weekendClass = isWeekend ? 'weekend-empty' : '';
-                            html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                            html += `<td class="empty-cell ${weekendClass} col-dia" rowspan="${rowspanCount}"></td>`;
                         }
                     }
                 });
