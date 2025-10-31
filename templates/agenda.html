@@ -709,6 +709,20 @@
             margin: 5px 0;
             padding-top: 5px;
         }
+
+        .veiculo-extra {
+            background: #fffacd !important; /* Cor amarelo claro */
+        }
+        
+        .col-nome.veiculo-extra {
+            background: #fffacd !important;
+            font-style: italic;
+        }
+        
+        .col-numero.veiculo-extra {
+            background: #fffacd !important;
+        }
+        
     </style>
 </head>
 <body>
@@ -810,6 +824,13 @@
                     <div class="form-group">
                         <label id="labelVeiculo">Veículo</label>
                         <select id="idVeiculo"></select>
+                    </div>
+
+                    <div class="form-group" id="divExpandirVeiculos" style="display: none;">
+                        <label>
+                            <input type="checkbox" id="expandirVeiculos" style="width: auto; margin-right: 8px;" onchange="toggleExpandirVeiculos()">
+                            Expandir para todos os veículos da frota
+                        </label>
                     </div>
                     
                     <!-- Linha 6: Setor e Solicitante -->
@@ -915,6 +936,8 @@
         let contextoAbertura = null; // 'motorista', 'veiculo' ou null
         let feriadosPeriodo = [];
         let scrollPosition = 0;
+        let veiculosExtras = [];
+        let listaVeiculosExpandida = false;        
 
         // Máscara para o campo horário
         function aplicarMascaraHorario(input) {
@@ -949,12 +972,36 @@
             return regex.test(horario);
         }
         
-        // Event listener para máscara (adicionar no init ou após DOMContentLoaded)
         document.addEventListener('DOMContentLoaded', function() {
+            // Máscara de horário
             const inputHorario = document.getElementById('horario');
             if (inputHorario) {
                 inputHorario.addEventListener('input', function() {
                     aplicarMascaraHorario(this);
+                });
+            }
+            
+            // Event listeners para datas (atualizar lista expandida)
+            const dtInicio = document.getElementById('dtInicio');
+            const dtFim = document.getElementById('dtFim');
+            
+            if (dtInicio && dtFim) {
+                dtInicio.addEventListener('change', function() {
+                    const expandirCheckbox = document.getElementById('expandirVeiculos');
+                    const idTipoVeiculo = document.getElementById('idTipoVeiculo').value;
+                    
+                    if (idTipoVeiculo === '1' && expandirCheckbox.checked) {
+                        toggleExpandirVeiculos();
+                    }
+                });
+                
+                dtFim.addEventListener('change', function() {
+                    const expandirCheckbox = document.getElementById('expandirVeiculos');
+                    const idTipoVeiculo = document.getElementById('idTipoVeiculo').value;
+                    
+                    if (idTipoVeiculo === '1' && expandirCheckbox.checked) {
+                        toggleExpandirVeiculos();
+                    }
                 });
             }
         });
@@ -1279,16 +1326,18 @@
                 labelSolicitante.innerHTML = 'Solicitante <span class="required">*</span>';
             }
         }
-        
+                
         function aplicarRegrasTipoVeiculo() {
             const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
             const veiculo = document.getElementById('idVeiculo');
             const motorista = document.getElementById('idMotorista');
             const divSolicitado = document.getElementById('divSolicitado');
+            const divExpandirVeiculos = document.getElementById('divExpandirVeiculos');
             const labelMotorista = document.getElementById('labelMotorista');
             
-            // Ocultar checkbox Solicitado por padrão
+            // Ocultar checkbox Solicitado e Expandir Veículos por padrão
             divSolicitado.style.display = 'none';
+            divExpandirVeiculos.style.display = 'none';
             
             if (!idTipoVeiculo) {
                 veiculo.disabled = false;
@@ -1319,25 +1368,30 @@
                 // Tipo 1: habilita e carrega veículos disponíveis
                 veiculo.disabled = false;
                 
+                // MOSTRAR checkbox de expandir veículos
+                divExpandirVeiculos.style.display = 'block';
+                
                 const dtInicio = document.getElementById('dtInicio').value;
                 const dtFim = document.getElementById('dtFim').value;
                 
                 if (dtInicio && dtFim) {
                     // Se tem datas, carrega veículos disponíveis
-                    atualizarVeiculosDisponiveis();
+                    if (listaVeiculosExpandida) {
+                        toggleExpandirVeiculos();
+                    } else {
+                        atualizarVeiculosDisponiveis();
+                    }
                 } else {
-                    // Se não tem datas, carrega todos os veículos
-                    preencherSelectVeiculos();
+                    // Se não tem datas, carrega todos os veículos ou padrão
+                    if (listaVeiculosExpandida) {
+                        toggleExpandirVeiculos();
+                    } else {
+                        preencherSelectVeiculos();
+                    }
                 }
             }
-
-            // // Event listeners para atualizar lista quando horário mudar
-            // document.getElementById('definirHorario').addEventListener('change', function() {
-            //     if (document.getElementById('idTipoVeiculo').value === '1') {
-            //         atualizarVeiculosDisponiveis();
-            //     }
-            // });
         }
+
         
         async function atualizarVeiculosDisponiveis() {
             const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
@@ -1416,6 +1470,7 @@
                 
                 motoristas = dadosAgenda.motoristas;
                 veiculos = dadosAgenda.veiculos;
+                veiculosExtras = dadosAgenda.veiculos_extras || [];
                 
                 document.getElementById('semanaAtual').textContent = semana.label;
                 
@@ -1425,7 +1480,80 @@
                 console.error('Erro:', error);
             }
         }
+
+        // Nova função para toggle de expandir veículos
+        async function toggleExpandirVeiculos() {
+            const checkbox = document.getElementById('expandirVeiculos');
+            const selectVeiculo = document.getElementById('idVeiculo');
+            const dtInicio = document.getElementById('dtInicio').value;
+            const dtFim = document.getElementById('dtFim').value;
+            const idAd = document.getElementById('idAd').value;
+            const temHorario = document.getElementById('definirHorario').checked;
+            
+            listaVeiculosExpandida = checkbox.checked;
+            
+            if (!dtInicio || !dtFim) {
+                if (listaVeiculosExpandida) {
+                    // Carregar todos os veículos sem filtro de data
+                    try {
+                        const res = await fetch(`/api/agenda/veiculos-todos?tem_horario=${temHorario}`);
+                        const todosVeiculos = await res.json();
+                        
+                        const veiculoAtual = selectVeiculo.value;
+                        selectVeiculo.innerHTML = '<option value="">Selecione...</option>';
+                        
+                        todosVeiculos.forEach(v => {
+                            selectVeiculo.innerHTML += `<option value="${v.id}">${v.veiculo}</option>`;
+                        });
+                        
+                        if (veiculoAtual) {
+                            selectVeiculo.value = veiculoAtual;
+                        }
+                    } catch (error) {
+                        console.error('Erro ao carregar todos os veículos:', error);
+                    }
+                } else {
+                    // Voltar para lista padrão
+                    preencherSelectVeiculos();
+                }
+                return;
+            }
         
+            // Se tem datas, carregar com filtro
+            if (listaVeiculosExpandida) {
+                try {
+                    let url = `/api/agenda/veiculos-todos?inicio=${dtInicio}&fim=${dtFim}&tem_horario=${temHorario}`;
+                    if (idAd) {
+                        url += `&id_demanda=${idAd}`;
+                    }
+                    
+                    const res = await fetch(url);
+                    const todosVeiculos = await res.json();
+                    
+                    const veiculoAtual = selectVeiculo.value;
+                    selectVeiculo.innerHTML = '<option value="">Selecione...</option>';
+                    
+                    todosVeiculos.forEach(v => {
+                        selectVeiculo.innerHTML += `<option value="${v.id}">${v.veiculo}</option>`;
+                    });
+                    
+                    if (veiculoAtual && veiculoSelecionadoOriginal) {
+                        const existe = Array.from(selectVeiculo.options).some(opt => opt.value == veiculoAtual);
+                        if (!existe) {
+                            selectVeiculo.innerHTML += `<option value="${veiculoSelecionadoOriginal.id}">${veiculoSelecionadoOriginal.veiculo}</option>`;
+                        }
+                        selectVeiculo.value = veiculoAtual;
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar todos os veículos:', error);
+                }
+            } else {
+                // Voltar para lista padrão com filtro de disponibilidade
+                await atualizarVeiculosDisponiveis();
+            }
+        }
+
+    
         function renderizarAgenda() {
             const semana = semanas[semanaAtual];
             const dias = gerarDiasSemana(semana.inicio);
@@ -1555,7 +1683,7 @@
             cell.classList.add('cell-selected');
             celulaSelecionada = cell;
         }
-                
+                        
         function renderizarSecaoVeiculos(dias) {
             let html = '<div class="agenda-section">';
             html += '<div class="section-title">🚙 SEGEOP - VEÍCULOS OFICIAIS</div>';
@@ -1564,10 +1692,28 @@
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
             html += '</tr></thead><tbody>';
             
+            // Combinar veículos padrão com extras que têm demandas
+            const todosVeiculos = [...veiculos];
+            
+            // Adicionar veículos extras que têm demandas na semana atual
+            veiculosExtras.forEach(vExtra => {
+                const temDemanda = dadosAgenda.demandas.some(d => 
+                    d.id_veiculo === vExtra.id &&
+                    dias.some(dia => d.dt_inicio <= dia.data && d.dt_fim >= dia.data)
+                );
+                
+                if (temDemanda) {
+                    todosVeiculos.push({
+                        ...vExtra,
+                        isExtra: true
+                    });
+                }
+            });
+            
             // Criar mapa de veículos com linhas duplicadas se necessário
             const veiculosComLinhas = [];
             
-            veiculos.forEach(v => {
+            todosVeiculos.forEach(v => {
                 // Para cada dia, verificar quantas demandas diferentes existem
                 const maxDemandasPorDia = Math.max(...dias.map(dia => {
                     const demandasDia = dadosAgenda.demandas.filter(d => 
@@ -1594,18 +1740,19 @@
                 const v = item.veiculo;
                 const linhaIndex = item.linhaIndex;
                 const totalLinhas = item.totalLinhas;
+                const extraClass = v.isExtra ? 'veiculo-extra' : '';
                 
                 html += `<tr>`;
                 
                 // Mostrar número e nome apenas na primeira linha de cada veículo
                 if (linhaIndex === 0) {
-                    const veiculoIndex = veiculos.findIndex(vei => vei.id === v.id) + 1;
+                    const veiculoIndex = todosVeiculos.findIndex(vei => vei.id === v.id) + 1;
                     if (totalLinhas > 1) {
-                        html += `<td class="col-numero" rowspan="${totalLinhas}">${veiculoIndex}</td>`;
-                        html += `<td class="col-nome" rowspan="${totalLinhas}">${v.veiculo}</td>`;
+                        html += `<td class="col-numero ${extraClass}" rowspan="${totalLinhas}">${veiculoIndex}</td>`;
+                        html += `<td class="col-nome ${extraClass}" rowspan="${totalLinhas}">${v.veiculo}</td>`;
                     } else {
-                        html += `<td class="col-numero">${veiculoIndex}</td>`;
-                        html += `<td class="col-nome">${v.veiculo}</td>`;
+                        html += `<td class="col-numero ${extraClass}">${veiculoIndex}</td>`;
+                        html += `<td class="col-nome ${extraClass}">${v.veiculo}</td>`;
                     }
                 }
                 
@@ -1828,19 +1975,24 @@
             html += '</tbody></table></div>';
             return html;
         }
-                
+                        
         async function abrirModalNovo() {
             document.getElementById('modalTitle').textContent = 'Nova Demanda';
             document.getElementById('idAd').value = '';
             document.getElementById('formDemanda').reset();
             document.getElementById('btnExcluir').style.display = 'none';
             veiculoSelecionadoOriginal = null;
+            listaVeiculosExpandida = false;
             
             // Reset de horário
             document.getElementById('definirHorario').checked = false;
             document.getElementById('definirHorario').disabled = false;
             document.getElementById('horario').value = '';
             document.getElementById('horario').disabled = true;
+            
+            // Reset checkbox expandir veículos
+            document.getElementById('expandirVeiculos').checked = false;
+            document.getElementById('divExpandirVeiculos').style.display = 'none';
             
             // Mostrar filtro e definir SEGEOP como padrão
             document.getElementById('motoristaFilter').style.display = 'flex';
@@ -1938,15 +2090,40 @@
             document.getElementById('idAd').value = demanda.id;
             document.getElementById('btnExcluir').style.display = 'inline-block';
             
+            // Definir se lista está expandida
+            listaVeiculosExpandida = demanda.todos_veiculos === 'S';
+            
             // Ocultar filtro na edição
             document.getElementById('motoristaFilter').style.display = 'none';
             
             // Guardar veículo original para manter na lista
             if (demanda.id_veiculo) {
-                veiculoSelecionadoOriginal = {
-                    id: demanda.id_veiculo,
-                    veiculo: veiculos.find(v => v.id === demanda.id_veiculo)?.veiculo || ''
-                };
+                // Procurar primeiro nos veículos padrão
+                let veiculoObj = veiculos.find(v => v.id === demanda.id_veiculo);
+                
+                // Se não encontrou, procurar nos veículos extras
+                if (!veiculoObj) {
+                    veiculoObj = veiculosExtras.find(v => v.id === demanda.id_veiculo);
+                }
+                
+                // Se ainda não encontrou, buscar diretamente (caso seja um veículo que não está em nenhuma lista)
+                if (!veiculoObj && dadosAgenda.demandas) {
+                    const todasDemandas = dadosAgenda.demandas.filter(d => d.id_veiculo === demanda.id_veiculo);
+                    if (todasDemandas.length > 0) {
+                        // Criar objeto temporário com dados da demanda
+                        veiculoObj = {
+                            id: demanda.id_veiculo,
+                            veiculo: `Veículo ID ${demanda.id_veiculo}` // Placeholder
+                        };
+                    }
+                }
+                
+                if (veiculoObj) {
+                    veiculoSelecionadoOriginal = {
+                        id: veiculoObj.id,
+                        veiculo: veiculoObj.veiculo
+                    };
+                }
             } else {
                 veiculoSelecionadoOriginal = null;
             }
@@ -1961,7 +2138,6 @@
             document.getElementById('dtFim').value = demanda.dt_fim;
             document.getElementById('idTipoDemanda').value = demanda.id_tipodemanda;
             document.getElementById('idTipoVeiculo').value = demanda.id_tipoveiculo || '';
-            document.getElementById('idVeiculo').value = demanda.id_veiculo || '';
             document.getElementById('setor').value = demanda.setor || '';
             document.getElementById('solicitante').value = demanda.solicitante || '';
             document.getElementById('destino').value = demanda.destino || '';
@@ -1986,9 +2162,28 @@
             aplicarRegrasTipoDemanda();
             aplicarRegrasTipoVeiculo();
             
+            // Configurar checkbox expandir veículos
+            document.getElementById('expandirVeiculos').checked = listaVeiculosExpandida;
+            
+            // Se tipo veículo é 1, carregar lista apropriada
+            if (demanda.id_tipoveiculo === 1) {
+                if (listaVeiculosExpandida) {
+                    await toggleExpandirVeiculos();
+                } else {
+                    await atualizarVeiculosDisponiveis();
+                }
+                
+                // Selecionar veículo após carregar lista
+                setTimeout(() => {
+                    document.getElementById('idVeiculo').value = demanda.id_veiculo || '';
+                }, 200);
+            } else {
+                document.getElementById('idVeiculo').value = demanda.id_veiculo || '';
+            }
+            
             document.getElementById('modal').style.display = 'block';
         }
-        
+
         function fecharModal() {
             document.getElementById('modal').style.display = 'none';
             veiculoSelecionadoOriginal = null;
@@ -2082,6 +2277,7 @@
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
             const definirHorario = document.getElementById('definirHorario').checked;
             const horario = document.getElementById('horario').value;
+            const expandirVeiculos = document.getElementById('expandirVeiculos').checked;
         
             // Validar horário se checkbox estiver marcado
             if (definirHorario) {
@@ -2109,6 +2305,7 @@
                 obs: document.getElementById('obs').value,
                 solicitado: document.getElementById('solicitado').checked ? 'S' : 'N',
                 horario: definirHorario ? horario : '',
+                todos_veiculos: expandirVeiculos ? 'S' : 'N',
                 usuario: document.getElementById('usuario').value
             };
             
