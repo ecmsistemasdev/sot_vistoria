@@ -3707,7 +3707,7 @@ def listar_semanas():
         if cursor:
             cursor.close()
 
-# API: Buscar dados da agenda por semana
+# API: Buscar dados da agenda por semana (MODIFICADA)
 @app.route('/api/agenda/dados', methods=['GET'])
 def buscar_dados_agenda():
     cursor = None
@@ -3752,13 +3752,14 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
-        # 2. Demandas dos Motoristas
+        # 2. Demandas dos Motoristas (ADICIONAR TODOS_VEICULOS)
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
                    ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
                    tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
-                   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO
+                   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
+                   ae.TODOS_VEICULOS
             FROM ATENDIMENTO_DEMANDAS ae
             LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
@@ -3771,24 +3772,21 @@ def buscar_dados_agenda():
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
             
-            # Corrigir conversão de horário - BUGFIX
+            # Corrigir conversão de horário
             horario = ''
-            if r[18]:  # Se existe valor de horário
+            if r[18]:
                 try:
                     if isinstance(r[18], str):
-                        # Se já é string, usar apenas primeiros 5 caracteres (HH:MM)
                         horario = r[18][:5] if len(r[18]) >= 5 else ''
-                    elif hasattr(r[18], 'total_seconds'):  # timedelta
-                        # Converter timedelta para string HH:MM
+                    elif hasattr(r[18], 'total_seconds'):
                         total_seconds = int(r[18].total_seconds())
                         hours = total_seconds // 3600
                         minutes = (total_seconds % 3600) // 60
-                        if hours > 0 or minutes > 0:  # Não mostrar 00:00
+                        if hours > 0 or minutes > 0:
                             horario = f"{hours:02d}:{minutes:02d}"
-                    elif hasattr(r[18], 'strftime'):  # time object
-                        # Formatar objeto time
+                    elif hasattr(r[18], 'strftime'):
                         horario_formatted = r[18].strftime('%H:%M')
-                        if horario_formatted != '00:00':  # Não mostrar 00:00
+                        if horario_formatted != '00:00':
                             horario = horario_formatted
                 except Exception as e:
                     print(f"Erro ao formatar horário: {e}, tipo: {type(r[18])}, valor: {r[18]}")
@@ -3806,10 +3804,11 @@ def buscar_dados_agenda():
                 'usuario': r[15] or '',
                 'obs': r[16] or '',
                 'solicitado': r[17] or 'N',
-                'horario': horario
+                'horario': horario,
+                'todos_veiculos': r[19] or 'N'
             })
 
-        # 3. Lista de Veículos
+        # 3. Lista de Veículos PADRÃO (FL_ATENDIMENTO = 'S')
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
@@ -3825,11 +3824,33 @@ def buscar_dados_agenda():
                 'placa': r[2]
             })
 
+        # 4. Veículos EXTRAS com demandas no período (que não estão na lista padrão)
+        cursor.execute("""
+            SELECT DISTINCT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+            FROM TJ_VEICULO v
+            INNER JOIN ATENDIMENTO_DEMANDAS ad ON ad.ID_VEICULO = v.ID_VEICULO
+            WHERE v.FL_ATENDIMENTO = 'N' 
+              AND v.ATIVO = 'S'
+              AND ad.DT_INICIO <= %s 
+              AND ad.DT_FIM >= %s
+            ORDER BY v.DS_MODELO, v.NU_PLACA
+        """, (fim, inicio))
+        
+        veiculos_extras = []
+        for r in cursor.fetchall():
+            veiculos_extras.append({
+                'id': r[0],
+                'veiculo': f"{r[1]} - {r[2]}",
+                'modelo': r[1],
+                'placa': r[2]
+            })
+
         return jsonify({
             'motoristas': motoristas,
             'todos_motoristas': todos_motoristas,
             'demandas': demandas,
-            'veiculos': veiculos
+            'veiculos': veiculos,
+            'veiculos_extras': veiculos_extras
         })
 
     except Exception as e:
@@ -3841,7 +3862,8 @@ def buscar_dados_agenda():
             'motoristas': [], 
             'todos_motoristas': [],
             'demandas': [], 
-            'veiculos': []
+            'veiculos': [],
+            'veiculos_extras': []
         }), 500
     finally:
         if cursor:
@@ -3936,7 +3958,7 @@ def buscar_veiculos_disponiveis():
         if cursor:
             cursor.close()
 
-# API: Criar nova demanda
+# API: Criar nova demanda (MODIFICADA)
 @app.route('/api/agenda/demanda', methods=['POST'])
 def criar_demanda():
     try:
@@ -3946,7 +3968,7 @@ def criar_demanda():
         # Converter horário para formato TIME ou NULL
         horario = data.get('horario')
         if horario and horario.strip():
-            horario_value = horario + ':00'  # Adicionar segundos
+            horario_value = horario + ':00'
         else:
             horario_value = None
         
@@ -3954,8 +3976,8 @@ def criar_demanda():
             INSERT INTO ATENDIMENTO_DEMANDAS 
             (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
              DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
-             OBS, SOLICITADO, HORARIO, DT_LANCAMENTO, USUARIO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+             OBS, SOLICITADO, HORARIO, TODOS_VEICULOS, DT_LANCAMENTO, USUARIO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
         """, (
             data.get('id_motorista'), 
             data.get('id_tipoveiculo'), 
@@ -3970,6 +3992,7 @@ def criar_demanda():
             data.get('obs'),
             data.get('solicitado', 'N'),
             horario_value,
+            data.get('todos_veiculos', 'N'),
             data['usuario']
         ))
         
@@ -3985,7 +4008,7 @@ def criar_demanda():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
-# API: Atualizar demanda
+# API: Atualizar demanda (MODIFICADA)
 @app.route('/api/agenda/demanda/<int:id_ad>', methods=['PUT'])
 def atualizar_demanda(id_ad):
     try:
@@ -3995,7 +4018,7 @@ def atualizar_demanda(id_ad):
         # Converter horário para formato TIME ou NULL
         horario = data.get('horario')
         if horario and horario.strip():
-            horario_value = horario + ':00'  # Adicionar segundos
+            horario_value = horario + ':00'
         else:
             horario_value = None
         
@@ -4004,7 +4027,7 @@ def atualizar_demanda(id_ad):
             SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
                 ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
                 SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
-                OBS = %s, SOLICITADO = %s, HORARIO = %s, USUARIO = %s
+                OBS = %s, SOLICITADO = %s, HORARIO = %s, TODOS_VEICULOS = %s, USUARIO = %s
             WHERE ID_AD = %s
         """, (
             data.get('id_motorista'), 
@@ -4020,6 +4043,7 @@ def atualizar_demanda(id_ad):
             data.get('obs'),
             data.get('solicitado', 'N'),
             horario_value,
+            data.get('todos_veiculos', 'N'),
             data['usuario'], 
             id_ad
         ))
@@ -4035,7 +4059,6 @@ def atualizar_demanda(id_ad):
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 		
-
 # API: Excluir demanda
 @app.route('/api/agenda/demanda/<int:id_ad>', methods=['DELETE'])
 def excluir_demanda(id_ad):
@@ -4306,6 +4329,83 @@ def verificar_horario_veiculo():
     finally:
         if cursor:
             cursor.close()
+
+# API: Buscar todos os veículos ativos (para expansão)
+@app.route('/api/agenda/veiculos-todos', methods=['GET'])
+def buscar_veiculos_todos():
+    cursor = None
+    try:
+        dt_inicio = request.args.get('inicio')
+        dt_fim = request.args.get('fim')
+        id_demanda_atual = request.args.get('id_demanda', '')
+        tem_horario = request.args.get('tem_horario', 'false') == 'true'
+
+        cursor = mysql.connection.cursor()
+
+        # Se a demanda tem horário definido, não verificar conflitos de data
+        if tem_horario:
+            cursor.execute("""
+                SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                FROM TJ_VEICULO v
+                WHERE v.ATIVO = 'S'
+                ORDER BY v.DS_MODELO, v.NU_PLACA
+            """)
+        else:
+            # Verificar se veículo já está alocado SEM horário
+            if id_demanda_atual:
+                cursor.execute("""
+                    SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                    FROM TJ_VEICULO v
+                    WHERE v.ATIVO = 'S'
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM ATENDIMENTO_DEMANDAS ad
+                          WHERE ad.ID_VEICULO = v.ID_VEICULO
+                            AND ad.ID_TIPOVEICULO = 1
+                            AND ad.ID_AD != %s
+                            AND ad.DT_INICIO <= %s 
+                            AND ad.DT_FIM >= %s
+                            AND (ad.HORARIO IS NULL OR ad.HORARIO = '00:00:00')
+                      )
+                    ORDER BY v.DS_MODELO, v.NU_PLACA
+                """, (id_demanda_atual, dt_fim, dt_inicio))
+            else:
+                cursor.execute("""
+                    SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+                    FROM TJ_VEICULO v
+                    WHERE v.ATIVO = 'S'
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM ATENDIMENTO_DEMANDAS ad
+                          WHERE ad.ID_VEICULO = v.ID_VEICULO
+                            AND ad.ID_TIPOVEICULO = 1
+                            AND ad.DT_INICIO <= %s 
+                            AND ad.DT_FIM >= %s
+                            AND (ad.HORARIO IS NULL OR ad.HORARIO = '00:00:00')
+                      )
+                    ORDER BY v.DS_MODELO, v.NU_PLACA
+                """, (dt_fim, dt_inicio))
+
+        veiculos = []
+        for r in cursor.fetchall():
+            veiculos.append({
+                'id': r[0],
+                'veiculo': f"{r[1]} - {r[2]}",
+                'modelo': r[1],
+                'placa': r[2]
+            })
+
+        return jsonify(veiculos)
+
+    except Exception as e:
+        print(f"Erro em buscar_veiculos_todos: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
 
 #######################################
 
