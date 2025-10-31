@@ -1779,20 +1779,24 @@
                     
                     // Mostrar número e nome apenas na primeira linha
                     if (linhaIndex === 0) {
+                        // Buscar setor da primeira demanda deste motorista
+                        const primeiraDemanada = dadosAgenda.demandas.find(d => d.id_motorista === m.id);
+                        const setor = primeiraDemanada ? primeiraDemanada.setor : '';
+                        
                         if (maxDemandasPorDia > 1) {
                             html += `<td class="col-numero" rowspan="${maxDemandasPorDia}">${motoristaGlobalIndex + 1}</td>`;
                             html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">`;
                             html += `<div><strong>${m.nome}</strong></div>`;
-                            if (m.tipo) {
-                                html += `<div style="font-size: 11px; color: #666; font-weight: normal;">${m.tipo}</div>`;
+                            if (setor) {
+                                html += `<div style="font-size: 11px; color: #666; font-weight: normal;">${setor}</div>`;
                             }
                             html += `</td>`;
                         } else {
                             html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
                             html += `<td class="col-nome">`;
                             html += `<div><strong>${m.nome}</strong></div>`;
-                            if (m.tipo) {
-                                html += `<div style="font-size: 11px; color: #666; font-weight: normal;">${m.tipo}</div>`;
+                            if (setor) {
+                                html += `<div style="font-size: 11px; color: #666; font-weight: normal;">${setor}</div>`;
                             }
                             html += `</td>`;
                         }
