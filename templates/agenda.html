@@ -1789,130 +1789,142 @@
                 }
             });
             
-            // Criar mapa de veículos com linhas duplicadas se necessário
-            const veiculosComLinhas = [];
-            
-            todosVeiculos.forEach(v => {
-                // Para cada dia, verificar quantas demandas diferentes existem
-                const maxDemandasPorDia = Math.max(...dias.map(dia => {
-                    const demandasDia = dadosAgenda.demandas.filter(d => 
-                        d.id_veiculo === v.id && 
-                        d.dt_inicio <= dia.data && 
-                        d.dt_fim >= dia.data
-                    );
-                    return demandasDia.length;
-                }));
-                
-                // Se há mais de uma demanda em algum dia, criar linhas duplicadas
-                const numLinhas = maxDemandasPorDia > 0 ? maxDemandasPorDia : 1;
-                
-                for (let linha = 0; linha < numLinhas; linha++) {
-                    veiculosComLinhas.push({
-                        veiculo: v,
-                        linhaIndex: linha,
-                        totalLinhas: numLinhas
-                    });
-                }
-            });
-            
-            veiculosComLinhas.forEach((item, index) => {
-                const v = item.veiculo;
-                const linhaIndex = item.linhaIndex;
-                const totalLinhas = item.totalLinhas;
+            todosVeiculos.forEach((v, veiculoGlobalIndex) => {
                 const extraClass = v.isExtra ? 'veiculo-extra' : '';
                 
-                html += `<tr>`;
-                
-                // Mostrar número e nome apenas na primeira linha de cada veículo
-                if (linhaIndex === 0) {
-                    const veiculoIndex = todosVeiculos.findIndex(vei => vei.id === v.id) + 1;
-                    if (totalLinhas > 1) {
-                        html += `<td class="col-numero ${extraClass}" rowspan="${totalLinhas}">${veiculoIndex}</td>`;
-                        html += `<td class="col-nome ${extraClass}" rowspan="${totalLinhas}">${v.veiculo}</td>`;
-                    } else {
-                        html += `<td class="col-numero ${extraClass}">${veiculoIndex}</td>`;
-                        html += `<td class="col-nome ${extraClass}">${v.veiculo}</td>`;
-                    }
-                }
-                
-                dias.forEach(dia => {
-                    const feriado = isFeriado(dia.data);
-                    const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
-                    const demandasDia = dadosAgenda.demandas.filter(d => 
+                // Para cada dia, verificar quantas demandas diferentes existem
+                const demandasPorDia = dias.map(dia => {
+                    return dadosAgenda.demandas.filter(d => 
                         d.id_veiculo === v.id && 
                         d.dt_inicio <= dia.data && 
                         d.dt_fim >= dia.data
                     );
+                });
+                
+                const maxDemandasPorDia = Math.max(...demandasPorDia.map(d => d.length), 1);
+                
+                // Criar matriz de controle de células
+                const celulasRenderizadas = Array(maxDemandasPorDia).fill(0).map(() => Array(dias.length).fill(false));
+                
+                // Renderizar cada linha deste veículo
+                for (let linhaIndex = 0; linhaIndex < maxDemandasPorDia; linhaIndex++) {
+                    html += `<tr>`;
                     
-                    // Pegar a demanda correspondente a esta linha
-                    const demanda = demandasDia[linhaIndex];
-                    
-                    if (demanda) {
-                        const corClass = `tipo-${demanda.id_tipodemanda}`;
-                        const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                        html += `<td class="${corClass} ${feriadoClass} col-dia" onclick="abrirModalEditar(${demanda.id})">`;
-                        html += '<div class="cell-content-veiculos">';
-                        
-                        // ID 9 (Oficina): mostra descrição do tipo (negrito) e destino (regular)
-                        if (demanda.id_tipodemanda === 9) {
-                            html += `<div>${demanda.de_tipodemanda || 'Oficina'}</div>`;
-                            if (demanda.destino) {
-                                html += `<div><strong>${demanda.destino}</strong></div>`;
-                            }
-                        }
-                        // ID 10 (Cedência): mostra descrição do tipo (negrito), setor (negrito) e nº SEI (regular)
-                        else if (demanda.id_tipodemanda === 10) {
-                            html += `<div>${demanda.de_tipodemanda || 'Cedência'}<strong>${' - ' + demanda.setor || ''}</strong></div>`;
-                            if (demanda.nu_sei) {
-                                html += `<div>${demanda.nu_sei}</div>`;
-                            }
-                        }
-                        // ID 1 ou 2 com horário: mostrar destino com horário
-                        else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
-                            html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
-                            if (demanda.nu_sei) {
-                                html += `<div>${demanda.nu_sei}</div>`;
-                            }
-                            if (demanda.destino) {
-                                html += `<div>${demanda.destino} <span class="demanda-horario">(${demanda.horario})</span></div>`;
-                            }
-                        }
-                        // Outros tipos: formato padrão (motorista e nº SEI)
-                        else {
-                            html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
-                            if (demanda.nu_sei) {
-                                html += `<div>${demanda.nu_sei}</div>`;
-                            }
-                        }
-                        
-                        html += '</div></td>';
-                    } else if (demandasDia.length === 0) {
-                        // Todas as linhas devem mostrar feriado ou final de semana corretamente
-                        if (feriado) {
-                            if (linhaIndex === 0) {
-                                html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})">${feriado.descricao}</td>`;
-                            } else {
-                                html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
-                            }
+                    // Mostrar número e nome apenas na primeira linha
+                    if (linhaIndex === 0) {
+                        if (maxDemandasPorDia > 1) {
+                            html += `<td class="col-numero ${extraClass}" rowspan="${maxDemandasPorDia}">${veiculoGlobalIndex + 1}</td>`;
+                            html += `<td class="col-nome ${extraClass}" rowspan="${maxDemandasPorDia}">${v.veiculo}</td>`;
                         } else {
-                            const weekendClass = isWeekend ? 'weekend-empty' : '';
-                            if (linhaIndex === 0) {
-                                html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})"></td>`;
-                            } else {
-                                html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
-                            }
-                        }
-                    } else {
-                        // Linhas extras quando há menos demandas que o total de linhas
-                        if (feriado) {
-                            html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
-                        } else {
-                            const weekendClass = isWeekend ? 'weekend-empty' : '';
-                            html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                            html += `<td class="col-numero ${extraClass}">${veiculoGlobalIndex + 1}</td>`;
+                            html += `<td class="col-nome ${extraClass}">${v.veiculo}</td>`;
                         }
                     }
-                });
-                html += '</tr>';
+                    
+                    // Renderizar células de cada dia
+                    for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
+                        // Se esta célula já foi renderizada (mesclada), pular
+                        if (celulasRenderizadas[linhaIndex][diaIndex]) {
+                            continue;
+                        }
+                        
+                        const dia = dias[diaIndex];
+                        const feriado = isFeriado(dia.data);
+                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                        const demandasDia = demandasPorDia[diaIndex];
+                        
+                        // Pegar a demanda correspondente a esta linha
+                        const demanda = demandasDia[linhaIndex];
+                        
+                        if (demanda) {
+                            // Tem demanda - verificar se pode mesclar com linhas vazias abaixo
+                            let rowspanCount = 1;
+                            
+                            // Contar quantas linhas abaixo estão vazias para este dia
+                            for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                if (!demandasDia[proxLinha]) {
+                                    rowspanCount++;
+                                    celulasRenderizadas[proxLinha][diaIndex] = true;
+                                } else {
+                                    break;
+                                }
+                            }
+                            
+                            const corClass = `tipo-${demanda.id_tipodemanda}`;
+                            const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalEditar(${demanda.id})">`;
+                            html += '<div class="cell-content-veiculos">';
+                            
+                            // ID 9 (Oficina)
+                            if (demanda.id_tipodemanda === 9) {
+                                html += `<div>${demanda.de_tipodemanda || 'Oficina'}</div>`;
+                                if (demanda.destino) {
+                                    html += `<div><strong>${demanda.destino}</strong></div>`;
+                                }
+                            }
+                            // ID 10 (Cedência)
+                            else if (demanda.id_tipodemanda === 10) {
+                                html += `<div>${demanda.de_tipodemanda || 'Cedência'}<strong>${' - ' + demanda.setor || ''}</strong></div>`;
+                                if (demanda.nu_sei) {
+                                    html += `<div>${demanda.nu_sei}</div>`;
+                                }
+                            }
+                            // ID 1 ou 2 com horário
+                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2) && demanda.horario) {
+                                html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                                if (demanda.nu_sei) {
+                                    html += `<div>${demanda.nu_sei}</div>`;
+                                }
+                                if (demanda.destino) {
+                                    html += `<div>${demanda.destino} <span class="demanda-horario">(${demanda.horario})</span></div>`;
+                                }
+                            }
+                            // Outros tipos
+                            else {
+                                html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                                if (demanda.nu_sei) {
+                                    html += `<div>${demanda.nu_sei}</div>`;
+                                }
+                            }
+                            
+                            html += '</div></td>';
+                            celulasRenderizadas[linhaIndex][diaIndex] = true;
+                            
+                        } else {
+                            // Não tem demanda - calcular rowspan (mesclar com células vazias abaixo)
+                            let rowspanCount = 1;
+                            
+                            // Contar quantas linhas abaixo também não têm demanda para este dia
+                            for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                if (!demandasDia[proxLinha]) {
+                                    rowspanCount++;
+                                    celulasRenderizadas[proxLinha][diaIndex] = true;
+                                } else {
+                                    break;
+                                }
+                            }
+                            
+                            // Renderizar célula vazia com rowspan
+                            if (feriado) {
+                                if (linhaIndex === 0 && demandasDia.length === 0) {
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})">${feriado.descricao}</td>`;
+                                } else {
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
+                                }
+                            } else {
+                                const weekendClass = isWeekend ? 'weekend-empty' : '';
+                                if (linhaIndex === 0 && demandasDia.length === 0) {
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComVeiculo('${dia.data}', ${v.id})"></td>`;
+                                } else {
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
+                                }
+                            }
+                            celulasRenderizadas[linhaIndex][diaIndex] = true;
+                        }
+                    }
+                    
+                    html += '</tr>';
+                }
             });
             
             html += '</tbody></table></div>';
