@@ -1601,20 +1601,64 @@
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
             html += '</tr></thead><tbody>';
             
-            motoristas.forEach((m, index) => {
-                html += `<tr><td class="col-numero">${index + 1}</td>`;
-                html += `<td class="col-nome">${m.nome}</td>`;
+            // Criar mapa de motoristas com linhas duplicadas se necessário
+            const motoristasComLinhas = [];
+            
+            motoristas.forEach(m => {
+                // Para cada dia, verificar quantas demandas diferentes existem
+                const maxDemandasPorDia = Math.max(...dias.map(dia => {
+                    const demandasDia = dadosAgenda.demandas.filter(d => 
+                        d.id_motorista === m.id && 
+                        d.dt_inicio <= dia.data && 
+                        d.dt_fim >= dia.data
+                    );
+                    return demandasDia.length;
+                }));
+                
+                // Se há mais de uma demanda em algum dia, criar linhas duplicadas
+                const numLinhas = maxDemandasPorDia > 0 ? maxDemandasPorDia : 1;
+                
+                for (let linha = 0; linha < numLinhas; linha++) {
+                    motoristasComLinhas.push({
+                        motorista: m,
+                        linhaIndex: linha,
+                        totalLinhas: numLinhas
+                    });
+                }
+            });
+            
+            motoristasComLinhas.forEach((item, globalIndex) => {
+                const m = item.motorista;
+                const linhaIndex = item.linhaIndex;
+                const totalLinhas = item.totalLinhas;
+                
+                html += `<tr>`;
+                
+                // Mostrar número e nome apenas na primeira linha de cada motorista
+                if (linhaIndex === 0) {
+                    const motoristaIndex = motoristas.findIndex(mot => mot.id === m.id) + 1;
+                    if (totalLinhas > 1) {
+                        html += `<td class="col-numero" rowspan="${totalLinhas}">${motoristaIndex}</td>`;
+                        html += `<td class="col-nome" rowspan="${totalLinhas}">${m.nome}</td>`;
+                    } else {
+                        html += `<td class="col-numero">${motoristaIndex}</td>`;
+                        html += `<td class="col-nome">${m.nome}</td>`;
+                    }
+                }
                 
                 dias.forEach(dia => {
                     const feriado = isFeriado(dia.data);
+                    const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                     const demandasDia = dadosAgenda.demandas.filter(d => 
                         d.id_motorista === m.id && 
                         d.dt_inicio <= dia.data && 
                         d.dt_fim >= dia.data
                     );
                     
-                    if (demandasDia.length > 0) {
-                        const demanda = demandasDia[0];
+                    // Pegar a demanda correspondente a esta linha
+                    const demanda = demandasDia[linhaIndex];
+                    
+                    if (demanda) {
                         const corClass = `tipo-${demanda.id_tipodemanda}`;
                         const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
                         html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
@@ -1656,13 +1700,30 @@
                         }                        
                         
                         html += '</div></td>';
-                    } else if (feriado) {
-                        // Célula de feriado sem demanda
-                        html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
+                    } else if (demandasDia.length === 0) {
+                        // Todas as linhas devem mostrar feriado ou final de semana corretamente
+                        if (feriado) {
+                            if (linhaIndex === 0) {
+                                html += `<td class="cell-feriado col-dia" onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
+                            } else {
+                                html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
+                            }
+                        } else {
+                            const weekendClass = isWeekend ? 'weekend-empty' : '';
+                            if (linhaIndex === 0) {
+                                html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                            } else {
+                                html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                            }
+                        }
                     } else {
-                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
-                        const weekendClass = isWeekend ? 'weekend-empty' : '';
-                        html += `<td class="empty-cell ${weekendClass} col-dia" onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                        // Linhas extras quando há menos demandas que o total de linhas
+                        if (feriado) {
+                            html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
+                        } else {
+                            const weekendClass = isWeekend ? 'weekend-empty' : '';
+                            html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                        }
                     }
                 });
                 html += '</tr>';
