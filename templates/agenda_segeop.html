@@ -1287,10 +1287,8 @@
             destino.disabled = false;
             
             if (idTipoDemanda === 10) {
-                // ID 10 (Cedência): Fecha Motorista, abre Setor (obrigatório), abre Solicitante (não obrigatório)
-                motorista.disabled = true;
+                // ID 10 (Cedência): Motorista não obrigatório, Setor obrigatório
                 motorista.required = false;
-                motorista.value = '';
                 if (labelMotorista) {
                     labelMotorista.innerHTML = 'Motorista';
                 }
@@ -1303,13 +1301,12 @@
                 solicitante.disabled = false;
                 
             } else if (idTipoDemanda === 9) {
-                // ID 9 (Oficina): Fecha Motorista, Setor, Solicitante
-                motorista.disabled = true;
+                // ID 9 (Oficina): Motorista não obrigatório, fecha Setor e Solicitante
                 motorista.required = false;
-                motorista.value = '';
                 if (labelMotorista) {
                     labelMotorista.innerHTML = 'Motorista';
-                }               
+                }
+                
                 setor.disabled = true;
                 setor.value = '';
                 solicitante.disabled = true;
@@ -1678,6 +1675,10 @@
                             // ID 9 (Oficina)
                             if (demanda.id_tipodemanda === 9) {
                                 html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
+                                if (demanda.nm_motorista) {
+                                    html += `<div class="cell-divider"></div>`;
+                                    html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                                }
                                 if (demanda.destino) {
                                     html += `<div>${demanda.destino}</div>`;
                                 }
@@ -1685,6 +1686,10 @@
                             // ID 10 (Cedência)
                             else if (demanda.id_tipodemanda === 10) {
                                 html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
+                                if (demanda.nm_motorista) {
+                                    html += `<div class="cell-divider"></div>`;
+                                    html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                                }
                                 if (demanda.setor) {
                                     html += `<div><strong>${demanda.setor}</strong></div>`;
                                 }
@@ -1704,7 +1709,7 @@
                                 html += `<div>${demanda.destino || ''}</div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
-                            
+                                                        
                             if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10].includes(demanda.id_tipodemanda)) {
                                 html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
                             }
@@ -2037,6 +2042,10 @@
                             // ID 9 (Oficina)
                             if (demanda.id_tipodemanda === 9) {
                                 html += `<div>${demanda.de_tipodemanda || 'Oficina'}</div>`;
+                                if (demanda.nm_motorista) {
+                                    html += `<div class="cell-divider"></div>`;
+                                    html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                                }
                                 if (demanda.destino) {
                                     html += `<div><strong>${demanda.destino}</strong></div>`;
                                 }
@@ -2065,7 +2074,7 @@
                                     html += `<div>${demanda.nu_sei}</div>`;
                                 }
                             }
-                            
+                                                        
                             html += '</div></td>';
                             celulasRenderizadas[linhaIndex][diaIndex] = true;
                             
@@ -2512,18 +2521,11 @@
                 const selectTipoDemanda = document.getElementById('idTipoDemanda');
                 const valorAtual = selectTipoDemanda.value; // Guardar valor atual para edição
                 
-                // Montar URL com contexto
-                let url = '/api/agenda/tipos-demanda-filtrados';
-                if (contextoAbertura) {
-                    url += `?contexto=${contextoAbertura}`;
-                }
-                
-                console.log('Carregando tipos com contexto:', contextoAbertura, 'URL:', url); // Debug
+                // Montar URL - não filtrar mais por contexto
+                let url = '/api/agenda/tipos-demanda';
                 
                 const res = await fetch(url);
                 const tipos = await res.json();
-                
-                console.log('Tipos carregados:', tipos); // Debug
                 
                 selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
                 tipos.forEach(t => {
@@ -2538,7 +2540,7 @@
                     }
                 }
             } catch (error) {
-                console.error('Erro ao carregar tipos de demanda filtrados:', error);
+                console.error('Erro ao carregar tipos de demanda:', error);
             }
         }
 
@@ -2548,7 +2550,7 @@
             const definirHorario = document.getElementById('definirHorario').checked;
             const horario = document.getElementById('horario').value;
             const expandirVeiculos = document.getElementById('expandirVeiculos').checked;
-        
+
             // Validar horário se checkbox estiver marcado
             if (definirHorario) {
                 if (!horario) {
@@ -2560,7 +2562,7 @@
                     return;
                 }
             }
-        
+
             const dados = {
                 id_motorista: document.getElementById('idMotorista').value || null,
                 id_tipodemanda: idTipoDemanda,
