@@ -1782,10 +1782,11 @@
                         if (maxDemandasPorDia > 1) {
                             html += `<td class="col-numero" rowspan="${maxDemandasPorDia}">${motoristaGlobalIndex + 1}</td>`;
                             html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">${m.nome}</td>`;
+                            html += `<td class="col-nome">${demanda.setor}</td>`;
                         } else {
                             html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
                             html += `<td class="col-nome">${m.nome}</td>`;
-                            html += `<td class="col-nome"><strong>${demanda.setor}</strong></td>`;
+                            html += `<td class="col-nome">${demanda.setor}</td>`;
                         }
                     }
                     
