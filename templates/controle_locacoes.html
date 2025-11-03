@@ -1626,6 +1626,9 @@
             
             // Ação do botão Nova Locação
             $('#btnNovaLocacao').click(function() {
+                console.log("=== BOTÃO NOVA LOCAÇÃO CLICADO ===");
+                console.log("Processo selecionado:", processoIdSelecionado);
+
                 if (!processoIdSelecionado) {
                     alert("Por favor, selecione um processo de locação primeiro.");
                     return;
@@ -1656,6 +1659,7 @@
 
                 function verificarCarregamentoCompleto() {
                     carregamentosPendentes--;
+                    console.log(">>> Carregamentos pendentes:", carregamentosPendentes);
                     if (carregamentosPendentes <= 0) {
                         // Todos os dados foram carregados
                         fecharModalCarregando();
@@ -1690,6 +1694,28 @@
                     }
                 });
                 
+
+                // Carregar empenhos com callback
+                $.ajax({
+                    url: `/api/empenhos_loc?id_cl=${processoIdSelecionado}`,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        empenhoLista = data;
+                        let html = '<option value="">Selecione...</option>';
+                        data.forEach(function(item) {
+                            html += `<option value="${item.ID_EMPENHO}">${item.NU_EMPENHO}</option>`;
+                        });
+                        $('#empenholoc').html(html);
+                        verificarCarregamentoCompleto();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Erro ao carregar empenhos:", error);
+                        alert("Erro ao carregar lista de empenhos.");
+                        verificarCarregamentoCompleto();
+                    }
+                });
+
                 // Carregar setores com callback
                 $.ajax({
                     url: '/api/setores_loc',
