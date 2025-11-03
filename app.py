@@ -1197,41 +1197,64 @@ def api_empenhos(id_cl):
     try:
         cursor = mysql.connection.cursor()
         query = """
-	SELECT 
-	    e.ID_EMPENHO, 
-	    e.NU_EMPENHO, 
-	    e.VL_EMPENHO,
-	    IFNULL(i.VL_DIARIAS, 0) AS VL_DIARIAS,
-	    IFNULL(i.VL_DIF, 0) AS VL_DIF,
-	    IFNULL(i.VL_UTILIZADO, 0) AS VL_UTILIZADO,
-	    (e.VL_EMPENHO - IFNULL(e.VL_ANULADO, 0) - IFNULL(i.VL_UTILIZADO, 0)) AS VL_SALDO
-	FROM TJ_CONTROLE_LOCACAO_EMPENHOS e
-	LEFT JOIN (
-	    SELECT 
-		ID_EMPENHO,
-		SUM(VL_SUBTOTAL) AS VL_DIARIAS,
-		SUM(VL_DIFERENCA) AS VL_DIF,
-		SUM(VL_TOTALITEM) AS VL_UTILIZADO
-	    FROM TJ_CONTROLE_LOCACAO_ITENS
-	    GROUP BY ID_EMPENHO
-	) i ON e.ID_EMPENHO = i.ID_EMPENHO
-	WHERE e.ATIVO = 'S'
-        AND e.ID_CL = %s
+        SELECT
+            e.ID_EMPENHO,
+            e.NU_EMPENHO,
+            e.VL_EMPENHO,
+            IFNULL(sl.VL_LIQUIDADO, 0) AS VL_LIQUIDADO,
+            (e.VL_EMPENHO - IFNULL(sl.VL_LIQUIDADO, 0)) AS VL_SALDO,
+            (IFNULL(st.VL_TOTAL, 0) - IFNULL(sl.VL_LIQUIDADO, 0)) AS VL_ALIQUIDAR,
+            ((e.VL_EMPENHO - IFNULL(sl.VL_LIQUIDADO, 0)) - (IFNULL(st.VL_TOTAL, 0) - IFNULL(sl.VL_LIQUIDADO, 0))) AS VL_SALDO_DISPONIVEL
+        FROM
+            TJ_CONTROLE_LOCACAO_EMPENHOS e
+        LEFT JOIN (
+            SELECT
+                i.ID_EMPENHO,
+                SUM(i.VL_TOTALITEM) AS VL_TOTAL
+            FROM TJ_CONTROLE_LOCACAO_ITENS i
+            GROUP BY i.ID_EMPENHO
+        ) st ON e.ID_EMPENHO = st.ID_EMPENHO
+        LEFT JOIN (
+            SELECT
+                i.ID_EMPENHO,
+                SUM(i.VL_TOTALITEM) AS VL_LIQUIDADO
+            FROM TJ_CONTROLE_LOCACAO_ITENS i
+            JOIN (
+                SELECT
+                    ID_EMPENHO,
+                    MAX(Mes) AS MesFechado
+                FROM (
+                    SELECT
+                        ID_EMPENHO,
+                        DATE_FORMAT(DATA_FIM, '%%Y-%%m') AS Mes,
+                        COUNT(*) AS TotalRegistros,
+                        SUM(CASE WHEN FL_STATUS='F' THEN 1 ELSE 0 END) AS QtdFechados
+                    FROM TJ_CONTROLE_LOCACAO_ITENS
+                    WHERE DATE_FORMAT(DATA_FIM, '%%Y-%%m') < DATE_FORMAT(CURDATE(), '%%Y-%%m')
+                    GROUP BY ID_EMPENHO, Mes
+                    HAVING TotalRegistros=QtdFechados
+                ) meses_fechados
+                GROUP BY ID_EMPENHO
+            ) umf ON i.ID_EMPENHO = umf.ID_EMPENHO AND DATE_FORMAT(i.DATA_FIM, '%%Y-%%m') <= umf.MesFechado
+            WHERE i.FL_STATUS = 'F'
+            GROUP BY i.ID_EMPENHO
+        ) sl ON e.ID_EMPENHO = sl.ID_EMPENHO
+        WHERE
+            e.ATIVO = 'S' AND e.ID_CL = %s
         """
         cursor.execute(query, (id_cl,))
         empenhos = cursor.fetchall()
         
-        # Converter para dicionários
         resultado = []
         for empenho in empenhos:
             resultado.append({
                 'ID_EMPENHO': empenho[0],
                 'NU_EMPENHO': empenho[1],
                 'VL_EMPENHO': float(empenho[2]) if empenho[2] else 0,
-                'VL_DIARIAS': float(empenho[3]) if empenho[3] else 0,
-                'VL_DIF': float(empenho[4]) if empenho[4] else 0,
-                'VL_UTILIZADO': float(empenho[5]) if empenho[5] else 0,
-                'VL_SALDO': float(empenho[6]) if empenho[6] else 0
+                'VL_LIQUIDADO': float(empenho[3]) if empenho[3] else 0,
+                'VL_SALDO': float(empenho[4]) if empenho[4] else 0,
+                'VL_ALIQUIDAR': float(empenho[5]) if empenho[5] else 0,
+                'VL_SALDO_DISPONIVEL': float(empenho[6]) if empenho[6] else 0
             })
         
         cursor.close()
@@ -1239,7 +1262,43 @@ def api_empenhos(id_cl):
     except Exception as e:
         app.logger.error(f"Erro ao buscar empenhos: {str(e)}")
         return jsonify({"error": str(e)}), 500
-  
+
+@app.route('/api/sintetico_mensal/<int:id_cl>')
+@login_required
+def api_sintetico_mensal(id_cl):
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT 
+            i.ID_MES, 
+            CONCAT((SELECT DE_MES FROM TJ_MES WHERE ID_MES = i.ID_MES),'/',i.ID_EXERCICIO) AS MESANO,
+            SUM(i.VL_SUBTOTAL) AS SUBTOTAL, 
+            SUM(i.VL_DIFERENCA) AS HORA_EXTRA, 
+            SUM(i.VL_TOTALITEM) AS TOTAL
+        FROM TJ_CONTROLE_LOCACAO_ITENS i
+        WHERE i.ID_CL = %s
+        GROUP BY i.ID_MES, i.ID_EXERCICIO
+        ORDER BY i.ID_MES DESC
+        """
+        cursor.execute(query, (id_cl,))
+        dados = cursor.fetchall()
+        
+        resultado = []
+        for item in dados:
+            resultado.append({
+                'ID_MES': item[0],
+                'MESANO': item[1],
+                'SUBTOTAL': float(item[2]) if item[2] else 0,
+                'HORA_EXTRA': float(item[3]) if item[3] else 0,
+                'TOTAL': float(item[4]) if item[4] else 0
+            })
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar sintético mensal: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/saldo_diarias/<int:id_cl>')
 @login_required
 def api_saldo_diarias(id_cl):
