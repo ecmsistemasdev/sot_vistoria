@@ -1131,17 +1131,31 @@
             if (semanas.length > 0) {
                 const hoje = new Date();
                 hoje.setHours(0, 0, 0, 0);
+
+                console.log('=== DEBUG SEMANA ATUAL ===');
+                console.log('Data hoje:', hoje);
+                console.log('Data hoje ISO:', hoje.toISOString().split('T')[0]);                
                 
                 let semanaEncontrada = -1;
                 for (let i = 0; i < semanas.length; i++) {
                     const inicio = new Date(semanas[i].inicio + 'T00:00:00');
                     const fim = new Date(semanas[i].fim + 'T00:00:00');
-                    
+
+                    console.log(`Semana ${i}: ${semanas[i].label}`);
+                    console.log(`  Inicio: ${inicio.toISOString().split('T')[0]}`);
+                    console.log(`  Fim: ${fim.toISOString().split('T')[0]}`);
+                    console.log(`  Hoje >= Inicio? ${hoje >= inicio}`);
+                    console.log(`  Hoje <= Fim? ${hoje <= fim}`);
+                                
                     if (hoje >= inicio && hoje <= fim) {
                         semanaEncontrada = i;
+                        console.log(`  ✓ SEMANA ENCONTRADA: índice ${i}`);
                         break;
                     }
                 }
+
+                console.log('Semana encontrada (índice):', semanaEncontrada);
+                console.log('=========================');
                 
                 semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
                 await carregarLocacoes();
