@@ -742,6 +742,76 @@
             background: #fffacd !important;
         }
         
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #34495e;
+            color: white;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .btn-visualizar {
+            background: white;
+            color: #34495e;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-visualizar:hover {
+            background: #ecf0f1;
+            transform: scale(1.05);
+        }
+
+        /* Estilos para a janela de visualização */
+        .print-view {
+            padding: 10px;
+            background: white;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .print-view .agenda-section {
+            margin: 0;
+            height: auto;
+        }
+
+        .print-view .agenda-table {
+            width: 100%;
+            font-size: 11px;
+        }
+
+        .print-view .section-title,
+        .print-view .section-header {
+            background: #34495e;
+            color: white;
+            padding: 12px 15px;
+            font-size: 18px;
+            text-align: center;
+            border-radius: 0;
+        }
+
+        .print-view .col-numero {
+            width: 35px;
+        }
+
+        .print-view .col-nome {
+            width: 180px;
+        }
+
+        .print-view .cell-content,
+        .print-view .cell-content-veiculos {
+            font-size: 10px;
+            line-height: 1.3;
+        }    
     </style>
 </head>
 <body>
@@ -1605,7 +1675,12 @@
         
         function renderizarSecaoMotoristas(dias) {
             let html = '<div class="agenda-section">';
-            html += '<div class="section-title">🚗 SEGEOP - MOTORISTAS</div>';
+            html += `
+                <div class="section-header">
+                    <span>🚗 SEGEOP - MOTORISTAS</span>
+                    <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('motoristas')">👁️ Visualizar</button>
+                </div>
+            `;
             html += '<table class="agenda-table"><thead><tr>';
             html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
@@ -1768,7 +1843,12 @@
             }
             
             let html = '<div class="agenda-section">';
-            html += '<div class="section-title">🚗 OUTROS MOTORISTAS</div>';
+            html += `
+                <div class="section-header">
+                    <span>🚗 OUTROS MOTORISTAS</span>
+                    <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('outros-motoristas')">👁️ Visualizar</button>
+                </div>
+            `;
             html += '<table class="agenda-table"><thead><tr>';
             html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
@@ -1952,7 +2032,12 @@
                         
         function renderizarSecaoVeiculos(dias) {
             let html = '<div class="agenda-section">';
-            html += '<div class="section-title">🚙 SEGEOP - VEÍCULOS OFICIAIS</div>';
+            html += `
+                <div class="section-header">
+                    <span>🚙 SEGEOP - VEÍCULOS OFICIAIS</span>
+                    <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('veiculos')">👁️ Visualizar</button>
+                </div>
+            `;
             html += '<table class="agenda-table"><thead><tr>';
             html += '<th class="col-numero">N.</th><th class="col-nome">Veículo</th>';
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
@@ -2161,7 +2246,12 @@
             });
             
             let html = '<div class="agenda-section">';
-            html += '<div class="section-title">🚌 SEGEOP - VEÍCULOS ALOCADOS</div>';
+            html += `
+                <div class="section-header">
+                    <span>🚌 SEGEOP - VEÍCULOS ALOCADOS</span>
+                    <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('veiculos-alocados')">👁️ Visualizar</button>
+                </div>
+            `;
             html += '<table class="agenda-table"><thead><tr>';
             html += '<th class="col-numero">N.</th><th class="col-nome">Tipo Veículo / SEI / Destino</th>';
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
@@ -2795,6 +2885,339 @@
         // (adicionar na função init ou após DOMContentLoaded)
         document.getElementById('idVeiculo').addEventListener('change', verificarObrigatoriedadeHorario);
         
+        function abrirVisualizacaoSecao(tipo) {
+            const semana = semanas[semanaAtual];
+            const dias = gerarDiasSemana(semana.inicio);
+            
+            let htmlSecao = '';
+            let titulo = '';
+            
+            switch(tipo) {
+                case 'motoristas':
+                    titulo = '🚗 SEGEOP - MOTORISTAS';
+                    htmlSecao = renderizarSecaoMotoristasCompleta(dias, titulo);
+                    break;
+                case 'outros-motoristas':
+                    titulo = '🚗 OUTROS MOTORISTAS';
+                    htmlSecao = renderizarSecaoOutrosMotoristas(dias);
+                    // Extrair apenas a tabela (remover div externa)
+                    const tempDiv1 = document.createElement('div');
+                    tempDiv1.innerHTML = htmlSecao;
+                    const tabela1 = tempDiv1.querySelector('table');
+                    htmlSecao = `<div class="agenda-section">
+                        <div class="section-title">${titulo}</div>
+                        ${tabela1.outerHTML}
+                    </div>`;
+                    break;
+                case 'veiculos':
+                    titulo = '🚙 SEGEOP - VEÍCULOS OFICIAIS';
+                    htmlSecao = renderizarSecaoVeiculos(dias);
+                    // Extrair apenas a tabela
+                    const tempDiv2 = document.createElement('div');
+                    tempDiv2.innerHTML = htmlSecao;
+                    const tabela2 = tempDiv2.querySelector('table');
+                    htmlSecao = `<div class="agenda-section">
+                        <div class="section-title">${titulo}</div>
+                        ${tabela2.outerHTML}
+                    </div>`;
+                    break;
+                case 'veiculos-alocados':
+                    titulo = '🚌 SEGEOP - VEÍCULOS ALOCADOS';
+                    htmlSecao = renderizarSecaoVeiculosAlocados(dias);
+                    // Extrair apenas a tabela
+                    const tempDiv3 = document.createElement('div');
+                    tempDiv3.innerHTML = htmlSecao;
+                    const tabela3 = tempDiv3.querySelector('table');
+                    htmlSecao = `<div class="agenda-section">
+                        <div class="section-title">${titulo}</div>
+                        ${tabela3.outerHTML}
+                    </div>`;
+                    break;
+            }
+            
+            // Criar nova janela
+            const novaJanela = window.open('', '_blank');
+            novaJanela.document.write(`
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>${titulo} - ${semana.label}</title>
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            background: white;
+                        }
+                        
+                        .print-view {
+                            padding: 10px;
+                            background: white;
+                            min-height: 100vh;
+                        }
+                        
+                        .agenda-section {
+                            margin: 0;
+                            height: auto;
+                        }
+                        
+                        .section-title {
+                            background: #34495e;
+                            color: white;
+                            padding: 12px 15px;
+                            font-size: 18px;
+                            text-align: center;
+                            font-weight: bold;
+                        }
+                        
+                        .agenda-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            border: 1px solid #ddd;
+                            table-layout: fixed;
+                            font-size: 11px;
+                        }
+                        
+                        .agenda-table th {
+                            background: #ecf0f1;
+                            padding: 10px;
+                            text-align: center;
+                            border: 1px solid #ddd;
+                            font-size: 12px;
+                            font-weight: 600;
+                        }
+                        
+                        .agenda-table td {
+                            border: 1px solid #ddd;
+                            padding: 6px;
+                            vertical-align: middle;
+                            font-size: 10px;
+                        }
+                        
+                        .col-numero {
+                            width: 35px;
+                            background: #f8f9fa;
+                            font-weight: 600;
+                            text-align: center;
+                        }
+                        
+                        .col-nome {
+                            width: 180px;
+                            background: #f8f9fa;
+                            font-weight: 600;
+                            word-wrap: break-word;
+                            white-space: normal;
+                        }
+                        
+                        .col-dia {
+                            width: calc((100% - 215px) / 7);
+                        }
+                        
+                        .cell-content,
+                        .cell-content-veiculos {
+                            line-height: 1.3;
+                            min-height: 30px;
+                            font-size: 10px;
+                        }
+                        
+                        .cell-divider {
+                            border-top: 1px dashed #999;
+                            margin: 5px 0;
+                            padding-top: 5px;
+                        }
+                        
+                        .demanda-horario {
+                            font-size: 9px;
+                            color: #666;
+                            font-style: italic;
+                        }
+                        
+                        .informar-veiculo {
+                            color: #dc3545;
+                            font-style: italic;
+                            font-size: 9px;
+                        }
+                        
+                        .tipo-1 { background: linear-gradient(to bottom, #5fa1df, #8dbde8); }
+                        .tipo-2 { background: linear-gradient(to bottom, #79f183, #9ff7a7); }
+                        .tipo-3, .tipo-4, .tipo-5 { background: linear-gradient(to bottom, #f8c295, #fad4b3); }
+                        .tipo-6, .tipo-7, .tipo-8 { background: linear-gradient(to bottom, #f3f183, #f7f5a7); font-weight: bold; }
+                        .tipo-9 { background: linear-gradient(to bottom, #ff5d5d, #fca5a5) !important; font-weight: bold; }
+                        .tipo-10 { background: linear-gradient(to bottom, hsl(320, 1%, 61%), hsl(330, 7%, 84%)) !important; font-weight: bold; }
+                        .tipo-11 { background: linear-gradient(to bottom, #ffb3d9, #ffd9ec); }
+                        .tipo-locacao { background: linear-gradient(to bottom, #c7a3e7, #d9bef0) !important; }
+                        .tipo-solicitado { background: linear-gradient(to bottom, #c7a3e7, #d9bef0) !important; }
+                        
+                        .empty-cell { background: #fafafa; }
+                        .empty-cell.weekend-empty { background: #e0e0e0; }
+                        
+                        .cell-feriado {
+                            background: #fdfcb2 !important;
+                            font-weight: bold;
+                            font-size: 10px;
+                            text-align: center;
+                        }
+                        
+                        .cell-feriado-com-demanda {
+                            position: relative;
+                        }
+                        
+                        .cell-feriado-com-demanda::before {
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 0;
+                            background: repeating-linear-gradient(
+                                45deg,
+                                transparent,
+                                transparent 10px,
+                                rgba(243, 241, 131, 0.3) 10px,
+                                rgba(243, 241, 131, 0.3) 20px
+                            );
+                            pointer-events: none;
+                        }
+                        
+                        .veiculo-extra {
+                            background: #fffacd !important;
+                        }
+                        
+                        .col-nome.veiculo-extra {
+                            background: #fffacd !important;
+                            font-style: italic;
+                        }
+                        
+                        .col-numero.veiculo-extra {
+                            background: #fffacd !important;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-view">
+                        ${htmlSecao}
+                    </div>
+                </body>
+                </html>
+            `);
+            novaJanela.document.close();
+        }
+
+        function renderizarSecaoMotoristasCompleta(dias, titulo) {
+            let html = '<div class="agenda-section">';
+            html += `<div class="section-title">${titulo}</div>`;
+            html += '<table class="agenda-table"><thead><tr>';
+            html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
+            dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+            html += '</tr></thead><tbody>';
+            
+            motoristas.forEach((m, motoristaGlobalIndex) => {
+                const demandasPorDia = dias.map(dia => {
+                    return dadosAgenda.demandas.filter(d => 
+                        d.id_motorista === m.id && 
+                        d.dt_inicio <= dia.data && 
+                        d.dt_fim >= dia.data
+                    );
+                });
+                
+                const maxDemandasPorDia = Math.max(...demandasPorDia.map(d => d.length), 1);
+                const celulasRenderizadas = Array(maxDemandasPorDia).fill(0).map(() => Array(dias.length).fill(false));
+                
+                for (let linhaIndex = 0; linhaIndex < maxDemandasPorDia; linhaIndex++) {
+                    html += `<tr>`;
+                    
+                    if (linhaIndex === 0) {
+                        if (maxDemandasPorDia > 1) {
+                            html += `<td class="col-numero" rowspan="${maxDemandasPorDia}">${motoristaGlobalIndex + 1}</td>`;
+                            html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">${m.nome}</td>`;
+                        } else {
+                            html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
+                            html += `<td class="col-nome">${m.nome}</td>`;
+                        }
+                    }
+                    
+                    for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
+                        if (celulasRenderizadas[linhaIndex][diaIndex]) continue;
+                        
+                        const dia = dias[diaIndex];
+                        const feriado = isFeriado(dia.data);
+                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                        const demandasDia = demandasPorDia[diaIndex];
+                        const demanda = demandasDia[linhaIndex];
+                        
+                        if (demanda) {
+                            let rowspanCount = 1;
+                            for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                if (!demandasDia[proxLinha]) {
+                                    rowspanCount++;
+                                    celulasRenderizadas[proxLinha][diaIndex] = true;
+                                } else break;
+                            }
+                            
+                            const corClass = `tipo-${demanda.id_tipodemanda}`;
+                            const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>`;
+                            html += '<div class="cell-content">';
+                            
+                            if (demanda.id_tipodemanda === 9) {
+                                html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
+                                if (demanda.nm_motorista) {
+                                    html += `<div class="cell-divider"></div>`;
+                                    html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                                }
+                                if (demanda.destino) html += `<div>${demanda.destino}</div>`;
+                            } else if (demanda.id_tipodemanda === 10) {
+                                html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
+                                if (demanda.nm_motorista) {
+                                    html += `<div class="cell-divider"></div>`;
+                                    html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                                }
+                                if (demanda.setor) html += `<div><strong>${demanda.setor}</strong></div>`;
+                                if (demanda.nu_sei) html += `<div>${demanda.nu_sei}</div>`;
+                            } else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
+                                html += `<div>${demanda.nu_sei || ''}</div>`;
+                            } else {
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div>${demanda.destino || ''}</div>`;
+                                html += `<div>${demanda.nu_sei || ''}</div>`;
+                            }
+                            
+                            if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10].includes(demanda.id_tipodemanda)) {
+                                html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
+                            }
+                            
+                            html += '</div></td>';
+                            celulasRenderizadas[linhaIndex][diaIndex] = true;
+                        } else {
+                            let rowspanCount = 1;
+                            for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                if (!demandasDia[proxLinha]) {
+                                    rowspanCount++;
+                                    celulasRenderizadas[proxLinha][diaIndex] = true;
+                                } else break;
+                            }
+                            
+                            if (feriado) {
+                                html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
+                            } else {
+                                const weekendClass = isWeekend ? 'weekend-empty' : '';
+                                html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
+                            }
+                            celulasRenderizadas[linhaIndex][diaIndex] = true;
+                        }
+                    }
+                    html += '</tr>';
+                }
+            });
+            
+            html += '</tbody></table></div>';
+            return html;
+        }
+
         init();
         
     </script>
