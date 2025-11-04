@@ -821,14 +821,17 @@
                 <h1>📅 AGENDA SEGEOP</h1>
                 <span class="periodo" id="semanaAtual"></span>
             </div>
-            <div class="header-right">
-                <button class="header-btn" onclick="abrirModalNovoGeral()" title="Nova Demanda">
-                    ➕ Nova Demanda
-                </button>
-                <button class="header-btn" onclick="abrirModalFeriados()" title="Gerenciar Feriados">
-                    🗓️
-                </button>                
-            </div>
+                <div class="header-right">
+                    <button class="header-btn" onclick="abrirModalNovoGeral()" title="Nova Demanda">
+                        ➕ Nova Demanda
+                    </button>
+                    <button class="header-btn" onclick="abrirModalFeriados()" title="Gerenciar Feriados">
+                        🗓️
+                    </button>
+                    <button class="header-btn" onclick="voltarPaginaInicial()" title="Retornar à Página Inicial">
+                        🏠 Início
+                    </button>
+                </div>
         </div>
 
         <div class="agenda-wrapper" id="agendaWrapper">
@@ -3296,6 +3299,11 @@
             return html;
         }
 
+        // Função para retornar à página inicial
+        function voltarPaginaInicial() {
+            window.location.href = '/';
+        }
+        
         init();
         
     </script>
