@@ -906,7 +906,14 @@
                                 <input type="radio" name="tipoMotorista" value="todos"> Todos
                             </label>
                         </div>
+                        
                         <select id="idMotorista" required></select>
+
+                        <!-- Campo Motorista Não Cadastrado (oculto por padrão) -->
+                        <div class="form-group" id="divNcMotorista" style="display: none;">
+                            <label>Motorista não cadastrado <span class="required">*</span></label>
+                            <input type="text" id="ncMotorista" maxlength="50">
+                        </div>
                     </div>
                     
                     <!-- Linha 5: Veículo -->
@@ -1094,6 +1101,25 @@
                     }
                 });
             }
+
+            // Event listener para exibir campo NC_MOTORISTA quando ID=0
+            const selectMotorista = document.getElementById('idMotorista');
+            if (selectMotorista) {
+                selectMotorista.addEventListener('change', function() {
+                    const divNcMotorista = document.getElementById('divNcMotorista');
+                    const inputNcMotorista = document.getElementById('ncMotorista');
+                    
+                    if (this.value === '0') {
+                        divNcMotorista.style.display = 'block';
+                        inputNcMotorista.required = true;
+                    } else {
+                        divNcMotorista.style.display = 'none';
+                        inputNcMotorista.required = false;
+                        inputNcMotorista.value = '';
+                    }
+                });
+            }
+
         });
         
         async function init() {
@@ -1409,8 +1435,10 @@
                 // Não preenche automaticamente
             } else if (idTipoDemanda === 1 || idTipoDemanda === 2 || idTipoDemanda === 11) {
                 // ID 1-2: Setor e Solicitante obrigatórios
-                labelSetor.innerHTML = 'Setor <span class="required">*</span>';
-                labelSolicitante.innerHTML = 'Solicitante <span class="required">*</span>';
+                // labelSetor.innerHTML = 'Setor <span class="required">*</span>';
+                // labelSolicitante.innerHTML = 'Solicitante <span class="required">*</span>';
+                labelSetor.innerHTML = 'Setor';
+                labelSolicitante.innerHTML = 'Solicitante';
             }
         }
                 
@@ -2324,8 +2352,12 @@
                             }                            
 
                         } else {
-                            // Para outros IDs: mostrar motorista e setor
-                            html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                            // Para outros IDs: mostrar motorista (nome ou NC) e setor
+                            if (demanda.id_motorista === 0 && demanda.nc_motorista) {
+                                html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                            } else {
+                                html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                            }
                             if (demanda.setor) {
                                 html += `<div>${demanda.setor}</div>`;
                             }
@@ -2374,6 +2406,11 @@
             document.getElementById('divSolicitado').style.display = 'none';
             document.getElementById('solicitado').checked = false;
             
+            // Reset campo motorista não cadastrado
+            document.getElementById('divNcMotorista').style.display = 'none';
+            document.getElementById('ncMotorista').value = '';
+            document.getElementById('ncMotorista').required = false;
+
             preencherSelectMotoristas('segeop');
             
             // NÃO carregar veículos no início
@@ -2517,6 +2554,17 @@
             document.getElementById('obs').value = demanda.obs || '';
             document.getElementById('solicitado').checked = demanda.solicitado === 'S';
             
+            // Preencher motorista não cadastrado
+            if (demanda.id_motorista === 0 && demanda.nc_motorista) {
+                document.getElementById('divNcMotorista').style.display = 'block';
+                document.getElementById('ncMotorista').value = demanda.nc_motorista;
+                document.getElementById('ncMotorista').required = true;
+            } else {
+                document.getElementById('divNcMotorista').style.display = 'none';
+                document.getElementById('ncMotorista').value = '';
+                document.getElementById('ncMotorista').required = false;
+            }
+
             // Carregar horário
             if (demanda.horario) {
                 document.getElementById('definirHorario').checked = true;
@@ -2670,6 +2718,7 @@
                 obs: document.getElementById('obs').value,
                 solicitado: document.getElementById('solicitado').checked ? 'S' : 'N',
                 horario: definirHorario ? horario : '',
+                nc_motorista: document.getElementById('ncMotorista').value || '',
                 todos_veiculos: expandirVeiculos ? 'S' : 'N',
                 usuario: document.getElementById('usuario').value
             };
@@ -2690,6 +2739,12 @@
                 alert('O campo Motorista é obrigatório!');
                 return;
             }
+
+            // Validação específica para motorista não cadastrado
+            if (dados.id_motorista === '0' && !dados.nc_motorista) {
+                alert('Informe o nome do motorista não cadastrado!');
+                return;
+            }            
             
             // Validação para ID 10: Setor obrigatório
             if (idTipoDemanda === 10 && !dados.setor) {
@@ -2697,11 +2752,11 @@
                 return;
             }
             
-            // Validação para ID 1 ou 2: Setor e Solicitante obrigatórios
-            if ((idTipoDemanda === 1 || idTipoDemanda === 2) && (!dados.setor || !dados.solicitante)) {
-                alert('Para este tipo de demanda, Setor e Solicitante são obrigatórios!');
-                return;
-            }
+            // // Validação para ID 1 ou 2: Setor e Solicitante obrigatórios
+            // if ((idTipoDemanda === 1 || idTipoDemanda === 2) && (!dados.setor || !dados.solicitante)) {
+            //     alert('Para este tipo de demanda, Setor e Solicitante são obrigatórios!');
+            //     return;
+            // }
             
             try {
                 let res;
@@ -3161,27 +3216,50 @@
                             html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>`;
                             html += '<div class="cell-content">';
                             
+                            // ID 9 (Oficina)
                             if (demanda.id_tipodemanda === 9) {
                                 html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
-                                if (demanda.nm_motorista) {
+                                if (demanda.id_motorista === 0 && demanda.nc_motorista) {
+                                    html += `<div class="cell-divider"></div>`;
+                                    html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                                } else if (demanda.nm_motorista) {
                                     html += `<div class="cell-divider"></div>`;
                                     html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
                                 }
-                                if (demanda.destino) html += `<div>${demanda.destino}</div>`;
-                            } else if (demanda.id_tipodemanda === 10) {
+                                if (demanda.destino) {
+                                    html += `<div>${demanda.destino}</div>`;
+                                }
+                            }
+                            // ID 10 (Cedência)
+                            else if (demanda.id_tipodemanda === 10) {
                                 html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
-                                if (demanda.nm_motorista) {
+                                if (demanda.id_motorista === 0 && demanda.nc_motorista) {
+                                    html += `<div class="cell-divider"></div>`;
+                                    html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                                } else if (demanda.nm_motorista) {
                                     html += `<div class="cell-divider"></div>`;
                                     html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
                                 }
-                                if (demanda.setor) html += `<div><strong>${demanda.setor}</strong></div>`;
-                                if (demanda.nu_sei) html += `<div>${demanda.nu_sei}</div>`;
-                            } else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                if (demanda.setor) {
+                                    html += `<div><strong>${demanda.setor}</strong></div>`;
+                                }
+                                if (demanda.nu_sei) {
+                                    html += `<div>${demanda.nu_sei}</div>`;
+                                }
+                            }
+                            // ID 1, 2 ou 11 com horário
+                            else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
+                                if (demanda.setor || demanda.solicitante) {
+                                    html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                }
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
-                            } else {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                            }
+                            // Outros tipos
+                            else {
+                                if (demanda.setor || demanda.solicitante) {
+                                    html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                }
                                 html += `<div>${demanda.destino || ''}</div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
