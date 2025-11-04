@@ -3672,36 +3672,13 @@ def fluxo_pesquisar():
 
 # Rota principal da agenda
 @app.route('/agendasegeop')
+@login_required
 def agendasegeop():
     return render_template('agenda_segeop.html')
 
-# Rota de teste para verificar conexão
-@app.route('/api/agenda/teste', methods=['GET'])
-def teste_conexao():
-    cursor = None
-    try:
-        cursor = mysql.connection.cursor()
-        
-        # Testar consulta simples
-        cursor.execute("SELECT COUNT(*) FROM ATENDIMENTO_DEMANDAS")
-        count = cursor.fetchone()[0]
-        
-        return jsonify({
-            'status': 'ok',
-            'total_demandas': count,
-            'mensagem': 'Conexão funcionando!'
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'erro',
-            'mensagem': str(e)
-        }), 500
-    finally:
-        if cursor:
-            cursor.close()
-
 # API: Listar semanas com dados
 @app.route('/api/agenda/semanas', methods=['GET'])
+@login_required
 def listar_semanas():
     cursor = None
     try:
@@ -3768,6 +3745,7 @@ def listar_semanas():
 
 # API: Buscar dados da agenda por semana (CORRIGIDA - VERSÃO FINAL)
 @app.route('/api/agenda/dados', methods=['GET'])
+@login_required
 def buscar_dados_agenda():
     cursor = None
     try:
@@ -3980,6 +3958,7 @@ def buscar_dados_agenda():
 			
 # API: Buscar veículos disponíveis para um período específico
 @app.route('/api/agenda/veiculos-disponiveis', methods=['GET'])
+@login_required
 def buscar_veiculos_disponiveis():
     cursor = None
     try:
@@ -4069,6 +4048,7 @@ def buscar_veiculos_disponiveis():
 
 # API: Criar nova demanda (MODIFICADA)
 @app.route('/api/agenda/demanda', methods=['POST'])
+@login_required
 def criar_demanda():
     try:
         data = request.get_json()
@@ -4120,6 +4100,7 @@ def criar_demanda():
 
 # API: Atualizar demanda (MODIFICADA)
 @app.route('/api/agenda/demanda/<int:id_ad>', methods=['PUT'])
+@login_required
 def atualizar_demanda(id_ad):
     try:
         data = request.get_json()
@@ -4173,6 +4154,7 @@ def atualizar_demanda(id_ad):
 		
 # API: Excluir demanda
 @app.route('/api/agenda/demanda/<int:id_ad>', methods=['DELETE'])
+@login_required
 def excluir_demanda(id_ad):
     try:
         cursor = mysql.connection.cursor()
@@ -4187,6 +4169,7 @@ def excluir_demanda(id_ad):
 
 # API: Buscar tipos de demanda
 @app.route('/api/agenda/tipos-demanda', methods=['GET'])
+@login_required
 def buscar_tipos_demanda():
     try:
         cursor = mysql.connection.cursor()
@@ -4199,6 +4182,7 @@ def buscar_tipos_demanda():
 
 # API: Buscar tipos de veículo
 @app.route('/api/agenda/tipos-veiculo', methods=['GET'])
+@login_required
 def buscar_tipos_veiculo():
     try:
         cursor = mysql.connection.cursor()
@@ -4210,6 +4194,7 @@ def buscar_tipos_veiculo():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/agenda/locacoes', methods=['GET'])
+@login_required
 def buscar_locacoes():
     cursor = None
     try:
@@ -4248,6 +4233,7 @@ def buscar_locacoes():
 
 # API: Buscar tipos de demanda filtrados por contexto
 @app.route('/api/agenda/tipos-demanda-filtrados', methods=['GET'])
+@login_required
 def buscar_tipos_demanda_filtrados():
     cursor = None
     try:
@@ -4291,6 +4277,7 @@ def buscar_tipos_demanda_filtrados():
 
 # API: Listar feriados
 @app.route('/api/agenda/feriados', methods=['GET'])
+@login_required
 def listar_feriados():
     cursor = None
     try:
@@ -4320,6 +4307,7 @@ def listar_feriados():
 
 # API: Criar feriado
 @app.route('/api/agenda/feriado', methods=['POST'])
+@login_required
 def criar_feriado():
     cursor = None
     try:
@@ -4346,6 +4334,7 @@ def criar_feriado():
 
 # API: Excluir feriado
 @app.route('/api/agenda/feriado/<int:id_feriado>', methods=['DELETE'])
+@login_required
 def excluir_feriado(id_feriado):
     cursor = None
     try:
@@ -4365,6 +4354,7 @@ def excluir_feriado(id_feriado):
 
 # API: Buscar feriados por período
 @app.route('/api/agenda/feriados-periodo', methods=['GET'])
+@login_required
 def buscar_feriados_periodo():
     cursor = None
     try:
@@ -4398,6 +4388,7 @@ def buscar_feriados_periodo():
 
 # API: Verificar se veículo tem demandas com horário no período
 @app.route('/api/agenda/verificar-horario-veiculo', methods=['GET'])
+@login_required
 def verificar_horario_veiculo():
     cursor = None
     try:
@@ -4444,6 +4435,7 @@ def verificar_horario_veiculo():
 
 # API: Buscar todos os veículos ativos (para expansão)
 @app.route('/api/agenda/veiculos-todos', methods=['GET'])
+@login_required
 def buscar_veiculos_todos():
     cursor = None
     try:
@@ -4517,7 +4509,6 @@ def buscar_veiculos_todos():
     finally:
         if cursor:
             cursor.close()
-
 
 #######################################
 
