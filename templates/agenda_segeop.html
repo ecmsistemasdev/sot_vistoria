@@ -1132,20 +1132,20 @@
                 const hoje = new Date();
                 hoje.setHours(0, 0, 0, 0);
 
-                console.log('=== DEBUG SEMANA ATUAL ===');
-                console.log('Data hoje:', hoje);
-                console.log('Data hoje ISO:', hoje.toISOString().split('T')[0]);                
+                // console.log('=== DEBUG SEMANA ATUAL ===');
+                // console.log('Data hoje:', hoje);
+                // console.log('Data hoje ISO:', hoje.toISOString().split('T')[0]);                
                 
                 let semanaEncontrada = -1;
                 for (let i = 0; i < semanas.length; i++) {
                     const inicio = new Date(semanas[i].inicio + 'T00:00:00');
                     const fim = new Date(semanas[i].fim + 'T00:00:00');
 
-                    console.log(`Semana ${i}: ${semanas[i].label}`);
-                    console.log(`  Inicio: ${inicio.toISOString().split('T')[0]}`);
-                    console.log(`  Fim: ${fim.toISOString().split('T')[0]}`);
-                    console.log(`  Hoje >= Inicio? ${hoje >= inicio}`);
-                    console.log(`  Hoje <= Fim? ${hoje <= fim}`);
+                    // console.log(`Semana ${i}: ${semanas[i].label}`);
+                    // console.log(`  Inicio: ${inicio.toISOString().split('T')[0]}`);
+                    // console.log(`  Fim: ${fim.toISOString().split('T')[0]}`);
+                    // console.log(`  Hoje >= Inicio? ${hoje >= inicio}`);
+                    // console.log(`  Hoje <= Fim? ${hoje <= fim}`);
                                 
                     if (hoje >= inicio && hoje <= fim) {
                         semanaEncontrada = i;
@@ -1154,8 +1154,8 @@
                     }
                 }
 
-                console.log('Semana encontrada (índice):', semanaEncontrada);
-                console.log('=========================');
+                // console.log('Semana encontrada (índice):', semanaEncontrada);
+                // console.log('=========================');
                 
                 semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
                 
@@ -1574,18 +1574,18 @@
         
         function renderizarAbas() {
             const tabs = document.getElementById('weekTabs');
-            console.log('=== RENDERIZAR ABAS ===');
-            console.log('semanaAtual na renderização:', semanaAtual);
+            // console.log('=== RENDERIZAR ABAS ===');
+            // console.log('semanaAtual na renderização:', semanaAtual);
             
             tabs.innerHTML = semanas.map((s, i) => {
                 const isActive = i === semanaAtual;
-                console.log(`Aba ${i} (${s.label}): ${isActive ? 'ACTIVE' : 'inativa'}`);
+                // console.log(`Aba ${i} (${s.label}): ${isActive ? 'ACTIVE' : 'inativa'}`);
                 return `<div class="week-tab ${isActive ? 'active' : ''}" 
                     onclick="mudarSemana(${i})">${s.label}</div>`;
             }).join('');
             
-            console.log('HTML gerado:', tabs.innerHTML.substring(0, 200) + '...');
-            console.log('=======================');
+            // console.log('HTML gerado:', tabs.innerHTML.substring(0, 200) + '...');
+            // console.log('=======================');
             
             // Scroll para a aba ativa após renderizar
             setTimeout(() => {
