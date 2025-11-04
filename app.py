@@ -4053,6 +4053,9 @@ def criar_demanda():
     try:
         data = request.get_json()
         cursor = mysql.connection.cursor()
+
+		# Obter ID do usuário da sessão
+        usuario = session.get('usuario_login')		
         
         # Converter horário para formato TIME ou NULL
         horario = data.get('horario')
@@ -4083,7 +4086,7 @@ def criar_demanda():
             horario_value,
             data.get('todos_veiculos', 'N'),
             data.get('nc_motorista', ''),
-            data['usuario']
+            usuario
         ))
         
         mysql.connection.commit()
@@ -4105,6 +4108,9 @@ def atualizar_demanda(id_ad):
     try:
         data = request.get_json()
         cursor = mysql.connection.cursor()
+
+		# Obter ID do usuário da sessão
+        usuario = session.get('usuario_login')
         
         # Converter horário para formato TIME ou NULL
         horario = data.get('horario')
@@ -4137,7 +4143,7 @@ def atualizar_demanda(id_ad):
             horario_value,
             data.get('todos_veiculos', 'N'),
             data.get('nc_motorista', ''),
-            data['usuario'], 
+            usuario, 
             id_ad
         ))
         
