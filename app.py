@@ -3766,7 +3766,7 @@ def listar_semanas():
         if cursor:
             cursor.close()
 
-# API: Buscar dados da agenda por semana (MODIFICADA)
+# API: Buscar dados da agenda por semana (CORRIGIDA - VERSÃO FINAL)
 @app.route('/api/agenda/dados', methods=['GET'])
 def buscar_dados_agenda():
     cursor = None
@@ -3811,36 +3811,33 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
-        # 1.2 Outros Motoristas (NÃO SEGEOP) com demandas no período
-        cursor.execute("""
+        # 1.2 Outros Motoristas (NÃO SEGEOP) com demandas no período + Não Cadastrados
+        query_outros = """
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
                    m.NU_TELEFONE, m.TIPO_CADASTRO
             FROM TJ_MOTORISTA m
             INNER JOIN ATENDIMENTO_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Tercerizado')
               AND m.ATIVO = 'S'
-              AND ae.DT_INICIO <= '2025-11-08' 
-              AND ae.DT_FIM >= '2025-11-01'
+              AND ae.DT_INICIO <= %s 
+              AND ae.DT_FIM >= %s
             UNION 
-            SELECT ID_MOTORISTA, CONCAT(NC_MOTORISTA,' (Não Cadastrado)') as NM_MOTORISTA, '' AS CAD_MOTORISTA, 
-            '' AS NU_TELEFONE, 'Não Cadastrado' FROM ATENDIMENTO_DEMANDAS
-            WHERE DT_INICIO <= '2025-11-08' 
-              AND DT_FIM >= '2025-11-01'
+            SELECT DISTINCT 0 as ID_MOTORISTA, 
+                   CONCAT(NC_MOTORISTA, ' (Não Cadastrado)') as NM_MOTORISTA, 
+                   '' AS CAD_MOTORISTA, 
+                   '' AS NU_TELEFONE, 
+                   'Não Cadastrado' as TIPO_CADASTRO
+            FROM ATENDIMENTO_DEMANDAS
+            WHERE DT_INICIO <= %s 
+              AND DT_FIM >= %s
               AND ID_MOTORISTA = 0
-             ORDER BY NM_MOTORISTA			 
-        """, (fim, inicio))
-
-#            SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
-#                   m.NU_TELEFONE, m.TIPO_CADASTRO
-#            FROM TJ_MOTORISTA m
-#            INNER JOIN ATENDIMENTO_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
-#            WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Tercerizado')
-#              AND m.ATIVO = 'S'
-#              AND ae.DT_INICIO <= %s 
-#              AND ae.DT_FIM >= %s
-#            ORDER BY m.NM_MOTORISTA
-
-		
+              AND NC_MOTORISTA IS NOT NULL
+              AND NC_MOTORISTA != ''
+            ORDER BY NM_MOTORISTA
+        """
+        
+        cursor.execute(query_outros, (fim, inicio, fim, inicio))
+        
         outros_motoristas = []
         for r in cursor.fetchall():
             outros_motoristas.append({
@@ -3854,8 +3851,10 @@ def buscar_dados_agenda():
         # 2. Demandas dos Motoristas
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, 
-			       CASE WHEN ae.ID_MOTORISTA=0 THEN CONCAT(ae.NC_MOTORISTA, '(Não Cadast.)')
-				   ELSE m.NM_MOTORISTA END MONE_MOTORISTA, 
+                   CASE 
+                       WHEN ae.ID_MOTORISTA = 0 THEN CONCAT(ae.NC_MOTORISTA, ' (Não Cadast.)')
+                       ELSE m.NM_MOTORISTA 
+                   END as NOME_MOTORISTA, 
                    ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
                    tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
@@ -3893,13 +3892,20 @@ def buscar_dados_agenda():
                     horario = ''
             
             demandas.append({
-                'id': r[0], 'id_motorista': r[1], 'nm_motorista': r[2],
-                'id_tipoveiculo': r[3], 'de_tipodemanda': r[4], 'id_tipodemanda': r[5],
-                'de_tipoveiculo': r[6], 'id_veiculo': r[7], 
+                'id': r[0], 
+                'id_motorista': r[1], 
+                'nm_motorista': r[2],
+                'id_tipoveiculo': r[3], 
+                'de_tipodemanda': r[4], 
+                'id_tipodemanda': r[5],
+                'de_tipoveiculo': r[6], 
+                'id_veiculo': r[7], 
                 'dt_inicio': r[8].strftime('%Y-%m-%d'), 
                 'dt_fim': r[9].strftime('%Y-%m-%d'),
-                'setor': r[10] or '', 'solicitante': r[11] or '', 
-                'destino': r[12] or '', 'nu_sei': r[13] or '', 
+                'setor': r[10] or '', 
+                'solicitante': r[11] or '', 
+                'destino': r[12] or '', 
+                'nu_sei': r[13] or '', 
                 'dt_lancamento': dt_lancamento,
                 'usuario': r[15] or '',
                 'obs': r[16] or '',
