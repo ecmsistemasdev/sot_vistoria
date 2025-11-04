@@ -1571,10 +1571,18 @@
         
         function renderizarAbas() {
             const tabs = document.getElementById('weekTabs');
-            tabs.innerHTML = semanas.map((s, i) => 
-                `<div class="week-tab ${i === semanaAtual ? 'active' : ''}" 
-                    onclick="mudarSemana(${i})">${s.label}</div>`
-            ).join('');
+            console.log('=== RENDERIZAR ABAS ===');
+            console.log('semanaAtual na renderização:', semanaAtual);
+            
+            tabs.innerHTML = semanas.map((s, i) => {
+                const isActive = i === semanaAtual;
+                console.log(`Aba ${i} (${s.label}): ${isActive ? 'ACTIVE' : 'inativa'}`);
+                return `<div class="week-tab ${isActive ? 'active' : ''}" 
+                    onclick="mudarSemana(${i})">${s.label}</div>`;
+            }).join('');
+            
+            console.log('HTML gerado:', tabs.innerHTML.substring(0, 200) + '...');
+            console.log('=======================');
             
             // Scroll para a aba ativa após renderizar
             setTimeout(() => {
