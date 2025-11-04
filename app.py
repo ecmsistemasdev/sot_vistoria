@@ -3819,11 +3819,28 @@ def buscar_dados_agenda():
             INNER JOIN ATENDIMENTO_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Tercerizado')
               AND m.ATIVO = 'S'
-              AND ae.DT_INICIO <= %s 
-              AND ae.DT_FIM >= %s
-            ORDER BY m.NM_MOTORISTA
+              AND ae.DT_INICIO <= '2025-11-08' 
+              AND ae.DT_FIM >= '2025-11-01'
+            UNION 
+            SELECT ID_MOTORISTA, CONCAT(NC_MOTORISTA,' (Não Cadastrado)') as NM_MOTORISTA, '' AS CAD_MOTORISTA, 
+            '' AS NU_TELEFONE, 'Não Cadastrado' FROM ATENDIMENTO_DEMANDAS
+            WHERE DT_INICIO <= '2025-11-08' 
+              AND DT_FIM >= '2025-11-01'
+              AND ID_MOTORISTA = 0
+             ORDER BY NM_MOTORISTA			 
         """, (fim, inicio))
-        
+
+#            SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
+#                   m.NU_TELEFONE, m.TIPO_CADASTRO
+#            FROM TJ_MOTORISTA m
+#            INNER JOIN ATENDIMENTO_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
+#            WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Tercerizado')
+#              AND m.ATIVO = 'S'
+#              AND ae.DT_INICIO <= %s 
+#              AND ae.DT_FIM >= %s
+#            ORDER BY m.NM_MOTORISTA
+
+		
         outros_motoristas = []
         for r in cursor.fetchall():
             outros_motoristas.append({
@@ -3836,7 +3853,9 @@ def buscar_dados_agenda():
 
         # 2. Demandas dos Motoristas
         cursor.execute("""
-            SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
+            SELECT ae.ID_AD, ae.ID_MOTORISTA, 
+			       CASE WHEN ae.ID_MOTORISTA=0 THEN CONCAT(ae.NC_MOTORISTA, '(Não Cadast.)')
+				   ELSE m.NM_MOTORISTA END MONE_MOTORISTA, 
                    ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
                    tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
