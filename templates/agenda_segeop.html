@@ -1158,6 +1158,9 @@
                 console.log('=========================');
                 
                 semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
+                
+                renderizarAbas();
+                
                 await carregarLocacoes();
                 await carregarFeriadosPeriodo();
                 await carregarAgenda();
@@ -1310,7 +1313,7 @@
                     semanas = [];
                 }
                 
-                renderizarAbas();
+                // renderizarAbas();
             } catch (error) {
                 console.error('Erro ao carregar semanas:', error);
                 semanas = [];
@@ -1325,7 +1328,7 @@
                     fim: sabado.toISOString().split('T')[0],
                     label: `${domingo.getDate()}/${domingo.getMonth()+1} - ${sabado.getDate()}/${sabado.getMonth()+1}/${sabado.getFullYear()}`
                 }];
-                renderizarAbas();
+                // renderizarAbas();
             }
         }
         
