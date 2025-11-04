@@ -3795,16 +3795,20 @@ def buscar_dados_agenda():
             })
 
         # 1.2 NOVO: Lista de Outros Motoristas (NÃO SEGEOP) com demandas no período
-        cursor.execute("""
-            SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, m.NU_TELEFONE, m.TIPO_CADASTRO
-            FROM TJ_MOTORISTA m
-            INNER JOIN ATENDIMENTO_DEMANDAS ad ON ad.ID_MOTORISTA = m.ID_MOTORISTA
-            WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Tercerizado')
-              AND m.ATIVO = 'S'
-              AND ad.DT_INICIO <= %s 
-              AND ad.DT_FIM >= %s
-            ORDER BY m.NM_MOTORISTA
-        """, (fim, inicio))
+		cursor.execute("""
+		    SELECT ae.ID_AD, ae.ID_MOTORISTA, m.NM_MOTORISTA, 
+		           ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+		           tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+		           ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+		           ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
+		           ae.TODOS_VEICULOS, ae.NC_MOTORISTA
+		    FROM ATENDIMENTO_DEMANDAS ae
+		    LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+		    LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+		    LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+		    WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
+		    ORDER BY ae.DT_INICIO
+		""", (fim, inicio))
         
         outros_motoristas = []
         for r in cursor.fetchall():
@@ -3820,7 +3824,7 @@ def buscar_dados_agenda():
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
-            WHERE ATIVO = 'S' AND ID_MOTORISTA <> 0
+            WHERE ATIVO = 'S'
             ORDER BY NM_MOTORISTA
         """)
         todos_motoristas = []
@@ -3885,7 +3889,8 @@ def buscar_dados_agenda():
                 'obs': r[16] or '',
                 'solicitado': r[17] or 'N',
                 'horario': horario,
-                'todos_veiculos': r[19] or 'N'
+                'todos_veiculos': r[19] or 'N',
+				'nc_motorista': r[20] or ''
             })
 
         # 3. Lista de Veículos PADRÃO (código existente continua igual...)
@@ -4054,29 +4059,30 @@ def criar_demanda():
         else:
             horario_value = None
         
-        cursor.execute("""
-            INSERT INTO ATENDIMENTO_DEMANDAS 
-            (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
-             DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
-             OBS, SOLICITADO, HORARIO, TODOS_VEICULOS, DT_LANCAMENTO, USUARIO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
-        """, (
-            data.get('id_motorista'), 
-            data.get('id_tipoveiculo'), 
-            data.get('id_veiculo'),
-            data['id_tipodemanda'], 
-            data['dt_inicio'], 
-            data['dt_fim'],
-            data.get('setor'), 
-            data.get('solicitante'), 
-            data.get('destino'), 
-            data.get('nu_sei'),
-            data.get('obs'),
-            data.get('solicitado', 'N'),
-            horario_value,
-            data.get('todos_veiculos', 'N'),
-            data['usuario']
-        ))
+		cursor.execute("""
+		    INSERT INTO ATENDIMENTO_DEMANDAS 
+		    (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
+		     DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
+		     OBS, SOLICITADO, HORARIO, TODOS_VEICULOS, NC_MOTORISTA, DT_LANCAMENTO, USUARIO)
+		    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+		""", (
+		    data.get('id_motorista'), 
+		    data.get('id_tipoveiculo'), 
+		    data.get('id_veiculo'),
+		    data['id_tipodemanda'], 
+		    data['dt_inicio'], 
+		    data['dt_fim'],
+		    data.get('setor'), 
+		    data.get('solicitante'), 
+		    data.get('destino'), 
+		    data.get('nu_sei'),
+		    data.get('obs'),
+		    data.get('solicitado', 'N'),
+		    horario_value,
+		    data.get('todos_veiculos', 'N'),
+		    data.get('nc_motorista', ''),
+		    data['usuario']
+		))
         
         mysql.connection.commit()
         id_ad = cursor.lastrowid
@@ -4104,31 +4110,33 @@ def atualizar_demanda(id_ad):
         else:
             horario_value = None
         
-        cursor.execute("""
-            UPDATE ATENDIMENTO_DEMANDAS 
-            SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
-                ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
-                SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
-                OBS = %s, SOLICITADO = %s, HORARIO = %s, TODOS_VEICULOS = %s, USUARIO = %s
-            WHERE ID_AD = %s
-        """, (
-            data.get('id_motorista'), 
-            data.get('id_tipoveiculo'), 
-            data.get('id_veiculo'),
-            data['id_tipodemanda'], 
-            data['dt_inicio'], 
-            data['dt_fim'],
-            data.get('setor'), 
-            data.get('solicitante'), 
-            data.get('destino'), 
-            data.get('nu_sei'),
-            data.get('obs'),
-            data.get('solicitado', 'N'),
-            horario_value,
-            data.get('todos_veiculos', 'N'),
-            data['usuario'], 
-            id_ad
-        ))
+		cursor.execute("""
+		    UPDATE ATENDIMENTO_DEMANDAS 
+		    SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
+		        ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
+		        SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
+		        OBS = %s, SOLICITADO = %s, HORARIO = %s, TODOS_VEICULOS = %s, 
+		        NC_MOTORISTA = %s, USUARIO = %s
+		    WHERE ID_AD = %s
+		""", (
+		    data.get('id_motorista'), 
+		    data.get('id_tipoveiculo'), 
+		    data.get('id_veiculo'),
+		    data['id_tipodemanda'], 
+		    data['dt_inicio'], 
+		    data['dt_fim'],
+		    data.get('setor'), 
+		    data.get('solicitante'), 
+		    data.get('destino'), 
+		    data.get('nu_sei'),
+		    data.get('obs'),
+		    data.get('solicitado', 'N'),
+		    horario_value,
+		    data.get('todos_veiculos', 'N'),
+		    data.get('nc_motorista', ''),
+		    data['usuario'], 
+		    id_ad
+		))
         
         mysql.connection.commit()
         cursor.close()
