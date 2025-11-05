@@ -2497,17 +2497,29 @@
                 grupos[key].demandas.push(d);
             });
             
-            // Ordenar grupos: primeiro IDs 7, 8, 9, depois ordenar por DT_LANCAMENTO
+            // Ordenar grupos: primeiro IDs 7, 8, 9 (em ordem crescente), depois ordenar por ID_AD ASC
             const gruposArray = Object.values(grupos);
             gruposArray.sort((a, b) => {
                 const prioridadeA = [7, 8, 9].includes(a.id_tipoveiculo);
                 const prioridadeB = [7, 8, 9].includes(b.id_tipoveiculo);
                 
-                // Se ambos são prioritários ou ambos não são, ordenar por data de lançamento
-                if (prioridadeA === prioridadeB) {
+                // Se ambos são prioritários (7, 8, 9)
+                if (prioridadeA && prioridadeB) {
+                    // Ordenar por ID_TIPOVEICULO crescente (7, 8, 9)
+                    if (a.id_tipoveiculo !== b.id_tipoveiculo) {
+                        return a.id_tipoveiculo - b.id_tipoveiculo;
+                    }
+                    // Se mesmo ID_TIPOVEICULO, ordenar por data de lançamento ASC
                     const dataA = a.demandas[0].dt_lancamento || '';
                     const dataB = b.demandas[0].dt_lancamento || '';
-                    return dataB.localeCompare(dataA); // Mais recente primeiro
+                    return dataA.localeCompare(dataB);
+                }
+                
+                // Se ambos NÃO são prioritários, ordenar por data de lançamento ASC
+                if (!prioridadeA && !prioridadeB) {
+                    const dataA = a.demandas[0].dt_lancamento || '';
+                    const dataB = b.demandas[0].dt_lancamento || '';
+                    return dataA.localeCompare(dataB);
                 }
                 
                 // Prioritários (7, 8, 9) vêm primeiro
