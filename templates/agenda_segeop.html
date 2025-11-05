@@ -36,7 +36,7 @@
             top: 0;
             left: 0;
             right: 0;
-            z-index: 200;
+            z-index: 100;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
@@ -116,6 +116,23 @@
             border: 1px solid #ddd;
             font-size: 13px;
             font-weight: 600;
+        }
+
+        .agenda-table thead {
+            position: sticky;
+            top: 70px; /* Altura do header fixo */
+            z-index: 50;
+            background: white;
+        }
+
+        .agenda-table thead tr {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Garantir que o thead fique dentro da seção */
+        .agenda-section {
+            position: relative;
+            overflow: hidden;
         }
 
         .agenda-table td {
