@@ -821,14 +821,14 @@
         .sticky-header {
             position: fixed;
             top: 70px;
-            left: 0;
-            right: 0;
+            left: 20px;  /* ADICIONAR: margem esquerda igual ao padding do body */
+            right: 20px;  /* ADICIONAR: margem direita igual ao padding do body */
             z-index: 90;
-            background: rgba(236, 240, 241, 0.95);
+            background: rgba(236, 240, 241, 0.92);  /* ALTERADO: mais transparente (era 0.95) */
             backdrop-filter: blur(8px);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             display: none;
-            padding: 0 20px;
+            padding: 0;  /* REMOVIDO: padding de 20px */
             transition: opacity 0.3s ease;
         }
         
@@ -852,6 +852,7 @@
             width: 100%;
             border-collapse: collapse;
             margin: 0;
+            table-layout: fixed;  /* ADICIONAR: para manter larguras consistentes */
         }
         
         .sticky-header th {
