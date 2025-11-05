@@ -3843,7 +3843,21 @@ def buscar_dados_agenda():
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
             LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
             WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
-            ORDER BY ae.DT_INICIO
+            ORDER BY 
+                CASE 
+                    WHEN ae.ID_TIPOVEICULO IN (7, 8, 9) THEN 
+                        CASE ae.ID_TIPOVEICULO 
+                            WHEN 7 THEN 1
+                            WHEN 8 THEN 2
+                            WHEN 9 THEN 3
+                        END
+                    ELSE 4
+                END,
+                CASE 
+                    WHEN ae.ID_TIPOVEICULO NOT IN (7, 8, 9) THEN ae.ID_AD
+                    ELSE 0
+                END,
+                ae.DT_INICIO
         """, (fim, inicio))
         
         demandas = []
