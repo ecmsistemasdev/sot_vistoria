@@ -3827,32 +3827,32 @@ def buscar_dados_agenda():
             })
 
 		# 2. Demandas dos Motoristas
-		cursor.execute("""
-			SELECT ae.ID_AD, ae.ID_MOTORISTA, 
-				   CASE 
-					   WHEN ae.ID_MOTORISTA = 0 THEN CONCAT(ae.NC_MOTORISTA, ' (Não Cadast.)')
-					   ELSE m.NM_MOTORISTA 
-				   END as NOME_MOTORISTA, 
-				   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
-				   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
-				   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
-				   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
-				   ae.TODOS_VEICULOS, ae.NC_MOTORISTA
-			FROM ATENDIMENTO_DEMANDAS ae
-			LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
-			LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
-			LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
-			WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
-			ORDER BY 
-				CASE 
-					WHEN ae.ID_TIPOVEICULO = 7 THEN 1
-					WHEN ae.ID_TIPOVEICULO = 8 THEN 2
-					WHEN ae.ID_TIPOVEICULO = 9 THEN 3
-					ELSE 4
-				END,
-				ae.ID_AD ASC
-		""", (fim, inicio))
-        
+        cursor.execute("""
+            SELECT ae.ID_AD, ae.ID_MOTORISTA, 
+                   CASE 
+                       WHEN ae.ID_MOTORISTA = 0 THEN CONCAT(ae.NC_MOTORISTA, ' (Não Cadast.)')
+                       ELSE m.NM_MOTORISTA 
+                   END as NOME_MOTORISTA, 
+                   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+                   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+                   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+                   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
+                   ae.TODOS_VEICULOS, ae.NC_MOTORISTA
+            FROM ATENDIMENTO_DEMANDAS ae
+            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+            LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+            WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
+            ORDER BY 
+                CASE 
+                    WHEN ae.ID_TIPOVEICULO = 7 THEN 1
+                    WHEN ae.ID_TIPOVEICULO = 8 THEN 2
+                    WHEN ae.ID_TIPOVEICULO = 9 THEN 3
+                    ELSE 4
+                END,
+                ae.ID_AD ASC
+        """, (fim, inicio))
+		
         demandas = []
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
