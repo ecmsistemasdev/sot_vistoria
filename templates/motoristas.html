@@ -379,28 +379,12 @@
                                         data-id="${motorista.id_motorista}">
                                             <i class="fas fa-edit"></i> Editar
                                         </a>
-                                        // ${motorista.file_pdf ? 
-                                        //     `<a href="/api/motoristas/download_cnh/${motorista.id_motorista}" 
-                                        //      class="btn btn-sm btn-primary ms-1" target="_blank">
-                                        //         <i class="fas fa-eye"></i> Ver CNH
-                                        //      </a>` : 
-                                        //     ''}
-                                        // Substituido:
-                                        ${motorista.file_pdf ? 
-                                            `<a href="/api/motoristas/download_cnh/${motorista.id_motorista}" 
-                                             class="btn btn-sm btn-primary ms-1" target="_blank">
-                                                <i class="fas fa-eye"></i> Ver CNH
-                                             </a>` : 
-                                            ''}
-                                        
-                                        // Por esta:
                                         ${motorista.file_pdf ? 
                                             `<button onclick="abrirModalCnh(${motorista.id_motorista})" 
                                              class="btn btn-sm btn-primary ms-1">
                                                 <i class="fas fa-eye"></i> Ver CNH
                                              </button>` : 
                                             ''}
-                                            
                                     </td>
                                 </tr>
                             `);
@@ -610,6 +594,7 @@
     </script>
 </body>
 </html>
+
 
 
 
