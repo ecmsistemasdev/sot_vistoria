@@ -86,16 +86,17 @@ body {
     top: 50px;
     background-color: #f8f9fa;
     z-index: 100;
-    padding-top: 10px; /* Reduzido */
-    padding-bottom: 10px; /* Reduzido */
+    padding-top: 15px; /* Aumentado de 10px */
+    padding-bottom: 15px; /* Aumentado de 10px */
     border-bottom: 1px solid #dee2e6;
 }
 
 .header-section h2 {
-    font-size: 1.5rem; /* Reduzido */
+    font-size: 1.5rem; /* Aumentado de 1.3rem */
     font-weight: 600;
-    margin-bottom: 0.8rem; /* Reduzido */
-    line-height: 1.3; /* Adiciona espaçamento vertical */
+    margin-bottom: 1rem; /* Aumentado de 0.8rem */
+    line-height: 1.4; /* Adicionado para dar mais espaço vertical */
+    padding: 0.3rem 0; /* Adicionado padding extra */
 }
 
 /* Container de tabela */
@@ -275,12 +276,19 @@ body {
 @media (max-width: 768px) {
     body {
         padding-top: 60px;
-        font-size: 13px; /* Ainda menor em mobile */
+        font-size: 13px;
+    }
+    
+    .header-section {
+        top: 60px; /* Ajuste se necessário */
+        padding-top: 12px;
+        padding-bottom: 12px;
     }
     
     .header-section h2 {
-        font-size: 1.25rem;
-        line-height: 1.3;
+        font-size: 1.3rem; /* Aumentado de 1.1rem */
+        line-height: 1.4;
+        padding: 0.2rem 0;
     }
     
     .table {
