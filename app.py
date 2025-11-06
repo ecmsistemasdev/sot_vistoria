@@ -1634,10 +1634,11 @@ def get_rel_locacao_analitico(id_cl):
 # @login_required
 # def rel_locacao_analitico():
 #     return render_template('rel_locacao_analitico.html')
+
 @app.route('/rel_locacao_analitico')
 @login_required
 def rel_locacao_analitico_page():
-    """Renderiza a página do relatório analítico para exibição no modal"""
+    """Gera o relatório analítico como PDF"""
     try:
         id_cl = request.args.get('id_cl')
         mes_ano = request.args.get('mes_ano')  # Filtro opcional
@@ -1686,18 +1687,28 @@ def rel_locacao_analitico_page():
         
         cursor.close()
         
-        # Renderizar template HTML
-        return render_template('rel_locacao_analitico.html', 
-                             items=items, 
-                             processo_info=processo_info,
-                             mes_ano_filtro=mes_ano)
+        # Renderizar o HTML primeiro
+        html_content = render_template('rel_locacao_analitico.html', 
+                                      items=items, 
+                                      processo_info=processo_info,
+                                      mes_ano_filtro=mes_ano)
+        
+        # Converter HTML para PDF
+        pdf_buffer = BytesIO()
+        HTML(string=html_content).write_pdf(pdf_buffer)
+        pdf_buffer.seek(0)
+        
+        # Criar response com o PDF
+        response = make_response(pdf_buffer.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'inline; filename=relatorio_locacoes_{id_cl}.pdf'
+        
+        return response
         
     except Exception as e:
         app.logger.error(f"Erro ao gerar relatório: {str(e)}")
         return f"Erro ao gerar relatório: {str(e)}", 500
-
-
-
+		
 
 # Rota para listar veículos disponíveis por ID_CL
 @app.route('/api/lista_veiculo')
