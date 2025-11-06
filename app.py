@@ -1145,7 +1145,29 @@ def download_cnh(id_motorista):
             return send_file(
                 BytesIO(result[0]),
                 mimetype='application/pdf',
-                as_attachment=True,
+                as_attachment=True,  # Mantém o download
+                download_name=result[1]
+            )
+        else:
+            return "Arquivo não encontrado", 404
+    except Exception as e:
+        return str(e), 500
+
+# NOVA ROTA PARA VISUALIZAÇÃO (adicione esta)
+@app.route('/api/motoristas/visualizar_cnh/<int:id_motorista>')
+@login_required
+def visualizar_cnh(id_motorista):
+    try:
+        cursor = mysql.connection.cursor()
+        query = "SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s"
+        cursor.execute(query, (id_motorista,))
+        result = cursor.fetchone()
+        cursor.close()
+        if result and result[0]:
+            return send_file(
+                BytesIO(result[0]),
+                mimetype='application/pdf',
+                as_attachment=False,  # AQUI: False para visualizar
                 download_name=result[1]
             )
         else:
