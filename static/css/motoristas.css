@@ -139,7 +139,7 @@ body {
     background-color: #9ecde2 !important;
     z-index: 10;
     vertical-align: middle; /* Centraliza o texto verticalmente */
-    min-height: 55px; /* Garante altura mínima */    
+    min-height: 40px; /* Garante altura mínima */    
 }
 
 .table tbody td {
@@ -309,7 +309,8 @@ body {
     
     .table thead th {
         font-size: 0.7rem;
-        padding: 0.3rem 0.3rem !important;
+        padding: 1rem 0.3rem !important;
+        min-height: 35px;
     }
     
     .table tbody td {
