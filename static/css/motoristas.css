@@ -100,6 +100,14 @@ body {
     min-height: 50px; /* Garante altura mínima */
 }
 
+.header-section h2 { 
+    font-size: 1.5rem; 
+    font-weight: 600; 
+    margin-bottom: 1rem; 
+    line-height: 1.8; /* Aumentado para dar mais espaço vertical */ 
+    padding: 0.5rem 0; /* Aumentado o padding */ 
+    min-height: 50px; /* Garante altura mínima */ 
+}
 
 /* Container de tabela */
 .table-container {
@@ -123,13 +131,15 @@ body {
 
 .table thead th {
     font-size: 0.75rem; /* Reduzido */
-    padding: 0.4rem 0.4rem !important; /* Reduzido */
+    padding: 1.2rem 0.4rem !important; 
     font-weight: 600;
     white-space: nowrap;
     position: sticky;
     top: 0;
     background-color: #9ecde2 !important;
     z-index: 10;
+    vertical-align: middle; /* Centraliza o texto verticalmente */
+    min-height: 55px; /* Garante altura mínima */    
 }
 
 .table tbody td {
