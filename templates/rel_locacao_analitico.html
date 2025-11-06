@@ -24,29 +24,23 @@
         
         .header-info {
             margin-bottom: 15px;
-            padding: 15px;
+            padding: 10px 15px;
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
             border-radius: 5px;
+            line-height: 1.6;
         }
     
-        .header-info .info-line {
-            display: flex;
-            margin-bottom: 8px;
+        .header-info div {
+            margin-bottom: 3px;
         }
         
-        .header-info .info-line:last-child {
+        .header-info div:last-child {
             margin-bottom: 0;
         }
         
-        .header-info .info-item {
-            flex: 1;
-            padding-right: 20px;
-        }
-        
-        .header-info .info-item strong {
+        .header-info strong {
             color: #495057;
-            margin-right: 5px;
         }
         
         table {
@@ -114,12 +108,14 @@
                 <strong>Contrato:</strong> {{ processo_info[1] }}
             </div>
         </div>
-        <div class="info-line">
-            <div class="info-item">
+        <div class="header-info">
+            <div>
+                <strong>Processo SEI:</strong> {{ processo_info[0] }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <strong>Contrato:</strong> {{ processo_info[1] }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 <strong>Fornecedor:</strong> {{ processo_info[2] }}
             </div>
             {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
-            <div class="info-item">
+            <div>
                 <strong>Período:</strong> {{ mes_ano_filtro }}
             </div>
             {% endif %}
