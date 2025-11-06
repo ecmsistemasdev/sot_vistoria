@@ -600,3 +600,65 @@ td {
 ::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
 }
+
+/* Modal RelatÃ³rio AnalÃ­tico */
+.modal-cnh {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-cnh-content {
+    background-color: #fefefe;
+    margin: 2% auto;
+    padding: 0;
+    border: 1px solid #888;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.modal-cnh-header {
+    padding: 15px;
+    background-color: #0d6efd;
+    color: white;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-cnh-header h5 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.modal-cnh-close {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    line-height: 28px;
+    text-align: center;
+}
+
+.modal-cnh-close:hover,
+.modal-cnh-close:focus {
+    color: #ddd;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-cnh-body {
+    padding: 20px;
+}
