@@ -559,7 +559,8 @@
         function abrirModalCnh(idMotorista) {
             const modal = document.getElementById('modalCnh');
             const iframe = document.getElementById('iframeCnh');
-            iframe.src = `/api/motoristas/download_cnh/${idMotorista}`;
+            // iframe.src = `/api/motoristas/download_cnh/${idMotorista}`;
+            iframe.src = `/api/motoristas/visualizar_cnh/${idMotorista}`;
             modal.style.display = 'block';
             
             // Prevenir scroll do body quando modal está aberto
@@ -594,6 +595,7 @@
     </script>
 </body>
 </html>
+
 
 
 
