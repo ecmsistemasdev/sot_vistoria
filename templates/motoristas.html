@@ -257,6 +257,19 @@
         </div>
     </div>
 
+    <!-- Modal para visualizar CNH -->
+    <div id="modalCnh" class="modal-cnh">
+        <div class="modal-cnh-content">
+            <div class="modal-cnh-header">
+                <h5>Visualização de CNH</h5>
+                <button class="modal-cnh-close" onclick="fecharModalCnh()">&times;</button>
+            </div>
+            <div class="modal-cnh-body">
+                <iframe id="iframeCnh" src=""></iframe>
+            </div>
+        </div>
+    </div>
+  
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
@@ -302,15 +315,21 @@
             });
 
             // Botão Visualizar CNH
+            // $('#btnVisualizarCnh').click(function(e) {
+            //     e.preventDefault();
+            //     const idMotorista = $('#idMotorista').val();
+            //     if (idMotorista) {
+            //         // Abrir o PDF em uma nova aba
+            //         window.open(`/api/motoristas/download_cnh/${idMotorista}`, '_blank');
+            //     }
+            // });
             $('#btnVisualizarCnh').click(function(e) {
                 e.preventDefault();
                 const idMotorista = $('#idMotorista').val();
                 if (idMotorista) {
-                    // Abrir o PDF em uma nova aba
-                    window.open(`/api/motoristas/download_cnh/${idMotorista}`, '_blank');
+                    abrirModalCnh(idMotorista);
                 }
             });
-
             // Update event listeners to handle both section and footer buttons
             $('#btnNovoRegistro, #btnNovoRegistroFooter').click(function() {
                 $('#secaoPesquisa, #secaoTabela, #secaoTabelaBotoes, #mainFooter').hide();
@@ -360,12 +379,28 @@
                                         data-id="${motorista.id_motorista}">
                                             <i class="fas fa-edit"></i> Editar
                                         </a>
+                                        // ${motorista.file_pdf ? 
+                                        //     `<a href="/api/motoristas/download_cnh/${motorista.id_motorista}" 
+                                        //      class="btn btn-sm btn-primary ms-1" target="_blank">
+                                        //         <i class="fas fa-eye"></i> Ver CNH
+                                        //      </a>` : 
+                                        //     ''}
+                                        // Substituido:
                                         ${motorista.file_pdf ? 
                                             `<a href="/api/motoristas/download_cnh/${motorista.id_motorista}" 
                                              class="btn btn-sm btn-primary ms-1" target="_blank">
                                                 <i class="fas fa-eye"></i> Ver CNH
                                              </a>` : 
                                             ''}
+                                        
+                                        // Por esta:
+                                        ${motorista.file_pdf ? 
+                                            `<button onclick="abrirModalCnh(${motorista.id_motorista})" 
+                                             class="btn btn-sm btn-primary ms-1">
+                                                <i class="fas fa-eye"></i> Ver CNH
+                                             </button>` : 
+                                            ''}
+                                            
                                     </td>
                                 </tr>
                             `);
@@ -492,13 +527,6 @@
             });
         });
         
-        // Função de logout (você pode ajustar conforme sua implementação)
-        //function fazerLogout() {
-        //    localStorage.removeItem('usuario_nome');
-        //    // Adicione aqui sua lógica de logout
-        //    window.location.href = '/login'; // ou sua página de login
-        //}
-
         // Função de logout corrigida
         function fazerLogout() {
             const btnLogout = document.getElementById('btnLogout');
@@ -542,9 +570,46 @@
                 btnLogout.textContent = 'Sair';
             });
         }
+
+        // Funções para o modal de CNH
+        function abrirModalCnh(idMotorista) {
+            const modal = document.getElementById('modalCnh');
+            const iframe = document.getElementById('iframeCnh');
+            iframe.src = `/api/motoristas/download_cnh/${idMotorista}`;
+            modal.style.display = 'block';
+            
+            // Prevenir scroll do body quando modal está aberto
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function fecharModalCnh() {
+            const modal = document.getElementById('modalCnh');
+            const iframe = document.getElementById('iframeCnh');
+            modal.style.display = 'none';
+            iframe.src = '';
+            
+            // Restaurar scroll do body
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Fechar modal ao clicar fora do conteúdo
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalCnh');
+            if (event.target === modal) {
+                fecharModalCnh();
+            }
+        }
+        
+        // Fechar modal com a tecla ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                fecharModalCnh();
+            }
+        });
         
     </script>
 </body>
 </html>
+
 
 
