@@ -155,9 +155,9 @@
                 <td>{{ item[3] }}</td>
                 <td>{{ item[4] }}</td>
                 <td class="text-center">{{ item[5] }}</td>
-                <td class="text-end">R$ {{ "%,2f"|format(item[6]) }}</td>
-                <td class="text-end">R$ {{ "%,2f"|format(item[7]) }}</td>
-                <td class="text-end">R$ {{ "%,2f"|format(item[8]) }}</td>
+                <td class="text-end">R$ {{ "%.2f"|format(item[6]) }}</td>
+                <td class="text-end">R$ {{ "%.2f"|format(item[7]) }}</td>
+                <td class="text-end">R$ {{ "%.2f"|format(item[8]) }}</td>
                 <td class="text-center">{{ item[9] if item[9] else '-' }}</td>
             </tr>
             
@@ -170,7 +170,7 @@
                 <td colspan="5" class="text-end"><strong>TOTAIS:</strong></td>
                 <td class="text-center"><strong>{{ total_diarias.value }}</strong></td>
                 <td colspan="2"></td>
-                <td class="text-end"><strong>R$ {{ "%,2f"|format(total_valor.value) }}</strong></td>
+                <td class="text-end"><strong>R$ {{ "%.2f"|format(total_valor.value) }}</strong></td>
                 <td class="text-center"><strong>{{ total_km.value }}</strong></td>
             </tr>
         </tbody>
