@@ -31,18 +31,21 @@
         }
     
         .header-info .row {
-            display: block; /* Mudado de flex para block */
+            display: block;
             margin-bottom: 5px;
         }
         
         .header-info .col-md-4 {
-            display: inline-block; /* Elementos ficam juntos */
-            padding: 0 15px 0 0; /* Espaçamento à direita */
+            display: inline-block;
+            width: 48%;
+            padding: 0 5px;
+            vertical-align: top;
         }
         
         .header-info .col-12 {
             width: 100%;
-            padding: 5px 0;
+            padding: 5px 0 0 0;
+            display: block;
         }
         
         table {
@@ -105,13 +108,13 @@
         <div class="row">
             <div class="col-md-4"><strong>Processo SEI:</strong> {{ processo_info[0] }}</div>
             <div class="col-md-4"><strong>Contrato:</strong> {{ processo_info[1] }}</div>
+        </div>
+        <div class="row">
             <div class="col-md-4"><strong>Fornecedor:</strong> {{ processo_info[2] }}</div>
+            {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
+            <div class="col-md-4"><strong>Período:</strong> {{ mes_ano_filtro }}</div>
+            {% endif %}
         </div>
-        {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
-        <div class="row mt-2">
-            <div class="col-12"><strong>Período:</strong> {{ mes_ano_filtro }}</div>
-        </div>
-        {% endif %}
     </div>
     {% endif %}
     
