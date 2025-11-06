@@ -28,7 +28,6 @@
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
             border-radius: 5px;
-            line-height: 1.6;
         }
     
         .header-info div {
@@ -100,26 +99,10 @@
     
     {% if processo_info %}
     <div class="header-info">
-        <div class="info-line">
-            <div class="info-item">
-                <strong>Processo SEI:</strong> {{ processo_info[0] }}
-            </div>
-            <div class="info-item">
-                <strong>Contrato:</strong> {{ processo_info[1] }}
-            </div>
-        </div>
-        <div class="header-info">
-            <div>
-                <strong>Processo SEI:</strong> {{ processo_info[0] }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <strong>Contrato:</strong> {{ processo_info[1] }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <strong>Fornecedor:</strong> {{ processo_info[2] }}
-            </div>
-            {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
-            <div>
-                <strong>Período:</strong> {{ mes_ano_filtro }}
-            </div>
-            {% endif %}
-        </div>
+        <div><strong>Processo SEI:</strong> {{ processo_info[0] }} &nbsp;&nbsp;&nbsp; <strong>Contrato:</strong> {{ processo_info[1] }} &nbsp;&nbsp;&nbsp; <strong>Fornecedor:</strong> {{ processo_info[2] }}</div>
+        {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
+        <div><strong>Período:</strong> {{ mes_ano_filtro }}</div>
+        {% endif %}
     </div>
     {% endif %}
     
