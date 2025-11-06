@@ -3880,10 +3880,24 @@
             document.body.style.overflow = 'auto';
         }
         
-        // Fechar modal ao clicar fora do conteúdo (adicionar ao window.onclick existente)
-                                
+        // Event listeners para fechar o modal
+        window.addEventListener('click', function(event) {
+            const modalRelatorio = document.getElementById('modalRelatorioAnalitico');
+            if (event.target === modalRelatorio) {
+                fecharModalRelatorio();
+            }
+        });
+        
+        document.addEventListener('keydown', function(event) {
+            const modalRelatorio = document.getElementById('modalRelatorioAnalitico');
+            if (event.key === 'Escape' && modalRelatorio.style.display === 'block') {
+                fecharModalRelatorio();
+            }
+        });
+        
     </script>
 </body>
 </html>
+
 
 
