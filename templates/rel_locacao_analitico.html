@@ -23,13 +23,6 @@
         }
         
         .header-info {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
-        /*
-        .header-info {
             margin-bottom: 15px;
             padding: 10px;
             background-color: #f8f9fa;
@@ -38,21 +31,20 @@
         }
     
         .header-info .row {
-            display: flex;
-            justify-content: space-between;
+            display: block; /* Mudado de flex para block */
             margin-bottom: 5px;
         }
         
         .header-info .col-md-4 {
-            flex: 1;
-            padding: 0 5px;
+            display: inline-block; /* Elementos ficam juntos */
+            padding: 0 15px 0 0; /* Espaçamento à direita */
         }
         
         .header-info .col-12 {
             width: 100%;
-            padding: 5px;
+            padding: 5px 0;
         }
-        */
+        
         table {
             width: 100%;
             border-collapse: collapse;
