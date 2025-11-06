@@ -20,7 +20,7 @@
             font-size: 11px;
         }
         th {
-            background-color: #0d6efd;
+            background-color: #6c757d;
             color: white;
             font-weight: bold;
             text-align: center;
@@ -29,7 +29,7 @@
             text-align: right;
         }
         .table-totals {
-            background-color: #ffe5cc;
+            background-color: #d1e7fd;
             font-weight: bold;
         }
     </style>
@@ -69,9 +69,9 @@
                 </tr>
             </thead>
             <tbody>
-                {% set total_diarias = 0 %}
-                {% set total_valor = 0 %}
-                {% set total_km = 0 %}
+                {% set total_diarias = namespace(value=0) %}
+                {% set total_valor = namespace(value=0) %}
+                {% set total_km = namespace(value=0) %}
                 
                 {% for item in items %}
                 <tr>
@@ -87,17 +87,17 @@
                     <td class="text-center">{{ item[9] if item[9] else '-' }}</td>
                 </tr>
                 
-                {% set total_diarias = total_diarias + item[5] %}
-                {% set total_valor = total_valor + item[8] %}
-                {% set total_km = total_km + (item[9] if item[9] else 0) %}
+                {% set total_diarias.value = total_diarias.value + item[5] %}
+                {% set total_valor.value = total_valor.value + item[8] %}
+                {% set total_km.value = total_km.value + (item[9] if item[9] else 0) %}
                 {% endfor %}
                 
                 <tr class="table-totals">
                     <td colspan="5" class="text-end"><strong>TOTAIS:</strong></td>
-                    <td class="text-center"><strong>{{ total_diarias }}</strong></td>
+                    <td class="text-center"><strong>{{ total_diarias.value }}</strong></td>
                     <td colspan="2"></td>
-                    <td class="text-end"><strong>R$ {{ "%.2f"|format(total_valor) }}</strong></td>
-                    <td class="text-center"><strong>{{ total_km }}</strong></td>
+                    <td class="text-end"><strong>R$ {{ "%.2f"|format(total_valor.value) }}</strong></td>
+                    <td class="text-center"><strong>{{ total_km.value }}</strong></td>
                 </tr>
             </tbody>
         </table>
