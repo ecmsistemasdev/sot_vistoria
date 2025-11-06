@@ -3921,7 +3921,7 @@
             const filtroMesAno = $('#filtroMesAno').val();
             
             // Construir URL com parâmetros para PDF
-            let url = `/rel_locacao_analitico_pdf?id_cl=${idCl}`;
+            let url = `/rel_locacao_analitico?id_cl=${idCl}`;
             if (filtroMesAno && filtroMesAno !== 'Todos') {
                 url += `&mes_ano=${encodeURIComponent(filtroMesAno)}`;
             }
@@ -3961,6 +3961,7 @@
     </script>
 </body>
 </html>
+
 
 
 
