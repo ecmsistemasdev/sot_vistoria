@@ -92,12 +92,14 @@ body {
 }
 
 .header-section h2 {
-    font-size: 1.5rem; /* Aumentado de 1.3rem */
+    font-size: 1.5rem;
     font-weight: 600;
-    margin-bottom: 1rem; /* Aumentado de 0.8rem */
-    line-height: 1.4; /* Adicionado para dar mais espaço vertical */
-    padding: 0.3rem 0; /* Adicionado padding extra */
+    margin-bottom: 1rem;
+    line-height: 1.8; /* Aumentado para dar mais espaço vertical */
+    padding: 0.5rem 0; /* Aumentado o padding */
+    min-height: 50px; /* Garante altura mínima */
 }
+
 
 /* Container de tabela */
 .table-container {
