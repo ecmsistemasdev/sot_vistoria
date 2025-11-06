@@ -95,7 +95,7 @@ body {
     font-size: 1.5rem;
     font-weight: 600;
     margin-bottom: 1rem;
-    line-height: 1.8; /* Aumentado para dar mais espaço vertical */
+    line-height: 1.4; /* Aumentado para dar mais espaço vertical */
     padding: 0.5rem 0; /* Aumentado o padding */
     min-height: 50px; /* Garante altura mínima */
 }
