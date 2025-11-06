@@ -24,28 +24,29 @@
         
         .header-info {
             margin-bottom: 15px;
-            padding: 10px;
+            padding: 15px;
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
             border-radius: 5px;
         }
     
-        .header-info .row {
-            display: block;
-            margin-bottom: 5px;
+        .header-info .info-line {
+            display: flex;
+            margin-bottom: 8px;
         }
         
-        .header-info .col-md-4 {
-            display: inline-block;
-            width: 48%;
-            padding: 0 5px;
-            vertical-align: top;
+        .header-info .info-line:last-child {
+            margin-bottom: 0;
         }
         
-        .header-info .col-12 {
-            width: 100%;
-            padding: 5px 0 0 0;
-            display: block;
+        .header-info .info-item {
+            flex: 1;
+            padding-right: 20px;
+        }
+        
+        .header-info .info-item strong {
+            color: #495057;
+            margin-right: 5px;
         }
         
         table {
@@ -105,14 +106,22 @@
     
     {% if processo_info %}
     <div class="header-info">
-        <div class="row">
-            <div class="col-md-4"><strong>Processo SEI:</strong> {{ processo_info[0] }}</div>
-            <div class="col-md-4"><strong>Contrato:</strong> {{ processo_info[1] }}</div>
+        <div class="info-line">
+            <div class="info-item">
+                <strong>Processo SEI:</strong> {{ processo_info[0] }}
+            </div>
+            <div class="info-item">
+                <strong>Contrato:</strong> {{ processo_info[1] }}
+            </div>
         </div>
-        <div class="row">
-            <div class="col-md-4"><strong>Fornecedor:</strong> {{ processo_info[2] }}</div>
+        <div class="info-line">
+            <div class="info-item">
+                <strong>Fornecedor:</strong> {{ processo_info[2] }}
+            </div>
             {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
-            <div class="col-md-4"><strong>Período:</strong> {{ mes_ano_filtro }}</div>
+            <div class="info-item">
+                <strong>Período:</strong> {{ mes_ano_filtro }}
+            </div>
             {% endif %}
         </div>
     </div>
@@ -146,9 +155,9 @@
                 <td>{{ item[3] }}</td>
                 <td>{{ item[4] }}</td>
                 <td class="text-center">{{ item[5] }}</td>
-                <td class="text-end">R$ {{ "%.2f"|format(item[6]) }}</td>
-                <td class="text-end">R$ {{ "%.2f"|format(item[7]) }}</td>
-                <td class="text-end">R$ {{ "%.2f"|format(item[8]) }}</td>
+                <td class="text-end">R$ {{ "%,2f"|format(item[6]) }}</td>
+                <td class="text-end">R$ {{ "%,2f"|format(item[7]) }}</td>
+                <td class="text-end">R$ {{ "%,2f"|format(item[8]) }}</td>
                 <td class="text-center">{{ item[9] if item[9] else '-' }}</td>
             </tr>
             
@@ -161,7 +170,7 @@
                 <td colspan="5" class="text-end"><strong>TOTAIS:</strong></td>
                 <td class="text-center"><strong>{{ total_diarias.value }}</strong></td>
                 <td colspan="2"></td>
-                <td class="text-end"><strong>R$ {{ "%.2f"|format(total_valor.value) }}</strong></td>
+                <td class="text-end"><strong>R$ {{ "%,2f"|format(total_valor.value) }}</strong></td>
                 <td class="text-center"><strong>{{ total_km.value }}</strong></td>
             </tr>
         </tbody>
