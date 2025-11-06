@@ -2,111 +2,173 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relatório Analítico de Locações</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            padding: 20px;
-            font-size: 12px;
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
         }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            margin: 0;
+            padding: 10px;
+        }
+        
+        h4 {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
         .header-info {
-            margin-bottom: 20px;
-            padding: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
             background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
             border-radius: 5px;
         }
-        table {
-            font-size: 11px;
+        
+        .header-info .row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
         }
+        
+        .header-info .col-md-4 {
+            flex: 1;
+            padding: 0 5px;
+        }
+        
+        .header-info .col-12 {
+            width: 100%;
+            padding: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 5px;
+            text-align: left;
+        }
+        
         th {
             background-color: #6c757d;
-            color: rgb(0, 0, 0);
+            color: white;
             font-weight: bold;
             text-align: center;
         }
+        
+        .text-center {
+            text-align: center;
+        }
+        
         .text-end {
             text-align: right;
         }
+        
         .table-totals {
             background-color: #d1e7fd;
-            /* font-weight: bold; */
+            font-weight: bold;
+        }
+        
+        .alert {
+            padding: 10px;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        /* Evitar quebras de página dentro das linhas */
+        tr {
+            page-break-inside: avoid;
+        }
+        
+        strong {
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <h4 class="text-center mb-4">Relatório Analítico de Locações</h4>
-        
-        {% if processo_info %}
-        <div class="header-info">
-            <div class="row">
-                <div class="col-md-4"><strong>Processo SEI:</strong> {{ processo_info[0] }}</div>
-                <div class="col-md-4"><strong>Contrato:</strong> {{ processo_info[1] }}</div>
-                <div class="col-md-4"><strong>Fornecedor:</strong> {{ processo_info[2] }}</div>
-            </div>
-            {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
-            <div class="row mt-2">
-                <div class="col-12"><strong>Período:</strong> {{ mes_ano_filtro }}</div>
-            </div>
-            {% endif %}
+    <h4>Relatório Analítico de Locações</h4>
+    
+    {% if processo_info %}
+    <div class="header-info">
+        <div class="row">
+            <div class="col-md-4"><strong>Processo SEI:</strong> {{ processo_info[0] }}</div>
+            <div class="col-md-4"><strong>Contrato:</strong> {{ processo_info[1] }}</div>
+            <div class="col-md-4"><strong>Fornecedor:</strong> {{ processo_info[2] }}</div>
         </div>
-        {% endif %}
-        
-        <table class="table table-bordered table-sm table-hover">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Mês/Ano</th>
-                    <th>Período</th>
-                    <th>Veículo</th>
-                    <th>Motorista</th>
-                    <th>Qtd Diárias</th>
-                    <th>Vl. Diária</th>
-                    <th>Vl. Diferença</th>
-                    <th>Vl. Total</th>
-                    <th>Km Rodado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% set total_diarias = namespace(value=0) %}
-                {% set total_valor = namespace(value=0) %}
-                {% set total_km = namespace(value=0) %}
-                
-                {% for item in items %}
-                <tr>
-                    <td class="text-center">{{ item[0] }}</td>
-                    <td class="text-center">{{ item[1] }}</td>
-                    <td class="text-center">{{ item[2] }}</td>
-                    <td>{{ item[3] }}</td>
-                    <td>{{ item[4] }}</td>
-                    <td class="text-center">{{ item[5] }}</td>
-                    <td class="text-end">R$ {{ "%.2f"|format(item[6]) }}</td>
-                    <td class="text-end">R$ {{ "%.2f"|format(item[7]) }}</td>
-                    <td class="text-end">R$ {{ "%.2f"|format(item[8]) }}</td>
-                    <td class="text-center">{{ item[9] if item[9] else '-' }}</td>
-                </tr>
-                
-                {% set total_diarias.value = total_diarias.value + item[5] %}
-                {% set total_valor.value = total_valor.value + item[8] %}
-                {% set total_km.value = total_km.value + (item[9] if item[9] else 0) %}
-                {% endfor %}
-                
-                <tr class="table-totals">
-                    <td colspan="5" class="text-end"><strong>TOTAIS:</strong></td>
-                    <td class="text-center"><strong>{{ total_diarias.value }}</strong></td>
-                    <td colspan="2"></td>
-                    <td class="text-end"><strong>R$ {{ "%.2f"|format(total_valor.value) }}</strong></td>
-                    <td class="text-center"><strong>{{ total_km.value }}</strong></td>
-                </tr>
-            </tbody>
-        </table>
-        
-        {% if items|length == 0 %}
-        <div class="alert alert-info text-center">
-            Nenhuma locação finalizada encontrada para os critérios selecionados.
+        {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
+        <div class="row">
+            <div class="col-12"><strong>Período:</strong> {{ mes_ano_filtro }}</div>
         </div>
         {% endif %}
     </div>
+    {% endif %}
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Mês/Ano</th>
+                <th>Período</th>
+                <th>Veículo</th>
+                <th>Motorista</th>
+                <th>Qtd Diárias</th>
+                <th>Vl. Diária</th>
+                <th>Vl. Diferença</th>
+                <th>Vl. Total</th>
+                <th>Km Rodado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set total_diarias = namespace(value=0) %}
+            {% set total_valor = namespace(value=0) %}
+            {% set total_km = namespace(value=0) %}
+            
+            {% for item in items %}
+            <tr>
+                <td class="text-center">{{ item[0] }}</td>
+                <td class="text-center">{{ item[1] }}</td>
+                <td class="text-center">{{ item[2] }}</td>
+                <td>{{ item[3] }}</td>
+                <td>{{ item[4] }}</td>
+                <td class="text-center">{{ item[5] }}</td>
+                <td class="text-end">R$ {{ "%.2f"|format(item[6]) }}</td>
+                <td class="text-end">R$ {{ "%.2f"|format(item[7]) }}</td>
+                <td class="text-end">R$ {{ "%.2f"|format(item[8]) }}</td>
+                <td class="text-center">{{ item[9] if item[9] else '-' }}</td>
+            </tr>
+            
+            {% set total_diarias.value = total_diarias.value + item[5] %}
+            {% set total_valor.value = total_valor.value + item[8] %}
+            {% set total_km.value = total_km.value + (item[9] if item[9] else 0) %}
+            {% endfor %}
+            
+            <tr class="table-totals">
+                <td colspan="5" class="text-end"><strong>TOTAIS:</strong></td>
+                <td class="text-center"><strong>{{ total_diarias.value }}</strong></td>
+                <td colspan="2"></td>
+                <td class="text-end"><strong>R$ {{ "%.2f"|format(total_valor.value) }}</strong></td>
+                <td class="text-center"><strong>{{ total_km.value }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+    
+    {% if items|length == 0 %}
+    <div class="alert">
+        Nenhuma locação finalizada encontrada para os critérios selecionados.
+    </div>
+    {% endif %}
 </body>
 </html>
