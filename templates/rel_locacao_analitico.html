@@ -21,7 +21,14 @@
             margin-bottom: 15px;
             font-size: 14px;
         }
-
+        
+        .header-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        /*
         .header-info {
             margin-bottom: 15px;
             padding: 10px;
@@ -45,7 +52,7 @@
             width: 100%;
             padding: 5px;
         }
-
+        */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -109,7 +116,7 @@
             <div class="col-md-4"><strong>Fornecedor:</strong> {{ processo_info[2] }}</div>
         </div>
         {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
-        <div class="row">
+        <div class="row mt-2">
             <div class="col-12"><strong>Período:</strong> {{ mes_ano_filtro }}</div>
         </div>
         {% endif %}
