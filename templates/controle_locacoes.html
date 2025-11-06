@@ -926,7 +926,7 @@
                 <button class="modal-cnh-close" onclick="fecharModalRelatorio()">&times;</button>
             </div>
             <div class="modal-cnh-body">
-                <iframe id="iframeRelatorio" style="width: 100%; height: 600px; border: none;"></iframe>
+                <iframe id="iframeRelatorio" style="width: 100%; height: 600px; border: none;" allowfullscreen></iframe>
             </div>
         </div>
     </div>
@@ -3920,8 +3920,8 @@
             // Obter o filtro de mês/ano selecionado
             const filtroMesAno = $('#filtroMesAno').val();
             
-            // Construir URL com parâmetros
-            let url = `/rel_locacao_analitico?id_cl=${idCl}`;
+            // Construir URL com parâmetros para PDF
+            let url = `/rel_locacao_analitico_pdf?id_cl=${idCl}`;
             if (filtroMesAno && filtroMesAno !== 'Todos') {
                 url += `&mes_ano=${encodeURIComponent(filtroMesAno)}`;
             }
@@ -3961,6 +3961,7 @@
     </script>
 </body>
 </html>
+
 
 
 
