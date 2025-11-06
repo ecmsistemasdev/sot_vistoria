@@ -7,7 +7,7 @@ import MySQLdb.cursors
 import uuid
 import base64
 from datetime import datetime, timedelta, time
-from weasyprint import HTML
+from xhtml2pdf import pisa
 from io import BytesIO
 from pytz import timezone
 
