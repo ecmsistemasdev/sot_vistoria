@@ -1630,11 +1630,75 @@ def get_rel_locacao_analitico(id_cl):
         app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
         return jsonify({"error": str(e)}), 500
         
+# @app.route('/rel_locacao_analitico')
+# @login_required
+# def rel_locacao_analitico():
+#     return render_template('rel_locacao_analitico.html')
 @app.route('/rel_locacao_analitico')
 @login_required
-def rel_locacao_analitico():
-    return render_template('rel_locacao_analitico.html')
-    
+def rel_locacao_analitico_page():
+    """Renderiza a página do relatório analítico para exibição no modal"""
+    try:
+        id_cl = request.args.get('id_cl')
+        mes_ano = request.args.get('mes_ano')  # Filtro opcional
+        
+        if not id_cl:
+            return "ID do processo não informado", 400
+            
+        cursor = mysql.connection.cursor()
+        
+        # Query base
+        query = """
+        SELECT i.ID_ITEM, CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO, 
+        CASE WHEN i.DT_INICIAL=i.DT_FINAL THEN i.DT_INICIAL
+        ELSE CONCAT(i.DT_INICIAL,' - ',i.DT_FINAL) END AS PERIODO,
+        CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, m.NM_MOTORISTA,
+        i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
+        FROM TJ_CONTROLE_LOCACAO_ITENS i 
+        LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+        TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
+        WHERE e.ID_EMPENHO = i.ID_EMPENHO 
+        AND x.ID_MES = i.ID_MES 
+        AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
+        AND i.FL_STATUS = 'F' 
+        AND i.ID_CL = %s
+        """
+        
+        # Adicionar filtro de mês/ano se fornecido
+        params = [id_cl]
+        if mes_ano and mes_ano != 'Todos':
+            query += " AND CONCAT(x.DE_MES,'/',i.ID_EXERCICIO) = %s"
+            params.append(mes_ano)
+            
+        query += " ORDER BY i.ID_EXERCICIO, i.ID_MES, i.DATA_INICIO, i.DATA_FIM"
+        
+        cursor.execute(query, tuple(params))
+        items = cursor.fetchall()
+        
+        # Buscar informações do processo
+        cursor.execute("""
+            SELECT cl.NU_SEI, cl.NU_CONTRATO, f.NM_FORNECEDOR 
+            FROM TJ_CONTROLE_LOCACAO cl
+            JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR
+            WHERE cl.ID_CL = %s
+        """, (id_cl,))
+        processo_info = cursor.fetchone()
+        
+        cursor.close()
+        
+        # Renderizar template HTML
+        return render_template('rel_locacao_analitico.html', 
+                             items=items, 
+                             processo_info=processo_info,
+                             mes_ano_filtro=mes_ano)
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao gerar relatório: {str(e)}")
+        return f"Erro ao gerar relatório: {str(e)}", 500
+
+
+
+
 # Rota para listar veículos disponíveis por ID_CL
 @app.route('/api/lista_veiculo')
 @login_required
