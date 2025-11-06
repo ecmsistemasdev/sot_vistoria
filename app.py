@@ -1694,12 +1694,15 @@ def rel_locacao_analitico_page():
                                       processo_info=processo_info,
                                       mes_ano_filtro=mes_ano)
         
-        # Converter HTML para PDF
+        # Converter para PDF com xhtml2pdf
         pdf_buffer = BytesIO()
-        HTML(string=html_content).write_pdf(pdf_buffer)
+        pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
+        
+        if pisa_status.err:
+            return "Erro ao gerar PDF", 500
+            
         pdf_buffer.seek(0)
         
-        # Criar response com o PDF
         response = make_response(pdf_buffer.getvalue())
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['Content-Disposition'] = f'inline; filename=relatorio_locacoes_{id_cl}.pdf'
