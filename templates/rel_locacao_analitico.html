@@ -17,30 +17,44 @@
             padding: 10px;
         }
         
-        h4 {
+        .top-line {
+            border-top: 2px solid #333;
+            margin-bottom: 15px;
+        }
+        
+        .header-section {
+            margin-bottom: 15px;
+        }
+        
+        .logo-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .logo-img {
+            height: 40px;
+        }
+        
+        .sistema-title {
+            font-family: 'Arial Narrow', Arial, sans-serif;
+            font-size: 12px;
+            font-weight: normal;
+            text-align: right;
+        }
+        
+        .report-title {
             text-align: center;
-            margin-bottom: 15px;
             font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
         }
         
-        .header-info {
-            margin-bottom: 15px;
-            padding: 10px 15px;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-        }
-    
-        .header-info div {
+        .info-line {
+            text-align: center;
+            font-size: 10px;
             margin-bottom: 3px;
-        }
-        
-        .header-info div:last-child {
-            margin-bottom: 0;
-        }
-        
-        .header-info strong {
-            color: #495057;
         }
         
         table {
@@ -85,7 +99,6 @@
             margin-top: 15px;
         }
         
-        /* Evitar quebras de página dentro das linhas */
         tr {
             page-break-inside: avoid;
         }
@@ -96,16 +109,27 @@
     </style>
 </head>
 <body>
-    <h4>Relatório Analítico de Locações</h4>
+    <div class="top-line"></div>
     
-    {% if processo_info %}
-    <div class="header-info">
-        <div><strong>Processo SEI:</strong> {{ processo_info[0] }} &nbsp;&nbsp;&nbsp; <strong>Contrato:</strong> {{ processo_info[1] }} &nbsp;&nbsp;&nbsp; <strong>Fornecedor:</strong> {{ processo_info[2] }}</div>
+    <div class="header-section">
+        <div class="logo-row">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
+            <div class="sistema-title">SOTWeb - Sistema de Operações de Transporte</div>
+        </div>
+        
+        <div class="report-title">Relatório de Locações - Analítico</div>
+        
+        {% if processo_info %}
+        <div class="info-line">
+            <strong>Fornecedor:</strong> {{ processo_info[2] }} &nbsp;&nbsp;&nbsp; <strong>Contrato:</strong> {{ processo_info[1] }}
+        </div>
         {% if mes_ano_filtro and mes_ano_filtro != 'Todos' %}
-        <div><strong>Período:</strong> {{ mes_ano_filtro }}</div>
+        <div class="info-line">
+            <strong>Período:</strong> {{ mes_ano_filtro }}
+        </div>
+        {% endif %}
         {% endif %}
     </div>
-    {% endif %}
     
     <table>
         <thead>
@@ -116,9 +140,9 @@
                 <th>Veículo</th>
                 <th>Motorista</th>
                 <th>Qtd Diárias</th>
-                <th>Vl. Diária</th>
-                <th>Vl. Diferença</th>
-                <th>Vl. Total</th>
+                <th>Valor Diária</th>
+                <th>Valor Diferença</th>
+                <th>Valor Total</th>
                 <th>Km Rodado</th>
             </tr>
         </thead>
@@ -134,10 +158,10 @@
                 <td class="text-center">{{ item[2] }}</td>
                 <td>{{ item[3] }}</td>
                 <td>{{ item[4] }}</td>
-                <td class="text-center">{{ item[5] }}</td>
-                <td class="text-end">R$ {{ "%.2f"|format(item[6]) }}</td>
-                <td class="text-end">R$ {{ "%.2f"|format(item[7]) }}</td>
-                <td class="text-end">R$ {{ "%.2f"|format(item[8]) }}</td>
+                <td class="text-center">{{ '{:g}'.format(item[5]) if item[5] % 1 != 0 else '{:.0f}'.format(item[5]) }}</td>
+                <td class="text-end">R$ {{ '{:,.2f}'.format(item[6]).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                <td class="text-end">R$ {{ '{:,.2f}'.format(item[7]).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                <td class="text-end">R$ {{ '{:,.2f}'.format(item[8]).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
                 <td class="text-center">{{ item[9] if item[9] else '-' }}</td>
             </tr>
             
@@ -148,9 +172,9 @@
             
             <tr class="table-totals">
                 <td colspan="5" class="text-end"><strong>TOTAIS:</strong></td>
-                <td class="text-center"><strong>{{ total_diarias.value }}</strong></td>
+                <td class="text-center"><strong>{{ '{:g}'.format(total_diarias.value) if total_diarias.value % 1 != 0 else '{:.0f}'.format(total_diarias.value) }}</strong></td>
                 <td colspan="2"></td>
-                <td class="text-end"><strong>R$ {{ "%.2f"|format(total_valor.value) }}</strong></td>
+                <td class="text-end"><strong>R$ {{ '{:,.2f}'.format(total_valor.value).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong></td>
                 <td class="text-center"><strong>{{ total_km.value }}</strong></td>
             </tr>
         </tbody>
