@@ -39,7 +39,7 @@
         
         .sistema-title {
             font-family: 'Arial Narrow', Arial, sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: normal;
             text-align: right;
         }
@@ -56,7 +56,9 @@
             text-align: left;
             font-size: 9px;
             margin-bottom: 0px;
-            line-height: 1.2;
+            margin-top: 0px;
+            line-height: 1;
+            padding: 0;
         }
         
         table {
@@ -64,6 +66,7 @@
             border-collapse: collapse;
             font-size: 8px;
             margin-top: 3px;
+            table-layout: fixed;
         }
         
         th, td {
@@ -71,6 +74,8 @@
             padding: 2px 4px;
             text-align: left;
             vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         th {
@@ -85,17 +90,14 @@
         /* Ajuste de largura das colunas */
         th:nth-child(1), td:nth-child(1) { /* Item */
             width: 35px;
-            max-width: 35px;
         }
         
         th:nth-child(2), td:nth-child(2) { /* Mês/Ano */
             width: 65px;
-            max-width: 65px;
         }
         
         th:nth-child(3), td:nth-child(3) { /* Período */
             width: 95px;
-            max-width: 95px;
         }
         
         th:nth-child(4), td:nth-child(4) { /* Veículo */
@@ -108,27 +110,22 @@
         
         th:nth-child(6), td:nth-child(6) { /* Qtde */
             width: 38px;
-            max-width: 38px;
         }
         
         th:nth-child(7), td:nth-child(7) { /* Valor Diária */
             width: 75px;
-            max-width: 75px;
         }
         
         th:nth-child(8), td:nth-child(8) { /* Valor Dif. */
             width: 70px;
-            max-width: 70px;
         }
         
         th:nth-child(9), td:nth-child(9) { /* Valor Total */
             width: 75px;
-            max-width: 75px;
         }
         
         th:nth-child(10), td:nth-child(10) { /* Km Rodado */
             width: 50px;
-            max-width: 50px;
         }
         
         .text-center {
