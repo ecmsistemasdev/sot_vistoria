@@ -903,7 +903,7 @@
         .tooltip-veiculo.visible {
             opacity: 1;
         }
-        
+        /*
         .tooltip-veiculo::before {
             content: '';
             position: absolute;
@@ -915,7 +915,8 @@
             border-left: 5px solid transparent;
             border-right: 5px solid transparent;
             border-top: 5px solid rgba(0, 0, 0, 0.9);
-        }        
+        }   
+        */
     </style>
 </head>
 <body>
@@ -1262,17 +1263,51 @@
             posicionarTooltip(event);
         }
         
-        // Função para posicionar tooltip
+        // Função para posicionar tooltip com detecção de limites
         function posicionarTooltip(event) {
             if (!tooltipVeiculo) return;
             
             const tooltip = tooltipVeiculo;
-            const x = event.pageX;
-            const y = event.pageY;
+            const offsetX = 10; // Distância do cursor horizontalmente
+            const offsetY = 20; // Distância do cursor verticalmente
             
-            // Posicionar acima do cursor
+            // Obter dimensões do tooltip
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const tooltipWidth = tooltipRect.width;
+            const tooltipHeight = tooltipRect.height;
+            
+            // Obter dimensões da viewport
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            // Posição inicial (abaixo e à direita do cursor)
+            let x = event.pageX + offsetX;
+            let y = event.pageY + offsetY;
+            
+            // Verificar se ultrapassa a direita da página
+            if (event.clientX + offsetX + tooltipWidth > viewportWidth) {
+                // Posicionar à esquerda do cursor
+                x = event.pageX - tooltipWidth - offsetX;
+            }
+            
+            // Verificar se ultrapassa o fundo da página
+            if (event.clientY + offsetY + tooltipHeight > viewportHeight) {
+                // Posicionar acima do cursor
+                y = event.pageY - tooltipHeight - offsetY;
+            }
+            
+            // Garantir que não saia pela esquerda
+            if (x < 0) {
+                x = offsetX;
+            }
+            
+            // Garantir que não saia pelo topo
+            if (y < window.pageYOffset) {
+                y = window.pageYOffset + offsetY;
+            }
+            
             tooltip.style.left = x + 'px';
-            tooltip.style.top = (y - 45) + 'px';
+            tooltip.style.top = y + 'px';
         }
         
         // Função para esconder tooltip
