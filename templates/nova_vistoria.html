@@ -7,12 +7,32 @@
     <title>Nova Vistoria</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
     <style>
-
-        /* Menu de navegação fixo */
+        /* 
         body {
             padding-top: 60px; /* Espaço para o menu fixo */
         }
+        */
+
+        /* Reset básico para garantir que não haja espaçamentos indesejados */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-size: 14px; /* Reduzido de 16px para 14px */
+        }
+        
+        body {
+            padding-bottom: 65px; /* Reduzido de 80px */
+            margin: 0;
+            overflow-x: hidden;
+            background-color: #f8f9fa;
+        }       
         /* Menu de navegação fixo */
         .fixed-navbar {
             position: fixed;
@@ -1786,5 +1806,6 @@
     </script>
 </body>
 </html>
+
 
 
