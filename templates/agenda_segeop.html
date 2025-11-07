@@ -1285,7 +1285,7 @@
             let y = event.pageY + offsetY;
             
             // Verificar se ultrapassa a direita da página
-            if (event.clientX + offsetX + tooltipWidth + 10 > viewportWidth) {
+            if (event.clientX + offsetX + tooltipWidth + 20 > viewportWidth) {
                 // Posicionar à esquerda do cursor
                 x = event.pageX - tooltipWidth - offsetX;
             }
