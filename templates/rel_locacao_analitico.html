@@ -30,18 +30,23 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 3px;
+            flex-wrap: nowrap;
+            gap: 10px;
         }
         
         .logo-img {
             height: 30px;
             width: auto;
+            flex-shrink: 0;
         }
         
         .sistema-title {
             font-family: 'Arial Narrow', Arial, sans-serif;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: normal;
             text-align: right;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         
         .report-title {
@@ -55,9 +60,9 @@
         .info-line {
             text-align: left;
             font-size: 9px;
-            margin-bottom: 0px;
+            margin-bottom: 2px;
             margin-top: 0px;
-            line-height: 1;
+            line-height: 1.1;
             padding: 0;
         }
         
@@ -75,6 +80,7 @@
             text-align: left;
             vertical-align: middle;
             overflow: hidden;
+            white-space: nowrap;
             text-overflow: ellipsis;
         }
         
@@ -87,17 +93,17 @@
             padding: 3px 4px;
         }
         
-        /* Ajuste de largura das colunas */
+        /* Ajuste de largura das colunas - USANDO APENAS PORCENTAGENS */
         th:nth-child(1), td:nth-child(1) { /* Item */
-            width: 35px;
+            width: 4%;
         }
         
         th:nth-child(2), td:nth-child(2) { /* Mês/Ano */
-            width: 65px;
+            width: 7%;
         }
         
         th:nth-child(3), td:nth-child(3) { /* Período */
-            width: 95px;
+            width: 10%;
         }
         
         th:nth-child(4), td:nth-child(4) { /* Veículo */
@@ -109,23 +115,23 @@
         }
         
         th:nth-child(6), td:nth-child(6) { /* Qtde */
-            width: 38px;
+            width: 4%;
         }
         
         th:nth-child(7), td:nth-child(7) { /* Valor Diária */
-            width: 75px;
+            width: 9%;
         }
         
         th:nth-child(8), td:nth-child(8) { /* Valor Dif. */
-            width: 70px;
+            width: 8%;
         }
         
         th:nth-child(9), td:nth-child(9) { /* Valor Total */
-            width: 75px;
+            width: 9%;
         }
         
         th:nth-child(10), td:nth-child(10) { /* Km Rodado */
-            width: 50px;
+            width: 6%;
         }
         
         .text-center {
