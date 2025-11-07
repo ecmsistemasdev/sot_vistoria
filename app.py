@@ -1688,16 +1688,24 @@ def rel_locacao_analitico_page():
         
         cursor.close()
         
-        # Obter o caminho absoluto da logo para o PDF
+        # Converter logo para base64
         import os
+        import base64
         logo_path = os.path.join(app.root_path, 'static', 'img', 'logo.png')
+        logo_base64 = ""
+        
+        try:
+            with open(logo_path, 'rb') as f:
+                logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            app.logger.warning(f"Não foi possível carregar a logo: {str(e)}")
         
         # Renderizar o HTML primeiro
         html_content = render_template('rel_locacao_analitico.html', 
                                       items=items, 
                                       processo_info=processo_info,
                                       mes_ano_filtro=mes_ano,
-                                      logo_path=logo_path)
+                                      logo_base64=logo_base64)
         
         # Converter para PDF com xhtml2pdf
         pdf_buffer = BytesIO()
