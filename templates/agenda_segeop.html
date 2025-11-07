@@ -881,7 +881,41 @@
         
         .sticky-header .col-dia {
             width: calc((100% - 256px) / 7);
-        }       
+        }   
+
+        /* Tooltip para veí­culo */
+        .tooltip-veiculo {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .tooltip-veiculo.visible {
+            opacity: 1;
+        }
+        
+        .tooltip-veiculo::before {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid rgba(0, 0, 0, 0.9);
+        }        
     </style>
 </head>
 <body>
@@ -981,8 +1015,6 @@
             </thead>
         </table>
     </div>
-
-
     
     <div class="footer">
         <div class="week-tabs-wrapper">
@@ -1166,6 +1198,9 @@
         </div>
     </div>
 
+    <!-- Tooltip para exibir veÃ­culo -->
+    <div id="tooltipVeiculo" class="tooltip-veiculo"></div>
+    
     <script>
         let semanas = [];
         let semanaAtual = 0;
@@ -1183,7 +1218,71 @@
         let veiculosExtras = [];
         let listaVeiculosExpandida = false;
         let outrosMotoristas = [];
+        let tooltipVeiculo = null; // Variável para controlar o tooltip
 
+        // Função para obter informação do veículo de uma demanda
+        function obterVeiculoDemanda(idDemanda) {
+            const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
+            if (!demanda) return null;
+            
+            // Se tem ID_VEICULO (veículo oficial)
+            if (demanda.id_veiculo) {
+                // Procurar nos veículos padrão
+                let veiculo = veiculos.find(v => v.id === demanda.id_veiculo);
+                
+                // Se não encontrou, procurar nos extras
+                if (!veiculo) {
+                    veiculo = veiculosExtras.find(v => v.id === demanda.id_veiculo);
+                }
+                
+                return veiculo ? veiculo.veiculo : `Veículo ID ${demanda.id_veiculo}`;
+            }
+            
+            // Se tem ID_TIPOVEICULO (veículo alocado)
+            if (demanda.id_tipoveiculo && demanda.id_tipoveiculo !== 1) {
+                return demanda.de_tipoveiculo || 'Veículo Alocado';
+            }
+            
+            return null;
+        }
+        
+        // Função para mostrar tooltip
+        function mostrarTooltipVeiculo(event, idDemanda) {
+            const veiculo = obterVeiculoDemanda(idDemanda);
+            
+            if (!veiculo) return;
+            
+            if (!tooltipVeiculo) {
+                tooltipVeiculo = document.getElementById('tooltipVeiculo');
+            }
+            
+            tooltipVeiculo.textContent = `🚗 ${veiculo}`;
+            tooltipVeiculo.classList.add('visible');
+            
+            posicionarTooltip(event);
+        }
+        
+        // Função para posicionar tooltip
+        function posicionarTooltip(event) {
+            if (!tooltipVeiculo) return;
+            
+            const tooltip = tooltipVeiculo;
+            const x = event.pageX;
+            const y = event.pageY;
+            
+            // Posicionar acima do cursor
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = (y - 45) + 'px';
+        }
+        
+        // Função para esconder tooltip
+        function esconderTooltipVeiculo() {
+            if (tooltipVeiculo) {
+                tooltipVeiculo.classList.remove('visible');
+            }
+        }
+
+        
         // Máscara para o campo horário
         function aplicarMascaraHorario(input) {
             let valor = input.value.replace(/\D/g, '');
@@ -2017,7 +2116,9 @@
                             
                             const corClass = `tipo-${demanda.id_tipodemanda}`;
                             const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                            // html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipVeiculo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
+    
                             html += '<div class="cell-content">';
                             
                             // ID 9 (Oficina)
@@ -2199,7 +2300,8 @@
                             
                             const corClass = `tipo-${demanda.id_tipodemanda}`;
                             const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                            // html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipVeiculo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
                             html += '<div class="cell-content">';
                             
                             // ID 9 (Oficina)
@@ -3467,7 +3569,9 @@
                             
                             const corClass = `tipo-${demanda.id_tipodemanda}`;
                             const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>`;
+                            // html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>`;
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onmouseenter="mostrarTooltipVeiculo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
+    
                             html += '<div class="cell-content">';
                             
                             // ID 9 (Oficina)
