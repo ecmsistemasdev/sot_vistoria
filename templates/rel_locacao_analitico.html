@@ -52,11 +52,11 @@
             text-align: center;
             font-size: 13px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         
         .info-line {
-            text-align: center;
+            text-align: left;
             font-size: 9px;
             margin-bottom: 2px;
         }
@@ -69,7 +69,7 @@
         }
         
         th, td {
-            border: 1px solid #000;
+            border: 1px solid #ccc;
             padding: 4px;
             text-align: left;
         }
@@ -124,7 +124,7 @@
     <div class="header-section">
         <div class="logo-row">
             <div class="logo-cell">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-img" alt="SOT Logo">
+                <img src="file://{{ logo_path }}" class="logo-img" alt="SOT Logo">
             </div>
             <div class="logo-cell sistema-title">
                 SOTWeb - Sistema de Operações de Transporte
