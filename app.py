@@ -1688,11 +1688,16 @@ def rel_locacao_analitico_page():
         
         cursor.close()
         
+        # Obter o caminho absoluto da logo para o PDF
+        import os
+        logo_path = os.path.join(app.root_path, 'static', 'img', 'logo.png')
+        
         # Renderizar o HTML primeiro
         html_content = render_template('rel_locacao_analitico.html', 
                                       items=items, 
                                       processo_info=processo_info,
-                                      mes_ano_filtro=mes_ano)
+                                      mes_ano_filtro=mes_ano,
+                                      logo_path=logo_path)
         
         # Converter para PDF com xhtml2pdf
         pdf_buffer = BytesIO()
