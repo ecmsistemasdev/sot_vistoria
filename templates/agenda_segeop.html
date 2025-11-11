@@ -1263,8 +1263,12 @@
             // Formatar período
             const dataInicio = new Date(demanda.dt_inicio + 'T00:00:00');
             const dataFim = new Date(demanda.dt_fim + 'T00:00:00');
-            const periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')} a ${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
-            
+
+            if (dataInicio === dataFim) {
+                const periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')}/${dataInicio.getFullYear()}`;
+            } else {
+                const periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')} a ${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;    
+            }
             // Duas linhas: veículo e período
             tooltipVeiculo.innerHTML = `🚗 ${veiculo}<br>${periodoFormatado}`;
             tooltipVeiculo.classList.add('visible');
