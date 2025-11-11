@@ -1315,7 +1315,7 @@ def api_sintetico_mensal(id_cl):
                 'SUBTOTAL': float(item[2]) if item[2] else 0,
                 'HORA_EXTRA': float(item[3]) if item[3] else 0,
                 'TOTAL': float(item[4]) if item[4] else 0,
-                'TOTAL_KM': float(item[5]) if item[5] else 0
+                'TOTAL_KM': item[5]
             })
         
         cursor.close()
