@@ -1297,7 +1297,8 @@ def api_sintetico_mensal(id_cl):
             CONCAT((SELECT DE_MES FROM TJ_MES WHERE ID_MES = i.ID_MES),'/',i.ID_EXERCICIO) AS MESANO,
             SUM(i.VL_SUBTOTAL) AS SUBTOTAL, 
             SUM(i.VL_DIFERENCA) AS HORA_EXTRA, 
-            SUM(i.VL_TOTALITEM) AS TOTAL
+            SUM(i.VL_TOTALITEM) AS TOTAL,
+            SUM(i.KM_RODADO) AS TOTAL_KM
         FROM TJ_CONTROLE_LOCACAO_ITENS i
         WHERE i.ID_CL = %s
         GROUP BY i.ID_MES, i.ID_EXERCICIO
@@ -1313,7 +1314,8 @@ def api_sintetico_mensal(id_cl):
                 'MESANO': item[1],
                 'SUBTOTAL': float(item[2]) if item[2] else 0,
                 'HORA_EXTRA': float(item[3]) if item[3] else 0,
-                'TOTAL': float(item[4]) if item[4] else 0
+                'TOTAL': float(item[4]) if item[4] else 0,
+                'TOTAL_KM': float(item[5]) if item[5] else 0
             })
         
         cursor.close()
