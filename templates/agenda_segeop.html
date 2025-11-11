@@ -1247,9 +1247,19 @@
             return null;
         }
         
+        // Função para obter informação do veículo de uma demanda
+        function obterPeriodo(idDemanda) {
+            const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
+            if (!demanda) return null;
+            
+            return `Período ${demanda.dt_inicio}`;
+            
+        }
+
         // Função para mostrar tooltip
         function mostrarTooltipVeiculo(event, idDemanda) {
             const veiculo = obterVeiculoDemanda(idDemanda);
+            const periodo = obterPeriodo(idDemanda);
             
             if (!veiculo) return;
             
@@ -1258,6 +1268,7 @@
             }
             
             tooltipVeiculo.textContent = `🚗 ${veiculo}`;
+            tooltipVeiculo.textContent = `${periodo}`;
             tooltipVeiculo.classList.add('visible');
             
             posicionarTooltip(event);
