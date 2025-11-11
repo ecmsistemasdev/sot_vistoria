@@ -883,21 +883,22 @@
             width: calc((100% - 256px) / 7);
         }   
 
-        /* Tooltip para veí­culo */
+        /* Tooltip para veículo */
         .tooltip-veiculo {
             position: absolute;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.75); /* Aumentada transparência de 0.9 para 0.75 */
             color: white;
             padding: 8px 12px;
             border-radius: 4px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: normal; /* Alterado de 500 para normal */
             z-index: 1000;
             pointer-events: none;
             white-space: nowrap;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             opacity: 0;
             transition: opacity 0.2s;
+            line-height: 1.4; /* Adicionado para melhor espaçamento entre linhas */
         }
         
         .tooltip-veiculo.visible {
@@ -1246,18 +1247,26 @@
             
             return null;
         }
-
+        
         // Função para mostrar tooltip
         function mostrarTooltipVeiculo(event, idDemanda) {
-            const veiculo = obterVeiculoDemanda(idDemanda);
+            const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
+            if (!demanda) return;
             
+            const veiculo = obterVeiculoDemanda(idDemanda);
             if (!veiculo) return;
             
             if (!tooltipVeiculo) {
                 tooltipVeiculo = document.getElementById('tooltipVeiculo');
             }
             
-            tooltipVeiculo.textContent = `🚗 ${veiculo}`;
+            // Formatar período
+            const dataInicio = new Date(demanda.dt_inicio + 'T00:00:00');
+            const dataFim = new Date(demanda.dt_fim + 'T00:00:00');
+            const periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')} a ${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
+            
+            // Duas linhas: veículo e período
+            tooltipVeiculo.innerHTML = `🚗 ${veiculo}<br>${periodoFormatado}`;
             tooltipVeiculo.classList.add('visible');
             
             posicionarTooltip(event);
@@ -2257,7 +2266,6 @@
             `;
             html += '<table class="agenda-table"><thead><tr>';
             html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
-            
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
             html += '</tr></thead><tbody>';
             
