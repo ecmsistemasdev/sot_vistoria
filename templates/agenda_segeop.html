@@ -1280,6 +1280,35 @@
             posicionarTooltip(event);
         }
         
+        // Função para mostrar tooltip apenas com período (para veículos e alocados)
+        function mostrarTooltipPeriodo(event, idDemanda) {
+            const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
+            if (!demanda) return;
+            
+            if (!tooltipVeiculo) {
+                tooltipVeiculo = document.getElementById('tooltipVeiculo');
+            }
+            
+            // Formatar período
+            const dataInicio = new Date(demanda.dt_inicio + 'T00:00:00');
+            const dataFim = new Date(demanda.dt_fim + 'T00:00:00');
+            
+            let periodoFormatado;
+            if (demanda.dt_inicio === demanda.dt_fim) {
+                // Data única
+                periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')}/${dataInicio.getFullYear()}`;
+            } else {
+                // Período
+                periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')} a ${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
+            }
+            
+            // Apenas o período
+            tooltipVeiculo.innerHTML = periodoFormatado;
+            tooltipVeiculo.classList.add('visible');
+            
+            posicionarTooltip(event);
+        }        
+        
         // Função para posicionar tooltip com detecção de limites
         function posicionarTooltip(event) {
             if (!tooltipVeiculo) return;
@@ -2548,7 +2577,8 @@
                             
                             const corClass = `tipo-${demanda.id_tipodemanda}`;
                             const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalEditar(${demanda.id})">`;
+                            //html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalEditar(${demanda.id})">`;
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalEditar(${demanda.id})" onmouseenter="mostrarTooltipPeriodo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
                             html += '<div class="cell-content-veiculos">';
                             
                             // ID 9 (Oficina)
@@ -2747,7 +2777,8 @@
                         }
                         
                         const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                        html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                        // html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
+                        html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipPeriodo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
                         html += '<div class="cell-content-veiculos">';
                         
                         if (isIdEspecial) {
