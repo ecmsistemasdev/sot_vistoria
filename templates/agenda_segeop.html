@@ -1292,7 +1292,7 @@
             // Formatar período
             const dataInicio = new Date(demanda.dt_inicio + 'T00:00:00');
             const dataFim = new Date(demanda.dt_fim + 'T00:00:00');
-            const destino = new demanda.destino;
+            // const destino = new demanda.destino;
             
             let periodoFormatado;
             if (demanda.dt_inicio === demanda.dt_fim) {
@@ -1305,7 +1305,7 @@
             
             // Apenas o período
             // tooltipVeiculo.innerHTML = periodoFormatado;
-            tooltipVeiculo.innerHTML = `${periodoFormatado}<br>${destino}`;
+            tooltipVeiculo.innerHTML = `${periodoFormatado}<br>${demanda.destino}`;
             
             tooltipVeiculo.classList.add('visible');
             
