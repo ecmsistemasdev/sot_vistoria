@@ -957,7 +957,7 @@ def detalhe_motorista(id_motorista):
         SELECT 
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, ORDEM_LISTA, 
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
-            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO, EMAIL,
+            NU_TELEFONE, OBS_MOTORISTA, ATIVO, NOME_ARQUIVO, EMAIL,
             DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
             DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
         FROM TJ_MOTORISTA 
@@ -980,11 +980,10 @@ def detalhe_motorista(id_motorista):
                 'nu_telefone': result[8],
                 'obs_motorista': result[9],
                 'ativo': result[10],
-                'tipo_cadastro_desc': result[11],
-                'nome_arquivo': result[12],
-                'email': result[13],
-                'dt_inicio': result[14],
-                'dt_fim': result[15]
+                'nome_arquivo': result[11],
+                'email': result[12],
+                'dt_inicio': result[13],
+                'dt_fim': result[14]
             }
             return jsonify(motorista)
         else:
