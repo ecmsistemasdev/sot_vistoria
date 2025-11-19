@@ -277,7 +277,10 @@
         .tipo-11 { 
             background: linear-gradient(to bottom, #ffb3d9, #ffd9ec);
         }        
-
+        .tipo-12 { 
+            background: linear-gradient(to bottom, #ff5d5d, #fca5a5) !important;
+            font-weight: bold;
+        }
         .empty-cell {
             background: #fafafa;
         }
@@ -1120,7 +1123,7 @@
                         </div>
                         <div class="form-group">
                             <label id="labelSolicitante">Solicitante</label>
-                            <input type="text" id="solicitante" maxlength="40">
+                            <input type="text" id="solicitante" maxlength="30">
                         </div>
                     </div>
                     
@@ -1128,7 +1131,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label id="labelDestino">Destino</label>
-                            <input type="text" id="destino" maxlength="25">
+                            <input type="text" id="destino" maxlength="40">
                         </div>    
                         <div class="form-group">
                             <label>Nº SEI</label>
@@ -1748,7 +1751,7 @@
                 // Solicitante aberto mas não obrigatório
                 solicitante.disabled = false;
                 
-            } else if (idTipoDemanda === 9) {
+            } else if (idTipoDemanda === 9 || idTipoDemanda === 12) {
                 // ID 9 (Oficina): Motorista não obrigatório, fecha Setor e Solicitante
                 motorista.required = false;
                 if (labelMotorista) {
@@ -2206,9 +2209,9 @@
     
                             html += '<div class="cell-content">';
                             
-                            // ID 9 (Oficina)
-                            if (demanda.id_tipodemanda === 9) {
-                                html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
+                            // ID 9 (Oficina) ou ID 12 (Lava-Jato)
+                            if (demanda.id_tipodemanda === 9 || demanda.id_tipodemanda === 12) {
+                                html += `<div><strong>${demanda.de_tipodemanda || (demanda.id_tipodemanda === 9 ? 'Oficina' : 'Lava-Jato')}</strong></div>`;
                                 if (demanda.nm_motorista) {
                                     html += `<div class="cell-divider"></div>`;
                                     html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
@@ -2244,7 +2247,7 @@
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                                                         
-                            if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10].includes(demanda.id_tipodemanda)) {
+                            if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10, 12].includes(demanda.id_tipodemanda)) {
                                 html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
                             }
                             
@@ -2389,9 +2392,9 @@
                             html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipVeiculo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
                             html += '<div class="cell-content">';
                             
-                            // ID 9 (Oficina)
-                            if (demanda.id_tipodemanda === 9) {
-                                html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
+                            // ID 9 (Oficina) ou ID 12 (Lava-Jato)
+                            if (demanda.id_tipodemanda === 9 || demanda.id_tipodemanda === 12) {
+                                html += `<div>${demanda.de_tipodemanda || (demanda.id_tipodemanda === 9 ? 'Oficina' : 'Lava-Jato')}</div>`;
                                 if (demanda.destino) {
                                     html += `<div>${demanda.destino}</div>`;
                                 }
@@ -2419,7 +2422,7 @@
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                             
-                            if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10].includes(demanda.id_tipodemanda)) {
+                            if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10, 12].includes(demanda.id_tipodemanda)) {
                                 html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
                             }
                             
@@ -3175,7 +3178,7 @@
             const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
             
             // Validação de Motorista: obrigatório exceto para ID 9, 10 e IDs tipo veículo 7, 8, 9
-            const dispensaMotorista = idTipoDemanda === 9 || idTipoDemanda === 10 || 
+            const dispensaMotorista = idTipoDemanda === 9 || idTipoDemanda === 10 || idTipoDemanda === 12 ||
                                     idTipoVeiculo === 7 || idTipoVeiculo === 8 || idTipoVeiculo === 9;
             
             if (!dispensaMotorista && !dados.id_motorista) {
@@ -3709,7 +3712,7 @@
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                             
-                            if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10].includes(demanda.id_tipodemanda)) {
+                            if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10, 12].includes(demanda.id_tipodemanda)) {
                                 html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
                             }
                             
