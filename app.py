@@ -3563,22 +3563,41 @@ def cadastrar_veiculo():
         ativo = request.json.get('ativo', 'S')
         fl_atendimento = request.json.get('fl_atendimento', 'N')
         usuario = session.get('usuario_id')
+        dt_inicio = request.form.get('dt_inicio')
+        dt_fim = request.form.get('dt_fim', None)
+
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+
+
+        # Convert DT_INICIO from DD/MM/YYYY to YYYY-MM-DD
+        if dt_inicio:
+            dia, mes, ano = dt_inicio.split('/')
+            dt_inicio_db = f"{ano}-{mes}-{dia}"
+        else:
+            dt_inicio_db = None
+        
+        # Convert DT_FIM from DD/MM/YYYY to YYYY-MM-DD if provided
+        dt_fim_db = None
+        if dt_fim:
+            dia, mes, ano = dt_fim.split('/')
+            dt_fim_db = f"{ano}-{mes}-{dia}"
+
+
         # Insert query
         query = """
         INSERT INTO TJ_VEICULO (
             ID_VEICULO, NU_PLACA, ID_CATEGORIA, MARCA, DS_MODELO, 
             ANO_FABMOD, ORIGEM_VEICULO, PROPRIEDADE, COMBUSTIVEL, 
-            OBS, ATIVO, FL_ATENDIMENTO, USUARIO, DT_TRANSACAO
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            OBS, ATIVO, FL_ATENDIMENTO, USUARIO, DT_TRANSACAO, DT_INICIO, DT_FIM
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         cursor.execute(query, (
             novo_id, nu_placa, id_categoria, marca, ds_modelo, 
-            ano_fabmod, origem_veiculo, propriedade, combustivel, 
-            obs, ativo, fl_atendimento, usuario, dt_transacao
+            ano_fabmod, origem_veiculo, propriedade, combustivel, obs, ativo,   
+            fl_atendimento, usuario, dt_transacao, dt_inicio_db, dt_fim_db
         ))
         
         mysql.connection.commit()
@@ -3613,9 +3632,26 @@ def atualizar_veiculo():
         ativo = request.json.get('ativo', 'S')
         fl_atendimento = request.json.get('fl_atendimento', 'N')
         usuario = session.get('usuario_id')
+        dt_inicio = request.form.get('dt_inicio')
+        dt_fim = request.form.get('dt_fim')
+
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+
+        # Convert DT_INICIO from DD/MM/YYYY to YYYY-MM-DD
+        if dt_inicio:
+            dia, mes, ano = dt_inicio.split('/')
+            dt_inicio_db = f"{ano}-{mes}-{dia}"
+        else:
+            dt_inicio_db = None
+        
+        # Convert DT_FIM from DD/MM/YYYY to YYYY-MM-DD if provided
+        dt_fim_db = None
+        if dt_fim:
+            dia, mes, ano = dt_fim.split('/')
+            dt_fim_db = f"{ano}-{mes}-{dia}"
+
         # Update query
         query = """
         UPDATE TJ_VEICULO SET
@@ -3631,7 +3667,9 @@ def atualizar_veiculo():
             ATIVO = %s,
             FL_ATENDIMENTO = %s,
             USUARIO = %s,
-            DT_TRANSACAO = %s
+            DT_TRANSACAO = %s,
+            DT_INICIO = %s,
+            DT_FIM = %s
         WHERE ID_VEICULO = %s
         """
         
@@ -3639,7 +3677,7 @@ def atualizar_veiculo():
             nu_placa, id_categoria, marca, ds_modelo, 
             ano_fabmod, origem_veiculo, propriedade, combustivel, 
             obs, ativo, fl_atendimento, usuario, dt_transacao,
-            id_veiculo
+            dt_inicio_db, dt_fim_db, id_veiculo
         ))
         
         mysql.connection.commit()
@@ -3922,7 +3960,7 @@ def listar_semanas():
         if cursor:
             cursor.close()
 
-# API: Buscar dados da agenda por semana (CORRIGIDA - INDENTAÇÃO)
+# API: Buscar dados da agenda por semana (CORRIGIDA - VERSÃO FINAL)
 @app.route('/api/agenda/dados', methods=['GET'])
 @login_required
 def buscar_dados_agenda():
@@ -3939,10 +3977,8 @@ def buscar_dados_agenda():
             FROM TJ_MOTORISTA
             WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Tercerizado')
               AND ATIVO = 'S'
-              AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-              AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
-        """, (fim, inicio))
+        """)
         motoristas = []
         for r in cursor.fetchall():
             motoristas.append({
@@ -3958,10 +3994,8 @@ def buscar_dados_agenda():
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
             WHERE ATIVO = 'S'
-              AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-              AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY NM_MOTORISTA
-        """, (fim, inicio))
+        """)
         todos_motoristas = []
         for r in cursor.fetchall():
             todos_motoristas.append({
@@ -3980,8 +4014,6 @@ def buscar_dados_agenda():
             INNER JOIN ATENDIMENTO_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Tercerizado')
               AND m.ATIVO = 'S'
-              AND (m.DT_INICIO IS NULL OR m.DT_INICIO <= %s)
-              AND (m.DT_FIM IS NULL OR m.DT_FIM >= %s)
               AND ae.DT_INICIO <= %s 
               AND ae.DT_FIM >= %s
             UNION 
@@ -3999,7 +4031,7 @@ def buscar_dados_agenda():
             ORDER BY NM_MOTORISTA
         """
         
-        cursor.execute(query_outros, (fim, inicio, fim, inicio, fim, inicio))
+        cursor.execute(query_outros, (fim, inicio, fim, inicio))
         
         outros_motoristas = []
         for r in cursor.fetchall():
@@ -4011,7 +4043,7 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
-        # 2. Demandas dos Motoristas
+		# 2. Demandas dos Motoristas
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, 
                    CASE 
@@ -4037,7 +4069,7 @@ def buscar_dados_agenda():
                 END,
                 ae.ID_AD ASC
         """, (fim, inicio))
-        
+		
         demandas = []
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
