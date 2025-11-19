@@ -424,6 +424,9 @@
                 fetch(`/api/motoristas/${idMotorista}`)
                     .then(response => response.json())
                     .then(motorista => {
+                        // ADICIONE ESTA LINHA AQUI:
+                        console.log('Dados do motorista:', motorista);
+                        
                         $('#secaoPesquisa, #secaoTabela, #secaoTabelaBotoes, #mainFooter').hide();
                         $('#secaoCadastro, #formFooter').show();
                         $('#secaoAtivo').show();
@@ -629,3 +632,4 @@
     </script>
 </body>
 </html>
+
