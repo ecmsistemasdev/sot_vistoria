@@ -1096,7 +1096,7 @@ def atualizar_motorista():
             SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
-                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, 
+                ATIVO = %s, USUARIO = %s, 
                 FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s, EMAIL = %s
             WHERE ID_MOTORISTA = %s
             """
@@ -1105,7 +1105,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email, id_motorista
+                file_blob, nome_arquivo, tipo_cadastro, email, id_motorista
             ))
         else:
             # Update without changing file
@@ -1114,7 +1114,7 @@ def atualizar_motorista():
             SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
-                ATIVO = %s, USUARIO = %s, DT_TRANSACAO = %s, ORDEM_LISTA = %s, EMAIL = %s
+                ATIVO = %s, USUARIO = %s, ORDEM_LISTA = %s, EMAIL = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1122,7 +1122,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                dt_transacao, tipo_cadastro, email, id_motorista
+                tipo_cadastro, email, id_motorista
             ))
         
         mysql.connection.commit()
