@@ -3550,7 +3550,8 @@ def cadastrar_veiculo():
         # Get last ID and increment
         cursor.execute("SELECT COALESCE(MAX(ID_VEICULO), 0) + 1 FROM TJ_VEICULO")
         novo_id = cursor.fetchone()[0]
-        # Form data
+        
+        # Form data - CORRIGIDO: usar request.json consistentemente
         nu_placa = request.json.get('nu_placa', '').upper()
         id_categoria = request.json.get('id_categoria')
         marca = request.json.get('marca', '')
@@ -3563,13 +3564,12 @@ def cadastrar_veiculo():
         ativo = request.json.get('ativo', 'S')
         fl_atendimento = request.json.get('fl_atendimento', 'N')
         usuario = session.get('usuario_id')
-        dt_inicio = request.form.get('dt_inicio')
-        dt_fim = request.form.get('dt_fim', None)
+        dt_inicio = request.json.get('dt_inicio')  # CORRIGIDO
+        dt_fim = request.json.get('dt_fim', None)  # CORRIGIDO
 
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-
 
         # Convert DT_INICIO from DD/MM/YYYY to YYYY-MM-DD
         if dt_inicio:
@@ -3583,7 +3583,6 @@ def cadastrar_veiculo():
         if dt_fim:
             dia, mes, ano = dt_fim.split('/')
             dt_fim_db = f"{ano}-{mes}-{dia}"
-
 
         # Insert query
         query = """
@@ -3606,7 +3605,7 @@ def cadastrar_veiculo():
         return jsonify({'sucesso': True, 'id_veiculo': novo_id})
     
     except Exception as e:
-        print(f"Erro ao : {str(e)}")
+        print(f"Erro ao cadastrar: {str(e)}")
         return jsonify({
             'sucesso': False,
             'mensagem': str(e)
@@ -3618,7 +3617,7 @@ def atualizar_veiculo():
     try:
         cursor = mysql.connection.cursor()
         
-        # Form data
+        # Form data - CORRIGIDO: usar request.json consistentemente
         id_veiculo = request.json.get('id_veiculo')
         nu_placa = request.json.get('nu_placa', '').upper()
         id_categoria = request.json.get('id_categoria')
@@ -3632,8 +3631,8 @@ def atualizar_veiculo():
         ativo = request.json.get('ativo', 'S')
         fl_atendimento = request.json.get('fl_atendimento', 'N')
         usuario = session.get('usuario_id')
-        dt_inicio = request.form.get('dt_inicio')
-        dt_fim = request.form.get('dt_fim')
+        dt_inicio = request.json.get('dt_inicio')  # CORRIGIDO
+        dt_fim = request.json.get('dt_fim')  # CORRIGIDO
 
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
@@ -3686,7 +3685,7 @@ def atualizar_veiculo():
         return jsonify({'sucesso': True, 'mensagem': 'Veículo atualizado com sucesso'})
         
     except Exception as e:
-        print(f"Erro ao : {str(e)}")
+        print(f"Erro ao atualizar: {str(e)}")
         return jsonify({
             'sucesso': False,
             'mensagem': str(e)
