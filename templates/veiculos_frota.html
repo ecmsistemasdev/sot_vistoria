@@ -180,6 +180,20 @@
                                     <option value="Híbrido">Híbrido</option>
                                 </select>                              
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="dtInicio" class="form-label">Início Utiliz. <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="dtInicio" name="dt_inicio" 
+                                       placeholder="DD/MM/AAAA" maxlength="10" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="dtFim" class="form-label">Fim Utiliz.</label>
+                                <input type="text" class="form-control" id="dtFim" name="dt_fim" 
+                                       placeholder="DD/MM/AAAA" maxlength="10">
+                                <small class="form-text text-muted">Preencher apenas quando o veículo deixar de ser utilizado</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-8 mb-3">
                                 <label for="obs" class="form-label">Observações</label>
                                 <input type="text" class="form-control" id="obs" name="obs" maxlength="100">
@@ -246,6 +260,32 @@
             // Máscaras
             $('#anoFabmod').mask('0000/0000');
             $('#nuPlaca').mask('AAA0A00').css('text-transform', 'uppercase');
+            $('#dtInicio').mask('00/00/0000');
+            $('#dtFim').mask('00/00/0000');
+
+            // Função para obter data atual no formato DD/MM/AAAA
+            function obterDataAtual() {
+                const hoje = new Date();
+                const dia = String(hoje.getDate()).padStart(2, '0');
+                const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                const ano = hoje.getFullYear();
+                return `${dia}/${mes}/${ano}`;
+            }
+
+            // Função para converter data do formato YYYY-MM-DD para DD/MM/AAAA
+            function converterDataParaBR(data) {
+                if (!data) return '';
+                
+                // Se já estiver no formato DD/MM/AAAA, retorna como está
+                if (data.includes('/')) return data;
+                
+                // Converte de YYYY-MM-DD para DD/MM/AAAA
+                const partes = data.split('-');
+                if (partes.length === 3) {
+                    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+                }
+                return data;
+            }
 
             // Carregar categorias de veículos
             function carregarCategorias() {
@@ -275,6 +315,9 @@
                 // Define valores padrão
                 $('#ativo').prop('checked', true);
                 $('#flAtendimento').prop('checked', false);
+                // Define data atual para DT_INICIO
+                $('#dtInicio').val(obterDataAtual());
+                $('#dtFim').val(''); // Garante que DT_FIM está vazio
             });
 
             // Botão Cancelar / Voltar
@@ -349,7 +392,7 @@
                         return response.json();
                     })
                     .then(veiculo => {
-                        console.log("Dados recebidos do veículo:", veiculo); // Log para depuração
+                        console.log("Dados recebidos do veículo:", veiculo);
                         
                         $('#secaoPesquisa, #secaoTabela, #mainFooter').hide();
                         $('#secaoCadastro, #formFooter').show();
@@ -364,16 +407,12 @@
                         $('#origemVeiculo').val(veiculo.origem_veiculo);
                         $('#propriedade').val(veiculo.propriedade);
                         
-                        // Verificar se o combustível existe antes de definir
-                        console.log("Valor do combustível recebido:", veiculo.combustivel);
-                        
+                        // Combustível
                         if (veiculo.combustivel) {
-                            // Verificar se a opção existe no select
                             if ($('#combustivel option[value="' + veiculo.combustivel + '"]').length > 0) {
                                 $('#combustivel').val(veiculo.combustivel);
                             } else {
                                 console.warn("Valor de combustível não encontrado nas opções:", veiculo.combustivel);
-                                // Adicionar dinamicamente se não existir
                                 $('#combustivel').append(new Option(veiculo.combustivel, veiculo.combustivel));
                                 $('#combustivel').val(veiculo.combustivel);
                             }
@@ -386,15 +425,28 @@
                         // Checkboxes
                         $('#ativo').prop('checked', veiculo.ativo === 'S');
                         $('#flAtendimento').prop('checked', veiculo.fl_atendimento === 'S');
+                        
+                        // Datas - converte do formato do banco para DD/MM/AAAA
+                        $('#dtInicio').val(converterDataParaBR(veiculo.dt_inicio));
+                        $('#dtFim').val(converterDataParaBR(veiculo.dt_fim));
                     })
                     .catch(error => {
                         console.error('Erro ao carregar veículo para edição:', error);
                         alert('Erro ao carregar dados do veículo: ' + error.message);
                     });
             });
+
             // Enviar formulário
             $('#btnSalvarVeiculo').click(function(e) {
                 e.preventDefault();
+                
+                // Validar data de início
+                const dtInicio = $('#dtInicio').val();
+                if (!dtInicio) {
+                    alert('A Data de Início é obrigatória!');
+                    $('#dtInicio').focus();
+                    return;
+                }
                 
                 // Criar objeto com os dados do formulário
                 const formData = {
@@ -410,7 +462,9 @@
                     obs: $('#obs').val(),
                     ativo: $('#ativo').prop('checked') ? 'S' : 'N',
                     fl_atendimento: $('#flAtendimento').prop('checked') ? 'S' : 'N',
-                    usuario: 'SISTEMA' // Ajustar conforme necessário
+                    dt_inicio: dtInicio,
+                    dt_fim: $('#dtFim').val() || null,
+                    usuario: 'SISTEMA'
                 };
                 
                 const url = formData.id_veiculo 
@@ -440,6 +494,7 @@
                     alert('Erro ao processar a solicitação.');
                 });
             });
+
         });
 
         // Função de logout corrigida
