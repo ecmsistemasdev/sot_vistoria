@@ -2420,9 +2420,9 @@
                         } else {
                             html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
                             html += `<td class="col-nome">`;
-                            html += `<div><strong>${m.nome}</strong></div>`;
+                            html += `<div>${m.nome}</div>`;
                             if (setor) {
-                                html += `<div style="font-size: 11px; color: #666; font-weight: normal;">${setor}</div>`;
+                                html += `<div style="font-size: 11px; color: #666; font-weight: normal;"><strong>${setor}</strong></div>`;
                             }
                             html += `</td>`;
                         }
