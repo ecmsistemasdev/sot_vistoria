@@ -185,11 +185,22 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
+                                <label for="dtInicio" class="form-label">Início do vínculo <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="dtInicio" name="dt_inicio" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="dtFim" class="form-label">Fim do vínculo</label>
+                                <input type="date" class="form-control" id="dtFim" name="dt_fim">
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label for="email" class="form-label">E-mail</label>
                                 <input type="email" class="form-control" id="email" name="email" maxlength="150">
                             </div>
-                            <div class="col-md-6 mb-3">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
                                 <label for="obsMotorist" class="form-label">Observações</label>
                                 <input type="text" class="form-control" id="obsMotorist" name="obs_motorista" maxlength="100">
                             </div>
@@ -311,14 +322,6 @@
             });
 
             // Botão Visualizar CNH
-            // $('#btnVisualizarCnh').click(function(e) {
-            //     e.preventDefault();
-            //     const idMotorista = $('#idMotorista').val();
-            //     if (idMotorista) {
-            //         // Abrir o PDF em uma nova aba
-            //         window.open(`/api/motoristas/download_cnh/${idMotorista}`, '_blank');
-            //     }
-            // });
             $('#btnVisualizarCnh').click(function(e) {
                 e.preventDefault();
                 const idMotorista = $('#idMotorista').val();
@@ -326,6 +329,7 @@
                     abrirModalCnh(idMotorista);
                 }
             });
+
             // Update event listeners to handle both section and footer buttons
             $('#btnNovoRegistro, #btnNovoRegistroFooter').click(function() {
                 $('#secaoPesquisa, #secaoTabela, #secaoTabelaBotoes, #mainFooter').hide();
@@ -334,7 +338,12 @@
                 $('#secaoAtivo').hide();
                 $('#cadastroForm')[0].reset();
                 $('#fileNameDisplay').text('');
-                $('#btnVisualizarCnh').hide(); // Esconde o botão quando cria novo registro
+                $('#btnVisualizarCnh').hide();
+                
+                // Preencher data de início com data atual
+                const hoje = new Date();
+                const dataFormatada = hoje.toISOString().split('T')[0];
+                $('#dtInicio').val(dataFormatada);
             });
 
             // Botão Cancelar / Voltar
@@ -448,6 +457,20 @@
                         $('#email').val(motorista.email);
                         $('#obsMotorist').val(motorista.obs_motorista);
                         
+                        // Preencher DT_INICIO
+                        if (motorista.dt_inicio) {
+                            const [dia, mes, ano] = motorista.dt_inicio.split('/');
+                            $('#dtInicio').val(`${ano}-${mes}-${dia}`);
+                        }
+                        
+                        // Preencher DT_FIM
+                        if (motorista.dt_fim) {
+                            const [dia, mes, ano] = motorista.dt_fim.split('/');
+                            $('#dtFim').val(`${ano}-${mes}-${dia}`);
+                        } else {
+                            $('#dtFim').val('');
+                        }
+                        
                         // Checkbox Ativo
                         $('#ativo').prop('checked', motorista.ativo === 'S');
                         
@@ -479,6 +502,22 @@
                 if (dataInput) {
                     const [ano, mes, dia] = dataInput.split('-');
                     formData.set('dt_validade_cnh', `${dia}/${mes}/${ano}`);
+                }
+                
+                // Convert DT_INICIO to DD/MM/YYYY
+                const dtInicioInput = $('#dtInicio').val();
+                if (dtInicioInput) {
+                    const [ano, mes, dia] = dtInicioInput.split('-');
+                    formData.set('dt_inicio', `${dia}/${mes}/${ano}`);
+                }
+                
+                // Convert DT_FIM to DD/MM/YYYY if exists
+                const dtFimInput = $('#dtFim').val();
+                if (dtFimInput) {
+                    const [ano, mes, dia] = dtFimInput.split('-');
+                    formData.set('dt_fim', `${dia}/${mes}/${ano}`);
+                } else {
+                    formData.set('dt_fim', '');
                 }
                 
                 const url = formData.get('id_motorista') 
@@ -555,7 +594,6 @@
         function abrirModalCnh(idMotorista) {
             const modal = document.getElementById('modalCnh');
             const iframe = document.getElementById('iframeCnh');
-            // iframe.src = `/api/motoristas/download_cnh/${idMotorista}`;
             iframe.src = `/api/motoristas/visualizar_cnh/${idMotorista}`;
             modal.style.display = 'block';
             
@@ -591,9 +629,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
