@@ -180,21 +180,18 @@
                                     <option value="Híbrido">Híbrido</option>
                                 </select>                              
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="dtInicio" class="form-label">Início Utiliz. <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="dtInicio" name="dt_inicio" 
-                                       placeholder="DD/MM/AAAA" maxlength="10" required>
+                            <div class="col-md-4 mb-3">
+                                <label for="dtInicio" class="form-label">Início Utilização <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="dtInicio" name="dt_inicio" required>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="dtFim" class="form-label">Fim Utiliz.</label>
-                                <input type="text" class="form-control" id="dtFim" name="dt_fim" 
-                                       placeholder="DD/MM/AAAA" maxlength="10">
-                                <small class="form-text text-muted">Preencher apenas quando o veículo deixar de ser utilizado</small>
+                            <div class="col-md-4 mb-3">
+                                <label for="dtFim" class="form-label">Fim Utilização</label>
+                                <input type="date" class="form-control" id="dtFim" name="dt_fim">
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-8 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label for="obs" class="form-label">Observações</label>
                                 <input type="text" class="form-control" id="obs" name="obs" maxlength="100">
                             </div>
@@ -257,35 +254,41 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
     <script>
         $(document).ready(function() {
-            // Máscaras
-            $('#anoFabmod').mask('0000/0000');
-            $('#nuPlaca').mask('AAA0A00').css('text-transform', 'uppercase');
-            $('#dtInicio').mask('00/00/0000');
-            $('#dtFim').mask('00/00/0000');
-
-            // Função para obter data atual no formato DD/MM/AAAA
+            // Função para obter data atual no formato YYYY-MM-DD
             function obterDataAtual() {
                 const hoje = new Date();
                 const dia = String(hoje.getDate()).padStart(2, '0');
                 const mes = String(hoje.getMonth() + 1).padStart(2, '0');
                 const ano = hoje.getFullYear();
-                return `${dia}/${mes}/${ano}`;
+                return `${ano}-${mes}-${dia}`;
             }
 
-            // Função para converter data do formato YYYY-MM-DD para DD/MM/AAAA
+            // Função para converter data do formato YYYY-MM-DD para DD/MM/AAAA (para envio ao backend)
             function converterDataParaBR(data) {
                 if (!data) return '';
-                
-                // Se já estiver no formato DD/MM/AAAA, retorna como está
-                if (data.includes('/')) return data;
-                
-                // Converte de YYYY-MM-DD para DD/MM/AAAA
                 const partes = data.split('-');
                 if (partes.length === 3) {
                     return `${partes[2]}/${partes[1]}/${partes[0]}`;
                 }
                 return data;
             }
+
+            // Função para converter data do formato DD/MM/AAAA para YYYY-MM-DD (para preencher input date)
+            function converterDataParaISO(data) {
+                if (!data) return '';
+                // Se já estiver no formato YYYY-MM-DD, retorna como está
+                if (data.includes('-') && data.length === 10) return data;
+                // Converte de DD/MM/AAAA para YYYY-MM-DD
+                const partes = data.split('/');
+                if (partes.length === 3) {
+                    return `${partes[2]}-${partes[1]}-${partes[0]}`;
+                }
+                return data;
+            }
+
+            // Máscaras
+            $('#anoFabmod').mask('0000/0000');
+            $('#nuPlaca').mask('AAA0A00').css('text-transform', 'uppercase');
 
             // Carregar categorias de veículos
             function carregarCategorias() {
@@ -407,12 +410,16 @@
                         $('#origemVeiculo').val(veiculo.origem_veiculo);
                         $('#propriedade').val(veiculo.propriedade);
                         
-                        // Combustível
+                        // Verificar se o combustível existe antes de definir
+                        console.log("Valor do combustível recebido:", veiculo.combustivel);
+                        
                         if (veiculo.combustivel) {
+                            // Verificar se a opção existe no select
                             if ($('#combustivel option[value="' + veiculo.combustivel + '"]').length > 0) {
                                 $('#combustivel').val(veiculo.combustivel);
                             } else {
                                 console.warn("Valor de combustível não encontrado nas opções:", veiculo.combustivel);
+                                // Adicionar dinamicamente se não existir
                                 $('#combustivel').append(new Option(veiculo.combustivel, veiculo.combustivel));
                                 $('#combustivel').val(veiculo.combustivel);
                             }
@@ -426,9 +433,9 @@
                         $('#ativo').prop('checked', veiculo.ativo === 'S');
                         $('#flAtendimento').prop('checked', veiculo.fl_atendimento === 'S');
                         
-                        // Datas - converte do formato do banco para DD/MM/AAAA
-                        $('#dtInicio').val(converterDataParaBR(veiculo.dt_inicio));
-                        $('#dtFim').val(converterDataParaBR(veiculo.dt_fim));
+                        // Datas - converte para formato ISO (YYYY-MM-DD) para o input type="date"
+                        $('#dtInicio').val(converterDataParaISO(veiculo.dt_inicio));
+                        $('#dtFim').val(converterDataParaISO(veiculo.dt_fim));
                     })
                     .catch(error => {
                         console.error('Erro ao carregar veículo para edição:', error);
@@ -443,7 +450,7 @@
                 // Validar data de início
                 const dtInicio = $('#dtInicio').val();
                 if (!dtInicio) {
-                    alert('A Data de Início é obrigatória!');
+                    alert('A Data de Início de Utilização é obrigatória!');
                     $('#dtInicio').focus();
                     return;
                 }
@@ -462,10 +469,12 @@
                     obs: $('#obs').val(),
                     ativo: $('#ativo').prop('checked') ? 'S' : 'N',
                     fl_atendimento: $('#flAtendimento').prop('checked') ? 'S' : 'N',
-                    dt_inicio: dtInicio,
-                    dt_fim: $('#dtFim').val() || null,
+                    dt_inicio: converterDataParaBR(dtInicio), // Converte para DD/MM/AAAA
+                    dt_fim: $('#dtFim').val() ? converterDataParaBR($('#dtFim').val()) : null,
                     usuario: 'SISTEMA'
                 };
+                
+                console.log('Dados enviados:', formData); // Debug
                 
                 const url = formData.id_veiculo 
                     ? '/api/veiculos/atualizar' 
@@ -494,7 +503,6 @@
                     alert('Erro ao processar a solicitação.');
                 });
             });
-
         });
 
         // Função de logout corrigida
