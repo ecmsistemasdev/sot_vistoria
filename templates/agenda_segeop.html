@@ -2283,10 +2283,10 @@
                             // ID 9 (Oficina) ou ID 12 (Lava-Jato)
                             if (demanda.id_tipodemanda === 9 || demanda.id_tipodemanda === 12) {
                                 html += `<div><strong>${demanda.de_tipodemanda || (demanda.id_tipodemanda === 9 ? 'Oficina' : 'Lava-Jato')}</strong></div>`;
-                                if (demanda.nm_motorista) {
-                                    html += `<div class="cell-divider"></div>`;
-                                    html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
-                                }
+                                // if (demanda.nm_motorista) {
+                                //     html += `<div class="cell-divider"></div>`;
+                                //     html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                                // }
                                 if (demanda.destino) {
                                     html += `<div>${demanda.destino}</div>`;
                                 }
