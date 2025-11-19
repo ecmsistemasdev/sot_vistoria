@@ -913,10 +913,12 @@ def listar_motoristas():
             query = """
             SELECT 
                 ID_MOTORISTA, CAD_MOTORISTA,
-		CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
+                CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
                 ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
+                DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
+                DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
             FROM TJ_MOTORISTA 
             WHERE ID_MOTORISTA > 0
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
@@ -930,14 +932,16 @@ def listar_motoristas():
                 CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
                 ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA, 
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
+                DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
+                DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
             FROM TJ_MOTORISTA
             WHERE ID_MOTORISTA > 0
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
         
-        columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo']
+        columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo', 'dt_inicio', 'dt_fim']
         motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
         cursor.close()
         return jsonify(motoristas)
@@ -953,7 +957,9 @@ def detalhe_motorista(id_motorista):
         SELECT 
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, ORDEM_LISTA, 
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
-            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO, EMAIL
+            NU_TELEFONE, OBS_MOTORISTA, ATIVO, ORDEM_LISTA, NOME_ARQUIVO, EMAIL,
+            DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
+            DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
         FROM TJ_MOTORISTA 
         WHERE ID_MOTORISTA = %s
         """
@@ -976,7 +982,9 @@ def detalhe_motorista(id_motorista):
                 'ativo': result[10],
                 'tipo_cadastro_desc': result[11],
                 'nome_arquivo': result[12],
-                'email': result[13]
+                'email': result[13],
+                'dt_inicio': result[14],
+                'dt_fim': result[15]
             }
             return jsonify(motorista)
         else:
@@ -992,7 +1000,7 @@ def cadastrar_motorista():
         2: 'Motorista Desembargador',
         3: 'Motorista Atendimento',
         4: 'Cadastro de Condutores',
-	5: 'Tercerizado'    
+        5: 'Tercerizado'    
     }
     try:
         cursor = mysql.connection.cursor()
@@ -1000,6 +1008,7 @@ def cadastrar_motorista():
         # Get last ID and increment
         cursor.execute("SELECT COALESCE(MAX(ID_MOTORISTA), 0) + 1 FROM TJ_MOTORISTA")
         novo_id = cursor.fetchone()[0]
+        
         # Form data
         cad_motorista = request.form.get('cad_motorista')
         nm_motorista = request.form.get('nm_motorista')
@@ -1011,6 +1020,8 @@ def cadastrar_motorista():
         nu_telefone = request.form.get('nu_telefone')
         obs_motorista = request.form.get('obs_motorista', '')
         email = request.form.get('email', '')
+        dt_inicio = request.form.get('dt_inicio')
+        dt_fim = request.form.get('dt_fim', None)
         
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
         
@@ -1021,24 +1032,40 @@ def cadastrar_motorista():
         if file_pdf:
             nome_arquivo = file_pdf.filename
             file_blob = file_pdf.read()
+        
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+        
+        # Convert DT_INICIO from DD/MM/YYYY to YYYY-MM-DD
+        if dt_inicio:
+            dia, mes, ano = dt_inicio.split('/')
+            dt_inicio_db = f"{ano}-{mes}-{dia}"
+        else:
+            dt_inicio_db = None
+        
+        # Convert DT_FIM from DD/MM/YYYY to YYYY-MM-DD if provided
+        dt_fim_db = None
+        if dt_fim:
+            dia, mes, ano = dt_fim.split('/')
+            dt_fim_db = f"{ano}-{mes}-{dia}"
+        
         # Insert query
         query = """
         INSERT INTO TJ_MOTORISTA (
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, 
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
             NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, DT_TRANSACAO, 
-            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s)
+            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL, DT_INICIO, DT_FIM
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         cursor.execute(query, (
             novo_id, cad_motorista, nm_motorista, tipo_cadastro_desc, 
             sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
             nu_telefone, obs_motorista, session.get('usuario_id'), 
-            dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email
+            dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email,
+            dt_inicio_db, dt_fim_db
         ))
         
         mysql.connection.commit()
@@ -1057,10 +1084,11 @@ def atualizar_motorista():
         2: 'Motorista Desembargador',
         3: 'Motorista Atendimento',
         4: 'Cadastro de Condutores',
-	5: 'Tercerizado'
+        5: 'Tercerizado'
     }
     try:
         cursor = mysql.connection.cursor()
+        
         # Form data
         id_motorista = request.form.get('id_motorista')
         cad_motorista = request.form.get('cad_motorista')
@@ -1074,8 +1102,11 @@ def atualizar_motorista():
         obs_motorista = request.form.get('obs_motorista', '')
         email = request.form.get('email', '')
         ativo = 'S' if request.form.get('ativo') == 'on' else 'N'
+        dt_inicio = request.form.get('dt_inicio')
+        dt_fim = request.form.get('dt_fim', None)
         
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
+        
         # File 
         file_pdf = request.files.get('file_pdf')
         nome_arquivo = None
@@ -1085,9 +1116,24 @@ def atualizar_motorista():
         if file_pdf:
             nome_arquivo = file_pdf.filename
             file_blob = file_pdf.read()
+        
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
+        
+        # Convert DT_INICIO from DD/MM/YYYY to YYYY-MM-DD
+        if dt_inicio:
+            dia, mes, ano = dt_inicio.split('/')
+            dt_inicio_db = f"{ano}-{mes}-{dia}"
+        else:
+            dt_inicio_db = None
+        
+        # Convert DT_FIM from DD/MM/YYYY to YYYY-MM-DD if provided
+        dt_fim_db = None
+        if dt_fim:
+            dia, mes, ano = dt_fim.split('/')
+            dt_fim_db = f"{ano}-{mes}-{dia}"
+        
         # Update query 
         if file_pdf:
             # Update with file
@@ -1097,7 +1143,8 @@ def atualizar_motorista():
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
                 ATIVO = %s, USUARIO = %s, 
-                FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s, EMAIL = %s
+                FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s, EMAIL = %s,
+                DT_INICIO = %s, DT_FIM = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1105,7 +1152,8 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                file_blob, nome_arquivo, tipo_cadastro, email, id_motorista
+                file_blob, nome_arquivo, tipo_cadastro, email,
+                dt_inicio_db, dt_fim_db, id_motorista
             ))
         else:
             # Update without changing file
@@ -1114,7 +1162,8 @@ def atualizar_motorista():
             SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
-                ATIVO = %s, USUARIO = %s, ORDEM_LISTA = %s, EMAIL = %s
+                ATIVO = %s, USUARIO = %s, ORDEM_LISTA = %s, EMAIL = %s,
+                DT_INICIO = %s, DT_FIM = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1122,7 +1171,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                tipo_cadastro, email, id_motorista
+                tipo_cadastro, email, dt_inicio_db, dt_fim_db, id_motorista
             ))
         
         mysql.connection.commit()
