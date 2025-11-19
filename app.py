@@ -4042,7 +4042,7 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
-		# 2. Demandas dos Motoristas
+        # 2. Demandas dos Motoristas
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, 
                    CASE 
@@ -4068,7 +4068,7 @@ def buscar_dados_agenda():
                 END,
                 ae.ID_AD ASC
         """, (fim, inicio))
-		
+        
         demandas = []
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
@@ -4116,13 +4116,16 @@ def buscar_dados_agenda():
                 'nc_motorista': r[20] or ''
             })
 
-        # 3. Lista de Veículos PADRÃO
+        # 3. Lista de Veículos PADRÃO (COM VALIDAÇÃO DE PERÍODO)
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
             FROM TJ_VEICULO 
-            WHERE FL_ATENDIMENTO = 'S' AND ATIVO = 'S'
+            WHERE FL_ATENDIMENTO = 'S' 
+              AND ATIVO = 'S'
+              AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
+              AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY DS_MODELO
-        """)
+        """, (fim, inicio))
         veiculos = []
         for r in cursor.fetchall():
             veiculos.append({
@@ -4132,7 +4135,7 @@ def buscar_dados_agenda():
                 'placa': r[2]
             })
 
-        # 4. Veículos EXTRAS
+        # 4. Veículos EXTRAS (COM VALIDAÇÃO DE PERÍODO)
         cursor.execute("""
             SELECT DISTINCT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
             FROM TJ_VEICULO v
@@ -4141,8 +4144,10 @@ def buscar_dados_agenda():
               AND v.ATIVO = 'S'
               AND ad.DT_INICIO <= %s 
               AND ad.DT_FIM >= %s
+              AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+              AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
             ORDER BY v.DS_MODELO, v.NU_PLACA
-        """, (fim, inicio))
+        """, (fim, inicio, fim, inicio))
         
         veiculos_extras = []
         for r in cursor.fetchall():
@@ -4179,7 +4184,8 @@ def buscar_dados_agenda():
         if cursor:
             cursor.close()
 			
-# API: Buscar veículos disponíveis para um período específico
+			
+# API: Buscar veículos disponíveis para um período específico (COM VALIDAÇÃO DE PERÍODO)
 @app.route('/api/agenda/veiculos-disponiveis', methods=['GET'])
 @login_required
 def buscar_veiculos_disponiveis():
@@ -4201,16 +4207,20 @@ def buscar_veiculos_disponiveis():
                     FROM TJ_VEICULO v
                     WHERE v.FL_ATENDIMENTO = 'S' 
                       AND v.ATIVO = 'S'
+                      AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+                      AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                     ORDER BY v.DS_MODELO
-                """)
+                """, (dt_fim, dt_inicio))
             else:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
                     FROM TJ_VEICULO v
                     WHERE v.FL_ATENDIMENTO = 'S' 
                       AND v.ATIVO = 'S'
+                      AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+                      AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                     ORDER BY v.DS_MODELO
-                """)
+                """, (dt_fim, dt_inicio))
         else:
             # Lógica original: verificar se veículo já está alocado SEM horário
             if id_demanda_atual:
@@ -4219,6 +4229,8 @@ def buscar_veiculos_disponiveis():
                     FROM TJ_VEICULO v
                     WHERE v.FL_ATENDIMENTO = 'S' 
                       AND v.ATIVO = 'S'
+                      AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+                      AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                       AND NOT EXISTS (
                           SELECT 1
                           FROM ATENDIMENTO_DEMANDAS ad
@@ -4230,13 +4242,15 @@ def buscar_veiculos_disponiveis():
                             AND (ad.HORARIO IS NULL OR ad.HORARIO = '00:00:00')
                       )
                     ORDER BY v.DS_MODELO
-                """, (id_demanda_atual, dt_fim, dt_inicio))
+                """, (dt_fim, dt_inicio, id_demanda_atual, dt_fim, dt_inicio))
             else:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
                     FROM TJ_VEICULO v
                     WHERE v.FL_ATENDIMENTO = 'S' 
                       AND v.ATIVO = 'S'
+                      AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+                      AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                       AND NOT EXISTS (
                           SELECT 1
                           FROM ATENDIMENTO_DEMANDAS ad
@@ -4247,7 +4261,7 @@ def buscar_veiculos_disponiveis():
                             AND (ad.HORARIO IS NULL OR ad.HORARIO = '00:00:00')
                       )
                     ORDER BY v.DS_MODELO
-                """, (dt_fim, dt_inicio))
+                """, (dt_fim, dt_inicio, dt_fim, dt_inicio))
 
         veiculos = []
         for r in cursor.fetchall():
@@ -4268,6 +4282,7 @@ def buscar_veiculos_disponiveis():
     finally:
         if cursor:
             cursor.close()
+
 
 # API: Criar nova demanda (MODIFICADA)
 @app.route('/api/agenda/demanda', methods=['POST'])
@@ -4681,8 +4696,10 @@ def buscar_veiculos_todos():
                 SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
                 FROM TJ_VEICULO v
                 WHERE v.ATIVO = 'S'
+                  AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+                  AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                 ORDER BY v.DS_MODELO, v.NU_PLACA
-            """)
+            """, (dt_fim, dt_inicio))
         else:
             # Verificar se veículo já está alocado SEM horário
             if id_demanda_atual:
@@ -4690,6 +4707,8 @@ def buscar_veiculos_todos():
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
                     FROM TJ_VEICULO v
                     WHERE v.ATIVO = 'S'
+                      AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+                      AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                       AND NOT EXISTS (
                           SELECT 1
                           FROM ATENDIMENTO_DEMANDAS ad
@@ -4701,12 +4720,14 @@ def buscar_veiculos_todos():
                             AND (ad.HORARIO IS NULL OR ad.HORARIO = '00:00:00')
                       )
                     ORDER BY v.DS_MODELO, v.NU_PLACA
-                """, (id_demanda_atual, dt_fim, dt_inicio))
+                """, (dt_fim, dt_inicio, id_demanda_atual, dt_fim, dt_inicio))
             else:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
                     FROM TJ_VEICULO v
                     WHERE v.ATIVO = 'S'
+                      AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+                      AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                       AND NOT EXISTS (
                           SELECT 1
                           FROM ATENDIMENTO_DEMANDAS ad
@@ -4717,7 +4738,7 @@ def buscar_veiculos_todos():
                             AND (ad.HORARIO IS NULL OR ad.HORARIO = '00:00:00')
                       )
                     ORDER BY v.DS_MODELO, v.NU_PLACA
-                """, (dt_fim, dt_inicio))
+                """, (dt_fim, dt_inicio, dt_fim, dt_inicio))
 
         veiculos = []
         for r in cursor.fetchall():
