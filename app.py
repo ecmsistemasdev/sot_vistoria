@@ -958,8 +958,7 @@ def detalhe_motorista(id_motorista):
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, ORDEM_LISTA, 
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
             NU_TELEFONE, OBS_MOTORISTA, ATIVO, NOME_ARQUIVO, EMAIL,
-            DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
-            DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
+            DT_INICIO, DT_FIM
         FROM TJ_MOTORISTA 
         WHERE ID_MOTORISTA = %s
         """
@@ -968,6 +967,22 @@ def detalhe_motorista(id_motorista):
         cursor.close()
         
         if result:
+            # Formatar datas manualmente em Python
+            dt_inicio_formatada = None
+            dt_fim_formatada = None
+            
+            if result[13]:  # DT_INICIO
+                if isinstance(result[13], str):
+                    dt_inicio_formatada = result[13]
+                else:
+                    dt_inicio_formatada = result[13].strftime('%d/%m/%Y')
+            
+            if result[14]:  # DT_FIM
+                if isinstance(result[14], str):
+                    dt_fim_formatada = result[14]
+                else:
+                    dt_fim_formatada = result[14].strftime('%d/%m/%Y')
+            
             motorista = {
                 'id_motorista': result[0],
                 'cad_motorista': result[1],
@@ -982,8 +997,8 @@ def detalhe_motorista(id_motorista):
                 'ativo': result[10],
                 'nome_arquivo': result[11],
                 'email': result[12],
-                'dt_inicio': result[13],
-                'dt_fim': result[14]
+                'dt_inicio': dt_inicio_formatada,
+                'dt_fim': dt_fim_formatada
             }
             return jsonify(motorista)
         else:
