@@ -3146,64 +3146,64 @@
             veiculoSelecionadoOriginal = null;
         }
         
+        //function preencherSelectMotoristas(tipo = 'segeop') {
+        //    const select = document.getElementById('idMotorista');
+        //    select.innerHTML = '<option value="">Selecione...</option>';
+            
+        //    let motoristasFiltrados = [];
+            
+        //    if (tipo === 'segeop') {
+        //        // Motoristas SEGEOP já filtrados pelo backend no período correto
+        //        motoristasFiltrados = motoristas;
+        //    } else if (tipo === 'outros') {
+        //        // Outros motoristas (não SEGEOP) já filtrados pelo backend
+        //        motoristasFiltrados = outrosMotoristas;
+        //    } else if (tipo === 'todos') {
+        //        // Combinar SEGEOP + Outros (ambos já filtrados pelo período no backend)
+        //        motoristasFiltrados = [...motoristas, ...outrosMotoristas];
+                
+        //        // Remover duplicados (caso existam) e ordenar por nome
+        //        const idsUnicos = new Set();
+        //        motoristasFiltrados = motoristasFiltrados.filter(m => {
+        //            if (idsUnicos.has(m.id)) {
+        //                return false;
+        //            }
+        //            idsUnicos.add(m.id);
+        //            return true;
+        //        }).sort((a, b) => a.nome.localeCompare(b.nome));
+        //    }
+            
+        //    motoristasFiltrados.forEach(m => {
+        //        select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+        //    });
+        //}
+
+
         function preencherSelectMotoristas(tipo = 'segeop') {
             const select = document.getElementById('idMotorista');
             select.innerHTML = '<option value="">Selecione...</option>';
-            
-            let motoristasFiltrados = [];
+         
+            let motoristasFiltrados = motoristas;
             
             if (tipo === 'segeop') {
-                // Motoristas SEGEOP já filtrados pelo backend no período correto
-                motoristasFiltrados = motoristas;
+                // Motoristas SEGEOP (padrão atual)
+                motoristasFiltrados = motoristas.filter(m => 
+                    m.tipo === 'Motorista Atendimento' || m.tipo === 'Tercerizado'
+                );
             } else if (tipo === 'outros') {
-                // Outros motoristas (não SEGEOP) já filtrados pelo backend
-                motoristasFiltrados = outrosMotoristas;
+                // Outros motoristas ativos, exceto SEGEOP
+                motoristasFiltrados = dadosAgenda.todos_motoristas.filter(m => 
+                    m.tipo !== 'Motorista Atendimento' && m.tipo !== 'Tercerizado'
+                );
             } else if (tipo === 'todos') {
-                // Combinar SEGEOP + Outros (ambos já filtrados pelo período no backend)
-                motoristasFiltrados = [...motoristas, ...outrosMotoristas];
-                
-                // Remover duplicados (caso existam) e ordenar por nome
-                const idsUnicos = new Set();
-                motoristasFiltrados = motoristasFiltrados.filter(m => {
-                    if (idsUnicos.has(m.id)) {
-                        return false;
-                    }
-                    idsUnicos.add(m.id);
-                    return true;
-                }).sort((a, b) => a.nome.localeCompare(b.nome));
+                // Todos os motoristas ativos
+                motoristasFiltrados = dadosAgenda.todos_motoristas || motoristas;
             }
             
             motoristasFiltrados.forEach(m => {
                 select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
             });
         }
-
-
-        // function preencherSelectMotoristas(tipo = 'segeop') {
-        //     const select = document.getElementById('idMotorista');
-        //     select.innerHTML = '<option value="">Selecione...</option>';
-            
-        //     let motoristasFiltrados = motoristas;
-            
-        //     if (tipo === 'segeop') {
-        //         // Motoristas SEGEOP (padrão atual)
-        //         motoristasFiltrados = motoristas.filter(m => 
-        //             m.tipo === 'Motorista Atendimento' || m.tipo === 'Tercerizado'
-        //         );
-        //     } else if (tipo === 'outros') {
-        //         // Outros motoristas ativos, exceto SEGEOP
-        //         motoristasFiltrados = dadosAgenda.todos_motoristas.filter(m => 
-        //             m.tipo !== 'Motorista Atendimento' && m.tipo !== 'Tercerizado'
-        //         );
-        //     } else if (tipo === 'todos') {
-        //         // Todos os motoristas ativos
-        //         motoristasFiltrados = dadosAgenda.todos_motoristas || motoristas;
-        //     }
-            
-        //     motoristasFiltrados.forEach(m => {
-        //         select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
-        //     });
-        // }
 
         
         function preencherSelectVeiculos() {
