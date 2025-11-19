@@ -273,17 +273,45 @@
                 return data;
             }
 
-            // Função para converter data do formato DD/MM/AAAA para YYYY-MM-DD (para preencher input date)
+            // Função para converter data do formato DD/MM/AAAA ou qualquer formato para YYYY-MM-DD (para preencher input date)
             function converterDataParaISO(data) {
                 if (!data) return '';
-                // Se já estiver no formato YYYY-MM-DD, retorna como está
-                if (data.includes('-') && data.length === 10) return data;
-                // Converte de DD/MM/AAAA para YYYY-MM-DD
-                const partes = data.split('/');
-                if (partes.length === 3) {
+                
+                // Se for um objeto Date
+                if (data instanceof Date) {
+                    const ano = data.getFullYear();
+                    const mes = String(data.getMonth() + 1).padStart(2, '0');
+                    const dia = String(data.getDate()).padStart(2, '0');
+                    return `${ano}-${mes}-${dia}`;
+                }
+                
+                // Converter para string se não for
+                data = String(data);
+                
+                // Se já estiver no formato YYYY-MM-DD correto
+                if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+                    return data;
+                }
+                
+                // Se estiver no formato DD/MM/AAAA
+                if (/^\d{2}\/\d{2}\/\d{4}$/.test(data)) {
+                    const partes = data.split('/');
                     return `${partes[2]}-${partes[1]}-${partes[0]}`;
                 }
-                return data;
+                
+                // Se vier no formato de timestamp ou data ISO completa (2024-01-15T00:00:00.000Z)
+                if (data.includes('T') || data.includes(' ')) {
+                    const dataObj = new Date(data);
+                    if (!isNaN(dataObj.getTime())) {
+                        const ano = dataObj.getFullYear();
+                        const mes = String(dataObj.getMonth() + 1).padStart(2, '0');
+                        const dia = String(dataObj.getDate()).padStart(2, '0');
+                        return `${ano}-${mes}-${dia}`;
+                    }
+                }
+                
+                console.warn('Formato de data não reconhecido:', data);
+                return '';
             }
 
             // Máscaras
