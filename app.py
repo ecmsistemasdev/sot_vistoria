@@ -1921,6 +1921,129 @@ def obter_proximo_id_item():
     
     ultimo_id = resultado[0] if resultado[0] else 0
     return ultimo_id + 1
+
+#####....#####.....
+
+@app.route('/api/verificar_vinculo_locacao', methods=['GET'])
+@login_required
+def verificar_vinculo_locacao():
+    """
+    Verifica se existe vínculo de locação para o tipo de veículo
+    e retorna os dados necessários
+    """
+    try:
+        id_tipoveiculo = request.args.get('id_tipoveiculo')
+        id_motorista = request.args.get('id_motorista')
+        
+        if not id_tipoveiculo or not id_motorista:
+            return jsonify({'tem_vinculo': False})
+        
+        # Verificar se motorista é válido (> 0)
+        if int(id_motorista) <= 0:
+            return jsonify({'tem_vinculo': False})
+        
+        cursor = mysql.connection.cursor()
+        
+        # SQL 1: Buscar vínculo de locação
+        sql_vinculo = """
+            SELECT ID_VEICULO_LOC, VL_DIARIA_KM 
+            FROM TJ_VEICULO_LOCACAO
+            WHERE ID_TIPOVEICULO = %s
+        """
+        cursor.execute(sql_vinculo, (id_tipoveiculo,))
+        vinculo = cursor.fetchone()
+        
+        if not vinculo:
+            cursor.close()
+            return jsonify({'tem_vinculo': False})
+        
+        id_veiculo_loc = vinculo[0]
+        vl_diaria_km = float(vinculo[1])
+        
+        # SQL 2: Buscar empenhos ativos
+        sql_empenhos = """
+            SELECT ID_EMPENHO, NU_EMPENHO 
+            FROM TJ_CONTROLE_LOCACAO_EMPENHOS
+            WHERE ATIVO = 'S' AND ID_CL = 3
+            ORDER BY NU_EMPENHO
+        """
+        cursor.execute(sql_empenhos)
+        empenhos_raw = cursor.fetchall()
+        
+        empenhos = [
+            {
+                'id': emp[0],
+                'numero': emp[1]
+            }
+            for emp in empenhos_raw
+        ]
+        
+        # Verificar CNH do motorista
+        sql_cnh = """
+            SELECT FILE_PDF 
+            FROM TJ_MOTORISTA 
+            WHERE ID_MOTORISTA = %s
+        """
+        cursor.execute(sql_cnh, (id_motorista,))
+        motorista_cnh = cursor.fetchone()
+        
+        tem_cnh = bool(motorista_cnh and motorista_cnh[0])
+        
+        cursor.close()
+        
+        return jsonify({
+            'tem_vinculo': True,
+            'id_veiculo_loc': id_veiculo_loc,
+            'vl_diaria_km': vl_diaria_km,
+            'empenhos': empenhos,
+            'tem_cnh': tem_cnh,
+            'id_cl': 3  # ID fixo conforme SQL
+        })
+        
+    except Exception as e:
+        print(f"Erro ao verificar vínculo de locação: {str(e)}")
+        return jsonify({'erro': str(e), 'tem_vinculo': False}), 500
+
+@app.route('/api/verificar_locacao_existente', methods=['GET'])
+@login_required
+def verificar_locacao_existente():
+    """
+    Verifica se já existe locação solicitada para uma demanda
+    Baseado no motorista e período da demanda
+    """
+    try:
+        id_motorista = request.args.get('id_motorista')
+        dt_inicio = request.args.get('dt_inicio')
+        dt_fim = request.args.get('dt_fim')
+        
+        if not all([id_motorista, dt_inicio, dt_fim]):
+            return jsonify({'tem_locacao': False})
+        
+        cursor = mysql.connection.cursor()
+        
+        # Verificar se existe locação no período
+        sql = """
+            SELECT COUNT(*) as total
+            FROM TJ_CONTROLE_LOCACAO_ITENS
+            WHERE ID_MOTORISTA = %s
+            AND DT_INICIAL <= %s
+            AND DT_FINAL >= %s
+            AND FL_STATUS = 'T'  -- T = em trânsito
+        """
+        
+        cursor.execute(sql, (id_motorista, dt_fim, dt_inicio))
+        resultado = cursor.fetchone()
+        cursor.close()
+        
+        tem_locacao = resultado[0] > 0 if resultado else False
+        
+        return jsonify({'tem_locacao': tem_locacao})
+        
+    except Exception as e:
+        print(f"Erro ao verificar locação existente: {str(e)}")
+        return jsonify({'erro': str(e), 'tem_locacao': False}), 500
+
+#####....#####.....
     
 @app.route('/api/nova_locacao', methods=['POST'])
 @login_required
@@ -4759,6 +4882,11 @@ def buscar_veiculos_todos():
     finally:
         if cursor:
             cursor.close()
+
+###....###
+
+
+
 
 #######################################
 
