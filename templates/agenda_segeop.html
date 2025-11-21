@@ -970,6 +970,136 @@
             border-top: 5px solid rgba(0, 0, 0, 0.9);
         }   
         */
+
+        /* Estilos adicionais para o formulário de locação */
+        #statusCNH {
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        #statusCNH.tem-cnh {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        #statusCNH.sem-cnh {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .input-group-text {
+            background: #e9ecef;
+            border: 1px solid #ddd;
+            font-weight: 600;
+        }
+
+        /* ========== ESTILOS PARA FORMULÁRIO DE LOCAÇÃO ========== */
+
+        #modalFormLocacao .modal-content {
+            max-width: 700px;
+        }
+
+        #modalFormLocacao .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        #modalFormLocacao .form-group {
+            margin-bottom: 15px;
+        }
+
+        #modalFormLocacao .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+        }
+
+        #modalFormLocacao .required {
+            color: #dc3545;
+        }
+
+        #modalFormLocacao input[type="text"],
+        #modalFormLocacao input[type="date"],
+        #modalFormLocacao input[type="time"],
+        #modalFormLocacao input[type="number"],
+        #modalFormLocacao select,
+        #modalFormLocacao textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        #modalFormLocacao input[readonly],
+        #modalFormLocacao select[readonly] {
+            background: #f8f9fa;
+            cursor: not-allowed;
+        }
+
+        #modalFormLocacao textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        #modalFormLocacao .text-end {
+            text-align: right;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Input group para valores monetários */
+        .input-group {
+            display: flex;
+        }
+
+        .input-group-sm .input-group-text {
+            padding: 6px 10px;
+            font-size: 13px;
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .input-group-sm input {
+            border-left: none;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Botão Solicitar Locação na edição */
+        #btnSolicitarLocacaoEdicao {
+            font-size: 14px;
+            padding: 8px 16px;
+            transition: all 0.3s;
+        }
+
+        #btnSolicitarLocacaoEdicao:hover {
+            background: #218838 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        /* Status de locação solicitada */
+        #areaLocacaoStatus {
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -1252,6 +1382,122 @@
         </div>
     </div>
 
+    <!-- Modal Formulário de Locação -->
+    <div id="modalFormLocacao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Solicitar Locação de Veículo</h2>
+                <span class="close" onclick="fecharModalFormLocacao()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="formSolicitacaoLocacao">
+                    <!-- Campos ocultos -->
+                    <input type="hidden" id="loc_id_cl" value="">
+                    <input type="hidden" id="loc_id_veiculo_loc" value="">
+                    <input type="hidden" id="loc_id_motorista" value="">
+                    <input type="hidden" id="loc_vl_diaria" value="">
+                    
+                    <!-- Status CNH -->
+                    <div class="form-group">
+                        <div id="statusCNH" style="padding: 10px; border-radius: 4px; margin-bottom: 15px; font-weight: 600;">
+                            <!-- Será preenchido via JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Linha 1: Empenho e Setor -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Empenho <span class="required">*</span></label>
+                            <select id="loc_id_empenho" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Setor Solicitante <span class="required">*</span></label>
+                            <input type="text" id="loc_setor" maxlength="35" required readonly style="background: #f8f9fa;">
+                        </div>
+                    </div>
+                    
+                    <!-- Linha 2: Objetivo -->
+                    <div class="form-group">
+                        <label>Objetivo <span class="required">*</span></label>
+                        <input type="text" id="loc_objetivo" maxlength="300" required>
+                    </div>
+                    
+                    <!-- Linha 3: Número SEI -->
+                    <div class="form-group">
+                        <label>Número SEI <span class="required">*</span></label>
+                        <input type="text" id="loc_nu_sei" maxlength="25" required readonly style="background: #f8f9fa;">
+                    </div>
+                    
+                    <!-- Linha 4: Datas -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Início <span class="required">*</span></label>
+                            <input type="date" id="loc_dt_inicio" required readonly style="background: #f8f9fa;">
+                        </div>
+                        <div class="form-group">
+                            <label>Data Fim <span class="required">*</span></label>
+                            <input type="date" id="loc_dt_fim" required readonly style="background: #f8f9fa;">
+                        </div>
+                    </div>
+                    
+                    <!-- Linha 5: Horário e Quantidade de Diárias -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Horário Início</label>
+                            <input type="time" id="loc_horario" readonly style="background: #f8f9fa;">
+                        </div>
+                        <div class="form-group">
+                            <label>Qtd. Diárias <span class="required">*</span></label>
+                            <input type="number" id="loc_qt_diarias" required readonly style="background: #f8f9fa; font-weight: 600;">
+                        </div>
+                    </div>
+                    
+                    <!-- Linha 6: Valores -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Valor Diária</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" id="loc_vl_diaria_display" readonly style="background: #f8f9fa; font-weight: 600;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Valor Total</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <input type="text" id="loc_vl_total" readonly style="background: #f8f9fa; font-weight: 600; color: #1a73e8; font-size: 16px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Linha 7: Observações -->
+                    <div class="form-group">
+                        <label>Observações</label>
+                        <textarea id="loc_obs" maxlength="200" rows="3"></textarea>
+                        <div class="text-end">
+                            <small><span id="loc_charCount">0</span>/200</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload CNH (condicional) -->
+                    <div id="loc_divUploadCNH" style="display: none;">
+                        <div class="form-group">
+                            <label>Anexar CNH do Motorista <span class="required">*</span></label>
+                            <input type="file" id="loc_arquivo_cnh" accept=".pdf" class="form-control">
+                            <small style="color: #dc3545;">É necessário anexar a CNH para prosseguir com a solicitação.</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharModalFormLocacao()">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmarSolicitacaoLocacao()">✓ Confirmar Solicitação</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Tooltip para exibir veÃ­culo -->
     <div id="tooltipVeiculo" class="tooltip-veiculo"></div>
 
@@ -1281,6 +1527,9 @@
         let listaVeiculosExpandida = false;
         let outrosMotoristas = [];
         let tooltipVeiculo = null; // Variável para controlar o tooltip
+        // ========== VARIÁVEIS GLOBAIS PARA LOCAÇÃO ==========
+        let dadosVinculoLocacao = null;
+        let idDemandaParaLocacao = null;
 
         // Funções para controlar o spinner
         function mostrarSpinner() {
@@ -1528,6 +1777,348 @@
 
         });
         
+        ////////////////////////////////////////////////////////////////////
+        //////// LOCAÇÃO DE VEICULOS //////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////
+
+        // ========== FUNÇÃO: Verificar e Perguntar sobre Locação ==========
+        async function verificarESolicitarLocacao(idDemanda, dadosDemanda) {
+            try {
+                // Verificar se tem os dados necessários
+                if (!dadosDemanda.id_tipoveiculo || !dadosDemanda.id_motorista) {
+                    return; // Não faz nada
+                }
+                
+                // Verificar se motorista é cadastrado (> 0)
+                if (parseInt(dadosDemanda.id_motorista) <= 0) {
+                    return; // Não faz nada para motorista não cadastrado
+                }
+                
+                // Chamar API para verificar vínculo
+                const url = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dadosDemanda.id_tipoveiculo}&id_motorista=${dadosDemanda.id_motorista}`;
+                const res = await fetch(url);
+                const resultado = await res.json();
+                
+                if (!resultado.tem_vinculo) {
+                    return; // Não tem vínculo, não faz nada
+                }
+                
+                // Guardar dados do vínculo
+                dadosVinculoLocacao = resultado;
+                idDemandaParaLocacao = idDemanda;
+                
+                // Perguntar ao usuário
+                if (confirm('Esta demanda possui vínculo com locação de veículos.\n\nDeseja solicitar a locação agora?')) {
+                    // Abrir formulário de locação
+                    await abrirFormularioLocacao(dadosDemanda);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao verificar locação:', error);
+            }
+        }
+
+        // ========== FUNÇÃO: Abrir Formulário de Locação ==========
+        async function abrirFormularioLocacao(dadosDemanda) {
+            try {
+                // Preencher campos ocultos
+                document.getElementById('loc_id_cl').value = dadosVinculoLocacao.id_cl;
+                document.getElementById('loc_id_veiculo_loc').value = dadosVinculoLocacao.id_veiculo_loc;
+                document.getElementById('loc_id_motorista').value = dadosDemanda.id_motorista;
+                document.getElementById('loc_vl_diaria').value = dadosVinculoLocacao.vl_diaria_km;
+                
+                // Preencher empenhos
+                const selectEmpenho = document.getElementById('loc_id_empenho');
+                selectEmpenho.innerHTML = '<option value="">Selecione...</option>';
+                
+                dadosVinculoLocacao.empenhos.forEach(emp => {
+                    selectEmpenho.innerHTML += `<option value="${emp.id}">${emp.numero}</option>`;
+                });
+                
+                // Se houver apenas um empenho, selecionar automaticamente
+                if (dadosVinculoLocacao.empenhos.length === 1) {
+                    selectEmpenho.value = dadosVinculoLocacao.empenhos[0].id;
+                }
+                
+                // Preencher campos da demanda
+                document.getElementById('loc_setor').value = dadosDemanda.setor || '';
+                document.getElementById('loc_objetivo').value = dadosDemanda.destino || ''; // Objetivo baseado em destino
+                document.getElementById('loc_nu_sei').value = dadosDemanda.nu_sei || '';
+                document.getElementById('loc_dt_inicio').value = dadosDemanda.dt_inicio;
+                document.getElementById('loc_dt_fim').value = dadosDemanda.dt_fim;
+                document.getElementById('loc_horario').value = dadosDemanda.horario || '';
+                
+                // Calcular diárias
+                calcularDiariasLocacao();
+                
+                // Exibir status da CNH
+                const statusCNH = document.getElementById('statusCNH');
+                const divUploadCNH = document.getElementById('loc_divUploadCNH');
+                
+                if (dadosVinculoLocacao.tem_cnh) {
+                    statusCNH.className = 'tem-cnh';
+                    statusCNH.innerHTML = '✓ CNH anexada';
+                    divUploadCNH.style.display = 'none';
+                } else {
+                    statusCNH.className = 'sem-cnh';
+                    statusCNH.innerHTML = '⚠ CNH não anexada - É necessário anexar';
+                    divUploadCNH.style.display = 'block';
+                }
+                
+                // Contador de caracteres para observações
+                document.getElementById('loc_obs').addEventListener('input', function() {
+                    document.getElementById('loc_charCount').textContent = this.value.length;
+                });
+                
+                // Abrir modal
+                document.getElementById('modalFormLocacao').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Erro ao abrir formulário de locação:', error);
+                alert('Erro ao abrir formulário de locação!');
+            }
+        }
+
+        // ========== FUNÇÃO: Calcular Diárias e Valores ==========
+        function calcularDiariasLocacao() {
+            const dtInicio = document.getElementById('loc_dt_inicio').value;
+            const dtFim = document.getElementById('loc_dt_fim').value;
+            const vlDiaria = parseFloat(document.getElementById('loc_vl_diaria').value);
+            
+            if (!dtInicio || !dtFim || !vlDiaria) return;
+            
+            const dataInicio = new Date(dtInicio + 'T00:00:00');
+            const dataFim = new Date(dtFim + 'T00:00:00');
+            
+            // Calcular quantidade de diárias
+            let qtDiarias = 1; // Padrão
+            
+            if (dtInicio === dtFim) {
+                qtDiarias = 1; // Mesmo dia = 1 diária
+            } else {
+                const diffTime = dataFim.getTime() - dataInicio.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                qtDiarias = diffDays > 0 ? diffDays : 1;
+            }
+            
+            // Calcular valores
+            const vlSubTotal = qtDiarias * vlDiaria;
+            const vlTotal = vlSubTotal; // Por enquanto sem diferenças
+            
+            // Preencher campos
+            document.getElementById('loc_qt_diarias').value = qtDiarias;
+            document.getElementById('loc_vl_diaria_display').value = vlDiaria.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('loc_vl_total').value = vlTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
+        // ========== FUNÇÃO: Fechar Modal de Locação ==========
+        function fecharModalFormLocacao() {
+            document.getElementById('modalFormLocacao').style.display = 'none';
+            document.getElementById('formSolicitacaoLocacao').reset();
+            dadosVinculoLocacao = null;
+            idDemandaParaLocacao = null;
+        }
+
+        // ========== FUNÇÃO: Confirmar Solicitação de Locação ==========
+        async function confirmarSolicitacaoLocacao() {
+            try {
+                // Validar campos obrigatórios
+                const idEmpenho = document.getElementById('loc_id_empenho').value;
+                const objetivo = document.getElementById('loc_objetivo').value.trim();
+                
+                if (!idEmpenho) {
+                    alert('Selecione um empenho!');
+                    return;
+                }
+                
+                if (!objetivo) {
+                    alert('Preencha o objetivo da locação!');
+                    return;
+                }
+                
+                // Se não tem CNH, verificar se arquivo foi anexado
+                if (!dadosVinculoLocacao.tem_cnh) {
+                    const arquivoCNH = document.getElementById('loc_arquivo_cnh').files[0];
+                    if (!arquivoCNH) {
+                        alert('É necessário anexar a CNH do motorista para prosseguir!');
+                        return;
+                    }
+                    
+                    // Validar se é PDF
+                    if (arquivoCNH.type !== 'application/pdf') {
+                        alert('O arquivo deve ser um PDF!');
+                        return;
+                    }
+                }
+                
+                // Preparar dados para envio
+                const formData = new FormData();
+                
+                // Dados principais
+                formData.append('id_cl', document.getElementById('loc_id_cl').value);
+                formData.append('empenho', idEmpenho);
+                formData.append('setor_solicitante', document.getElementById('loc_setor').value);
+                formData.append('objetivo', objetivo);
+                formData.append('id_veiculo_loc', document.getElementById('loc_id_veiculo_loc').value);
+                formData.append('id_motorista', document.getElementById('loc_id_motorista').value);
+                formData.append('data_inicio', document.getElementById('loc_dt_inicio').value);
+                formData.append('data_fim', document.getElementById('loc_dt_fim').value);
+                formData.append('hora_inicio', document.getElementById('loc_horario').value || '07:00');
+                formData.append('qt_diaria_km', document.getElementById('loc_qt_diarias').value);
+                
+                // Valores
+                const vlDiaria = document.getElementById('loc_vl_diaria').value;
+                const vlTotal = document.getElementById('loc_vl_total').value.replace(/\./g, '').replace(',', '.');
+                
+                formData.append('vl_dk', vlDiaria);
+                formData.append('vl_totalitem', vlTotal);
+                formData.append('nu_sei', document.getElementById('loc_nu_sei').value);
+                formData.append('obs', document.getElementById('loc_obs').value);
+                
+                // Anexar CNH se necessário
+                if (!dadosVinculoLocacao.tem_cnh) {
+                    const arquivoCNH = document.getElementById('loc_arquivo_cnh').files[0];
+                    formData.append('file_cnh', arquivoCNH);
+                }
+                
+                // Mostrar spinner de carregamento
+                mostrarSpinner();
+                
+                // Enviar para API
+                const response = await fetch('/api/nova_locacao', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const resultado = await response.json();
+                
+                esconderSpinner();
+                
+                if (response.ok && resultado) {
+                    // Sucesso
+                    let mensagem = 'Locação solicitada com sucesso!';
+                    
+                    if (resultado.email_enviado) {
+                        mensagem += '\n\nE-mail de notificação enviado.';
+                    } else if (resultado.erro_email) {
+                        mensagem += '\n\nA locação foi registrada, mas houve erro ao enviar e-mail.';
+                    }
+                    
+                    alert(mensagem);
+                    
+                    // Fechar modal
+                    fecharModalFormLocacao();
+                    
+                    // Recarregar agenda
+                    await carregarAgenda();
+                    
+                } else {
+                    // Erro
+                    const mensagemErro = resultado.mensagem || resultado.erro || 'Erro ao solicitar locação';
+                    alert('Erro: ' + mensagemErro);
+                }
+                
+            } catch (error) {
+                esconderSpinner();
+                console.error('Erro ao confirmar solicitação:', error);
+                alert('Erro ao solicitar locação: ' + error.message);
+            }
+        }
+
+        // ========== FUNÇÃO: Fechar modal ao clicar fora ==========
+        window.addEventListener('click', function(event) {
+            const modalFormLocacao = document.getElementById('modalFormLocacao');
+            if (event.target === modalFormLocacao) {
+                fecharModalFormLocacao();
+            }
+        });
+
+        // ========== FUNÇÃO: Verificar e Exibir Botão de Locação na Edição ==========
+        async function verificarBotaoLocacaoEdicao(idAd) {
+            try {
+                const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
+                if (!demanda) return;
+                
+                // Verificar condições básicas
+                if (!demanda.id_tipoveiculo || !demanda.id_motorista || parseInt(demanda.id_motorista) <= 0) {
+                    return; // Não mostra botão
+                }
+                
+                // Verificar se tem vínculo
+                const urlVinculo = `/api/verificar_vinculo_locacao?id_tipoveiculo=${demanda.id_tipoveiculo}&id_motorista=${demanda.id_motorista}`;
+                const resVinculo = await fetch(urlVinculo);
+                const resultVinculo = await resVinculo.json();
+                
+                if (!resultVinculo.tem_vinculo) {
+                    return; // Não tem vínculo
+                }
+                
+                // Verificar se já existe locação
+                const urlLocacao = `/api/verificar_locacao_existente?id_motorista=${demanda.id_motorista}&dt_inicio=${demanda.dt_inicio}&dt_fim=${demanda.dt_fim}`;
+                const resLocacao = await fetch(urlLocacao);
+                const resultLocacao = await resLocacao.json();
+                
+                // Criar elemento para status/botão
+                const modalFooter = document.querySelector('#modal .modal-footer');
+                
+                // Remover elementos anteriores se existirem
+                const elementoExistente = document.getElementById('areaLocacaoStatus');
+                if (elementoExistente) {
+                    elementoExistente.remove();
+                }
+                
+                // Criar novo elemento
+                const divStatus = document.createElement('div');
+                divStatus.id = 'areaLocacaoStatus';
+                divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
+                
+                if (resultLocacao.tem_locacao) {
+                    // JÁ TEM LOCAÇÃO - Mostrar status
+                    divStatus.innerHTML = `
+                        <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
+                            ✓ Locação solicitada
+                        </div>
+                    `;
+                } else {
+                    // NÃO TEM LOCAÇÃO - Mostrar botão
+                    divStatus.innerHTML = `
+                        <button type="button" class="btn btn-primary" id="btnSolicitarLocacaoEdicao" style="background: #28a745; border-color: #28a745;">
+                            🚗 Solicitar Locação
+                        </button>
+                    `;
+                    
+                    // Adicionar event listener ao botão
+                    setTimeout(() => {
+                        const btnSolicitar = document.getElementById('btnSolicitarLocacaoEdicao');
+                        if (btnSolicitar) {
+                            btnSolicitar.addEventListener('click', async function() {
+                                // Guardar dados do vínculo
+                                dadosVinculoLocacao = resultVinculo;
+                                idDemandaParaLocacao = idAd;
+                                
+                                // Abrir formulário
+                                await abrirFormularioLocacao(demanda);
+                            });
+                        }
+                    }, 100);
+                }
+                
+                // Inserir antes dos botões de ação
+                const btnCancelar = modalFooter.querySelector('.btn-secondary');
+                if (btnCancelar) {
+                    modalFooter.insertBefore(divStatus, btnCancelar);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao verificar botão de locação:', error);
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////////
+        ///////// FIM LOCAÇÕES DE VEÍCULOS ////////////////////////////////
+        ///////////////////////////////////////////////////////////////////
+
+
         async function init() {
             await carregarSemanas();
             await carregarSelectsFixos();
@@ -3132,8 +3723,10 @@
                     esconderSpinner();
                 }
                 
-                document.getElementById('modal').style.display = 'block';
+                await verificarBotaoLocacaoEdicao(idAd);
                 
+                document.getElementById('modal').style.display = 'block';
+
             } catch (error) {
                 console.error('Erro ao abrir modal de edição:', error);
                 esconderSpinner();
@@ -3141,9 +3734,18 @@
             }
         }
 
+        // ========== MODIFICAR FUNÇÃO EXISTENTE: fecharModal ==========
         function fecharModal() {
             document.getElementById('modal').style.display = 'none';
             veiculoSelecionadoOriginal = null;
+            
+            // ====== ADICIONAR ESTAS LINHAS ======
+            // Limpar área de status/botão de locação
+            const elementoLocacao = document.getElementById('areaLocacaoStatus');
+            if (elementoLocacao) {
+                elementoLocacao.remove();
+            }
+            // ====== FIM DAS LINHAS ADICIONADAS ======
         }
         
         //function preencherSelectMotoristas(tipo = 'segeop') {
@@ -3256,6 +3858,7 @@
             }
         }
 
+        // ========== MODIFICAR FUNÇÃO EXISTENTE: salvarDemanda ==========
         async function salvarDemanda() {
             const idAd = document.getElementById('idAd').value;
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
@@ -3302,7 +3905,7 @@
             
             const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
             
-            // Validação de Motorista: obrigatório exceto para ID 9, 10 e IDs tipo veículo 7, 8, 9
+            // Validação de Motorista: obrigatório exceto para ID 9, 10, 12 e IDs tipo veículo 7, 8, 9
             const dispensaMotorista = idTipoDemanda === 9 || idTipoDemanda === 10 || idTipoDemanda === 12 ||
                                     idTipoVeiculo === 7 || idTipoVeiculo === 8 || idTipoVeiculo === 9;
             
@@ -3323,21 +3926,19 @@
                 return;
             }
             
-            // // Validação para ID 1 ou 2: Setor e Solicitante obrigatórios
-            // if ((idTipoDemanda === 1 || idTipoDemanda === 2) && (!dados.setor || !dados.solicitante)) {
-            //     alert('Para este tipo de demanda, Setor e Solicitante são obrigatórios!');
-            //     return;
-            // }
-            
             try {
                 let res;
+                let demandaIdRetornado = null;
+                
                 if (idAd) {
+                    // EDIÇÃO - não verifica locação
                     res = await fetch(`/api/agenda/demanda/${idAd}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(dados)
                     });
                 } else {
+                    // NOVA DEMANDA
                     res = await fetch('/api/agenda/demanda', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -3348,9 +3949,24 @@
                 const result = await res.json();
                 
                 if (result.success || result.id) {
+                    demandaIdRetornado = result.id || idAd;
+                    
+                    // Fechar modal da demanda
                     fecharModal();
+                    
+                    // Recarregar semanas e agenda
                     await carregarSemanas();
                     await carregarAgenda();
+                    
+                    // ====== NOVA LÓGICA: VERIFICAR LOCAÇÃO APENAS PARA NOVAS DEMANDAS ======
+                    if (!idAd && demandaIdRetornado) {
+                        // Aguardar um momento para garantir que a demanda foi salva
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        // Verificar e solicitar locação
+                        await verificarESolicitarLocacao(demandaIdRetornado, dados);
+                    }
+                    
                 } else {
                     alert('Erro ao salvar: ' + (result.error || 'Erro desconhecido'));
                 }
