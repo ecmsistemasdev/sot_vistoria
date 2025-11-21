@@ -2345,7 +2345,8 @@ Seção de Gestão Operacional do Transporte
 
         msg = Message(
             subject=assunto,
-            recipients=["atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br", "Carmem@rovemalocadora.com.br"],
+            #recipients=["atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br", "Carmem@rovemalocadora.com.br"],
+            recipients=["naicm12@gmail.com", "ecmsistemasdeveloper@gmail.com"],
             html=corpo_html,  # Versão HTML
             body=corpo_texto,  # Versão texto (fallback)
             sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
