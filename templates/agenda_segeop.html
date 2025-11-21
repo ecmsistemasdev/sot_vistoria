@@ -1100,6 +1100,37 @@
             }
         }
 
+        /* Animação para o modal de confirmação */
+        #modalConfirmacaoLocacao .modal-content {
+            animation: bounceIn 0.5s;
+        }
+        
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        #modalConfirmacaoLocacao .btn {
+            transition: all 0.3s;
+        }
+        
+        #modalConfirmacaoLocacao .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
     </style>
 </head>
 <body>
@@ -1430,6 +1461,12 @@
                         <input type="text" id="loc_nu_sei" maxlength="25" required readonly style="background: #f8f9fa;">
                     </div>
                     
+                    <!-- Linha 3.5: Nome do Motorista - NOVO -->
+                    <div class="form-group">
+                        <label>Motorista</label>
+                        <input type="text" id="loc_nome_motorista" readonly style="background: #f8f9fa; font-weight: 600; color: #1a73e8;">
+                    </div>
+                    
                     <!-- Linha 4: Datas -->
                     <div class="form-row">
                         <div class="form-group">
@@ -1442,11 +1479,11 @@
                         </div>
                     </div>
                     
-                    <!-- Linha 5: Horário e Quantidade de Diárias -->
+                    <!-- Linha 5: Horário e Quantidade de Diárias - CORRIGIDO -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Horário Início</label>
-                            <input type="time" id="loc_horario" readonly style="background: #f8f9fa;">
+                            <label>Horário Início <span class="required">*</span></label>
+                            <input type="time" id="loc_horario" required>
                         </div>
                         <div class="form-group">
                             <label>Qtd. Diárias <span class="required">*</span></label>
@@ -1498,6 +1535,32 @@
         </div>
     </div>
 
+    <!-- Modal de Confirmação Personalizado -->
+    <div id="modalConfirmacaoLocacao" class="modal" style="z-index: 10000;">
+        <div class="modal-content" style="max-width: 450px; animation: slideDown 0.3s;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h2 style="font-size: 18px; margin: 0;">🚗 Solicitação de Locação</h2>
+            </div>
+            <div class="modal-body" style="padding: 30px 20px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 15px;">🚙</div>
+                <p style="font-size: 16px; color: #333; line-height: 1.6; margin-bottom: 20px;">
+                    Esta demanda possui <strong>vínculo com locação de veículos</strong>.
+                </p>
+                <p style="font-size: 15px; color: #666; margin-bottom: 0;">
+                    Deseja solicitar a locação agora?
+                </p>
+            </div>
+            <div class="modal-footer" style="justify-content: center; gap: 15px; padding: 15px 20px;">
+                <button class="btn btn-secondary" onclick="fecharModalConfirmacaoLocacao(false)" style="min-width: 100px;">
+                    Não
+                </button>
+                <button class="btn btn-primary" onclick="fecharModalConfirmacaoLocacao(true)" style="min-width: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                    Sim, solicitar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Tooltip para exibir veÃ­culo -->
     <div id="tooltipVeiculo" class="tooltip-veiculo"></div>
 
@@ -1530,6 +1593,7 @@
         // ========== VARIÁVEIS GLOBAIS PARA LOCAÇÃO ==========
         let dadosVinculoLocacao = null;
         let idDemandaParaLocacao = null;
+        let callbackConfirmacaoLocacao = null;
 
         // Funções para controlar o spinner
         function mostrarSpinner() {
@@ -1781,7 +1845,7 @@
         //////// LOCAÇÃO DE VEICULOS //////////////////////////////////////
         ///////////////////////////////////////////////////////////////////
 
-        // ========== FUNÇÃO: Verificar e Perguntar sobre Locação ==========
+        // ========== MODIFICAR FUNÇÃO: verificarESolicitarLocacao ==========
         async function verificarESolicitarLocacao(idDemanda, dadosDemanda) {
             try {
                 // Verificar se tem os dados necessários
@@ -1807,18 +1871,22 @@
                 dadosVinculoLocacao = resultado;
                 idDemandaParaLocacao = idDemanda;
                 
-                // Perguntar ao usuário
-                if (confirm('Esta demanda possui vínculo com locação de veículos.\n\nDeseja solicitar a locação agora?')) {
-                    // Abrir formulário de locação
-                    await abrirFormularioLocacao(dadosDemanda);
-                }
+                // ====== USAR MODAL PERSONALIZADO ======
+                mostrarModalConfirmacaoLocacao(async function(resposta) {
+                    if (resposta) {
+                        // Usuário clicou em "Sim, solicitar"
+                        await abrirFormularioLocacao(dadosDemanda);
+                    }
+                    // Se clicar em "Não", não faz nada
+                });
+                // ====== FIM DO USO DO MODAL ======
                 
             } catch (error) {
                 console.error('Erro ao verificar locação:', error);
             }
         }
 
-        // ========== FUNÇÃO: Abrir Formulário de Locação ==========
+        // ========== MODIFICAR FUNÇÃO: abrirFormularioLocacao ==========
         async function abrirFormularioLocacao(dadosDemanda) {
             try {
                 // Preencher campos ocultos
@@ -1840,13 +1908,44 @@
                     selectEmpenho.value = dadosVinculoLocacao.empenhos[0].id;
                 }
                 
+                // ====== BUSCAR NOME DO MOTORISTA ======
+                let nomeMotorista = 'Não identificado';
+                
+                // Procurar em motoristas SEGEOP
+                let motoristaEncontrado = motoristas.find(m => m.id == dadosDemanda.id_motorista);
+                
+                // Se não encontrou, procurar em outros motoristas
+                if (!motoristaEncontrado && outrosMotoristas) {
+                    motoristaEncontrado = outrosMotoristas.find(m => m.id == dadosDemanda.id_motorista);
+                }
+                
+                // Se não encontrou, procurar em todos_motoristas
+                if (!motoristaEncontrado && dadosAgenda.todos_motoristas) {
+                    motoristaEncontrado = dadosAgenda.todos_motoristas.find(m => m.id == dadosDemanda.id_motorista);
+                }
+                
+                // Se encontrou, usar o nome
+                if (motoristaEncontrado) {
+                    nomeMotorista = motoristaEncontrado.nome;
+                } else if (dadosDemanda.nm_motorista) {
+                    // Se veio da demanda carregada
+                    nomeMotorista = dadosDemanda.nm_motorista;
+                }
+                
+                document.getElementById('loc_nome_motorista').value = nomeMotorista;
+                // ====== FIM DA BUSCA DO NOME ======
+                
                 // Preencher campos da demanda
                 document.getElementById('loc_setor').value = dadosDemanda.setor || '';
                 document.getElementById('loc_objetivo').value = dadosDemanda.destino || ''; // Objetivo baseado em destino
                 document.getElementById('loc_nu_sei').value = dadosDemanda.nu_sei || '';
                 document.getElementById('loc_dt_inicio').value = dadosDemanda.dt_inicio;
                 document.getElementById('loc_dt_fim').value = dadosDemanda.dt_fim;
-                document.getElementById('loc_horario').value = dadosDemanda.horario || '';
+                
+                // ====== PREENCHER HORÁRIO - CORRIGIDO ======
+                let horarioInicial = dadosDemanda.horario || '07:00';
+                document.getElementById('loc_horario').value = horarioInicial;
+                // ====== FIM CORREÇÃO HORÁRIO ======
                 
                 // Calcular diárias
                 calcularDiariasLocacao();
@@ -2036,6 +2135,44 @@
         // ========== FUNÇÃO: Verificar e Exibir Botão de Locação na Edição ==========
         async function verificarBotaoLocacaoEdicao(idAd) {
             try {
+                // Validar campos obrigatórios
+                const idEmpenho = document.getElementById('loc_id_empenho').value;
+                const objetivo = document.getElementById('loc_objetivo').value.trim();
+                const horario = document.getElementById('loc_horario').value; // ====== NOVO ======
+                
+                if (!idEmpenho) {
+                    alert('Selecione um empenho!');
+                    return;
+                }
+                
+                if (!objetivo) {
+                    alert('Preencha o objetivo da locação!');
+                    return;
+                }
+                
+                // ====== VALIDAR HORÁRIO OBRIGATÓRIO ======
+                if (!horario) {
+                    alert('Informe o horário de início da locação!');
+                    document.getElementById('loc_horario').focus();
+                    return;
+                }
+                // ====== FIM VALIDAÇÃO HORÁRIO ======
+                
+                // Se não tem CNH, verificar se arquivo foi anexado
+                if (!dadosVinculoLocacao.tem_cnh) {
+                    const arquivoCNH = document.getElementById('loc_arquivo_cnh').files[0];
+                    if (!arquivoCNH) {
+                        alert('É necessário anexar a CNH do motorista para prosseguir!');
+                        return;
+                    }
+                    
+                    // Validar se é PDF
+                    if (arquivoCNH.type !== 'application/pdf') {
+                        alert('O arquivo deve ser um PDF!');
+                        return;
+                    }
+                }
+
                 const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
                 if (!demanda) return;
                 
@@ -2113,6 +2250,30 @@
                 console.error('Erro ao verificar botão de locação:', error);
             }
         }
+
+        // ========== FUNÇÃO: Mostrar Modal de Confirmação Personalizado ==========
+        function mostrarModalConfirmacaoLocacao(callback) {
+            callbackConfirmacaoLocacao = callback;
+            document.getElementById('modalConfirmacaoLocacao').style.display = 'block';
+        }
+
+        // ========== FUNÇÃO: Fechar Modal de Confirmação ==========
+        function fecharModalConfirmacaoLocacao(resposta) {
+            document.getElementById('modalConfirmacaoLocacao').style.display = 'none';
+            
+            if (callbackConfirmacaoLocacao) {
+                callbackConfirmacaoLocacao(resposta);
+                callbackConfirmacaoLocacao = null;
+            }
+        }
+
+        // Fechar modal ao clicar fora
+        window.addEventListener('click', function(event) {
+            const modalConfirmacao = document.getElementById('modalConfirmacaoLocacao');
+            if (event.target === modalConfirmacao) {
+                fecharModalConfirmacaoLocacao(false);
+            }
+        });
 
         ///////////////////////////////////////////////////////////////////
         ///////// FIM LOCAÇÕES DE VEÍCULOS ////////////////////////////////
