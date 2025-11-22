@@ -4304,7 +4304,7 @@
             
             async function excluirDemanda() {
                 const idAd = document.getElementById('idAd').value;
-                console.log('=== INÍCIO EXCLUSÃO ===');
+                console.log('=== INÃCIO EXCLUSÃƒO ===');
                 console.log('ID da demanda:', idAd);
                 
                 if (!idAd) {
@@ -4312,23 +4312,23 @@
                     return;
                 }
                 
-                // Usar modal de confirmação padrão
-                console.log('Abrindo modal de confirmação 1');
+                // Usar modal de confirmaÃ§Ã£o padrÃ£o
+                console.log('Abrindo modal de confirmaÃ§Ã£o 1');
                 mostrarConfirmacao(
                     'Deseja realmente excluir esta demanda?',
                     async function(confirmado) {
                         console.log('Callback 1 executado. Confirmado:', confirmado);
                         
                         if (!confirmado) {
-                            console.log('Usuário cancelou na primeira confirmação');
+                            console.log('UsuÃ¡rio cancelou na primeira confirmaÃ§Ã£o');
                             return;
                         }
                         
                         try {
-                            console.log('Iniciando processo de exclusão...');
+                            console.log('Iniciando processo de exclusÃ£o...');
                             mostrarSpinner();
                             
-                            // Converter para número para comparação correta
+                            // Converter para nÃºmero para comparaÃ§Ã£o correta
                             const idAdNumero = parseInt(idAd);
                             console.log('ID convertido:', idAdNumero);
                             
@@ -4337,15 +4337,15 @@
                             
                             if (!demanda) {
                                 esconderSpinner();
-                                mostrarAlerta('Demanda não encontrada!', '❌ Erro', '#dc3545');
-                                console.error('ID buscado:', idAdNumero, 'IDs disponíveis:', dadosAgenda.demandas.map(d => d.id));
+                                mostrarAlerta('Demanda nÃ£o encontrada!', 'âŒ Erro', '#dc3545');
+                                console.error('ID buscado:', idAdNumero, 'IDs disponÃ­veis:', dadosAgenda.demandas.map(d => d.id));
                                 return;
                             }
                             
-                            // ====== VERIFICAR SE EXISTE LOCAÇÃO VINCULADA ======
-                            console.log('Verificando locação vinculada...');
+                            // ====== VERIFICAR SE EXISTE LOCAÃ‡ÃƒO VINCULADA ======
+                            console.log('Verificando locaÃ§Ã£o vinculada...');
                             console.log('ID motorista da demanda:', demanda.id_motorista);
-                            console.log('Locações ativas:', locacoesAtivas);
+                            console.log('LocaÃ§Ãµes ativas:', locacoesAtivas);
                             
                             if (demanda.id_motorista && parseInt(demanda.id_motorista) > 0) {
                                 const locacaoVinculada = locacoesAtivas.find(loc => 
@@ -4354,42 +4354,46 @@
                                     loc.data_fim >= demanda.dt_inicio
                                 );
                                 
-                                console.log('Locação vinculada encontrada:', locacaoVinculada);
+                                console.log('LocaÃ§Ã£o vinculada encontrada:', locacaoVinculada);
                                 
                                 if (locacaoVinculada) {
-                                    // Fechar spinner antes de mostrar segunda confirmação
+                                    // Fechar spinner antes de mostrar segunda confirmaÃ§Ã£o
                                     esconderSpinner();
-                                    console.log('Abrindo modal de confirmação 2 (locação)');
+                                    console.log('Abrindo modal de confirmaÃ§Ã£o 2 (locaÃ§Ã£o)');
                                     
-                                    // Confirmar exclusão da locação também
+                                    // Aguardar um momento para garantir que o modal anterior foi fechado
+                                    await new Promise(resolve => setTimeout(resolve, 300));
+                                    
+                                    // Confirmar exclusÃ£o da locaÃ§Ã£o tambÃ©m
                                     mostrarConfirmacao(
-                                        'Esta demanda possui uma locação vinculada.<br><br>A locação também será excluída. Deseja continuar?',
+                                        'Esta demanda possui uma locaÃ§Ã£o vinculada.<br><br>A locaÃ§Ã£o tambÃ©m serÃ¡ excluÃ­da. Deseja continuar?',
                                         async function(confirmarLocacao) {
                                             console.log('Callback 2 executado. Confirmado:', confirmarLocacao);
                                             
                                             if (!confirmarLocacao) {
-                                                console.log('Usuário cancelou na segunda confirmação');
+                                                console.log('UsuÃ¡rio cancelou na segunda confirmaÃ§Ã£o');
                                                 return;
                                             }
                                             
-                                            console.log('Usuário confirmou exclusão de locação');
+                                            console.log('UsuÃ¡rio confirmou exclusÃ£o de locaÃ§Ã£o');
                                             mostrarSpinner();
                                             
                                             try {
-                                                console.log('Excluindo locação ID:', locacaoVinculada.id_item);
+                                                console.log('Excluindo locaÃ§Ã£o ID:', locacaoVinculada.id_item);
                                                 
-                                                // Excluir a locação ANTES de excluir a demanda
+                                                // Excluir a locaÃ§Ã£o ANTES de excluir a demanda
                                                 const resLocacao = await fetch(`/api/excluir_locacao/${locacaoVinculada.id_item}`, {
                                                     method: 'DELETE'
                                                 });
                                                 
-                                                console.log('Resposta exclusão locação:', resLocacao.ok);
+                                                console.log('Resposta exclusÃ£o locaÃ§Ã£o:', resLocacao.ok);
                                                 
                                                 if (!resLocacao.ok) {
-                                                    throw new Error('Erro ao excluir locação vinculada');
+                                                    const errorData = await resLocacao.json();
+                                                    throw new Error(errorData.erro || 'Erro ao excluir locaÃ§Ã£o vinculada');
                                                 }
                                                 
-                                                console.log('Locação excluída com sucesso');
+                                                console.log('LocaÃ§Ã£o excluÃ­da com sucesso');
                                                 console.log('Agora excluindo demanda...');
                                                 
                                                 // Agora excluir a demanda
@@ -4398,7 +4402,7 @@
                                                 });
                                                 
                                                 const result = await res.json();
-                                                console.log('Resultado exclusão demanda:', result);
+                                                console.log('Resultado exclusÃ£o demanda:', result);
                                                 
                                                 esconderSpinner();
                                                 
@@ -4412,35 +4416,35 @@
                                                     await carregarAgenda();
                                                     
                                                     // Mostrar mensagem de sucesso
-                                                    mostrarAlerta('Demanda e locação vinculada excluídas com sucesso!', '✅ Sucesso', '#28a745');
+                                                    mostrarAlerta('Demanda e locaÃ§Ã£o vinculada excluÃ­das com sucesso!', 'âœ… Sucesso', '#28a745');
                                                 } else {
                                                     console.log('Erro ao excluir demanda:', result.error);
-                                                    mostrarAlerta('Erro ao excluir demanda: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                                    mostrarAlerta('Erro ao excluir demanda: ' + (result.error || 'Erro desconhecido'), 'âŒ Erro', '#dc3545');
                                                 }
                                                 
                                             } catch (errorLocacao) {
                                                 esconderSpinner();
-                                                console.error('Erro catch ao excluir locação:', errorLocacao);
-                                                mostrarAlerta('Erro ao excluir locação vinculada: ' + errorLocacao.message, '❌ Erro', '#dc3545');
+                                                console.error('Erro catch ao excluir locaÃ§Ã£o:', errorLocacao);
+                                                mostrarAlerta('Erro ao excluir locaÃ§Ã£o vinculada: ' + errorLocacao.message, 'âŒ Erro', '#dc3545');
                                             }
                                         },
-                                        '⚠️ Locação Vinculada'
+                                        'âš ï¸ LocaÃ§Ã£o Vinculada'
                                     );
                                     
-                                    console.log('Retornando após abrir modal 2');
+                                    console.log('Retornando apÃ³s abrir modal 2');
                                     return;
                                 }
                             }
                             
-                            console.log('Sem locação vinculada, prosseguindo com exclusão direta');
+                            console.log('Sem locaÃ§Ã£o vinculada, prosseguindo com exclusÃ£o direta');
                             
-                            // Se não tem locação, prosseguir direto com exclusão
+                            // Se nÃ£o tem locaÃ§Ã£o, prosseguir direto com exclusÃ£o
                             const res = await fetch(`/api/agenda/demanda/${idAd}`, {
                                 method: 'DELETE'
                             });
                             
                             const result = await res.json();
-                            console.log('Resultado exclusão sem locação:', result);
+                            console.log('Resultado exclusÃ£o sem locaÃ§Ã£o:', result);
                             
                             esconderSpinner();
                             
@@ -4454,22 +4458,22 @@
                                 await carregarAgenda();
                                 
                                 // Mostrar mensagem de sucesso
-                                mostrarAlerta('Demanda excluída com sucesso!', '✅ Sucesso', '#28a745');
+                                mostrarAlerta('Demanda excluÃ­da com sucesso!', 'âœ… Sucesso', '#28a745');
                             } else {
                                 console.log('Erro ao excluir:', result.error);
-                                mostrarAlerta('Erro ao excluir: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                mostrarAlerta('Erro ao excluir: ' + (result.error || 'Erro desconhecido'), 'âŒ Erro', '#dc3545');
                             }
                             
                         } catch (error) {
                             esconderSpinner();
                             console.error('Erro catch geral:', error);
-                            mostrarAlerta('Erro ao excluir demanda: ' + error.message, '❌ Erro', '#dc3545');
+                            mostrarAlerta('Erro ao excluir demanda: ' + error.message, 'âŒ Erro', '#dc3545');
                         }
                     },
-                    '⚠️ Excluir Demanda'
+                    'âš ï¸ Excluir Demanda'
                 );
                 
-                console.log('Modal de confirmação 1 aberto, aguardando resposta...');
+                console.log('Modal de confirmaÃ§Ã£o 1 aberto, aguardando resposta...');
             }
             
             // ========== EVENT LISTENER CONSOLIDADO PARA TODOS OS MODAIS ==========
