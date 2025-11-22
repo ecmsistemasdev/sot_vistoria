@@ -4326,8 +4326,6 @@
                             }
                             
                             // ====== VERIFICAR SE EXISTE LOCAÇÃO VINCULADA ======
-                            let temLocacao = false;
-                            
                             if (demanda.id_motorista && parseInt(demanda.id_motorista) > 0) {
                                 const locacaoVinculada = locacoesAtivas.find(loc => 
                                     loc.id_motorista === demanda.id_motorista &&
@@ -4336,19 +4334,23 @@
                                 );
                                 
                                 if (locacaoVinculada) {
-                                    temLocacao = true;
+                                    // Fechar spinner antes de mostrar segunda confirmação
+                                    esconderSpinner();
                                     
                                     // Confirmar exclusão da locação também
-                                    esconderSpinner();
                                     mostrarConfirmacao(
                                         'Esta demanda possui uma locação vinculada.<br><br>A locação também será excluída. Deseja continuar?',
                                         async function(confirmarLocacao) {
-                                            if (!confirmarLocacao) return;
+                                            if (!confirmarLocacao) {
+                                                // Usuário cancelou
+                                                return;
+                                            }
                                             
+                                            // Usuário confirmou - prosseguir com exclusão
                                             mostrarSpinner();
                                             
-                                            // Excluir a locação ANTES de excluir a demanda
                                             try {
+                                                // Excluir a locação ANTES de excluir a demanda
                                                 const resLocacao = await fetch(`/api/excluir_locacao/${locacaoVinculada.id_item}`, {
                                                     method: 'DELETE'
                                                 });
@@ -4359,8 +4361,28 @@
                                                 
                                                 console.log('Locação vinculada excluída com sucesso');
                                                 
-                                                // Prosseguir com exclusão da demanda
-                                                await executarExclusaoDemanda(idAd, true);
+                                                // Agora excluir a demanda
+                                                const res = await fetch(`/api/agenda/demanda/${idAd}`, {
+                                                    method: 'DELETE'
+                                                });
+                                                
+                                                const result = await res.json();
+                                                
+                                                esconderSpinner();
+                                                
+                                                if (result.success) {
+                                                    fecharModal();
+                                                    
+                                                    // Recarregar dados
+                                                    await carregarSemanas();
+                                                    await carregarLocacoes();
+                                                    await carregarAgenda();
+                                                    
+                                                    // Mostrar mensagem de sucesso
+                                                    mostrarAlerta('Demanda e locação vinculada excluídas com sucesso!', '✅ Sucesso', '#28a745');
+                                                } else {
+                                                    mostrarAlerta('Erro ao excluir demanda: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                                }
                                                 
                                             } catch (errorLocacao) {
                                                 esconderSpinner();
@@ -4370,12 +4392,34 @@
                                         },
                                         '⚠️ Locação Vinculada'
                                     );
+                                    
+                                    // Retornar aqui para não executar o código abaixo
                                     return;
                                 }
                             }
                             
-                            // Se não tem locação, prosseguir direto
-                            await executarExclusaoDemanda(idAd, false);
+                            // Se não tem locação, prosseguir direto com exclusão
+                            const res = await fetch(`/api/agenda/demanda/${idAd}`, {
+                                method: 'DELETE'
+                            });
+                            
+                            const result = await res.json();
+                            
+                            esconderSpinner();
+                            
+                            if (result.success) {
+                                fecharModal();
+                                
+                                // Recarregar dados
+                                await carregarSemanas();
+                                await carregarLocacoes();
+                                await carregarAgenda();
+                                
+                                // Mostrar mensagem de sucesso
+                                mostrarAlerta('Demanda excluída com sucesso!', '✅ Sucesso', '#28a745');
+                            } else {
+                                mostrarAlerta('Erro ao excluir: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                            }
                             
                         } catch (error) {
                             esconderSpinner();
