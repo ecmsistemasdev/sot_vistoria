@@ -1745,18 +1745,18 @@
             }
 
             // Fechar modais ao clicar fora
-            window.addEventListener('click', function(event) {
-                const modalAlerta = document.getElementById('modalAlerta');
-                const modalConfirmacao = document.getElementById('modalConfirmacao');
+            // window.addEventListener('click', function(event) {
+            //     const modalAlerta = document.getElementById('modalAlerta');
+            //     const modalConfirmacao = document.getElementById('modalConfirmacao');
                 
-                if (event.target === modalAlerta) {
-                    fecharModalAlerta();
-                }
+            //     if (event.target === modalAlerta) {
+            //         fecharModalAlerta();
+            //     }
                 
-                if (event.target === modalConfirmacao) {
-                    fecharModalConfirmacao(false);
-                }
-            });
+            //     if (event.target === modalConfirmacao) {
+            //         fecharModalConfirmacao(false);
+            //     }
+            // });
 
             // ========== FIM FUNÇÕES MODAIS PADRÃO ==========
 
@@ -2315,18 +2315,18 @@
 
             // ========== FUNÇÃO: Fechar modal ao clicar fora ==========
             // Fechar modal ao clicar fora
-            window.addEventListener('click', function(event) {
-                const modalFormLocacao = document.getElementById('modalFormLocacao');
-                const modalSucessoLocacao = document.getElementById('modalSucessoLocacao');
+            // window.addEventListener('click', function(event) {
+            //     const modalFormLocacao = document.getElementById('modalFormLocacao');
+            //     const modalSucessoLocacao = document.getElementById('modalSucessoLocacao');
                 
-                if (event.target === modalFormLocacao) {
-                    fecharModalFormLocacao();
-                }
+            //     if (event.target === modalFormLocacao) {
+            //         fecharModalFormLocacao();
+            //     }
                 
-                if (event.target === modalSucessoLocacao) {
-                    fecharModalSucessoLocacao();
-                }
-            });
+            //     if (event.target === modalSucessoLocacao) {
+            //         fecharModalSucessoLocacao();
+            //     }
+            // });
 
             // ========== FUNÇÃO CORRETA: verificarBotaoLocacaoEdicao ==========
             async function verificarBotaoLocacaoEdicao(idAd) {
@@ -2432,12 +2432,12 @@
             }
 
             // Fechar modal ao clicar fora
-            window.addEventListener('click', function(event) {
-                const modalConfirmacao = document.getElementById('modalConfirmacaoLocacao');
-                if (event.target === modalConfirmacao) {
-                    fecharModalConfirmacaoLocacao(false);
-                }
-            });
+            // window.addEventListener('click', function(event) {
+            //     const modalConfirmacao = document.getElementById('modalConfirmacaoLocacao');
+            //     if (event.target === modalConfirmacao) {
+            //         fecharModalConfirmacaoLocacao(false);
+            //     }
+            // });
 
             ///////////////////////////////////////////////////////////////////
             ///////// FIM LOCAÇÕES DE VEÍCULOS ////////////////////////////////
@@ -4431,12 +4431,49 @@
                 );
             }
             
-            window.onclick = function(event) {
+            // ========== EVENT LISTENER CONSOLIDADO PARA TODOS OS MODAIS ==========
+            window.addEventListener('click', function(event) {
+                // Modal principal de demanda
                 const modal = document.getElementById('modal');
-                if (event.target == modal) {
+                if (event.target === modal) {
                     fecharModal();
                 }
-            }
+                
+                // Modais de alerta e confirmação padrão
+                const modalAlerta = document.getElementById('modalAlerta');
+                const modalConfirmacao = document.getElementById('modalConfirmacao');
+                
+                if (event.target === modalAlerta) {
+                    fecharModalAlerta();
+                }
+                
+                if (event.target === modalConfirmacao) {
+                    fecharModalConfirmacao(false);
+                }
+                
+                // Modais de locação
+                const modalFormLocacao = document.getElementById('modalFormLocacao');
+                const modalSucessoLocacao = document.getElementById('modalSucessoLocacao');
+                const modalConfirmacaoLocacao = document.getElementById('modalConfirmacaoLocacao');
+                
+                if (event.target === modalFormLocacao) {
+                    fecharModalFormLocacao();
+                }
+                
+                if (event.target === modalSucessoLocacao) {
+                    fecharModalSucessoLocacao();
+                }
+                
+                if (event.target === modalConfirmacaoLocacao) {
+                    fecharModalConfirmacaoLocacao(false);
+                }
+                
+                // Modal de feriados
+                const modalFeriados = document.getElementById('modalFeriados');
+                if (event.target === modalFeriados) {
+                    fecharModalFeriados();
+                }
+            });
 
             document.addEventListener('click', function(event) {
                 if (celulaSelecionada && !event.target.closest('.agenda-table')) {
@@ -4445,14 +4482,6 @@
                 }
             });
             
-            // Fechar modal de feriados ao clicar fora
-            window.addEventListener('click', function(event) {
-                const modalFeriados = document.getElementById('modalFeriados');
-                if (event.target == modalFeriados) {
-                    fecharModalFeriados();
-                }
-            });
-
             function scrollWeekTabs(direction) {
                 const scrollContainer = document.getElementById('weekTabsScroll');
                 const scrollAmount = 200; // pixels
