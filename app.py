@@ -4885,9 +4885,34 @@ def buscar_veiculos_todos():
         if cursor:
             cursor.close()
 
+@app.route('/api/agenda_busca_setor')
+@login_required
+def agenda_busca_setor():
+    try:
+        termo = request.args.get('termo', '')
+        if len(termo) < 2:
+            return jsonify([])
+            
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT SIGLA_SETOR 
+            FROM TJ_SETORES
+            WHERE SIGLA_SETOR <> '*EXTERNO'
+              AND SIGLA_SETOR LIKE %s
+            ORDER BY SIGLA_SETOR
+            LIMIT 15
+        """, (f'%{termo}%',))
+        
+        result = cursor.fetchall()
+        cursor.close()
+        
+        setores = [row[0] for row in result]
+        return jsonify(setores)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+
+
 ###....###
-
-
 
 
 #######################################
