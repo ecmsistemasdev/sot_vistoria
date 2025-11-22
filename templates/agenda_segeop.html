@@ -1632,6 +1632,41 @@
             </div>
         </div>
 
+        <!-- Modal de Alerta Padrão (OK) -->
+        <div id="modalAlerta" class="modal" style="z-index: 10002;">
+            <div class="modal-content" style="max-width: 450px; animation: zoomIn 0.3s;">
+                <div class="modal-header" style="background: #1a73e8;">
+                    <h2 id="modalAlertaTitulo" style="font-size: 18px; margin: 0;">ℹ️ Informação</h2>
+                </div>
+                <div class="modal-body" id="modalAlertaMensagem" style="padding: 25px 20px; text-align: center; font-size: 15px; line-height: 1.6;">
+                    <!-- Mensagem será inserida via JavaScript -->
+                </div>
+                <div class="modal-footer" style="justify-content: center; border-top: none; padding: 10px 20px 20px;">
+                    <button type="button" class="btn btn-primary" onclick="fecharModalAlerta()" style="min-width: 100px;">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação Padrão (Sim/Não) -->
+        <div id="modalConfirmacao" class="modal" style="z-index: 10002;">
+            <div class="modal-content" style="max-width: 450px; animation: slideDown 0.3s;">
+                <div class="modal-header" style="background: #ffc107; color: #000;">
+                    <h2 id="modalConfirmacaoTitulo" style="font-size: 18px; margin: 0;">⚠️ Confirmação</h2>
+                </div>
+                <div class="modal-body" id="modalConfirmacaoMensagem" style="padding: 25px 20px; text-align: center; font-size: 15px; line-height: 1.6;">
+                    <!-- Mensagem será inserida via JavaScript -->
+                </div>
+                <div class="modal-footer" style="justify-content: center; gap: 15px; padding: 15px 20px;">
+                    <button class="btn btn-secondary" onclick="fecharModalConfirmacao(false)" style="min-width: 100px;">
+                        Não
+                    </button>
+                    <button class="btn btn-primary" onclick="fecharModalConfirmacao(true)" style="min-width: 100px;">
+                        Sim
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Tooltip para exibir veÃ­culo -->
         <div id="tooltipVeiculo" class="tooltip-veiculo"></div>
 
@@ -1665,6 +1700,65 @@
             let dadosVinculoLocacao = null;
             let idDemandaParaLocacao = null;
             let callbackConfirmacaoLocacao = null;
+            let callbackConfirmacaoPadrao = null; // Para o modal de confirmação padrão
+
+            // ========== FUNÇÕES PARA MODAIS PADRÃO ==========
+
+            // Modal de Alerta (OK)
+            function mostrarAlerta(mensagem, titulo = 'ℹ️ Informação', cor = '#1a73e8') {
+                const modal = document.getElementById('modalAlerta');
+                const modalTitulo = document.getElementById('modalAlertaTitulo');
+                const modalMensagem = document.getElementById('modalAlertaMensagem');
+                const modalHeader = modal.querySelector('.modal-header');
+                
+                modalTitulo.textContent = titulo;
+                modalMensagem.innerHTML = mensagem;
+                modalHeader.style.background = cor;
+                
+                modal.style.display = 'block';
+            }
+
+            function fecharModalAlerta() {
+                document.getElementById('modalAlerta').style.display = 'none';
+            }
+
+            // Modal de Confirmação (Sim/Não)
+            function mostrarConfirmacao(mensagem, callback, titulo = '⚠️ Confirmação') {
+                const modal = document.getElementById('modalConfirmacao');
+                const modalTitulo = document.getElementById('modalConfirmacaoTitulo');
+                const modalMensagem = document.getElementById('modalConfirmacaoMensagem');
+                
+                modalTitulo.textContent = titulo;
+                modalMensagem.innerHTML = mensagem;
+                
+                callbackConfirmacaoPadrao = callback;
+                modal.style.display = 'block';
+            }
+
+            function fecharModalConfirmacao(resposta) {
+                document.getElementById('modalConfirmacao').style.display = 'none';
+                
+                if (callbackConfirmacaoPadrao) {
+                    callbackConfirmacaoPadrao(resposta);
+                    callbackConfirmacaoPadrao = null;
+                }
+            }
+
+            // Fechar modais ao clicar fora
+            window.addEventListener('click', function(event) {
+                const modalAlerta = document.getElementById('modalAlerta');
+                const modalConfirmacao = document.getElementById('modalConfirmacao');
+                
+                if (event.target === modalAlerta) {
+                    fecharModalAlerta();
+                }
+                
+                if (event.target === modalConfirmacao) {
+                    fecharModalConfirmacao(false);
+                }
+            });
+
+            // ========== FIM FUNÇÕES MODAIS PADRÃO ==========
 
             // Funções para controlar o spinner
             function mostrarSpinner() {
@@ -2115,18 +2209,18 @@
                     const horario = document.getElementById('loc_horario').value;
                     
                     if (!idEmpenho) {
-                        alert('Selecione um empenho!');
+                        mostrarAlerta('Selecione um empenho!', '⚠️ Atenção', '#ffc107');
                         return;
                     }
                     
                     if (!objetivo) {
-                        alert('Preencha o objetivo da locação!');
+                        mostrarAlerta('Preencha o objetivo da locação!', '⚠️ Atenção', '#ffc107');
                         return;
                     }
                     
                     // Validar horário obrigatório
                     if (!horario) {
-                        alert('Informe o horário de início da locação!');
+                        mostrarAlerta('Informe o horário de início da locação!', '⚠️ Atenção', '#ffc107');
                         document.getElementById('loc_horario').focus();
                         return;
                     }
@@ -2135,13 +2229,13 @@
                     if (!dadosVinculoLocacao.tem_cnh) {
                         const arquivoCNH = document.getElementById('loc_arquivo_cnh').files[0];
                         if (!arquivoCNH) {
-                            alert('É necessário anexar a CNH do motorista para prosseguir!');
+                            mostrarAlerta('É necessário anexar a CNH do motorista para prosseguir!', '⚠️ Atenção', '#ffc107');
                             return;
                         }
                         
                         // Validar se é PDF
                         if (arquivoCNH.type !== 'application/pdf') {
-                            alert('O arquivo deve ser um PDF!');
+                            mostrarAlerta('O arquivo deve ser um PDF!', '⚠️ Atenção', '#ffc107');
                             return;
                         }
                     }
@@ -2209,13 +2303,13 @@
                     } else {
                         // Erro
                         const mensagemErro = resultado.mensagem || resultado.erro || 'Erro ao solicitar locação';
-                        alert('Erro: ' + mensagemErro);
+                        mostrarAlerta('Erro: ' + mensagemErro, '❌ Erro', '#dc3545');
                     }
                     
                 } catch (error) {
                     esconderSpinner();
                     console.error('Erro ao confirmar solicitação:', error);
-                    alert('Erro ao solicitar locação: ' + error.message);
+                    mostrarAlerta('Erro ao solicitar locação: ' + error.message, '❌ Erro', '#dc3545');
                 }
             }
 
@@ -3961,7 +4055,7 @@
                 } catch (error) {
                     console.error('Erro ao abrir modal de edição:', error);
                     esconderSpinner();
-                    alert('Erro ao carregar dados da demanda!');
+                    mostrarAlerta('Erro ao carregar dados da demanda!', '❌ Erro', '#dc3545');
                 }
             }
 
@@ -4100,11 +4194,11 @@
                 // Validar horário se checkbox estiver marcado
                 if (definirHorario) {
                     if (!horario) {
-                        alert('Informe o horário!');
+                        mostrarAlerta('Informe o horário!', '⚠️ Atenção', '#ffc107');
                         return;
                     }
                     if (!validarHorario(horario)) {
-                        alert('Horário inválido! Use o formato HH:MM (ex: 08:30)');
+                        mostrarAlerta('Horário inválido! Use o formato HH:MM (ex: 08:30)', '⚠️ Atenção', '#ffc107');
                         return;
                     }
                 }
@@ -4130,7 +4224,7 @@
                 
                 // Validações obrigatórias básicas
                 if (!dados.id_tipodemanda || !dados.dt_inicio || !dados.dt_fim) {
-                    alert('Preencha todos os campos obrigatórios: Tipo de Demanda, Data Início e Data Fim!');
+                    mostrarAlerta('Preencha todos os campos obrigatórios: Tipo de Demanda, Data Início e Data Fim!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
@@ -4141,21 +4235,22 @@
                                         idTipoVeiculo === 7 || idTipoVeiculo === 8 || idTipoVeiculo === 9;
                 
                 if (!dispensaMotorista && !dados.id_motorista) {
-                    alert('O campo Motorista é obrigatório!');
+                    mostrarAlerta('O campo Motorista é obrigatório!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
 
                 // Validação específica para motorista não cadastrado
                 if (dados.id_motorista === '0' && !dados.nc_motorista) {
-                    alert('Informe o nome do motorista não cadastrado!');
+                    mostrarAlerta('Informe o nome do motorista não cadastrado!', '⚠️ Atenção', '#ffc107');
                     return;
                 }            
                 
                 // Validação para ID 10: Setor obrigatório
                 if (idTipoDemanda === 10 && !dados.setor) {
-                    alert('Para Cedência, o campo Setor é obrigatório!');
+                    mostrarAlerta('Para Cedência, o campo Setor é obrigatório!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
+
                 
                 try {
                     let res;
@@ -4199,11 +4294,11 @@
                         }
                         
                     } else {
-                        alert('Erro ao salvar: ' + (result.error || 'Erro desconhecido'));
+                        mostrarAlerta('Erro ao salvar: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    alert('Erro ao salvar demanda!');
+                    mostrarAlerta('Erro ao salvar demanda!', '❌ Erro', '#dc3545');
                 }
             }
             
@@ -4211,64 +4306,90 @@
                 const idAd = document.getElementById('idAd').value;
                 if (!idAd) return;
                 
-                if (!confirm('Deseja realmente excluir esta demanda?')) return;
-                
-                try {
-                    mostrarSpinner();
-                    
-                    const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
-                    if (!demanda) {
-                        esconderSpinner();
-                        alert('Demanda não encontrada!');
-                        return;
-                    }
-                    
-                    // ====== VERIFICAR SE EXISTE LOCAÇÃO VINCULADA ======
-                    let temLocacao = false;
-                    
-                    if (demanda.id_motorista && parseInt(demanda.id_motorista) > 0) {
-                        // Verificar se existe locação para este motorista no período da demanda
-                        const locacaoVinculada = locacoesAtivas.find(loc => 
-                            loc.id_motorista === demanda.id_motorista &&
-                            loc.data_inicio <= demanda.dt_fim &&
-                            loc.data_fim >= demanda.dt_inicio
-                        );
+                // Usar modal de confirmação padrão
+                mostrarConfirmacao(
+                    'Deseja realmente excluir esta demanda?',
+                    async function(confirmado) {
+                        if (!confirmado) return;
                         
-                        if (locacaoVinculada) {
-                            temLocacao = true;
+                        try {
+                            mostrarSpinner();
                             
-                            // Confirmar exclusão da locação também
-                            const confirmarLocacao = confirm(
-                                'Esta demanda possui uma locação vinculada.\n\n' +
-                                'A locação também será excluída. Deseja continuar?'
-                            );
-                            
-                            if (!confirmarLocacao) {
+                            // Converter para número para comparação correta
+                            const idAdNumero = parseInt(idAd);
+                            const demanda = dadosAgenda.demandas.find(d => parseInt(d.id) === idAdNumero);
+                            if (!demanda) {
                                 esconderSpinner();
+                                mostrarAlerta('Demanda não encontrada!', '❌ Erro', '#dc3545');
+                                console.error('ID buscado:', idAdNumero, 'IDs disponíveis:', dadosAgenda.demandas.map(d => d.id));
                                 return;
                             }
                             
-                            // Excluir a locação ANTES de excluir a demanda
-                            try {
-                                const resLocacao = await fetch(`/api/excluir_locacao/${locacaoVinculada.id_item}`, {
-                                    method: 'DELETE'
-                                });
+                            // ====== VERIFICAR SE EXISTE LOCAÇÃO VINCULADA ======
+                            let temLocacao = false;
+                            
+                            if (demanda.id_motorista && parseInt(demanda.id_motorista) > 0) {
+                                const locacaoVinculada = locacoesAtivas.find(loc => 
+                                    loc.id_motorista === demanda.id_motorista &&
+                                    loc.data_inicio <= demanda.dt_fim &&
+                                    loc.data_fim >= demanda.dt_inicio
+                                );
                                 
-                                if (!resLocacao.ok) {
-                                    throw new Error('Erro ao excluir locação vinculada');
+                                if (locacaoVinculada) {
+                                    temLocacao = true;
+                                    
+                                    // Confirmar exclusão da locação também
+                                    esconderSpinner();
+                                    mostrarConfirmacao(
+                                        'Esta demanda possui uma locação vinculada.<br><br>A locação também será excluída. Deseja continuar?',
+                                        async function(confirmarLocacao) {
+                                            if (!confirmarLocacao) return;
+                                            
+                                            mostrarSpinner();
+                                            
+                                            // Excluir a locação ANTES de excluir a demanda
+                                            try {
+                                                const resLocacao = await fetch(`/api/excluir_locacao/${locacaoVinculada.id_item}`, {
+                                                    method: 'DELETE'
+                                                });
+                                                
+                                                if (!resLocacao.ok) {
+                                                    throw new Error('Erro ao excluir locação vinculada');
+                                                }
+                                                
+                                                console.log('Locação vinculada excluída com sucesso');
+                                                
+                                                // Prosseguir com exclusão da demanda
+                                                await executarExclusaoDemanda(idAd, true);
+                                                
+                                            } catch (errorLocacao) {
+                                                esconderSpinner();
+                                                console.error('Erro ao excluir locação:', errorLocacao);
+                                                mostrarAlerta('Erro ao excluir locação vinculada: ' + errorLocacao.message, '❌ Erro', '#dc3545');
+                                            }
+                                        },
+                                        '⚠️ Locação Vinculada'
+                                    );
+                                    return;
                                 }
-                                
-                                console.log('Locação vinculada excluída com sucesso');
-                            } catch (errorLocacao) {
-                                esconderSpinner();
-                                console.error('Erro ao excluir locação:', errorLocacao);
-                                alert('Erro ao excluir locação vinculada: ' + errorLocacao.message);
-                                return;
                             }
+                            
+                            // Se não tem locação, prosseguir direto
+                            await executarExclusaoDemanda(idAd, false);
+                            
+                        } catch (error) {
+                            esconderSpinner();
+                            console.error('Erro:', error);
+                            mostrarAlerta('Erro ao excluir demanda: ' + error.message, '❌ Erro', '#dc3545');
                         }
-                    }
-                    
-                    // ====== EXCLUIR A DEMANDA ======
+                    },
+                    '⚠️ Excluir Demanda'
+                );
+            }
+
+            // Função auxiliar para executar a exclusão da demanda
+            async function executarExclusaoDemanda(idAd, temLocacao) {
+                try {
                     const res = await fetch(`/api/agenda/demanda/${idAd}`, {
                         method: 'DELETE'
                     });
@@ -4282,22 +4403,22 @@
                         
                         // Recarregar dados
                         await carregarSemanas();
-                        await carregarLocacoes(); // Atualizar lista de locações
+                        await carregarLocacoes();
                         await carregarAgenda();
                         
                         // Mostrar mensagem de sucesso
                         if (temLocacao) {
-                            alert('Demanda e locação vinculada excluídas com sucesso!');
+                            mostrarAlerta('Demanda e locação vinculada excluídas com sucesso!', '✅ Sucesso', '#28a745');
                         } else {
-                            alert('Demanda excluída com sucesso!');
+                            mostrarAlerta('Demanda excluída com sucesso!', '✅ Sucesso', '#28a745');
                         }
                     } else {
-                        alert('Erro ao excluir: ' + (result.error || 'Erro desconhecido'));
+                        mostrarAlerta('Erro ao excluir: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                     }
                 } catch (error) {
                     esconderSpinner();
                     console.error('Erro:', error);
-                    alert('Erro ao excluir demanda: ' + error.message);
+                    mostrarAlerta('Erro ao excluir demanda: ' + error.message, '❌ Erro', '#dc3545');
                 }
             }
             
@@ -4413,7 +4534,7 @@
                         document.getElementById('definirHorario').disabled = true;
                         document.getElementById('horario').disabled = false;
                         
-                        alert('Este veículo já possui demandas com horário definido neste período. É obrigatório informar o horário.');
+                        mostrarAlerta('Este veículo já possui demandas com horário definido neste período. É obrigatório informar o horário.', 'ℹ️ Informação', '#1a73e8');
                     } else {
                         document.getElementById('definirHorario').disabled = false;
                     }
