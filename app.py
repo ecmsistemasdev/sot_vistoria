@@ -4572,7 +4572,7 @@ def buscar_locacoes():
         cursor = mysql.connection.cursor()
         
         cursor.execute("""
-            SELECT ID_MOTORISTA, DS_VEICULO_MOD, DATA_INICIO, DATA_FIM, FL_STATUS
+            SELECT ID_ITEM, ID_MOTORISTA, DS_VEICULO_MOD, DATA_INICIO, DATA_FIM, FL_STATUS
             FROM TJ_CONTROLE_LOCACAO_ITENS
             WHERE DATA_INICIO <= %s AND DATA_FIM >= %s
             ORDER BY DATA_INICIO
@@ -4581,11 +4581,12 @@ def buscar_locacoes():
         locacoes = []
         for r in cursor.fetchall():
             locacoes.append({
-                'id_motorista': r[0],
-                'ds_veiculo_mod': r[1] or '',
-                'data_inicio': r[2].strftime('%Y-%m-%d') if r[2] else '',
-                'data_fim': r[3].strftime('%Y-%m-%d') if r[3] else '',
-                'fl_status': r[4] or ''
+                'id_item': r[0],
+                'id_motorista': r[1],
+                'ds_veiculo_mod': r[2] or '',
+                'data_inicio': r[3].strftime('%Y-%m-%d') if r[3] else '',
+                'data_fim': r[4].strftime('%Y-%m-%d') if r[4] else '',
+                'fl_status': r[5] or ''
             })
         
         return jsonify(locacoes)
