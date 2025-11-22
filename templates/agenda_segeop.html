@@ -1616,20 +1616,18 @@
             </div>
         </div>
 
-        <!-- Modal de Sucesso (estilo controle_locacoes) -->
-        <div class="modal fade" id="modalSucessoLocacao" tabindex="-1" aria-hidden="true" style="z-index: 10001;">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
-                <div class="modal-content" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <div class="modal-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 8px 8px 0 0;">
-                        <h5 class="modal-title" style="font-weight: 600;">✓ Sucesso</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" id="mensagemSucessoLocacao" style="padding: 25px 20px; text-align: center; font-size: 15px; line-height: 1.6;">
-                        <!-- Mensagem será inserida via JavaScript -->
-                    </div>
-                    <div class="modal-footer" style="justify-content: center; border-top: none; padding: 10px 20px 20px;">
-                        <button type="button" class="btn btn-success btn-sm" data-bs-dismiss="modal" style="min-width: 100px;">OK</button>
-                    </div>
+        <!-- Modal de Sucesso -->
+        <div id="modalSucessoLocacao" class="modal" style="z-index: 10001;">
+            <div class="modal-content" style="max-width: 450px; animation: zoomIn 0.3s; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <div class="modal-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 8px 8px 0 0;">
+                    <h2 style="font-size: 18px; margin: 0; font-weight: 600;">✓ Sucesso</h2>
+                    <span class="close" onclick="fecharModalSucessoLocacao()" style="color: white;">&times;</span>
+                </div>
+                <div class="modal-body" id="mensagemSucessoLocacao" style="padding: 25px 20px; text-align: center; font-size: 15px; line-height: 1.6;">
+                    <!-- Mensagem será inserida via JavaScript -->
+                </div>
+                <div class="modal-footer" style="justify-content: center; border-top: none; padding: 10px 20px 20px;">
+                    <button type="button" class="btn btn-primary" onclick="fecharModalSucessoLocacao()" style="min-width: 100px; background: #28a745; border-color: #28a745;">OK</button>
                 </div>
             </div>
         </div>
@@ -2096,6 +2094,12 @@
                 idDemandaParaLocacao = null;
             }
 
+            // ========== FUNÇÃO: Fechar Modal de Sucesso ==========
+            async function fecharModalSucessoLocacao() {
+                document.getElementById('modalSucessoLocacao').style.display = 'none';
+                await carregarAgenda();
+            }
+
             // ========== FUNÇÃO CORRETA: confirmarSolicitacaoLocacao ==========
             async function confirmarSolicitacaoLocacao(event) {
                 // Prevenir comportamento padrão
@@ -2186,8 +2190,6 @@
                     esconderSpinner();
                     
                     if (response.ok && resultado) {
-                        // ====== SUBSTITUIR O ALERT POR MODAL ======
-                        
                         // Construir mensagem
                         let mensagemHTML = '<div style="font-size: 16px; font-weight: 600; color: #28a745; margin-bottom: 10px;">Locação solicitada com sucesso!</div>';
                         
@@ -2199,20 +2201,10 @@
                         
                         // Mostrar modal de sucesso
                         document.getElementById('mensagemSucessoLocacao').innerHTML = mensagemHTML;
-                        
-                        // Usar Bootstrap para abrir modal
-                        const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucessoLocacao'));
-                        modalSucesso.show();
+                        document.getElementById('modalSucessoLocacao').style.display = 'block';
                         
                         // Fechar modal de locação
                         fecharModalFormLocacao();
-                        
-                        // Recarregar agenda após fechar o modal de sucesso
-                        document.getElementById('modalSucessoLocacao').addEventListener('hidden.bs.modal', async function() {
-                            await carregarAgenda();
-                        }, { once: true });
-                        
-                        // ====== FIM DA SUBSTITUIÇÃO ======
                         
                     } else {
                         // Erro
@@ -2228,10 +2220,17 @@
             }
 
             // ========== FUNÇÃO: Fechar modal ao clicar fora ==========
+            // Fechar modal ao clicar fora
             window.addEventListener('click', function(event) {
                 const modalFormLocacao = document.getElementById('modalFormLocacao');
+                const modalSucessoLocacao = document.getElementById('modalSucessoLocacao');
+                
                 if (event.target === modalFormLocacao) {
                     fecharModalFormLocacao();
+                }
+                
+                if (event.target === modalSucessoLocacao) {
+                    fecharModalSucessoLocacao();
                 }
             });
 
