@@ -4430,41 +4430,6 @@
                     '⚠️ Excluir Demanda'
                 );
             }
-
-            // Função auxiliar para executar a exclusão da demanda
-            async function executarExclusaoDemanda(idAd, temLocacao) {
-                try {
-                    const res = await fetch(`/api/agenda/demanda/${idAd}`, {
-                        method: 'DELETE'
-                    });
-                    
-                    const result = await res.json();
-                    
-                    esconderSpinner();
-                    
-                    if (result.success) {
-                        fecharModal();
-                        
-                        // Recarregar dados
-                        await carregarSemanas();
-                        await carregarLocacoes();
-                        await carregarAgenda();
-                        
-                        // Mostrar mensagem de sucesso
-                        if (temLocacao) {
-                            mostrarAlerta('Demanda e locação vinculada excluídas com sucesso!', '✅ Sucesso', '#28a745');
-                        } else {
-                            mostrarAlerta('Demanda excluída com sucesso!', '✅ Sucesso', '#28a745');
-                        }
-                    } else {
-                        mostrarAlerta('Erro ao excluir: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
-                    }
-                } catch (error) {
-                    esconderSpinner();
-                    console.error('Erro:', error);
-                    mostrarAlerta('Erro ao excluir demanda: ' + error.message, '❌ Erro', '#dc3545');
-                }
-            }
             
             window.onclick = function(event) {
                 const modal = document.getElementById('modal');
