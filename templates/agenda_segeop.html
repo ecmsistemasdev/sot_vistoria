@@ -4214,22 +4214,90 @@
                 if (!confirm('Deseja realmente excluir esta demanda?')) return;
                 
                 try {
+                    mostrarSpinner();
+                    
+                    const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
+                    if (!demanda) {
+                        esconderSpinner();
+                        alert('Demanda não encontrada!');
+                        return;
+                    }
+                    
+                    // ====== VERIFICAR SE EXISTE LOCAÇÃO VINCULADA ======
+                    let temLocacao = false;
+                    
+                    if (demanda.id_motorista && parseInt(demanda.id_motorista) > 0) {
+                        // Verificar se existe locação para este motorista no período da demanda
+                        const locacaoVinculada = locacoesAtivas.find(loc => 
+                            loc.id_motorista === demanda.id_motorista &&
+                            loc.data_inicio <= demanda.dt_fim &&
+                            loc.data_fim >= demanda.dt_inicio
+                        );
+                        
+                        if (locacaoVinculada) {
+                            temLocacao = true;
+                            
+                            // Confirmar exclusão da locação também
+                            const confirmarLocacao = confirm(
+                                'Esta demanda possui uma locação vinculada.\n\n' +
+                                'A locação também será excluída. Deseja continuar?'
+                            );
+                            
+                            if (!confirmarLocacao) {
+                                esconderSpinner();
+                                return;
+                            }
+                            
+                            // Excluir a locação ANTES de excluir a demanda
+                            try {
+                                const resLocacao = await fetch(`/api/excluir_locacao/${locacaoVinculada.id_item}`, {
+                                    method: 'DELETE'
+                                });
+                                
+                                if (!resLocacao.ok) {
+                                    throw new Error('Erro ao excluir locação vinculada');
+                                }
+                                
+                                console.log('Locação vinculada excluída com sucesso');
+                            } catch (errorLocacao) {
+                                esconderSpinner();
+                                console.error('Erro ao excluir locação:', errorLocacao);
+                                alert('Erro ao excluir locação vinculada: ' + errorLocacao.message);
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // ====== EXCLUIR A DEMANDA ======
                     const res = await fetch(`/api/agenda/demanda/${idAd}`, {
                         method: 'DELETE'
                     });
                     
                     const result = await res.json();
                     
+                    esconderSpinner();
+                    
                     if (result.success) {
                         fecharModal();
+                        
+                        // Recarregar dados
                         await carregarSemanas();
+                        await carregarLocacoes(); // Atualizar lista de locações
                         await carregarAgenda();
+                        
+                        // Mostrar mensagem de sucesso
+                        if (temLocacao) {
+                            alert('Demanda e locação vinculada excluídas com sucesso!');
+                        } else {
+                            alert('Demanda excluída com sucesso!');
+                        }
                     } else {
                         alert('Erro ao excluir: ' + (result.error || 'Erro desconhecido'));
                     }
                 } catch (error) {
+                    esconderSpinner();
                     console.error('Erro:', error);
-                    alert('Erro ao excluir demanda!');
+                    alert('Erro ao excluir demanda: ' + error.message);
                 }
             }
             
