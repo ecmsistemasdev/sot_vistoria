@@ -4304,20 +4304,37 @@
             
             async function excluirDemanda() {
                 const idAd = document.getElementById('idAd').value;
-                if (!idAd) return;
+                console.log('=== INÍCIO EXCLUSÃO ===');
+                console.log('ID da demanda:', idAd);
+                
+                if (!idAd) {
+                    console.log('Sem ID, abortando');
+                    return;
+                }
                 
                 // Usar modal de confirmação padrão
+                console.log('Abrindo modal de confirmação 1');
                 mostrarConfirmacao(
                     'Deseja realmente excluir esta demanda?',
                     async function(confirmado) {
-                        if (!confirmado) return;
+                        console.log('Callback 1 executado. Confirmado:', confirmado);
+                        
+                        if (!confirmado) {
+                            console.log('Usuário cancelou na primeira confirmação');
+                            return;
+                        }
                         
                         try {
+                            console.log('Iniciando processo de exclusão...');
                             mostrarSpinner();
                             
                             // Converter para número para comparação correta
                             const idAdNumero = parseInt(idAd);
+                            console.log('ID convertido:', idAdNumero);
+                            
                             const demanda = dadosAgenda.demandas.find(d => parseInt(d.id) === idAdNumero);
+                            console.log('Demanda encontrada:', demanda);
+                            
                             if (!demanda) {
                                 esconderSpinner();
                                 mostrarAlerta('Demanda não encontrada!', '❌ Erro', '#dc3545');
@@ -4326,6 +4343,10 @@
                             }
                             
                             // ====== VERIFICAR SE EXISTE LOCAÇÃO VINCULADA ======
+                            console.log('Verificando locação vinculada...');
+                            console.log('ID motorista da demanda:', demanda.id_motorista);
+                            console.log('Locações ativas:', locacoesAtivas);
+                            
                             if (demanda.id_motorista && parseInt(demanda.id_motorista) > 0) {
                                 const locacaoVinculada = locacoesAtivas.find(loc => 
                                     loc.id_motorista === demanda.id_motorista &&
@@ -4333,33 +4354,43 @@
                                     loc.data_fim >= demanda.dt_inicio
                                 );
                                 
+                                console.log('Locação vinculada encontrada:', locacaoVinculada);
+                                
                                 if (locacaoVinculada) {
                                     // Fechar spinner antes de mostrar segunda confirmação
                                     esconderSpinner();
+                                    console.log('Abrindo modal de confirmação 2 (locação)');
                                     
                                     // Confirmar exclusão da locação também
                                     mostrarConfirmacao(
                                         'Esta demanda possui uma locação vinculada.<br><br>A locação também será excluída. Deseja continuar?',
                                         async function(confirmarLocacao) {
+                                            console.log('Callback 2 executado. Confirmado:', confirmarLocacao);
+                                            
                                             if (!confirmarLocacao) {
-                                                // Usuário cancelou
+                                                console.log('Usuário cancelou na segunda confirmação');
                                                 return;
                                             }
                                             
-                                            // Usuário confirmou - prosseguir com exclusão
+                                            console.log('Usuário confirmou exclusão de locação');
                                             mostrarSpinner();
                                             
                                             try {
+                                                console.log('Excluindo locação ID:', locacaoVinculada.id_item);
+                                                
                                                 // Excluir a locação ANTES de excluir a demanda
                                                 const resLocacao = await fetch(`/api/excluir_locacao/${locacaoVinculada.id_item}`, {
                                                     method: 'DELETE'
                                                 });
                                                 
+                                                console.log('Resposta exclusão locação:', resLocacao.ok);
+                                                
                                                 if (!resLocacao.ok) {
                                                     throw new Error('Erro ao excluir locação vinculada');
                                                 }
                                                 
-                                                console.log('Locação vinculada excluída com sucesso');
+                                                console.log('Locação excluída com sucesso');
+                                                console.log('Agora excluindo demanda...');
                                                 
                                                 // Agora excluir a demanda
                                                 const res = await fetch(`/api/agenda/demanda/${idAd}`, {
@@ -4367,10 +4398,12 @@
                                                 });
                                                 
                                                 const result = await res.json();
+                                                console.log('Resultado exclusão demanda:', result);
                                                 
                                                 esconderSpinner();
                                                 
                                                 if (result.success) {
+                                                    console.log('Sucesso! Fechando modal e recarregando...');
                                                     fecharModal();
                                                     
                                                     // Recarregar dados
@@ -4381,22 +4414,25 @@
                                                     // Mostrar mensagem de sucesso
                                                     mostrarAlerta('Demanda e locação vinculada excluídas com sucesso!', '✅ Sucesso', '#28a745');
                                                 } else {
+                                                    console.log('Erro ao excluir demanda:', result.error);
                                                     mostrarAlerta('Erro ao excluir demanda: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                                                 }
                                                 
                                             } catch (errorLocacao) {
                                                 esconderSpinner();
-                                                console.error('Erro ao excluir locação:', errorLocacao);
+                                                console.error('Erro catch ao excluir locação:', errorLocacao);
                                                 mostrarAlerta('Erro ao excluir locação vinculada: ' + errorLocacao.message, '❌ Erro', '#dc3545');
                                             }
                                         },
                                         '⚠️ Locação Vinculada'
                                     );
                                     
-                                    // Retornar aqui para não executar o código abaixo
+                                    console.log('Retornando após abrir modal 2');
                                     return;
                                 }
                             }
+                            
+                            console.log('Sem locação vinculada, prosseguindo com exclusão direta');
                             
                             // Se não tem locação, prosseguir direto com exclusão
                             const res = await fetch(`/api/agenda/demanda/${idAd}`, {
@@ -4404,10 +4440,12 @@
                             });
                             
                             const result = await res.json();
+                            console.log('Resultado exclusão sem locação:', result);
                             
                             esconderSpinner();
                             
                             if (result.success) {
+                                console.log('Sucesso! Fechando modal e recarregando...');
                                 fecharModal();
                                 
                                 // Recarregar dados
@@ -4418,17 +4456,20 @@
                                 // Mostrar mensagem de sucesso
                                 mostrarAlerta('Demanda excluída com sucesso!', '✅ Sucesso', '#28a745');
                             } else {
+                                console.log('Erro ao excluir:', result.error);
                                 mostrarAlerta('Erro ao excluir: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                             }
                             
                         } catch (error) {
                             esconderSpinner();
-                            console.error('Erro:', error);
+                            console.error('Erro catch geral:', error);
                             mostrarAlerta('Erro ao excluir demanda: ' + error.message, '❌ Erro', '#dc3545');
                         }
                     },
                     '⚠️ Excluir Demanda'
                 );
+                
+                console.log('Modal de confirmação 1 aberto, aguardando resposta...');
             }
             
             // ========== EVENT LISTENER CONSOLIDADO PARA TODOS OS MODAIS ==========
