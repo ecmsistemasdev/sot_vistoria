@@ -2254,10 +2254,13 @@
                         return; // Não tem vínculo, não mostra nada
                     }
                     
-                    // PRIMEIRO: Verificar se já existe locação para ESTA DEMANDA ESPECÍFICA
-                    const urlLocacao = `/api/verificar_locacao_existente?id_motorista=${demanda.id_motorista}&dt_inicio=${demanda.dt_inicio}&dt_fim=${demanda.dt_fim}`;
-                    const resLocacao = await fetch(urlLocacao);
-                    const resultLocacao = await resLocacao.json();
+                    // ========== VERIFICAR SE JÁ TEM LOCAÇÃO (MESMA LÓGICA DA SEÇÃO VEÍCULOS ALOCADOS) ==========
+                    // Verificar se existe locação ativa para este motorista neste período
+                    const temLocacao = locacoesAtivas.some(loc => 
+                        loc.id_motorista === demanda.id_motorista &&
+                        loc.data_inicio <= demanda.dt_fim &&
+                        loc.data_fim >= demanda.dt_inicio
+                    );
                     
                     // Criar elemento para status/botão
                     const modalFooter = document.querySelector('#modal .modal-footer');
@@ -2273,14 +2276,13 @@
                     divStatus.id = 'areaLocacaoStatus';
                     divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
                     
-                    if (resultLocacao.tem_locacao) {
+                    if (temLocacao) {
                         // ========== JÁ TEM LOCAÇÃO - APENAS MOSTRAR TEXTO ==========
                         divStatus.innerHTML = `
                             <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
                                 ✓ Locação solicitada
                             </div>
                         `;
-                        // NÃO adiciona event listener, é apenas informativo
                         
                     } else {
                         // ========== NÃO TEM LOCAÇÃO - MOSTRAR BOTÃO PARA SOLICITAR ==========
