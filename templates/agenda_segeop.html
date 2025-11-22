@@ -2095,7 +2095,7 @@
             }
 
             // ========== FUNÇÃO: Fechar Modal de Sucesso ==========
-            async function fecharModalSucessoLocacao() {
+            async function fecharModalSucessoLocacao() {    
                 document.getElementById('modalSucessoLocacao').style.display = 'none';
                 await carregarAgenda();
             }
@@ -2242,7 +2242,7 @@
                     
                     // Verificar condições básicas
                     if (!demanda.id_tipoveiculo || !demanda.id_motorista || parseInt(demanda.id_motorista) <= 0) {
-                        return; // Não mostra botão
+                        return; // Não mostra nada
                     }
                     
                     // Verificar se tem vínculo
@@ -2251,10 +2251,10 @@
                     const resultVinculo = await resVinculo.json();
                     
                     if (!resultVinculo.tem_vinculo) {
-                        return; // Não tem vínculo
+                        return; // Não tem vínculo, não mostra nada
                     }
                     
-                    // Verificar se já existe locação
+                    // PRIMEIRO: Verificar se já existe locação para ESTA DEMANDA ESPECÍFICA
                     const urlLocacao = `/api/verificar_locacao_existente?id_motorista=${demanda.id_motorista}&dt_inicio=${demanda.dt_inicio}&dt_fim=${demanda.dt_fim}`;
                     const resLocacao = await fetch(urlLocacao);
                     const resultLocacao = await resLocacao.json();
@@ -2274,14 +2274,16 @@
                     divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
                     
                     if (resultLocacao.tem_locacao) {
-                        // JÁ TEM LOCAÇÃO - Mostrar status
+                        // ========== JÁ TEM LOCAÇÃO - APENAS MOSTRAR TEXTO ==========
                         divStatus.innerHTML = `
                             <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
                                 ✓ Locação solicitada
                             </div>
                         `;
+                        // NÃO adiciona event listener, é apenas informativo
+                        
                     } else {
-                        // NÃO TEM LOCAÇÃO - Mostrar botão
+                        // ========== NÃO TEM LOCAÇÃO - MOSTRAR BOTÃO PARA SOLICITAR ==========
                         divStatus.innerHTML = `
                             <button type="button" class="btn btn-primary" id="btnSolicitarLocacaoEdicao" style="background: #28a745; border-color: #28a745;">
                                 🚗 Solicitar Locação
@@ -2299,7 +2301,7 @@
                                     e.preventDefault();
                                     e.stopPropagation();
                                     
-                                    // Abrir formulário
+                                    // Abrir formulário de locação
                                     await abrirFormularioLocacao(demanda);
                                 });
                             }
