@@ -1182,6 +1182,54 @@
                 animation: fadeInRight 0.3s;
             }
 
+            /* Autocomplete Setor */
+            .autocomplete-container {
+                position: relative;
+                width: 100%;
+            }
+
+            .autocomplete-list {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                display: none;
+            }
+
+            .autocomplete-list.visible {
+                display: block;
+            }
+
+            .autocomplete-item {
+                padding: 8px 12px;
+                cursor: pointer;
+                font-size: 13px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .autocomplete-item:last-child {
+                border-bottom: none;
+            }
+
+            .autocomplete-item:hover,
+            .autocomplete-item.selected {
+                background: #e8f0fe;
+                color: #1a73e8;
+            }
+
+            .autocomplete-item-highlight {
+                font-weight: 600;
+                color: #1a73e8;
+            }
+
         </style>
     </head>
     <body>
@@ -1379,7 +1427,10 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label id="labelSetor">Setor</label>
-                                <input type="text" id="setor" maxlength="35">
+                                <div class="autocomplete-container">
+                                    <input type="text" id="setor" maxlength="35" autocomplete="off">
+                                    <div class="autocomplete-list" id="setorAutocompleteList"></div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label id="labelSolicitante">Solicitante</label>
@@ -1701,6 +1752,8 @@
             let idDemandaParaLocacao = null;
             let callbackConfirmacaoLocacao = null;
             let callbackConfirmacaoPadrao = null; // Para o modal de confirmação padrão
+            let setorAutocompleteTimeout = null;
+            let setorSelectedIndex = -1;
 
             // ========== FUNÇÕES PARA MODAIS PADRÃO ==========
 
@@ -2004,6 +2057,8 @@
                     });
                 }
 
+                // Inicializar autocomplete do setor
+                // initAutocompleteSetor();
             });
             
             ////////////////////////////////////////////////////////////////////
@@ -2443,6 +2498,163 @@
             ///////// FIM LOCAÇÕES DE VEÍCULOS ////////////////////////////////
             ///////////////////////////////////////////////////////////////////
 
+            // ========== AUTOCOMPLETE SETOR ==========
+
+            async function buscarSetores(termo) {
+                if (termo.length < 2) {
+                    esconderAutocompleteSetor();
+                    return;
+                }
+                
+                try {
+                    const res = await fetch(`/api/agenda_busca_setor?termo=${encodeURIComponent(termo)}`);
+                    const setores = await res.json();
+                    
+                    if (setores.length > 0) {
+                        exibirAutocompleteSetor(setores, termo);
+                    } else {
+                        esconderAutocompleteSetor();
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar setores:', error);
+                    esconderAutocompleteSetor();
+                }
+            }
+
+            function exibirAutocompleteSetor(setores, termo) {
+                const lista = document.getElementById('setorAutocompleteList');
+                const termoLower = termo.toLowerCase();
+                
+                lista.innerHTML = setores.map((setor, index) => {
+                    // Destacar o termo buscado
+                    const indexTermo = setor.toLowerCase().indexOf(termoLower);
+                    let setorHTML = setor;
+                    
+                    if (indexTermo !== -1) {
+                        const antes = setor.substring(0, indexTermo);
+                        const match = setor.substring(indexTermo, indexTermo + termo.length);
+                        const depois = setor.substring(indexTermo + termo.length);
+                        setorHTML = `${antes}<span class="autocomplete-item-highlight">${match}</span>${depois}`;
+                    }
+                    
+                    return `<div class="autocomplete-item" data-index="${index}" data-value="${setor}">${setorHTML}</div>`;
+                }).join('');
+                
+                lista.classList.add('visible');
+                setorSelectedIndex = -1;
+                
+                // Adicionar eventos de clique nos itens
+                lista.querySelectorAll('.autocomplete-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        selecionarSetor(this.dataset.value);
+                    });
+                    
+                    item.addEventListener('mouseenter', function() {
+                        removerSelecaoAutocomplete();
+                        this.classList.add('selected');
+                        setorSelectedIndex = parseInt(this.dataset.index);
+                    });
+                });
+            }
+
+            function esconderAutocompleteSetor() {
+                const lista = document.getElementById('setorAutocompleteList');
+                lista.classList.remove('visible');
+                lista.innerHTML = '';
+                setorSelectedIndex = -1;
+            }
+
+            function selecionarSetor(valor) {
+                document.getElementById('setor').value = valor;
+                esconderAutocompleteSetor();
+            }
+
+            function removerSelecaoAutocomplete() {
+                const lista = document.getElementById('setorAutocompleteList');
+                lista.querySelectorAll('.autocomplete-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+            }
+
+            function navegarAutocompleteSetor(direcao) {
+                const lista = document.getElementById('setorAutocompleteList');
+                const itens = lista.querySelectorAll('.autocomplete-item');
+                
+                if (itens.length === 0) return;
+                
+                removerSelecaoAutocomplete();
+                
+                if (direcao === 'down') {
+                    setorSelectedIndex = (setorSelectedIndex + 1) % itens.length;
+                } else if (direcao === 'up') {
+                    setorSelectedIndex = setorSelectedIndex <= 0 ? itens.length - 1 : setorSelectedIndex - 1;
+                }
+                
+                if (setorSelectedIndex >= 0 && setorSelectedIndex < itens.length) {
+                    itens[setorSelectedIndex].classList.add('selected');
+                    itens[setorSelectedIndex].scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            function initAutocompleteSetor() {
+                const inputSetor = document.getElementById('setor');
+                
+                if (!inputSetor) return;
+                
+                // Evento de digitação
+                inputSetor.addEventListener('input', function() {
+                    const termo = this.value.trim();
+                    
+                    // Debounce para evitar muitas requisições
+                    if (setorAutocompleteTimeout) {
+                        clearTimeout(setorAutocompleteTimeout);
+                    }
+                    
+                    setorAutocompleteTimeout = setTimeout(() => {
+                        buscarSetores(termo);
+                    }, 300);
+                });
+                
+                // Navegação com teclado
+                inputSetor.addEventListener('keydown', function(e) {
+                    const lista = document.getElementById('setorAutocompleteList');
+                    
+                    if (!lista.classList.contains('visible')) return;
+                    
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        navegarAutocompleteSetor('down');
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        navegarAutocompleteSetor('up');
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const itens = lista.querySelectorAll('.autocomplete-item');
+                        if (setorSelectedIndex >= 0 && setorSelectedIndex < itens.length) {
+                            selecionarSetor(itens[setorSelectedIndex].dataset.value);
+                        }
+                    } else if (e.key === 'Escape') {
+                        esconderAutocompleteSetor();
+                    }
+                });
+                
+                // Esconder ao perder foco (com delay para permitir clique)
+                inputSetor.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        esconderAutocompleteSetor();
+                    }, 200);
+                });
+                
+                // Mostrar novamente ao focar se tiver texto
+                inputSetor.addEventListener('focus', function() {
+                    const termo = this.value.trim();
+                    if (termo.length >= 2) {
+                        buscarSetores(termo);
+                    }
+                });
+            }
+
+            // ========== FIM AUTOCOMPLETE SETOR ==========
 
             async function init() {
                 await carregarSemanas();
@@ -2484,6 +2696,9 @@
                     await carregarFeriadosPeriodo();
                     await carregarAgenda();
                 }
+
+                // Inicializar autocomplete do setor
+                initAutocompleteSetor();
             }
 
             // Carregar feriados do período atual
