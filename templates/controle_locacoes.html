@@ -122,7 +122,9 @@
             z-index: 9999;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             display: none;
-            width: calc(100% - 24px);
+            width: 100%;
+            left: 0;
+            margin-top: 2px;
         }
 
         .autocomplete-list.visible {
@@ -492,7 +494,7 @@
                                 <option value="">Selecione...</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="position: relative;">
                             <label for="setorSolicitante" class="form-label small">Setor Solicitante</label>
                             <input type="text" class="form-control form-control-sm" id="setorSolicitante" required>
                             <div id="setorAutocompleteList" class="autocomplete-list"></div>
@@ -593,7 +595,7 @@
                                 <option value="">Selecione...</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="position: relative;">
                             <label for="setorSolicitanteDev" class="form-label small">Setor Solicitante</label>
                             <input type="text" class="form-control form-control-sm" id="setorSolicitanteDev" required>
                             <div id="setorAutocompleteListDev" class="autocomplete-list"></div>
@@ -717,7 +719,7 @@
                                 <option value="">Selecione...</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="position: relative;">
                             <label for="setorSolicitanteEdt" class="form-label small">Setor Solicitante</label>
                             <input type="text" class="form-control form-control-sm" id="setorSolicitanteEdt" required>
                             <div id="setorAutocompleteListEdt" class="autocomplete-list"></div>
