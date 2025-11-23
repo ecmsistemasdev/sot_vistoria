@@ -1783,9 +1783,7 @@
                     url: `/api/locacoes_transito/${id_cl}`,
                     type: 'GET',
                     dataType: 'json',
-                    success: function(data) {
-                        console.log("Locações em trânsito carregadas:", data);
-                        let html = '';
+                    success: function(data) {let html = '';
                         if (data.length === 0) {
                             html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
                         } else {
@@ -1828,9 +1826,7 @@
                     url: `/api/empenhos/${id_cl}`,
                     type: 'GET',
                     dataType: 'json',
-                    success: function(data) {
-                        console.log("Empenhos carregados:", data);
-                        let html = '';
+                    success: function(data) {let html = '';
                         if (data.length === 0) {
                             html = '<tr><td colspan="6" class="text-center">Nenhum empenho encontrado</td></tr>';
                         } else {
@@ -1858,9 +1854,7 @@
                     url: `/api/saldo_diarias/${id_cl}`,
                     type: 'GET',
                     dataType: 'json',
-                    success: function(data) {
-                        console.log("Saldo de diárias carregado:", data);
-                        let html = '';
+                    success: function(data) {let html = '';
                         if (data.length === 0) {
                             html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
                         } else {
@@ -1890,9 +1884,7 @@
                     url: `/api/sintetico_mensal/${id_cl}`,
                     type: 'GET',
                     dataType: 'json',
-                    success: function(data) {
-                        console.log("Sintético mensal carregado:", data);
-                        let html = '';
+                    success: function(data) {let html = '';
                         if (data.length === 0) {
                             html = '<tr><td colspan="5" class="text-center">Nenhum registro encontrado</td></tr>';
                         } else {
@@ -1919,9 +1911,7 @@
                     url: `/api/dados_pls/${id_cl}`,
                     type: 'GET',
                     dataType: 'json',
-                    success: function(data) {
-                        console.log("Dados do PLS carregado:", data);
-                        let html = '';
+                    success: function(data) {let html = '';
                         if (data.length === 0) {
                             html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
                         } else {
@@ -2101,20 +2091,14 @@
                     formData.append('file_cnh', $('#arquivoCnh')[0].files[0]);
                 }
                 
-                // Log para verificar os dados enviados
-                console.log("Enviando dados para API:", processoIdSelecionado);
-                
-                // Enviar dados para API
+                // Log para verificar os dados enviados// Enviar dados para API
                 $.ajax({
                     url: '/api/nova_locacao',
                     type: 'POST',
                     data: formData,
                     processData: false,
                     contentType: false,
-                    success: function(response) {
-                        console.log("Resposta:", response);
-                        
-                        // Mostrar mensagem de sucesso
+                    success: function(response) {// Mostrar mensagem de sucesso
                         let mensagem = "Locação registrada com sucesso!";
                         if (response.email_enviado) {
                             mensagem += " E-mail enviado com sucesso.";
@@ -2170,11 +2154,7 @@
             });          
             
             // Ação do botão Nova Locação
-            $('#btnNovaLocacao').click(function() {
-                console.log("=== BOTÃO NOVA LOCAÇÃO CLICADO ===");
-                console.log("Processo selecionado:", processoIdSelecionado);
-
-                if (!processoIdSelecionado) {
+            $('#btnNovaLocacao').click(function() {if (!processoIdSelecionado) {
                     alert("Por favor, selecione um processo de locação primeiro.");
                     return;
                 }
@@ -2203,9 +2183,7 @@
                 let carregamentosPendentes = 4; // Quantidade de carregamentos assíncronos
 
                 function verificarCarregamentoCompleto() {
-                    carregamentosPendentes--;
-                    console.log(">>> Carregamentos pendentes:", carregamentosPendentes);
-                    if (carregamentosPendentes <= 0) {
+                    carregamentosPendentes--;if (carregamentosPendentes <= 0) {
                         // Todos os dados foram carregados
                         fecharModalCarregando();
                         
@@ -2511,10 +2489,7 @@
                     url: `/api/locacao_item/${idItem}`,
                     type: 'GET',
                     dataType: 'json',
-                    success: function(data) {
-                        console.log("Dados da locação carregados:", data);
-                        
-                        // Guardar os dados para uso posterior
+                    success: function(data) {// Guardar os dados para uso posterior
                         const itemData = data;
                         
                         // Configurar campos ocultos
@@ -2548,9 +2523,7 @@
                         let carregamentosPendentes = 5; // Número de carregamentos assíncronos
                         
                         function verificarCarregamentoCompleto() {
-                            carregamentosPendentes--;
-                            console.log("Carregamentos pendentes:", carregamentosPendentes);
-                            if (carregamentosPendentes <= 0) {
+                            carregamentosPendentes--;if (carregamentosPendentes <= 0) {
                                 // Todos os dados foram carregados
                                 fecharModalCarregando();
                                 
@@ -2783,10 +2756,7 @@
                     data: formData,
                     processData: false,
                     contentType: false,
-                    success: function(response) {
-                        console.log("Resposta:", response);
-                        
-                        // Mostrar mensagem de sucesso
+                    success: function(response) {// Mostrar mensagem de sucesso
                         $('#mensagemSucesso').text("Devolução registrada com sucesso!");
                         
                         // Fechar modal de devolução e garantir que o botão de salvar está no estado correto
@@ -2845,10 +2815,7 @@
                     url: `/api/locacao_item/${idItem}`,
                     type: 'GET',
                     dataType: 'json',
-                    success: function(data) {
-                        console.log("Dados da locação carregados:", data);
-                        
-                        // Guardar os dados para uso posterior
+                    success: function(data) {// Guardar os dados para uso posterior
                         const itemData = data;
                         
                         // Configurar campos ocultos
@@ -2882,9 +2849,7 @@
                         idLocacaoAtual = idItem;
 
                         function verificarCarregamentoCompleto() {
-                            carregamentosPendentes--;
-                            console.log("Carregamentos pendentes:", carregamentosPendentes);
-                            if (carregamentosPendentes <= 0) {
+                            carregamentosPendentes--;if (carregamentosPendentes <= 0) {
                                 // Todos os dados foram carregados
                                 fecharModalCarregando();
                                 
@@ -3087,10 +3052,7 @@
                     data: formData,
                     processData: false,
                     contentType: false,
-                    success: function(response) {
-                        console.log("Resposta:", response);
-                        
-                        // Mostrar mensagem de sucesso
+                    success: function(response) {// Mostrar mensagem de sucesso
                         $('#mensagemSucesso').text("Registro alterado com sucesso!");
                         
                         // Fechar modal de devolução
@@ -3146,10 +3108,7 @@
                     url: `/api/locacao_visualiza/${idItem}`,
                     type: 'GET',
                     dataType: 'json',
-                    success: function(data) {
-                        console.log("Dados da locação carregados:", data);
-                        
-                        // Guardar os dados para uso posterior
+                    success: function(data) {// Guardar os dados para uso posterior
                         const itemData = data;
                         
                         // Configurar campos ocultos
@@ -3188,9 +3147,7 @@
                         let carregamentosPendentes = 0; // Número de carregamentos assíncronos
                         
                         function verificarCarregamentoCompleto() {
-                            carregamentosPendentes--;
-                            console.log("Carregamentos pendentes:", carregamentosPendentes);
-                            if (carregamentosPendentes <= 0) {
+                            carregamentosPendentes--;if (carregamentosPendentes <= 0) {
                                 // Todos os dados foram carregados
                                 fecharModalCarregando();
                                 
@@ -3824,11 +3781,7 @@
         function calcularDiariasEValoresDev() {
             // Obtém as datas e horas de início e fim
             const dataInicio = new Date($('#dataInicioDev').val() + 'T' + $('#horaInicioDev').val() + ':00');
-            const dataFim = new Date($('#dataFimDev').val() + 'T' + $('#horaFimDev').val() + ':00');
-            
-            console.log("Calculando diárias:", dataInicio, dataFim);
-            
-            if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
+            const dataFim = new Date($('#dataFimDev').val() + 'T' + $('#horaFimDev').val() + ':00');if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
                 console.error("Datas inválidas:", $('#dataInicioDev').val(), $('#horaInicioDev').val(), $('#dataFimDev').val(), $('#horaFimDev').val());
                 return; // Datas inválidas
             }
@@ -3861,18 +3814,12 @@
                 if (mesmaData) {
                     // REGRA: Se for a mesma data, sempre 1 diária, sem hora extra
                     diarias = 1;
-                    valorDiferenca = 0;
-                    console.log("Mesma data - 1 diária, sem hora extra");
-                } else {
+                    valorDiferenca = 0;} else {
                     // Calcular diárias completas (24 horas = 1 diária)
                     diarias = Math.floor(diffHoras / 24);
                     
                     // Calcular horas excedentes
-                    const horasExcedentes = diffHoras % 24;
-                    
-                    console.log(`Horas excedentes: ${horasExcedentes}, Tolerância: ${TOLERANCIA_HORAS}`);
-                    
-                    if (horasExcedentes > TOLERANCIA_HORAS) {
+                    const horasExcedentes = diffHoras % 24;if (horasExcedentes > TOLERANCIA_HORAS) {
                         // REGRA: Cobra TODAS as horas excedentes (não apenas as que passaram da tolerância)
                         const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
                         
@@ -3888,14 +3835,10 @@
                             // Se ultrapassar, adicionar uma diária completa e zerar diferença
                             diarias += 1;
                             valorDiferenca = 0;
-                            console.log("Horas extras convertidas para diária completa");
-                        } else {
-                            console.log(`Cobrando ${horasParaCobranca} horas extras: R$ ${formatarValorMonetario(valorDiferenca)}`);
                         }
                     } else {
                         // Dentro da tolerância - não cobra extra
                         valorDiferenca = 0;
-                        console.log("Dentro da tolerância - sem cobrança extra");
                     }
                     
                     // Garantir no mínimo 1 diária
@@ -3910,16 +3853,8 @@
             // Calcular valor total (sempre recalcular, independente de qual campo foi editado)
             const valorDiaria = converterParaNumero($('#valorDiariaDev').val());
             const qtdDiarias = parseFloat($('#qtdDiariasDev').val() || 0);
-            const valorDiferenca = converterParaNumero($('#valorDifDev').val());
-            
-            console.log("Valores para cálculo:", valorDiaria, qtdDiarias, valorDiferenca);
-            
-            const valorSubTotal = valorDiaria * qtdDiarias;
-            const valorTotal = valorSubTotal + valorDiferenca;
-            
-            console.log("Valores calculados:", valorSubTotal, valorTotal);
-            
-            // Armazenar valor subtotal em campo hidden (assumindo que existe)
+            const valorDiferenca = converterParaNumero($('#valorDifDev').val());const valorSubTotal = valorDiaria * qtdDiarias;
+            const valorTotal = valorSubTotal + valorDiferenca;// Armazenar valor subtotal em campo hidden (assumindo que existe)
             if ($('#valorSubTotalDev').length) {
                 $('#valorSubTotalDev').val(valorSubTotal);
             }
@@ -3932,11 +3867,7 @@
         function calcularDiariasEValoresEdt() {
             // Obtém as datas e horas de início e fim
             const dataInicio = new Date($('#dataInicioEdt').val() + 'T' + $('#horaInicioEdt').val() + ':00');
-            const dataFim = new Date($('#dataFimEdt').val() + 'T' + $('#horaFimEdt').val() + ':00');
-            
-            console.log("Calculando diárias:", dataInicio, dataFim);
-            
-            if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
+            const dataFim = new Date($('#dataFimEdt').val() + 'T' + $('#horaFimEdt').val() + ':00');if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
                 console.error("Datas inválidas:", $('#dataInicioEdt').val(), $('#horaInicioEdt').val(), $('#dataFimEdt').val(), $('#horaFimEdt').val());
                 return; // Datas inválidas
             }
@@ -3996,16 +3927,8 @@
             // Calcular valor total (sempre recalcular, independente de qual campo foi editado)
             const valorDiaria = converterParaNumero($('#valorDiariaEdt').val());
             const qtdDiarias = parseFloat($('#qtdDiariasEdt').val() || 0);
-            const valorDiferenca = converterParaNumero($('#valorDifEdt').val());
-            
-            console.log("Valores para cálculo:", valorDiaria, qtdDiarias, valorDiferenca);
-            
-            const valorSubTotal = valorDiaria * qtdDiarias;
-            const valorTotal = valorSubTotal + valorDiferenca;
-            
-            console.log("Valores calculados:", valorSubTotal, valorTotal);
-            
-            // Armazenar valor subtotal em campo hidden
+            const valorDiferenca = converterParaNumero($('#valorDifEdt').val());const valorSubTotal = valorDiaria * qtdDiarias;
+            const valorTotal = valorSubTotal + valorDiferenca;// Armazenar valor subtotal em campo hidden
             $('#valorSubTotalEdt').val(valorSubTotal);
             
             // Atualizar campos na interface
@@ -4038,9 +3961,7 @@
         }
         
         // Função para selecionar um processo e carregar os dados relacionados
-        function selecionarProcesso(id_cl) {
-            console.log("Selecionando processo ID:", id_cl);
-            processoIdSelecionado = id_cl;
+        function selecionarProcesso(id_cl) {processoIdSelecionado = id_cl;
         
             // Mostrar modal de carregamento
             mostrarModalCarregando();
@@ -4049,10 +3970,7 @@
             const fornecedorNome = $(`#tabela-processos tr:has(td:contains(${id_cl}):first-child) td:nth-child(3)`).text();
             
             // Armazenar no localStorage
-            localStorage.setItem('fornecedorNome', fornecedorNome);
-            console.log("Nome do fornecedor armazenado:", fornecedorNome);
-        
-            // Ocultar todos os processos exceto o selecionado
+            localStorage.setItem('fornecedorNome', fornecedorNome);// Ocultar todos os processos exceto o selecionado
             $(`#tabela-processos tr`).hide();
             $(`#tabela-processos tr[data-id="${id_cl}"]`).show();
             
@@ -4075,9 +3993,7 @@
                 url: `/api/empenhos/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log("Empenhos carregados:", data);
-                    let html = '';
+                success: function(data) {let html = '';
                     if (data.length === 0) {
                         html = '<tr><td colspan="6" class="text-center">Nenhum empenho encontrado</td></tr>';
                     } else {
@@ -4107,9 +4023,7 @@
                 url: `/api/saldo_diarias/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log("Saldo de diárias carregado:", data);
-                    let html = '';
+                success: function(data) {let html = '';
                     if (data.length === 0) {
                         html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
                     } else {
@@ -4141,9 +4055,7 @@
                 url: `/api/sintetico_mensal/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log("Sintético mensal carregado:", data);
-                    let html = '';
+                success: function(data) {let html = '';
                     if (data.length === 0) {
                         html = '<tr><td colspan="5" class="text-center">Nenhum registro encontrado</td></tr>';
                     } else {
@@ -4172,9 +4084,7 @@
                 url: `/api/dados_pls/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log("Dados do PLS carregado:", data);
-                    let html = '';
+                success: function(data) {let html = '';
                     if (data.length === 0) {
                         html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
                     } else {
@@ -4203,9 +4113,7 @@
                 url: `/api/locacoes_transito/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log("Locações em trânsito carregadas:", data);
-                    let html = '';
+                success: function(data) {let html = '';
                     if (data.length === 0) {
                         html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
                     } else {
@@ -4250,9 +4158,7 @@
                 url: `/api/meses_locacoes/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log("Opções de mês/ano carregadas:", data);
-                    let selectHtml = '<option value="Todos">Todos</option>';
+                success: function(data) {let selectHtml = '<option value="Todos">Todos</option>';
                     data.forEach(function(item) {
                         selectHtml += `<option value="${item.MES_ANO}">${item.MES_ANO}</option>`;
                     });
@@ -4270,9 +4176,7 @@
                 url: `/api/locacoes_finalizadas/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log("Locações finalizadas carregadas:", data);
-                    // Armazenar os dados completos para filtrar depois
+                success: function(data) {// Armazenar os dados completos para filtrar depois
                     locacoesFinalizadasCompletas = data;
                     let html = '';
                     if (data.length === 0) {
@@ -4320,9 +4224,7 @@
                 url: `/api/locacoes_finalizadas/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
-                    console.log("Locações finalizadas carregadas:", data);
-                    // Armazenar os dados completos para filtrar depois
+                success: function(data) {// Armazenar os dados completos para filtrar depois
                     locacoesFinalizadasCompletas = data;
                     let html = '';
                     if (data.length === 0) {
@@ -4365,9 +4267,7 @@
         }
 
         // Nova função para sair do processo selecionado
-        function sairProcesso(id_cl) {
-            console.log("Saindo do processo ID:", id_cl);
-            processoIdSelecionado = null;
+        function sairProcesso(id_cl) {processoIdSelecionado = null;
             
             // Limpar localStorage
             localStorage.removeItem('fornecedorNome');
