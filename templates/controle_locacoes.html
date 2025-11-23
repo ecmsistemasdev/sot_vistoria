@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -109,6 +110,46 @@
                 bottom: 10px;
             }
         }
+
+        /* Autocomplete Setor */
+        .autocomplete-list {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: none;
+            width: calc(100% - 24px);
+        }
+
+        .autocomplete-list.visible {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .autocomplete-item-highlight {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+
+        .autocomplete-item:hover .autocomplete-item-highlight {
+            color: white;
+        }
+
     </style>
 </head>
 <body>
@@ -453,9 +494,8 @@
                         </div>
                         <div class="col-md-6">
                             <label for="setorSolicitante" class="form-label small">Setor Solicitante</label>
-                            <select class="form-select form-select-sm" id="setorSolicitante" required>
-                                <option value="">Selecione...</option>
-                            </select>
+                            <input type="text" class="form-control form-control-sm" id="setorSolicitante" required>
+                            <div id="setorAutocompleteList" class="autocomplete-list"></div>
                         </div>
                         <div class="col-md-8">
                             <label for="objetivo" class="form-label small">Objetivo</label>
@@ -555,9 +595,8 @@
                         </div>
                         <div class="col-md-6">
                             <label for="setorSolicitanteDev" class="form-label small">Setor Solicitante</label>
-                            <select class="form-select form-select-sm" id="setorSolicitanteDev" required>
-                                <option value="">Selecione...</option>
-                            </select>
+                            <input type="text" class="form-control form-control-sm" id="setorSolicitanteDev" required>
+                            <div id="setorAutocompleteListDev" class="autocomplete-list"></div>
                         </div>
                         <div class="col-md-12">
                             <label for="objetivoDev" class="form-label small">Objetivo</label>
@@ -680,9 +719,8 @@
                         </div>
                         <div class="col-md-6">
                             <label for="setorSolicitanteEdt" class="form-label small">Setor Solicitante</label>
-                            <select class="form-select form-select-sm" id="setorSolicitanteEdt" required>
-                                <option value="">Selecione...</option>
-                            </select>
+                            <input type="text" class="form-control form-control-sm" id="setorSolicitanteEdt" required>
+                            <div id="setorAutocompleteListEdt" class="autocomplete-list"></div>
                         </div>
                         <div class="col-md-12">
                             <label for="objetivoEdt" class="form-label small">Objetivo</label>
@@ -1040,9 +1078,303 @@
         let qtdDiariasEditadaManualmente = false;
         let valorDifEditadoManualmente = false;
         let idLocacaoAtual;
+        // Variáveis para autocomplete de setores
+        let setorAutocompleteTimeout = null;
+        let setorSelectedIndex = -1;
+        let setorAutocompleteTimeoutDev = null;
+        let setorSelectedIndexDev = -1;
+        let setorAutocompleteTimeoutEdt = null;
+        let setorSelectedIndexEdt = -1;
         
         const TOLERANCIA_HORAS = 2; // 2 horas de tolerância
         const FRACAO_HORA_EXTRA = 0.1; // 1/10 do valor da diária por hora extra
+
+        // ========== AUTOCOMPLETE SETOR - NOVA LOCAÇÃO ==========
+        async function buscarSetores(termo) {
+            if (termo.length < 2) {
+                esconderAutocompleteSetor();
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/agenda_busca_setor?termo=${encodeURIComponent(termo)}`);
+                const setores = await res.json();
+                
+                if (setores.length > 0) {
+                    exibirAutocompleteSetor(setores, termo);
+                } else {
+                    esconderAutocompleteSetor();
+                }
+            } catch (error) {
+                console.error('Erro ao buscar setores:', error);
+                esconderAutocompleteSetor();
+            }
+        }
+
+        function exibirAutocompleteSetor(setores, termo) {
+            const lista = document.getElementById('setorAutocompleteList');
+            const termoLower = termo.toLowerCase();
+            
+            lista.innerHTML = setores.map((setor, index) => {
+                const indexTermo = setor.toLowerCase().indexOf(termoLower);
+                let setorHTML = setor;
+                
+                if (indexTermo !== -1) {
+                    const antes = setor.substring(0, indexTermo);
+                    const match = setor.substring(indexTermo, indexTermo + termo.length);
+                    const depois = setor.substring(indexTermo + termo.length);
+                    setorHTML = `${antes}<span class="autocomplete-item-highlight">${match}</span>${depois}`;
+                }
+                
+                return `<div class="autocomplete-item" data-index="${index}" data-value="${setor}">${setorHTML}</div>`;
+            }).join('');
+            
+            lista.classList.add('visible');
+            setorSelectedIndex = -1;
+            
+            lista.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    selecionarSetor(this.dataset.value);
+                });
+                
+                item.addEventListener('mouseenter', function() {
+                    removerSelecaoAutocomplete();
+                    this.classList.add('selected');
+                    setorSelectedIndex = parseInt(this.dataset.index);
+                });
+            });
+        }
+
+        function esconderAutocompleteSetor() {
+            const lista = document.getElementById('setorAutocompleteList');
+            lista.classList.remove('visible');
+            lista.innerHTML = '';
+            setorSelectedIndex = -1;
+        }
+
+        function selecionarSetor(valor) {
+            document.getElementById('setorSolicitante').value = valor;
+            esconderAutocompleteSetor();
+        }
+
+        function removerSelecaoAutocomplete() {
+            const lista = document.getElementById('setorAutocompleteList');
+            lista.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        function navegarAutocompleteSetor(direcao) {
+            const lista = document.getElementById('setorAutocompleteList');
+            const itens = lista.querySelectorAll('.autocomplete-item');
+            
+            if (itens.length === 0) return;
+            
+            removerSelecaoAutocomplete();
+            
+            if (direcao === 'down') {
+                setorSelectedIndex = (setorSelectedIndex + 1) % itens.length;
+            } else if (direcao === 'up') {
+                setorSelectedIndex = setorSelectedIndex <= 0 ? itens.length - 1 : setorSelectedIndex - 1;
+            }
+            
+            if (setorSelectedIndex >= 0 && setorSelectedIndex < itens.length) {
+                itens[setorSelectedIndex].classList.add('selected');
+                itens[setorSelectedIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        // ========== AUTOCOMPLETE SETOR - DEVOLUÇÃO ==========
+        async function buscarSetoresDev(termo) {
+            if (termo.length < 2) {
+                esconderAutocompleteSetorDev();
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/agenda_busca_setor?termo=${encodeURIComponent(termo)}`);
+                const setores = await res.json();
+                
+                if (setores.length > 0) {
+                    exibirAutocompleteSetorDev(setores, termo);
+                } else {
+                    esconderAutocompleteSetorDev();
+                }
+            } catch (error) {
+                console.error('Erro ao buscar setores:', error);
+                esconderAutocompleteSetorDev();
+            }
+        }
+
+        function exibirAutocompleteSetorDev(setores, termo) {
+            const lista = document.getElementById('setorAutocompleteListDev');
+            const termoLower = termo.toLowerCase();
+            
+            lista.innerHTML = setores.map((setor, index) => {
+                const indexTermo = setor.toLowerCase().indexOf(termoLower);
+                let setorHTML = setor;
+                
+                if (indexTermo !== -1) {
+                    const antes = setor.substring(0, indexTermo);
+                    const match = setor.substring(indexTermo, indexTermo + termo.length);
+                    const depois = setor.substring(indexTermo + termo.length);
+                    setorHTML = `${antes}<span class="autocomplete-item-highlight">${match}</span>${depois}`;
+                }
+                
+                return `<div class="autocomplete-item" data-index="${index}" data-value="${setor}">${setorHTML}</div>`;
+            }).join('');
+            
+            lista.classList.add('visible');
+            setorSelectedIndexDev = -1;
+            
+            lista.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    selecionarSetorDev(this.dataset.value);
+                });
+                
+                item.addEventListener('mouseenter', function() {
+                    removerSelecaoAutocompleteDev();
+                    this.classList.add('selected');
+                    setorSelectedIndexDev = parseInt(this.dataset.index);
+                });
+            });
+        }
+
+        function esconderAutocompleteSetorDev() {
+            const lista = document.getElementById('setorAutocompleteListDev');
+            lista.classList.remove('visible');
+            lista.innerHTML = '';
+            setorSelectedIndexDev = -1;
+        }
+
+        function selecionarSetorDev(valor) {
+            document.getElementById('setorSolicitanteDev').value = valor;
+            esconderAutocompleteSetorDev();
+        }
+
+        function removerSelecaoAutocompleteDev() {
+            const lista = document.getElementById('setorAutocompleteListDev');
+            lista.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        function navegarAutocompleteSetorDev(direcao) {
+            const lista = document.getElementById('setorAutocompleteListDev');
+            const itens = lista.querySelectorAll('.autocomplete-item');
+            
+            if (itens.length === 0) return;
+            
+            removerSelecaoAutocompleteDev();
+            
+            if (direcao === 'down') {
+                setorSelectedIndexDev = (setorSelectedIndexDev + 1) % itens.length;
+            } else if (direcao === 'up') {
+                setorSelectedIndexDev = setorSelectedIndexDev <= 0 ? itens.length - 1 : setorSelectedIndexDev - 1;
+            }
+            
+            if (setorSelectedIndexDev >= 0 && setorSelectedIndexDev < itens.length) {
+                itens[setorSelectedIndexDev].classList.add('selected');
+                itens[setorSelectedIndexDev].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        // ========== AUTOCOMPLETE SETOR - EDIÇÃO ==========
+        async function buscarSetoresEdt(termo) {
+            if (termo.length < 2) {
+                esconderAutocompleteSetorEdt();
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/agenda_busca_setor?termo=${encodeURIComponent(termo)}`);
+                const setores = await res.json();
+                
+                if (setores.length > 0) {
+                    exibirAutocompleteSetorEdt(setores, termo);
+                } else {
+                    esconderAutocompleteSetorEdt();
+                }
+            } catch (error) {
+                console.error('Erro ao buscar setores:', error);
+                esconderAutocompleteSetorEdt();
+            }
+        }
+
+        function exibirAutocompleteSetorEdt(setores, termo) {
+            const lista = document.getElementById('setorAutocompleteListEdt');
+            const termoLower = termo.toLowerCase();
+            
+            lista.innerHTML = setores.map((setor, index) => {
+                const indexTermo = setor.toLowerCase().indexOf(termoLower);
+                let setorHTML = setor;
+                
+                if (indexTermo !== -1) {
+                    const antes = setor.substring(0, indexTermo);
+                    const match = setor.substring(indexTermo, indexTermo + termo.length);
+                    const depois = setor.substring(indexTermo + termo.length);
+                    setorHTML = `${antes}<span class="autocomplete-item-highlight">${match}</span>${depois}`;
+                }
+                
+                return `<div class="autocomplete-item" data-index="${index}" data-value="${setor}">${setorHTML}</div>`;
+            }).join('');
+            
+            lista.classList.add('visible');
+            setorSelectedIndexEdt = -1;
+            
+            lista.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    selecionarSetorEdt(this.dataset.value);
+                });
+                
+                item.addEventListener('mouseenter', function() {
+                    removerSelecaoAutocompleteEdt();
+                    this.classList.add('selected');
+                    setorSelectedIndexEdt = parseInt(this.dataset.index);
+                });
+            });
+        }
+
+        function esconderAutocompleteSetorEdt() {
+            const lista = document.getElementById('setorAutocompleteListEdt');
+            lista.classList.remove('visible');
+            lista.innerHTML = '';
+            setorSelectedIndexEdt = -1;
+        }
+
+        function selecionarSetorEdt(valor) {
+            document.getElementById('setorSolicitanteEdt').value = valor;
+            esconderAutocompleteSetorEdt();
+        }
+
+        function removerSelecaoAutocompleteEdt() {
+            const lista = document.getElementById('setorAutocompleteListEdt');
+            lista.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        function navegarAutocompleteSetorEdt(direcao) {
+            const lista = document.getElementById('setorAutocompleteListEdt');
+            const itens = lista.querySelectorAll('.autocomplete-item');
+            
+            if (itens.length === 0) return;
+            
+            removerSelecaoAutocompleteEdt();
+            
+            if (direcao === 'down') {
+                setorSelectedIndexEdt = (setorSelectedIndexEdt + 1) % itens.length;
+            } else if (direcao === 'up') {
+                setorSelectedIndexEdt = setorSelectedIndexEdt <= 0 ? itens.length - 1 : setorSelectedIndexEdt - 1;
+            }
+            
+            if (setorSelectedIndexEdt >= 0 && setorSelectedIndexEdt < itens.length) {
+                itens[setorSelectedIndexEdt].classList.add('selected');
+                itens[setorSelectedIndexEdt].scrollIntoView({ block: 'nearest' });
+            }
+        }
+        // FIM DAS FUNÇÕES autocomplete SETOR  
+
 
         // Função para formatar valores monetários para exibição
         function formatarValorMonetario(valor) {
@@ -1107,6 +1439,150 @@
 
         // Carregar lista de processos ao iniciar a página
         $(document).ready(function() {
+
+            // Inicializar autocomplete para Nova Locação
+            $('#setorSolicitante').on('input', function() {
+                const termo = this.value.trim();
+                
+                if (setorAutocompleteTimeout) {
+                    clearTimeout(setorAutocompleteTimeout);
+                }
+                
+                setorAutocompleteTimeout = setTimeout(() => {
+                    buscarSetores(termo);
+                }, 300);
+            });
+
+            $('#setorSolicitante').on('keydown', function(e) {
+                const lista = document.getElementById('setorAutocompleteList');
+                
+                if (!lista.classList.contains('visible')) return;
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    navegarAutocompleteSetor('down');
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    navegarAutocompleteSetor('up');
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const itens = lista.querySelectorAll('.autocomplete-item');
+                    if (setorSelectedIndex >= 0 && setorSelectedIndex < itens.length) {
+                        selecionarSetor(itens[setorSelectedIndex].dataset.value);
+                    }
+                } else if (e.key === 'Escape') {
+                    esconderAutocompleteSetor();
+                }
+            });
+
+            $('#setorSolicitante').on('blur', function() {
+                setTimeout(() => {
+                    esconderAutocompleteSetor();
+                }, 200);
+            });
+
+            $('#setorSolicitante').on('focus', function() {
+                const termo = this.value.trim();
+                if (termo.length >= 2) {
+                    buscarSetores(termo);
+                }
+            });
+
+            // Inicializar autocomplete para Devolução
+            $('#setorSolicitanteDev').on('input', function() {
+                const termo = this.value.trim();
+                
+                if (setorAutocompleteTimeoutDev) {
+                    clearTimeout(setorAutocompleteTimeoutDev);
+                }
+                
+                setorAutocompleteTimeoutDev = setTimeout(() => {
+                    buscarSetoresDev(termo);
+                }, 300);
+            });
+
+            $('#setorSolicitanteDev').on('keydown', function(e) {
+                const lista = document.getElementById('setorAutocompleteListDev');
+                
+                if (!lista.classList.contains('visible')) return;
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    navegarAutocompleteSetorDev('down');
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    navegarAutocompleteSetorDev('up');
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const itens = lista.querySelectorAll('.autocomplete-item');
+                    if (setorSelectedIndexDev >= 0 && setorSelectedIndexDev < itens.length) {
+                        selecionarSetorDev(itens[setorSelectedIndexDev].dataset.value);
+                    }
+                } else if (e.key === 'Escape') {
+                    esconderAutocompleteSetorDev();
+                }
+            });
+
+            $('#setorSolicitanteDev').on('blur', function() {
+                setTimeout(() => {
+                    esconderAutocompleteSetorDev();
+                }, 200);
+            });
+
+            $('#setorSolicitanteDev').on('focus', function() {
+                const termo = this.value.trim();
+                if (termo.length >= 2) {
+                    buscarSetoresDev(termo);
+                }
+            });
+
+            // Inicializar autocomplete para Edição
+            $('#setorSolicitanteEdt').on('input', function() {
+                const termo = this.value.trim();
+                
+                if (setorAutocompleteTimeoutEdt) {
+                    clearTimeout(setorAutocompleteTimeoutEdt);
+                }
+                
+                setorAutocompleteTimeoutEdt = setTimeout(() => {
+                    buscarSetoresEdt(termo);
+                }, 300);
+            });
+
+            $('#setorSolicitanteEdt').on('keydown', function(e) {
+                const lista = document.getElementById('setorAutocompleteListEdt');
+                
+                if (!lista.classList.contains('visible')) return;
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    navegarAutocompleteSetorEdt('down');
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    navegarAutocompleteSetorEdt('up');
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const itens = lista.querySelectorAll('.autocomplete-item');
+                    if (setorSelectedIndexEdt >= 0 && setorSelectedIndexEdt < itens.length) {
+                        selecionarSetorEdt(itens[setorSelectedIndexEdt].dataset.value);
+                    }
+                } else if (e.key === 'Escape') {
+                    esconderAutocompleteSetorEdt();
+                }
+            });
+
+            $('#setorSolicitanteEdt').on('blur', function() {
+                setTimeout(() => {
+                    esconderAutocompleteSetorEdt();
+                }, 200);
+            });
+
+            $('#setorSolicitanteEdt').on('focus', function() {
+                const termo = this.value.trim();
+                if (termo.length >= 2) {
+                    buscarSetoresEdt(termo);
+                }
+            });
 
             // Configuração dos splitters
             function setupSplitters() {
@@ -1723,7 +2199,7 @@
                 $('#horaInicio').val('07:00');
 
                 // Contador para controlar carregamentos pendentes
-                let carregamentosPendentes = 5; // Quantidade de carregamentos assíncronos
+                let carregamentosPendentes = 4; // Quantidade de carregamentos assíncronos
 
                 function verificarCarregamentoCompleto() {
                     carregamentosPendentes--;
@@ -1784,25 +2260,25 @@
                     }
                 });
 
-                // Carregar setores com callback
-                $.ajax({
-                    url: '/api/setores_loc',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        let html = '<option value="">Selecione...</option>';
-                        data.forEach(function(item) {
-                            html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
-                        });
-                        $('#setorSolicitante').html(html);
-                        verificarCarregamentoCompleto();
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("Erro ao carregar setores:", error);
-                        alert("Erro ao carregar lista de setores.");
-                        verificarCarregamentoCompleto();
-                    }
-                });
+                // // Carregar setores com callback
+                // $.ajax({
+                //     url: '/api/setores_loc',
+                //     type: 'GET',
+                //     dataType: 'json',
+                //     success: function(data) {
+                //         let html = '<option value="">Selecione...</option>';
+                //         data.forEach(function(item) {
+                //             html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+                //         });
+                //         $('#setorSolicitante').html(html);
+                //         verificarCarregamentoCompleto();
+                //     },
+                //     error: function(xhr, status, error) {
+                //         console.error("Erro ao carregar setores:", error);
+                //         alert("Erro ao carregar lista de setores.");
+                //         verificarCarregamentoCompleto();
+                //     }
+                // });
                 
                 // Carregar motoristas com callback
                 $.ajax({
@@ -2752,36 +3228,36 @@
 
             // Evento de clique no botão de confirmar exclusão
             $(document).on('click', '#btnConfirmarExclusao', function() {
-                // Desabilita o botão para evitar cliques múltiplos
-                
                 const idItem = $('#idItemEdt').val();
-                idLocacaoAtual = idItem;
-
+                
+                // Desabilita o botão para evitar cliques múltiplos
                 $(this).prop('disabled', true);
                 $(this).html('<i class="fas fa-spinner fa-spin"></i> Excluindo...');
                 
-                
                 // Faz a requisição AJAX para excluir a locação
                 $.ajax({
-                    url: `api/excluir_locacao/${idLocacaoAtual}`,
+                    url: `api/excluir_locacao/${idItem}`,
                     type: 'DELETE',
                     success: function(response) {
                         // Fecha o modal de confirmação
                         $('#modalConfirmacaoExclusao').modal('hide');
                         
+                        // Reativa o botão
+                        $('#btnConfirmarExclusao').prop('disabled', false);
+                        $('#btnConfirmarExclusao').html('<i class="fas fa-trash"></i> Excluir');
+                        
+                        // Fecha o modal de edição
+                        $('#modalEditarLocacao').modal('hide');
+                        
                         // Exibe mensagem de sucesso
-                        Swal.fire({
-                            title: 'Sucesso!',
-                            text: 'Locação excluída com sucesso.',
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        }).then(() => {
-                            // Recarregar locações em trânsito se a função existir
-                            if (typeof carregarLocacoesTransito === 'function') {
-                                carregarLocacoesTransito(processoIdSelecionado);
-                            }
-
-                        });
+                        $('#mensagemSucesso').text('Locação excluída com sucesso!');
+                        const modalSucesso = new bootstrap.Modal(document.getElementById('modalSucesso'));
+                        modalSucesso.show();
+                        
+                        // Recarregar TODAS as listas
+                        if (processoIdSelecionado) {
+                            carregarTodasAsListas(processoIdSelecionado);
+                        }
                     },
                     error: function(xhr, status, error) {
                         // Reativa o botão
@@ -2789,15 +3265,11 @@
                         $('#btnConfirmarExclusao').html('<i class="fas fa-trash"></i> Excluir');
                         
                         // Exibe mensagem de erro
-                        Swal.fire({
-                            title: 'Erro!',
-                            text: 'Não foi possível excluir a locação. ' + (xhr.responseJSON?.message || error),
-                            icon: 'error',
-                            confirmButtonText: 'OK'
-                        });
+                        alert('Não foi possível excluir a locação. ' + (xhr.responseJSON?.message || error));
                     }
                 });
             });
+
 
             // // Se o modal de edição for fechado, limpa o ID atual da locação
             // $('#modalEditarLocacao').on('hidden.bs.modal', function() {
@@ -2817,25 +3289,178 @@
 
         });
 
-        // Função para carregar setores  - Form Nova Locação
-        function carregarSetores() {
+        // Função para recarregar todas as listas após exclusão
+        function carregarTodasAsListas(id_cl) {
+            // Carregar empenhos
             $.ajax({
-                url: '/api/setores_loc',
+                url: `/api/empenhos/${id_cl}`,
                 type: 'GET',
                 dataType: 'json',
                 success: function(data) {
-                    let html = '<option value="">Selecione...</option>';
-                    data.forEach(function(item) {
-                        html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
-                    });
-                    $('#setorSolicitante').html(html);
-                },
-                error: function(xhr, status, error) {
-                    console.error("Erro ao carregar setores:", error);
-                    alert("Erro ao carregar lista de setores.");
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="6" class="text-center">Nenhum empenho encontrado</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.NU_EMPENHO}</td>
+                                <td>R$ ${formatarValor(item.VL_EMPENHO)}</td>
+                                <td>R$ ${formatarValor(item.VL_LIQUIDADO)}</td>
+                                <td>R$ ${formatarValor(item.VL_SALDO)}</td>
+                                <td>R$ ${formatarValor(item.VL_ALIQUIDAR)}</td>
+                                <td>R$ ${formatarValor(item.VL_SALDO_DISPONIVEL)}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-empenhos').html(html);
                 }
             });
-        }
+            
+            // Carregar saldo de diárias
+            $.ajax({
+                url: `/api/saldo_diarias/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="8" class="text-center">Nenhum registro encontrado</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.DE_VEICULO}</td>
+                                <td>R$ ${formatarValor(item.VL_DIARIA_KM)}</td>
+                                <td>${item.QT_DK}</td>
+                                <td>${item.QT_UTILIZADO}</td>
+                                <td>${item.QT_SALDO}</td>
+                                <td>R$ ${formatarValor(item.VALOR_TOTAL)}</td>
+                                <td>R$ ${formatarValor(item.VL_UTILIZADO)}</td>
+                                <td>R$ ${formatarValor(item.VL_SALDO)}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-saldo-diarias').html(html);
+                }
+            });
+            
+            // Carregar sintético mensal
+            $.ajax({
+                url: `/api/sintetico_mensal/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="5" class="text-center">Nenhum registro encontrado</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.MESANO}</td>
+                                <td>R$ ${formatarValor(item.SUBTOTAL)}</td>
+                                <td>R$ ${formatarValor(item.HORA_EXTRA)}</td>
+                                <td>R$ ${formatarValor(item.TOTAL)}</td>
+                                <td>${item.TOTAL_KM}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-sintetico-mensal').html(html);
+                }
+            });
+            
+            // Carregar dados do PLS
+            $.ajax({
+                url: `/api/dados_pls/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="5" class="text-center">Nenhum registro encontrado</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.MES_ANO}</td>
+                                <td>${item.QTD}</td>
+                                <td>${item.KM}</td>
+                                <td>R$ ${formatarValor(item.VLTOTAL)}</td>
+                                <td>${item.COMBUSTIVEL}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-dados-pls').html(html);
+                }
+            });
+            
+            // Carregar locações em trânsito
+            $.ajax({
+                url: `/api/locacoes_transito/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<tr><td colspan="10" class="text-center">Nenhuma locação em trânsito encontrada</td></tr>';
+                    } else {
+                        data.forEach(function(item) {
+                            html += `<tr>
+                                <td>${item.ID_ITEM}</td>
+                                <td>${item.MES_ANO}</td>
+                                <td>${item.DE_VEICULO}</td>
+                                <td>${item.DS_VEICULO_MOD}</td>
+                                <td>${formatarDataString(item.DT_INICIAL)}</td>
+                                <td>${formatarDataString(item.DT_FINAL)}</td>
+                                <td>${item.QT_DIARIA_KM}</td>
+                                <td>R$ ${formatarValor(item.VL_TOTALITEM)}</td>
+                                <td>${item.MOTORISTA}</td>
+                                <td class="sticky-column">
+                                    <div class="d-flex justify-content-around">
+                                        <a href="javascript:void(0)" class="btn btn-sm btn-primary" title="Abrir">
+                                            <i class="fas fa-folder-open"></i>
+                                        </a>
+                                        <a href="javascript:void(0)" class="btn btn-sm btn-danger ms-1" title="Devolução">
+                                            <i class="fas fa-arrow-right-to-bracket"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                    $('#tabela-transito').html(html);
+                }
+            });
+            
+            // Carregar locações finalizadas
+            $.ajax({
+                url: `/api/locacoes_finalizadas/${id_cl}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    locacoesFinalizadasCompletas = data;
+                    aplicarFiltroMesAno();
+                }
+            });
+        }        
+        
+        
+        // Função para carregar setores  - Form Nova Locação
+        // function carregarSetores() {
+        //     $.ajax({
+        //         url: '/api/setores_loc',
+        //         type: 'GET',
+        //         dataType: 'json',
+        //         success: function(data) {
+        //             let html = '<option value="">Selecione...</option>';
+        //             data.forEach(function(item) {
+        //                 html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+        //             });
+        //             $('#setorSolicitante').html(html);
+        //         },
+        //         error: function(xhr, status, error) {
+        //             console.error("Erro ao carregar setores:", error);
+        //             alert("Erro ao carregar lista de setores.");
+        //         }
+        //     });
+        // }
         
         // Função para carregar motoristas - Form Nova Locação
         function carregarMotoristas() {
@@ -2901,24 +3526,24 @@
         }
         
         // Função para carregar setores  - Form Devolução Locação
-        function carregarSetoresDev() {
-            $.ajax({
-                url: '/api/setores_loc',
-                type: 'GET',
-                dataType: 'json',
-                success: function(data) {
-                    let html = '<option value="">Selecione...</option>';
-                    data.forEach(function(item) {
-                        html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
-                    });
-                    $('#setorSolicitanteDev').html(html);
-                },
-                error: function(xhr, status, error) {
-                    console.error("Erro ao carregar setores:", error);
-                    alert("Erro ao carregar lista de setores.");
-                }
-            });
-        }
+        // function carregarSetoresDev() {
+        //     $.ajax({
+        //         url: '/api/setores_loc',
+        //         type: 'GET',
+        //         dataType: 'json',
+        //         success: function(data) {
+        //             let html = '<option value="">Selecione...</option>';
+        //             data.forEach(function(item) {
+        //                 html += `<option value="${item.SIGLA_SETOR}">${item.SIGLA_SETOR}</option>`;
+        //             });
+        //             $('#setorSolicitanteDev').html(html);
+        //         },
+        //         error: function(xhr, status, error) {
+        //             console.error("Erro ao carregar setores:", error);
+        //             alert("Erro ao carregar lista de setores.");
+        //         }
+        //     });
+        // }
         
         // Função para carregar motoristas - Form Devolução Locação
         function carregarMotoristasDev() {
