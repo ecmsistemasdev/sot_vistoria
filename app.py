@@ -1946,7 +1946,7 @@ def verificar_vinculo_locacao():
         
         # SQL 1: Buscar vínculo de locação
         sql_vinculo = """
-            SELECT ID_VEICULO_LOC, VL_DIARIA_KM 
+            SELECT ID_VEICULO_LOC, VL_DIARIA_KM, DE_VEICULO 
             FROM TJ_VEICULO_LOCACAO
             WHERE ID_TIPOVEICULO = %s
         """
@@ -1959,6 +1959,8 @@ def verificar_vinculo_locacao():
         
         id_veiculo_loc = vinculo[0]
         vl_diaria_km = float(vinculo[1])
+        de_veiculo_loc = vinculo[2]
+        
         
         # SQL 2: Buscar empenhos ativos
         sql_empenhos = """
@@ -1997,13 +1999,14 @@ def verificar_vinculo_locacao():
             'vl_diaria_km': vl_diaria_km,
             'empenhos': empenhos,
             'tem_cnh': tem_cnh,
-            'id_cl': 3  # ID fixo conforme SQL
+            'de_veiculo_loc': de_veiculo_loc,
+            'id_cl': 3 # ID fixo conforme SQL    
         })
         
     except Exception as e:
         print(f"Erro ao verificar vínculo de locação: {str(e)}")
         return jsonify({'erro': str(e), 'tem_vinculo': False}), 500
-
+		
 @app.route('/api/verificar_locacao_existente', methods=['GET'])
 @login_required
 def verificar_locacao_existente():
