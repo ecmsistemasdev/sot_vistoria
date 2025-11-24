@@ -2140,9 +2140,8 @@ def nova_locacao():
         
         # Enviar e-mail para a empresa locadora
         email_enviado, erro_email = enviar_email_locacao(
-            id_item, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'],
-            dt_inicial, dt_final, hr_inicial, de_veiculo, obs,
-            nome_arquivo_cnh, motorista_email, file_pdf  # Passando o conteúdo do PDF
+            id_item, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'], dt_inicial, dt_final, hr_inicial, 
+			de_veiculo, obs, nome_arquivo_cnh, motorista_email, objetivo, file_pdf  # Passando o conteúdo do PDF
         )
         
         response_data = {
@@ -2165,7 +2164,7 @@ def nova_locacao():
         }), 500
 		
         
-def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, file_pdf_content=None):
+def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, objetivo, file_pdf_content=None):
     try:
         # Importar pytz para timezone
         from pytz import timezone
@@ -2267,6 +2266,14 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
                             <td style="padding: 3px 0; color: #374151; font-weight: 500;">
                                 {info_condutor}
                             </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 3px 0; font-weight: bold; color: #1e3a8a; font-size: 15px; vertical-align: top;">
+                                🛤️ Objetivo:
+                            </td>
+                            <td style="padding: 3px 0; color: #374151; font-weight: 500;">
+                                {objetivo}
+                            </td>							
                         </tr>
                         <tr>
                             <td style="padding: 3px 0; font-weight: bold; color: #1e3a8a; font-size: 15px; vertical-align: top;">
