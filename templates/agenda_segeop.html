@@ -4713,6 +4713,7 @@
             }
             
             // ========== EVENT LISTENER CONSOLIDADO PARA TODOS OS MODAIS ==========
+            /*
             window.addEventListener('click', function(event) {
                 // Modal principal de demanda
                 const modal = document.getElementById('modal');
@@ -4753,6 +4754,60 @@
                 const modalFeriados = document.getElementById('modalFeriados');
                 if (event.target === modalFeriados) {
                     fecharModalFeriados();
+                }
+            });
+            */
+
+            // ========== EVENT LISTENER SELETIVO - NÃO FECHA MODAIS DE FORMULÁRIO ==========
+            window.addEventListener('click', function(event) {
+                // Modais de alerta e confirmação padrão (PODEM fechar ao clicar fora)
+                const modalAlerta = document.getElementById('modalAlerta');
+                const modalConfirmacao = document.getElementById('modalConfirmacao');
+                
+                if (event.target === modalAlerta) {
+                    fecharModalAlerta();
+                }
+                
+                if (event.target === modalConfirmacao) {
+                    fecharModalConfirmacao(false);
+                }
+                
+                // Modal de sucesso de locação (PODE fechar ao clicar fora)
+                const modalSucessoLocacao = document.getElementById('modalSucessoLocacao');
+                if (event.target === modalSucessoLocacao) {
+                    fecharModalSucessoLocacao();
+                }
+                
+                // Modal de feriados (PODE fechar ao clicar fora)
+                const modalFeriados = document.getElementById('modalFeriados');
+                if (event.target === modalFeriados) {
+                    fecharModalFeriados();
+                }
+                
+                // NOTA: Os seguintes modais NÃO fecham ao clicar fora:
+                // - modal (Nova/Editar Demanda)
+                // - modalFormLocacao (Formulário de Locação)
+                // - modalConfirmacaoLocacao (Confirmação de Locação)
+            });
+
+            // ========== TECLA ESC PARA MODAIS DE ALERTA ==========
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    // Verificar quais modais estão abertos
+                    const modalAlerta = document.getElementById('modalAlerta');
+                    const modalSucessoLocacao = document.getElementById('modalSucessoLocacao');
+                    const modalFeriados = document.getElementById('modalFeriados');
+                    
+                    // Fechar apenas modais não-críticos
+                    if (modalAlerta.style.display === 'block') {
+                        fecharModalAlerta();
+                    } else if (modalSucessoLocacao.style.display === 'block') {
+                        fecharModalSucessoLocacao();
+                    } else if (modalFeriados.style.display === 'block') {
+                        fecharModalFeriados();
+                    }
+                    
+                    // NÃO fecha modal de demanda, locação ou confirmação de locação
                 }
             });
 
