@@ -2269,7 +2269,7 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
                         </tr>
                         <tr>
                             <td style="padding: 3px 0; font-weight: bold; color: #1e3a8a; font-size: 15px; vertical-align: top;">
-                                🛤️ Objetivo:
+                                🔂 Objetivo:
                             </td>
                             <td style="padding: 3px 0; color: #374151; font-weight: 500;">
                                 {objetivo}
