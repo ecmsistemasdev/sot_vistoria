@@ -1233,8 +1233,8 @@
             /* Destaque sutil nas células N. e Nome ao passar mouse na linha */
             .col-numero.row-hover,
             .col-nome.row-hover {
-                filter: brightness(0.92);
-                transition: filter 0.2s ease;
+                filter: brightness(0.94);
+                transition: filter 0.15s ease;
             }
             
             /* Alternativa com zoom sutil na fonte */
@@ -2663,34 +2663,25 @@
                             // Mouseenter - adicionar destaque
                             celula.addEventListener('mouseenter', function() {
                                 if (celulaNumero) {
-                                    // Escolha um dos três efeitos:
-                                    celulaNumero.classList.add('row-hover-combined'); // Escurecer + Zoom combinados
-                                    // celulaNumero.classList.add('row-hover'); // Apenas escurecer
-                                    // celulaNumero.classList.add('row-hover-zoom'); // Apenas zoom
+                                    celulaNumero.classList.add('row-hover');
                                 }
                                 if (celulaNome) {
-                                    celulaNome.classList.add('row-hover-combined'); // Escurecer + Zoom combinados
-                                    // celulaNome.classList.add('row-hover'); // Apenas escurecer
-                                    // celulaNome.classList.add('row-hover-zoom'); // Apenas zoom
+                                    celulaNome.classList.add('row-hover');
                                 }
                             });
                             
                             // Mouseleave - remover destaque
                             celula.addEventListener('mouseleave', function() {
                                 if (celulaNumero) {
-                                    celulaNumero.classList.remove('row-hover-combined');
                                     celulaNumero.classList.remove('row-hover');
-                                    celulaNumero.classList.remove('row-hover-zoom');
                                 }
                                 if (celulaNome) {
-                                    celulaNome.classList.remove('row-hover-combined');
                                     celulaNome.classList.remove('row-hover');
-                                    celulaNome.classList.remove('row-hover-zoom');
                                 }
                             });
                         });
                     });
-                }, 500); // Aguardar 500ms para garantir que as tabelas foram renderizadas
+                }, 500);
             }
             
             async function init() {
