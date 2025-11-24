@@ -4399,7 +4399,7 @@
                 const definirHorario = document.getElementById('definirHorario').checked;
                 const horario = document.getElementById('horario').value;
                 const expandirVeiculos = document.getElementById('expandirVeiculos').checked;
-
+            
                 // Validar horário se checkbox estiver marcado
                 if (definirHorario) {
                     if (!horario) {
@@ -4411,7 +4411,7 @@
                         return;
                     }
                 }
-
+            
                 const dados = {
                     id_motorista: document.getElementById('idMotorista').value || null,
                     id_tipodemanda: idTipoDemanda,
@@ -4447,7 +4447,7 @@
                     mostrarAlerta('O campo Motorista é obrigatório!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
-
+            
                 // Validação específica para motorista não cadastrado
                 if (dados.id_motorista === '0' && !dados.nc_motorista) {
                     mostrarAlerta('Informe o nome do motorista não cadastrado!', '⚠️ Atenção', '#ffc107');
@@ -4459,7 +4459,7 @@
                     mostrarAlerta('Para Cedência, o campo Setor é obrigatório!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
-
+            
                 
                 try {
                     let res;
@@ -4472,39 +4472,122 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(dados)
                         });
+                        
+                        const result = await res.json();
+                        
+                        if (result.success || result.id) {
+                            // Fechar modal da demanda
+                            fecharModal();
+                            
+                            // Recarregar semanas e agenda
+                            await carregarSemanas();
+                            await carregarAgenda();
+                            inicializarDestaqueLinha();
+                        } else {
+                            mostrarAlerta('Erro ao salvar: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                        }
+                        
                     } else {
-                        // NOVA DEMANDA
+                        // ====== NOVA DEMANDA - VERIFICAR LOCAÇÃO ANTES DE SALVAR ======
+                        
+                        // Verificar se tem os dados necessários para locação
+                        if (dados.id_tipoveiculo && dados.id_motorista && parseInt(dados.id_motorista) > 0) {
+                            try {
+                                // Chamar API para verificar vínculo
+                                const urlVerificar = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista}`;
+                                const resVerificar = await fetch(urlVerificar);
+                                const resultadoVerificar = await resVerificar.json();
+                                
+                                if (resultadoVerificar.tem_vinculo) {
+                                    // Guardar dados do vínculo
+                                    dadosVinculoLocacao = resultadoVerificar;
+                                    
+                                    // Perguntar se quer solicitar locação ANTES de salvar
+                                    mostrarModalConfirmacaoLocacao(async function(respostaLocacao) {
+                                        if (respostaLocacao) {
+                                            // Usuário quer solicitar locação - salvar demanda primeiro
+                                            const resSalvar = await fetch('/api/agenda/demanda', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify(dados)
+                                            });
+                                            
+                                            const resultSalvar = await resSalvar.json();
+                                            
+                                            if (resultSalvar.success || resultSalvar.id) {
+                                                demandaIdRetornado = resultSalvar.id;
+                                                idDemandaParaLocacao = demandaIdRetornado;
+                                                
+                                                // Fechar modal da demanda
+                                                fecharModal();
+                                                
+                                                // Recarregar semanas e agenda
+                                                await carregarSemanas();
+                                                await carregarAgenda();
+                                                inicializarDestaqueLinha();
+                                                
+                                                // Abrir formulário de locação
+                                                await abrirFormularioLocacao(dados);
+                                            } else {
+                                                mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                            }
+                                            
+                                        } else {
+                                            // Usuário não quer solicitar locação - apenas salvar demanda
+                                            const resSalvar = await fetch('/api/agenda/demanda', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify(dados)
+                                            });
+                                            
+                                            const resultSalvar = await resSalvar.json();
+                                            
+                                            if (resultSalvar.success || resultSalvar.id) {
+                                                // Fechar modal da demanda
+                                                fecharModal();
+                                                
+                                                // Recarregar semanas e agenda
+                                                await carregarSemanas();
+                                                await carregarAgenda();
+                                                inicializarDestaqueLinha();
+                                            } else {
+                                                mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                            }
+                                        }
+                                    });
+                                    
+                                    // Retornar aqui para não executar o código abaixo
+                                    return;
+                                    
+                                }
+                            } catch (errorVerificar) {
+                                console.error('Erro ao verificar locação:', errorVerificar);
+                                // Se der erro na verificação, continua salvando normalmente
+                            }
+                        }
+                        
+                        // Se não tem vínculo ou erro na verificação, salvar normalmente
                         res = await fetch('/api/agenda/demanda', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(dados)
                         });
-                    }
-                    
-                    const result = await res.json();
-                    
-                    if (result.success || result.id) {
-                        demandaIdRetornado = result.id || idAd;
                         
-                        // Fechar modal da demanda
-                        fecharModal();
+                        const result = await res.json();
                         
-                        // Recarregar semanas e agenda
-                        await carregarSemanas();
-                        await carregarAgenda();
-                        
-                        // ====== NOVA LÓGICA: VERIFICAR LOCAÇÃO APENAS PARA NOVAS DEMANDAS ======
-                        if (!idAd && demandaIdRetornado) {
-                            // Aguardar um momento para garantir que a demanda foi salva
-                            await new Promise(resolve => setTimeout(resolve, 500));
+                        if (result.success || result.id) {
+                            // Fechar modal da demanda
+                            fecharModal();
                             
-                            // Verificar e solicitar locação
-                            await verificarESolicitarLocacao(demandaIdRetornado, dados);
+                            // Recarregar semanas e agenda
+                            await carregarSemanas();
+                            await carregarAgenda();
+                            inicializarDestaqueLinha();
+                        } else {
+                            mostrarAlerta('Erro ao salvar: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                         }
-                        
-                    } else {
-                        mostrarAlerta('Erro ao salvar: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                     }
+                    
                 } catch (error) {
                     console.error('Erro:', error);
                     mostrarAlerta('Erro ao salvar demanda!', '❌ Erro', '#dc3545');
