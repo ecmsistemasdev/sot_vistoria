@@ -1230,6 +1230,27 @@
                 color: #1a73e8;
             }
 
+            /* Destaque sutil nas células N. e Nome ao passar mouse na linha */
+            .col-numero.row-hover,
+            .col-nome.row-hover {
+                filter: brightness(0.92);
+                transition: filter 0.2s ease;
+            }
+            
+            /* Alternativa com zoom sutil na fonte */
+            .col-numero.row-hover-zoom,
+            .col-nome.row-hover-zoom {
+                font-size: 1.05em;
+                transition: font-size 0.2s ease;
+            }
+            
+            /* Você pode escolher entre os dois efeitos ou combinar ambos */
+            .col-numero.row-hover-combined,
+            .col-nome.row-hover-combined {
+                filter: brightness(0.92);
+                font-size: 1.03em;
+                transition: all 0.2s ease;
+            }
         </style>
     </head>
     <body>
@@ -2621,6 +2642,57 @@
 
             // ========== FIM AUTOCOMPLETE SETOR ==========
 
+            // Função para adicionar destaque nas células N. e Nome ao passar mouse
+            function inicializarDestaqueLinha() {
+                // Aguardar a renderização completa
+                setTimeout(() => {
+                    // Selecionar todas as linhas de todas as tabelas
+                    const todasLinhas = document.querySelectorAll('.agenda-table tbody tr');
+                    
+                    todasLinhas.forEach(linha => {
+                        // Pegar as células N. e Nome desta linha
+                        const celulaNome = linha.querySelector('.col-nome');
+                        const celulaNumero = linha.querySelector('.col-numero');
+                        
+                        if (!celulaNome && !celulaNumero) return;
+                        
+                        // Adicionar evento em todas as células da linha
+                        const celulas = linha.querySelectorAll('td');
+                        
+                        celulas.forEach(celula => {
+                            // Mouseenter - adicionar destaque
+                            celula.addEventListener('mouseenter', function() {
+                                if (celulaNumero) {
+                                    // Escolha um dos três efeitos:
+                                    celulaNumero.classList.add('row-hover-combined'); // Escurecer + Zoom combinados
+                                    // celulaNumero.classList.add('row-hover'); // Apenas escurecer
+                                    // celulaNumero.classList.add('row-hover-zoom'); // Apenas zoom
+                                }
+                                if (celulaNome) {
+                                    celulaNome.classList.add('row-hover-combined'); // Escurecer + Zoom combinados
+                                    // celulaNome.classList.add('row-hover'); // Apenas escurecer
+                                    // celulaNome.classList.add('row-hover-zoom'); // Apenas zoom
+                                }
+                            });
+                            
+                            // Mouseleave - remover destaque
+                            celula.addEventListener('mouseleave', function() {
+                                if (celulaNumero) {
+                                    celulaNumero.classList.remove('row-hover-combined');
+                                    celulaNumero.classList.remove('row-hover');
+                                    celulaNumero.classList.remove('row-hover-zoom');
+                                }
+                                if (celulaNome) {
+                                    celulaNome.classList.remove('row-hover-combined');
+                                    celulaNome.classList.remove('row-hover');
+                                    celulaNome.classList.remove('row-hover-zoom');
+                                }
+                            });
+                        });
+                    });
+                }, 500); // Aguardar 500ms para garantir que as tabelas foram renderizadas
+            }
+            
             async function init() {
                 await carregarSemanas();
                 await carregarSelectsFixos();
@@ -3095,6 +3167,7 @@
                 renderizarAbas();
                 await carregarFeriadosPeriodo();
                 await carregarAgenda();
+                inicializarDestaqueLinha();
             }
             
             async function carregarAgenda() {
@@ -3115,6 +3188,7 @@
                     document.getElementById('semanaAtual').textContent = semana.label;
                     
                     renderizarAgenda();
+                    inicializarDestaqueLinha();
                 } catch (error) {
                     wrapper.innerHTML = '<div class="loading">❌ Erro ao carregar agenda</div>';
                     console.error('Erro:', error);
