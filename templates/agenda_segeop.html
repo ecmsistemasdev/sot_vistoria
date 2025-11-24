@@ -2252,11 +2252,26 @@
             }
 
             // ========== FUNÇÃO: Fechar Modal de Sucesso ==========
+                        
+            // ========== FUNÇÃO: Fechar Modal de Sucesso ==========
+            async function fecharModalSucessoLocacao() {    
+                document.getElementById('modalSucessoLocacao').style.display = 'none';
+                
+                // ====== FECHAR TAMBÉM O MODAL DE LOCAÇÃO E DEMANDA ======
+                fecharModalFormLocacao();
+                fecharModal(); // Fecha o modal de demanda
+                // ====== FIM ======
+                
+                await carregarAgenda();
+            }            
+            
+            /*
             async function fecharModalSucessoLocacao() {    
                 document.getElementById('modalSucessoLocacao').style.display = 'none';
                 await carregarAgenda();
             }
-
+            */
+            
             // ========== FUNÇÃO CORRETA: confirmarSolicitacaoLocacao ==========
             async function confirmarSolicitacaoLocacao(event) {
                 // Prevenir comportamento padrão
@@ -2360,9 +2375,10 @@
                         document.getElementById('mensagemSucessoLocacao').innerHTML = mensagemHTML;
                         document.getElementById('modalSucessoLocacao').style.display = 'block';
                         
-                        // Fechar modal de locação
+                        // ====== FECHAR AMBOS OS MODAIS ======
                         fecharModalFormLocacao();
-                        
+                        fecharModal(); // Fecha também o modal de demanda
+                        // ====== FIM ======
                     } else {
                         // Erro
                         const mensagemErro = resultado.mensagem || resultado.erro || 'Erro ao solicitar locação';
