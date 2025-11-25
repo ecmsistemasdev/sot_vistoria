@@ -757,11 +757,11 @@
                 pointer-events: none;
             }
 
-            /* Cursor especial quando Ctrl está pressionado */
-            .modo-selecao-ativo .empty-cell {
+            /* Cursor especial quando Ctrl está pressionado - APENAS nas seções permitidas */
+            .modo-selecao-ativo .agenda-section:first-child .empty-cell,
+            .modo-selecao-ativo .agenda-section:nth-child(3) .empty-cell {
                 cursor: crosshair !important;
             }            
-
 
             .veiculo-extra {
                 background: #fffacd !important; /* Cor amarelo claro */
@@ -2774,6 +2774,7 @@
             document.addEventListener('keydown', function(event) {
                 if (event.key === 'Control' && !modoSelecaoIntervalo) {
                     modoSelecaoIntervalo = true;
+                    // Adicionar classe apenas no body (CSS já controla quais seções recebem o cursor)
                     document.body.classList.add('modo-selecao-ativo');
                 }
             });
@@ -3827,7 +3828,40 @@
                 cell.classList.add('cell-selected');
                 celulaSelecionada = cell;
             }
-                            
+            
+            // Função para validar se um intervalo está completamente vazio
+            function validarIntervaloVazio(linhaElement, dtInicio, dtFim) {
+                const celulas = linhaElement.querySelectorAll('td.col-dia');
+                
+                const dataInicioObj = new Date(dtInicio + 'T00:00:00');
+                const dataFimObj = new Date(dtFim + 'T00:00:00');
+                
+                // Verificar cada célula da linha
+                for (let celula of celulas) {
+                    const onclickAttr = celula.getAttribute('onclick');
+                    if (!onclickAttr) continue;
+                    
+                    // Extrair data do onclick
+                    const matchData = onclickAttr.match(/'(\d{4}-\d{2}-\d{2})'/);
+                    if (!matchData) continue;
+                    
+                    const dataCell = matchData[1];
+                    const dataCellObj = new Date(dataCell + 'T00:00:00');
+                    
+                    // Se a data está no intervalo selecionado
+                    if (dataCellObj >= dataInicioObj && dataCellObj <= dataFimObj) {
+                        // Verificar se a célula está vazia (tem classe empty-cell)
+                        if (!celula.classList.contains('empty-cell')) {
+                            // Célula não está vazia - intervalo inválido
+                            return false;
+                        }
+                    }
+                }
+                
+                // Todas as células do intervalo estão vazias
+                return true;
+            }            
+
             function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula) {
                 event.stopPropagation();
                 
@@ -3872,18 +3906,21 @@
                         dtFim = primeiraDataSelecionada;
                     }
                     
+                    // ====== VALIDAR SE O INTERVALO ESTÁ COMPLETAMENTE VAZIO ======
+                    if (!validarIntervaloVazio(linhaAtualSelecao, dtInicio, dtFim)) {
+                        // Intervalo contém demandas - não permitir
+                        mostrarAlerta(
+                            'Não é possível selecionar este intervalo pois há demandas entre as datas selecionadas.',
+                            '⚠️ Intervalo Inválido',
+                            '#ffc107'
+                        );
+                        limparSelecaoIntervalo();
+                        return;
+                    }
+                    // ====== FIM DA VALIDAÇÃO ======
+                    
                     // Marcar todas as células do intervalo
                     marcarIntervaloCelulas(linhaAtualSelecao, dtInicio, dtFim);
-                    
-                    // Abrir modal com as datas preenchidas
-                    if (idMotorista) {
-                        abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista, null);
-                    } else if (idVeiculo) {
-                        abrirModalNovoComIntervalo(dtInicio, dtFim, null, idVeiculo);
-                    }
-                    
-                    // Limpar seleção
-                    limparSelecaoIntervalo();
                     
                 } else {
                     // CLICOU EM LINHA DIFERENTE - ignorar ou resetar
