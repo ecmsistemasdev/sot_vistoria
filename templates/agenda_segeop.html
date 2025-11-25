@@ -4302,7 +4302,22 @@
                     
                     html += `<tr><td class="col-numero">${index + 1}</td>`;
                     html += `<td class="col-nome">`;
-                    html += `<div><strong>${grupo.de_tipoveiculo}</strong> (ID Loc. ${locacoesAtivas.id_item}) </div>`;
+                    html += `<div><strong>${grupo.de_tipoveiculo}</strong>`;
+                    
+                    // ========== BUSCAR ID_ITEM DA LOCAÇÃO CORRESPONDENTE ==========
+                    const locacaoCorrespondente = locacoesAtivas.find(loc => 
+                        grupo.demandas.some(d => 
+                            d.id_motorista === loc.id_motorista &&
+                            d.dt_inicio <= loc.data_fim &&
+                            d.dt_fim >= loc.data_inicio
+                        )
+                    );
+                    
+                    if (locacaoCorrespondente) {
+                        html += ` (ID Loc. ${locacaoCorrespondente.id_item})`;
+                    }
+                    
+                    html += `</div>`;
                     html += `<div>${grupo.nu_sei || ''}</div>`;
                     
                     // Montar linha Setor - Destino com setor em negrito
