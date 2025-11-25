@@ -2191,7 +2191,7 @@ def enviar_email_fornecedor():
         # Inserir registro de email
         cursor.execute("""
             INSERT INTO EMAIL_OUTRAS_LOCACOES 
-            (ID_DA, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+            (ID_AD, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
             VALUES (%s, %s, %s, %s, %s)
         """, (id_demanda, email_destinatario, assunto, corpo_texto, data_hora_atual))
         
