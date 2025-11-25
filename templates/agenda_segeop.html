@@ -738,6 +738,31 @@
                 padding-top: 5px;
             }
 
+            /* Adicionar após os outros estilos de células */
+
+            /* Célula marcada no intervalo */
+            .cell-intervalo-selecionado {
+                background: #d3d3d3 !important;
+                position: relative;
+            }
+
+            .cell-intervalo-selecionado::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                border: 2px solid #666;
+                pointer-events: none;
+            }
+
+            /* Cursor especial quando Ctrl está pressionado */
+            .modo-selecao-ativo .empty-cell {
+                cursor: crosshair !important;
+            }            
+
+
             .veiculo-extra {
                 background: #fffacd !important; /* Cor amarelo claro */
             }
@@ -1777,6 +1802,11 @@
             let callbackConfirmacaoPadrao = null; // Para o modal de confirmação padrão
             let setorAutocompleteTimeout = null;
             let setorSelectedIndex = -1;
+            let modoSelecaoIntervalo = false;
+            let primeiraDataSelecionada = null;
+            let segundaDataSelecionada = null;
+            let linhaAtualSelecao = null;
+            let celulasIntervalo = [];
 
             // ========== FUNÇÕES PARA MODAIS PADRÃO ==========
 
@@ -2700,6 +2730,69 @@
                 }, 500);
             }
             
+            function limparSelecaoIntervalo() {
+                modoSelecaoIntervalo = false;
+                primeiraDataSelecionada = null;
+                segundaDataSelecionada = null;
+                linhaAtualSelecao = null;
+                
+                // Remover marcação visual de todas as células
+                celulasIntervalo.forEach(celula => {
+                    celula.classList.remove('cell-intervalo-selecionado');
+                });
+                celulasIntervalo = [];
+                
+                document.body.classList.remove('modo-selecao-ativo');
+            }
+
+            function marcarIntervaloCelulas(linha, dtInicio, dtFim) {
+                const celulas = linha.querySelectorAll('td.col-dia.empty-cell');
+                
+                celulas.forEach(celula => {
+                    // Verificar se a célula tem onclick que contém uma data
+                    const onclickAttr = celula.getAttribute('onclick');
+                    if (!onclickAttr) return;
+                    
+                    // Extrair data do onclick (ex: "handleClickCelulaVazia(event, '2025-01-15', ...")
+                    const matchData = onclickAttr.match(/'(\d{4}-\d{2}-\d{2})'/);
+                    if (!matchData) return;
+                    
+                    const dataCell = matchData[1];
+                    const dataCellObj = new Date(dataCell + 'T00:00:00');
+                    const dataInicioObj = new Date(dtInicio + 'T00:00:00');
+                    const dataFimObj = new Date(dtFim + 'T00:00:00');
+                    
+                    // Se a data está no intervalo, marcar
+                    if (dataCellObj >= dataInicioObj && dataCellObj <= dataFimObj) {
+                        celula.classList.add('cell-intervalo-selecionado');
+                        celulasIntervalo.push(celula);
+                    }
+                });
+            }
+
+            // Detectar quando Ctrl é pressionado
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Control' && !modoSelecaoIntervalo) {
+                    modoSelecaoIntervalo = true;
+                    document.body.classList.add('modo-selecao-ativo');
+                }
+            });
+
+            // Detectar quando Ctrl é solto
+            document.addEventListener('keyup', function(event) {
+                if (event.key === 'Control' && modoSelecaoIntervalo) {
+                    limparSelecaoIntervalo();
+                }
+            });
+
+            // Limpar seleção ao sair da página
+            window.addEventListener('blur', function() {
+                if (modoSelecaoIntervalo) {
+                    limparSelecaoIntervalo();
+                }
+            });
+
+
             async function init() {
                 await carregarSemanas();
                 await carregarSelectsFixos();
@@ -3516,14 +3609,14 @@
                                 // Renderizar célula vazia com rowspan
                                 if (feriado) {
                                     if (linhaIndex === 0 && demandasDia.length === 0) {
-                                        html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
+                                        html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', null, ${v.id}, this)">${feriado.descricao}</td>`;
                                     } else {
                                         html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
                                     }
                                 } else {
                                     const weekendClass = isWeekend ? 'weekend-empty' : '';
                                     if (linhaIndex === 0 && demandasDia.length === 0) {
-                                        html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                                        html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', null, ${v.id}, this)"></td>`;
                                     } else {
                                         html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
                                     }
@@ -3735,6 +3828,70 @@
                 celulaSelecionada = cell;
             }
                             
+            function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula) {
+                event.stopPropagation();
+                
+                // Se Ctrl NÃO está pressionado, comportamento normal
+                if (!modoSelecaoIntervalo) {
+                    if (idMotorista) {
+                        abrirModalNovoComData(data, idMotorista);
+                    } else if (idVeiculo) {
+                        abrirModalNovoComVeiculo(data, idVeiculo);
+                    }
+                    return;
+                }
+                
+                // === MODO SELEÇÃO DE INTERVALO ATIVO ===
+                
+                // Verificar se é da mesma linha
+                const linhaClicada = elementoCelula.parentElement;
+                
+                if (!primeiraDataSelecionada) {
+                    // PRIMEIRO CLIQUE
+                    primeiraDataSelecionada = data;
+                    linhaAtualSelecao = linhaClicada;
+                    
+                    // Marcar célula
+                    elementoCelula.classList.add('cell-intervalo-selecionado');
+                    celulasIntervalo.push(elementoCelula);
+                    
+                } else if (linhaClicada === linhaAtualSelecao) {
+                    // SEGUNDO CLIQUE NA MESMA LINHA
+                    segundaDataSelecionada = data;
+                    
+                    // Determinar qual é a data inicial e final (ordem cronológica)
+                    const data1 = new Date(primeiraDataSelecionada + 'T00:00:00');
+                    const data2 = new Date(segundaDataSelecionada + 'T00:00:00');
+                    
+                    let dtInicio, dtFim;
+                    if (data1 <= data2) {
+                        dtInicio = primeiraDataSelecionada;
+                        dtFim = segundaDataSelecionada;
+                    } else {
+                        dtInicio = segundaDataSelecionada;
+                        dtFim = primeiraDataSelecionada;
+                    }
+                    
+                    // Marcar todas as células do intervalo
+                    marcarIntervaloCelulas(linhaAtualSelecao, dtInicio, dtFim);
+                    
+                    // Abrir modal com as datas preenchidas
+                    if (idMotorista) {
+                        abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista, null);
+                    } else if (idVeiculo) {
+                        abrirModalNovoComIntervalo(dtInicio, dtFim, null, idVeiculo);
+                    }
+                    
+                    // Limpar seleção
+                    limparSelecaoIntervalo();
+                    
+                } else {
+                    // CLICOU EM LINHA DIFERENTE - ignorar ou resetar
+                    limparSelecaoIntervalo();
+                }
+            }            
+            
+            
             function renderizarSecaoVeiculos(dias) {
                 let html = '<div class="agenda-section">';
                 html += `
@@ -4178,6 +4335,46 @@
                 }
             }
             
+            async function abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista = null, idVeiculo = null) {
+                if (idMotorista) {
+                    contextoAbertura = 'motorista';
+                    await abrirModalNovo();
+                    await preencherSelectTiposDemanda();
+                    
+                    document.getElementById('dtInicio').value = dtInicio;
+                    document.getElementById('dtFim').value = dtFim;
+                    document.getElementById('idMotorista').value = idMotorista;
+                    
+                } else if (idVeiculo) {
+                    contextoAbertura = 'veiculo';
+                    await abrirModalNovo();
+                    await preencherSelectTiposDemanda();
+                    
+                    document.getElementById('dtInicio').value = dtInicio;
+                    document.getElementById('dtFim').value = dtFim;
+                    
+                    // Guardar o veículo que será selecionado
+                    const veiculoObj = veiculos.find(v => v.id === idVeiculo);
+                    if (veiculoObj) {
+                        veiculoSelecionadoOriginal = {
+                            id: veiculoObj.id,
+                            veiculo: veiculoObj.veiculo
+                        };
+                    }
+                    
+                    // Selecionar Tipo de Veículo = 1 (Veículo Oficial)
+                    document.getElementById('idTipoVeiculo').value = '1';
+                    aplicarRegrasTipoVeiculo();
+                    
+                    // Aguardar e selecionar veículo
+                    setTimeout(async () => {
+                        await atualizarVeiculosDisponiveis();
+                        document.getElementById('idVeiculo').value = idVeiculo;
+                    }, 150);
+                }
+            }
+
+
             async function abrirModalNovoGeral() {
                 contextoAbertura = null; // Sem contexto específico
                 await abrirModalNovo();
