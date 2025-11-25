@@ -3609,14 +3609,14 @@
                                 // Renderizar célula vazia com rowspan
                                 if (feriado) {
                                     if (linhaIndex === 0 && demandasDia.length === 0) {
-                                        html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', null, ${v.id}, this)">${feriado.descricao}</td>`;
+                                        html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this)">${feriado.descricao}</td>`;
                                     } else {
                                         html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
                                     }
                                 } else {
                                     const weekendClass = isWeekend ? 'weekend-empty' : '';
                                     if (linhaIndex === 0 && demandasDia.length === 0) {
-                                        html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', null, ${v.id}, this)"></td>`;
+                                        html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this)"></td>`;
                                     } else {
                                         html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
                                     }
@@ -3784,14 +3784,14 @@
                                 // Renderizar célula vazia com rowspan
                                 if (feriado) {
                                     if (linhaIndex === 0 && demandasDia.length === 0) {
-                                        html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
+                                        html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this)">${feriado.descricao}</td>`;
                                     } else {
                                         html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
                                     }
                                 } else {
                                     const weekendClass = isWeekend ? 'weekend-empty' : '';
                                     if (linhaIndex === 0 && demandasDia.length === 0) {
-                                        html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                                        html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this)"></td>`;
                                     } else {
                                         html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
                                     }
