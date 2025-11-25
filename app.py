@@ -2008,6 +2008,69 @@ def verificar_vinculo_locacao():
         print(f"Erro ao verificar vínculo de locação: {str(e)}")
         return jsonify({'erro': str(e), 'tem_vinculo': False}), 500
 		
+@app.route('/api/verificar_vinculo_fornecedor', methods=['GET'])
+@login_required
+def verificar_vinculo_fornecedor():
+    """
+    Verifica se o tipo de veículo tem vínculo com fornecedor (sem TJ_VEICULO_LOCACAO)
+    """
+    cursor = None
+    try:
+        id_tipoveiculo = request.args.get('id_tipoveiculo')
+        
+        if not id_tipoveiculo:
+            return jsonify({'tem_vinculo': False}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Verificar se tem vínculo com TJ_VEICULO_LOCACAO (se tiver, não entra na nova regra)
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM TJ_VEICULO_LOCACAO 
+            WHERE ID_TIPOVEICULO = %s AND ATIVO = 'S'
+        """, (id_tipoveiculo,))
+        
+        tem_vinculo_locacao = cursor.fetchone()[0] > 0
+        
+        if tem_vinculo_locacao:
+            return jsonify({'tem_vinculo': False, 'tipo': 'locacao_existente'})
+        
+        # Verificar se tem fornecedor vinculado com email
+        cursor.execute("""
+            SELECT 
+                tv.ID_FORNECEDOR,
+                f.EMAIL,
+                f.NOME_FANTASIA,
+                tv.DE_TIPOVEICULO
+            FROM TIPO_VEICULO tv
+            INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
+            WHERE tv.ID_TIPOVEICULO = %s 
+              AND tv.ID_FORNECEDOR IS NOT NULL
+              AND f.EMAIL IS NOT NULL
+              AND f.EMAIL != ''
+        """, (id_tipoveiculo,))
+        
+        resultado = cursor.fetchone()
+        
+        if resultado:
+            return jsonify({
+                'tem_vinculo': True,
+                'tipo': 'fornecedor',
+                'id_fornecedor': resultado[0],
+                'email_fornecedor': resultado[1],
+                'nome_fornecedor': resultado[2],
+                'de_tipoveiculo': resultado[3]
+            })
+        
+        return jsonify({'tem_vinculo': False})
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao verificar vínculo com fornecedor: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
 @app.route('/api/verificar_locacao_existente', methods=['GET'])
 @login_required
 def verificar_locacao_existente():
@@ -2046,6 +2109,118 @@ def verificar_locacao_existente():
     except Exception as e:
         print(f"Erro ao verificar locação existente: {str(e)}")
         return jsonify({'erro': str(e), 'tem_locacao': False}), 500
+
+
+@app.route('/api/enviar_email_fornecedor', methods=['POST'])
+@login_required
+def enviar_email_fornecedor():
+    """
+    Envia email de solicitação de locação para fornecedor
+    """
+    cursor = None
+    try:
+        # Receber dados do formulário
+        email_destinatario = request.form.get('email_destinatario')
+        assunto = request.form.get('assunto')
+        corpo_html = request.form.get('corpo_html')
+        id_demanda = request.form.get('id_demanda')
+        
+        if not all([email_destinatario, assunto, corpo_html, id_demanda]):
+            return jsonify({'erro': 'Dados incompletos'}), 400
+        
+        # Processar anexos
+        anexos = []
+        if 'anexos' in request.files:
+            files = request.files.getlist('anexos')
+            for file in files:
+                if file and file.filename:
+                    anexos.append({
+                        'nome': file.filename,
+                        'conteudo': file.read(),
+                        'tipo': file.content_type or 'application/octet-stream'
+                    })
+        
+        # Obter nome do usuário
+        nome_usuario = session.get('usuario_nome', 'Administrador')
+        
+        # Versão texto simples (fallback)
+        from html.parser import HTMLParser
+        
+        class HTMLToText(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.text = []
+            
+            def handle_data(self, data):
+                self.text.append(data)
+            
+            def get_text(self):
+                return ''.join(self.text)
+        
+        parser = HTMLToText()
+        parser.feed(corpo_html)
+        corpo_texto = parser.get_text()
+        
+        # Criar mensagem
+        msg = Message(
+            subject=assunto,
+            recipients=[email_destinatario],
+            html=corpo_html,
+            body=corpo_texto,
+            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+        )
+        
+        # Anexar arquivos
+        for anexo in anexos:
+            msg.attach(
+                anexo['nome'],
+                anexo['tipo'],
+                anexo['conteudo']
+            )
+        
+        # Enviar email
+        mail.send(msg)
+        
+        # Registrar no banco
+        cursor = mysql.connection.cursor()
+        
+        from pytz import timezone
+        tz_manaus = timezone('America/Manaus')
+        data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
+        
+        # Inserir registro de email
+        cursor.execute("""
+            INSERT INTO EMAIL_OUTRAS_LOCACOES 
+            (ID_DA, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+            VALUES (%s, %s, %s, %s, %s)
+        """, (id_demanda, email_destinatario, assunto, corpo_texto, data_hora_atual))
+        
+        id_email = cursor.lastrowid
+        
+        # Atualizar campo SOLICITADO na demanda
+        cursor.execute("""
+            UPDATE ATENDIMENTO_DEMANDAS 
+            SET SOLICITADO = 'S' 
+            WHERE ID_AD = %s
+        """, (id_demanda,))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            'success': True,
+            'id_email': id_email,
+            'mensagem': 'Email enviado com sucesso!'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao enviar email para fornecedor: {str(e)}")
+        if cursor:
+            mysql.connection.rollback()
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
 
 #####....#####.....
     
