@@ -1802,14 +1802,17 @@
                 <div class="modal-body" style="padding: 20px;">
                     <form id="formEmailFornecedor">
                         <input type="hidden" id="email_id_demanda" value="">
-                        
+                                                
                         <!-- Email do Destinatário -->
                         <div class="form-group">
                             <label>Destinatário <span class="required">*</span></label>
                             <input type="email" id="email_destinatario" required readonly 
                                 style="background: #f8f9fa; font-weight: 600; color: #1a73e8;">
                         </div>
-                        
+
+                        <!-- Campo oculto para IDITEM -->
+                        <input type="hidden" id="email_iditem" value="">
+
                         <!-- Assunto -->
                         <div class="form-group">
                             <label>Assunto do E-mail <span class="required">*</span></label>
@@ -1904,7 +1907,99 @@
             // ========== VARIÁVEIS GLOBAIS PARA EMAIL FORNECEDOR ==========
             let dadosVinculoFornecedor = null;
             let idDemandaParaEmailFornecedor = null;
+            let temVinculoFornecedorAtivo = false;
 
+            
+            // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
+            async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
+                if (!idTipoVeiculo) {
+                    temVinculoFornecedorAtivo = false;
+                    resetarCamposFornecedor();
+                    return;
+                }
+                
+                try {
+                    const url = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${idTipoVeiculo}`;
+                    const response = await fetch(url);
+                    const resultado = await response.json();
+                    
+                    if (resultado.tem_vinculo && resultado.tipo === 'fornecedor') {
+                        // TEM FORNECEDOR - Aplicar regras especiais
+                        temVinculoFornecedorAtivo = true;
+                        aplicarRegrasFornecedor();
+                    } else {
+                        // NÃO TEM FORNECEDOR - Voltar ao normal
+                        temVinculoFornecedorAtivo = false;
+                        resetarCamposFornecedor();
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro ao verificar fornecedor:', error);
+                    temVinculoFornecedorAtivo = false;
+                }
+            }
+
+            function aplicarRegrasFornecedor() {
+                // Horário obrigatório
+                const checkboxHorario = document.getElementById('definirHorario');
+                const inputHorario = document.getElementById('horario');
+                const labelHorario = inputHorario.previousElementSibling;
+                
+                checkboxHorario.checked = true;
+                checkboxHorario.disabled = true;
+                inputHorario.disabled = false;
+                inputHorario.required = true;
+                labelHorario.textContent = 'Horário de Saída';
+                labelHorario.innerHTML = 'Horário de Saída <span class="required">*</span>';
+                
+                // Bloquear Motorista
+                const selectMotorista = document.getElementById('idMotorista');
+                const motoristaFilter = document.getElementById('motoristaFilter');
+                const labelMotorista = document.getElementById('labelMotorista');
+                
+                selectMotorista.value = '';
+                selectMotorista.disabled = true;
+                selectMotorista.required = false;
+                motoristaFilter.style.display = 'none';
+                labelMotorista.innerHTML = 'Motorista';
+                
+                // Bloquear Veículo
+                const selectVeiculo = document.getElementById('idVeiculo');
+                const labelVeiculo = document.getElementById('labelVeiculo');
+                
+                selectVeiculo.value = '';
+                selectVeiculo.disabled = true;
+                selectVeiculo.required = false;
+                labelVeiculo.innerHTML = 'Veículo';
+            }
+
+            function resetarCamposFornecedor() {
+                // Resetar Horário
+                const checkboxHorario = document.getElementById('definirHorario');
+                const inputHorario = document.getElementById('horario');
+                const labelHorario = inputHorario.previousElementSibling;
+                
+                checkboxHorario.disabled = false;
+                if (!checkboxHorario.checked) {
+                    inputHorario.disabled = true;
+                    inputHorario.required = false;
+                }
+                labelHorario.textContent = 'Horário';
+                
+                // Desbloquear Motorista (se não houver outra regra bloqueando)
+                const selectMotorista = document.getElementById('idMotorista');
+                const motoristaFilter = document.getElementById('motoristaFilter');
+                
+                const idTipoDemanda = document.getElementById('idTipoDemanda').value;
+                if (idTipoDemanda) {
+                    aplicarRegrasTipoDemanda(); // Reaplicar regras do tipo de demanda
+                } else {
+                    selectMotorista.disabled = false;
+                    motoristaFilter.style.display = 'flex';
+                }
+            }
+            
+            
             // ========== FUNÇÕES PARA MODAIS PADRÃO ==========
 
             // Modal de Alerta (OK)
@@ -2956,13 +3051,17 @@
                     // Preencher campos
                     document.getElementById('email_id_demanda').value = idDemandaParaEmailFornecedor;
                     document.getElementById('email_destinatario').value = dadosVinculoFornecedor.email_fornecedor;
+                    document.getElementById('email_iditem').value = dadosVinculoFornecedor.iditem || 0;
                     
-                    // Assunto padrão
-                    const assunto = `TJRO - Solicitação de Locação - ${dadosVinculoFornecedor.de_tipoveiculo}`;
+                    // Usar descrição do item ou tipo de veículo
+                    const descricaoVeiculo = dadosVinculoFornecedor.descricao_item || dadosVinculoFornecedor.de_tipoveiculo;
+                    
+                    // Assunto
+                    const assunto = `TJRO - Solicitação de Locação - ${descricaoVeiculo}`;
                     document.getElementById('email_assunto').value = assunto;
                     
-                    // Corpo do email padrão
-                    const nomeUsuario = '${session.get("usuario_nome", "Administrador")}'; // Será substituído no backend
+                    // Nome do usuário (obter do backend via sessão)
+                    const nomeUsuario = await obterNomeUsuario();
                     
                     // Formatar datas
                     const dataInicio = new Date(dadosDemanda.dt_inicio + 'T00:00:00');
@@ -2970,10 +3069,17 @@
                     const dataInicioFormatada = dataInicio.toLocaleDateString('pt-BR');
                     const dataFimFormatada = dataFim.toLocaleDateString('pt-BR');
                     
+                    // Horário de saída
+                    const horarioSaida = dadosDemanda.horario || '07:00';
+                    
                     const corpoHtml = `
             <p>Prezados,</p>
 
+            <p>&nbsp;</p>
+
             <p>Solicito locação de veículo conforme informações abaixo:</p>
+
+            <p>&nbsp;</p>
 
             <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 15px 0;">
                 <tr>
@@ -2981,13 +3087,13 @@
                     <td>${dataInicioFormatada} a ${dataFimFormatada}</td>
                 </tr>
                 <tr>
-                    <td style="background: #f0f0f0; font-weight: bold;">Tipo de Veículo:</td>
-                    <td>${dadosVinculoFornecedor.de_tipoveiculo}</td>
+                    <td style="background: #f0f0f0; font-weight: bold;">Horário de Saída:</td>
+                    <td>${horarioSaida}</td>
                 </tr>
-                ${dadosDemanda.setor ? `<tr>
-                    <td style="background: #f0f0f0; font-weight: bold;">Setor:</td>
-                    <td>${dadosDemanda.setor}</td>
-                </tr>` : ''}
+                <tr>
+                    <td style="background: #f0f0f0; font-weight: bold;">Tipo de Veículo:</td>
+                    <td>${descricaoVeiculo}</td>
+                </tr>
                 ${dadosDemanda.destino ? `<tr>
                     <td style="background: #f0f0f0; font-weight: bold;">Destino:</td>
                     <td>${dadosDemanda.destino}</td>
@@ -2998,7 +3104,11 @@
                 </tr>` : ''}
             </table>
 
+            <p>&nbsp;</p>
+
             <p>Atenciosamente,</p>
+
+            <p>&nbsp;</p>
 
             <p><strong>${nomeUsuario}</strong><br>
             Tribunal de Justiça do Estado de Rondônia<br>
@@ -3021,11 +3131,27 @@
                 }
             }
 
+            // Função auxiliar para obter nome do usuário
+            async function obterNomeUsuario() {
+                try {
+                    const response = await fetch('/api/usuario_logado');
+                    const data = await response.json();
+                    return data.nome || 'Administrador';
+                } catch (error) {
+                    return 'Administrador';
+                }
+            }
+
             // ========== FUNÇÃO: Fechar Modal de Email ==========
-            function fecharModalEmailFornecedor() {
+            async function fecharModalEmailFornecedor() {
                 document.getElementById('modalEmailFornecedor').style.display = 'none';
                 dadosVinculoFornecedor = null;
                 idDemandaParaEmailFornecedor = null;
+                
+                // Recarregar seções
+                await carregarSemanas();
+                await carregarAgenda();
+                inicializarDestaqueLinha();
             }
 
             // ========== FUNÇÃO: Enviar Email para Fornecedor ==========
@@ -3035,6 +3161,7 @@
                     const assunto = document.getElementById('email_assunto').value;
                     const corpoHtml = document.getElementById('email_corpo').innerHTML;
                     const idDemanda = document.getElementById('email_id_demanda').value;
+                    const idItem = document.getElementById('email_iditem').value;
                     
                     if (!destinatario || !assunto || !corpoHtml.trim()) {
                         mostrarAlerta('Preencha todos os campos obrigatórios!', '⚠️ Atenção', '#ffc107');
@@ -3047,6 +3174,7 @@
                     formData.append('assunto', assunto);
                     formData.append('corpo_html', corpoHtml);
                     formData.append('id_demanda', idDemanda);
+                    formData.append('id_item_fornecedor', idItem);
                     
                     // Adicionar anexos
                     const inputAnexos = document.getElementById('email_anexos');
@@ -3075,11 +3203,6 @@
                             '✅ Sucesso',
                             '#28a745'
                         );
-                        
-                        // Recarregar agenda
-                        await carregarSemanas();
-                        await carregarAgenda();
-                        inicializarDestaqueLinha();
                         
                     } else {
                         mostrarAlerta('Erro ao enviar e-mail: ' + (resultado.erro || 'Erro desconhecido'), '❌ Erro', '#dc3545');
@@ -3514,6 +3637,26 @@
                 const divExpandirVeiculos = document.getElementById('divExpandirVeiculos');
                 const labelMotorista = document.getElementById('labelMotorista');
                 
+                // ========== NOVO: Verificar se tem fornecedor vinculado ==========
+                if (temVinculoFornecedorAtivo) {
+                    // Se tem fornecedor, forçar bloqueio de motorista e veículo
+                    motorista.value = '';
+                    motorista.disabled = true;
+                    motorista.required = false;
+                    document.getElementById('motoristaFilter').style.display = 'none';
+                    labelMotorista.innerHTML = 'Motorista';
+                    
+                    veiculo.value = '';
+                    veiculo.disabled = true;
+                    veiculo.required = false;
+                    
+                    divSolicitado.style.display = 'none';
+                    divExpandirVeiculos.style.display = 'none';
+                    
+                    return; // Não continua com as outras regras
+                }
+                
+                // ========== Resto da função continua igual ==========
                 // Ocultar checkbox Solicitado e Expandir Veículos por padrão
                 divSolicitado.style.display = 'none';
                 divExpandirVeiculos.style.display = 'none';
@@ -5461,6 +5604,18 @@
                 // - modal (Nova/Editar Demanda)
                 // - modalFormLocacao (Formulário de Locação)
                 // - modalConfirmacaoLocacao (Confirmação de Locação)
+            });
+
+            // ========== EVENT LISTENER: Tipo de Veículo ==========
+            document.addEventListener('DOMContentLoaded', function() {
+                const selectTipoVeiculo = document.getElementById('idTipoVeiculo');
+                
+                if (selectTipoVeiculo) {
+                    selectTipoVeiculo.addEventListener('change', async function() {
+                        await verificarFornecedorTipoVeiculo(this.value);
+                        aplicarRegrasTipoVeiculo(); // Manter lógica existente
+                    });
+                }
             });
 
             // ========== TECLA ESC PARA MODAIS DE ALERTA ==========
