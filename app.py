@@ -2007,12 +2007,17 @@ def verificar_vinculo_locacao():
     except Exception as e:
         print(f"Erro ao verificar vínculo de locação: {str(e)}")
         return jsonify({'erro': str(e), 'tem_vinculo': False}), 500
-		
+
+
+
+
+
 @app.route('/api/verificar_vinculo_fornecedor', methods=['GET'])
 @login_required
 def verificar_vinculo_fornecedor():
     """
     Verifica se o tipo de veículo tem vínculo com fornecedor (sem TJ_VEICULO_LOCACAO)
+    Busca item do fornecedor baseado no ID_TIPOVEICULO
     """
     cursor = None
     try:
@@ -2035,15 +2040,19 @@ def verificar_vinculo_fornecedor():
         if tem_vinculo_locacao:
             return jsonify({'tem_vinculo': False, 'tipo': 'locacao_existente'})
         
-        # Verificar se tem fornecedor vinculado com email
+        # Verificar se tem fornecedor vinculado com email e buscar item correspondente
         cursor.execute("""
             SELECT 
                 tv.ID_FORNECEDOR,
                 f.EMAIL,
                 f.NM_FORNECEDOR,
-                tv.DE_TIPOVEICULO
+                tv.DE_TIPOVEICULO,
+                fi.IDITEM,
+                fi.DESCRICAO
             FROM TIPO_VEICULO tv
             INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
+            LEFT JOIN TJ_FORNECEDOR_ITEM fi ON fi.ID_FORNECEDOR = tv.ID_FORNECEDOR 
+                                             AND fi.ID_TIPOVEICULO = tv.ID_TIPOVEICULO
             WHERE tv.ID_TIPOVEICULO = %s 
               AND tv.ID_FORNECEDOR IS NOT NULL
               AND f.EMAIL IS NOT NULL
@@ -2059,7 +2068,9 @@ def verificar_vinculo_fornecedor():
                 'id_fornecedor': resultado[0],
                 'email_fornecedor': resultado[1],
                 'nome_fornecedor': resultado[2],
-                'de_tipoveiculo': resultado[3]
+                'de_tipoveiculo': resultado[3],
+                'iditem': resultado[4] if resultado[4] else 0,
+                'descricao_item': resultado[5] if resultado[5] else resultado[3]  # Usa descrição do item ou tipo veículo
             })
         
         return jsonify({'tem_vinculo': False})
@@ -2070,6 +2081,7 @@ def verificar_vinculo_fornecedor():
     finally:
         if cursor:
             cursor.close()
+
 
 @app.route('/api/verificar_locacao_existente', methods=['GET'])
 @login_required
@@ -2111,6 +2123,16 @@ def verificar_locacao_existente():
         return jsonify({'erro': str(e), 'tem_locacao': False}), 500
 
 
+@app.route('/api/usuario_logado', methods=['GET'])
+@login_required
+def obter_usuario_logado():
+    """Retorna informações do usuário logado"""
+    return jsonify({
+        'nome': session.get('usuario_nome', 'Administrador'),
+        'login': session.get('usuario_login', '')
+    })
+
+
 @app.route('/api/enviar_email_fornecedor', methods=['POST'])
 @login_required
 def enviar_email_fornecedor():
@@ -2124,6 +2146,7 @@ def enviar_email_fornecedor():
         assunto = request.form.get('assunto')
         corpo_html = request.form.get('corpo_html')
         id_demanda = request.form.get('id_demanda')
+        id_item_fornecedor = request.form.get('id_item_fornecedor')
         
         if not all([email_destinatario, assunto, corpo_html, id_demanda]):
             return jsonify({'erro': 'Dados incompletos'}), 400
@@ -2191,9 +2214,9 @@ def enviar_email_fornecedor():
         # Inserir registro de email
         cursor.execute("""
             INSERT INTO EMAIL_OUTRAS_LOCACOES 
-            (ID_AD, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
-            VALUES (%s, %s, %s, %s, %s)
-        """, (id_demanda, email_destinatario, assunto, corpo_texto, data_hora_atual))
+            (ID_AD, IDITEM_FORNECEDOR, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (id_demanda, id_item_fornecedor or 0, email_destinatario, assunto, corpo_texto, data_hora_atual))
         
         id_email = cursor.lastrowid
         
