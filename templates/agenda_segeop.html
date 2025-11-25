@@ -3851,7 +3851,7 @@
                 
                 // Verificar TODAS as células entre as datas selecionadas
                 for (let celula of celulas) {
-                    // Verificar células vazias (com onclick)
+                    // Verificar células vazias (com onclick de célula vazia)
                     const onclickAttr = celula.getAttribute('onclick');
                     if (onclickAttr && onclickAttr.includes('handleClickCelulaVazia')) {
                         const matchData = onclickAttr.match(/'(\d{4}-\d{2}-\d{2})'/);
@@ -3859,10 +3859,14 @@
                             const dataCell = matchData[1];
                             const dataCellObj = new Date(dataCell + 'T00:00:00');
                             
-                            // Se está no intervalo, verificar se realmente está vazia
+                            // Se está no intervalo, verificar se é célula vazia OU feriado sem demanda
                             if (dataCellObj >= dataInicioObj && dataCellObj <= dataFimObj) {
-                                if (!celula.classList.contains('empty-cell')) {
-                                    return false; // Célula não está vazia
+                                const isEmptyCell = celula.classList.contains('empty-cell');
+                                const isFeriadoCell = celula.classList.contains('cell-feriado');
+                                
+                                // Aceita se for célula vazia comum OU feriado (sem demanda)
+                                if (!isEmptyCell && !isFeriadoCell) {
+                                    return false; // Célula não está vazia nem é feriado
                                 }
                             }
                         }
@@ -3880,13 +3884,13 @@
                             // Verificar se a demanda se sobrepõe ao intervalo selecionado
                             // Sobrepõe se: (demanda começa antes do fim do intervalo) E (demanda termina depois do início do intervalo)
                             if (demandaInicio <= dataFimObj && demandaFim >= dataInicioObj) {
-                                return false; // Há sobreposição
+                                return false; // Há sobreposição com demanda
                             }
                         }
                     }
                 }
                 
-                return true; // Intervalo completamente vazio
+                return true; // Intervalo completamente vazio (pode ter feriados sem demanda)
             }            
 
             function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula) {
