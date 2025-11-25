@@ -2027,7 +2027,7 @@ def verificar_vinculo_fornecedor():
         cursor.execute("""
             SELECT COUNT(*) 
             FROM TJ_VEICULO_LOCACAO 
-            WHERE ID_TIPOVEICULO = %s AND ATIVO = 'S'
+            WHERE ID_TIPOVEICULO = %s
         """, (id_tipoveiculo,))
         
         tem_vinculo_locacao = cursor.fetchone()[0] > 0
@@ -2040,7 +2040,7 @@ def verificar_vinculo_fornecedor():
             SELECT 
                 tv.ID_FORNECEDOR,
                 f.EMAIL,
-                f.NOME_FANTASIA,
+                f.NM_FORNECEDOR,
                 tv.DE_TIPOVEICULO
             FROM TIPO_VEICULO tv
             INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
