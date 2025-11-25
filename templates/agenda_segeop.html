@@ -1792,6 +1792,83 @@
             </div>
         </div>
         
+        <!-- Modal de Solicitação de Locação por Email -->
+        <div id="modalEmailFornecedor" class="modal" style="z-index: 10003;">
+            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h2 style="font-size: 18px; margin: 0;">📧 Solicitação de Locação por E-mail</h2>
+                    <span class="close" onclick="fecharModalEmailFornecedor()">&times;</span>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <form id="formEmailFornecedor">
+                        <input type="hidden" id="email_id_demanda" value="">
+                        
+                        <!-- Email do Destinatário -->
+                        <div class="form-group">
+                            <label>Destinatário <span class="required">*</span></label>
+                            <input type="email" id="email_destinatario" required readonly 
+                                style="background: #f8f9fa; font-weight: 600; color: #1a73e8;">
+                        </div>
+                        
+                        <!-- Assunto -->
+                        <div class="form-group">
+                            <label>Assunto do E-mail <span class="required">*</span></label>
+                            <input type="text" id="email_assunto" required maxlength="200">
+                        </div>
+                        
+                        <!-- Editor de Texto Rico -->
+                        <div class="form-group">
+                            <label>Corpo do E-mail <span class="required">*</span></label>
+                            
+                            <!-- Barra de Ferramentas -->
+                            <div id="email_toolbar" style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; border-bottom: none; border-radius: 4px 4px 0 0; display: flex; gap: 5px; flex-wrap: wrap;">
+                                <button type="button" onclick="formatarTexto('bold')" title="Negrito" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;"><strong>B</strong></button>
+                                <button type="button" onclick="formatarTexto('italic')" title="Itálico" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;"><em>I</em></button>
+                                <button type="button" onclick="formatarTexto('underline')" title="Sublinhado" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;"><u>U</u></button>
+                                <div style="width: 1px; background: #ddd; margin: 0 5px;"></div>
+                                <button type="button" onclick="formatarTexto('insertUnorderedList')" title="Lista" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;">• Lista</button>
+                                <button type="button" onclick="formatarTexto('insertOrderedList')" title="Lista Numerada" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;">1. Lista</button>
+                                <div style="width: 1px; background: #ddd; margin: 0 5px;"></div>
+                                <select onchange="formatarTexto('fontSize', this.value); this.selectedIndex=0;" style="padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                                    <option value="">Tamanho</option>
+                                    <option value="1">Pequeno</option>
+                                    <option value="3">Normal</option>
+                                    <option value="5">Grande</option>
+                                    <option value="7">Muito Grande</option>
+                                </select>
+                                <input type="color" onchange="formatarTexto('foreColor', this.value)" title="Cor do Texto" style="width: 40px; height: 32px; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">
+                                <div style="width: 1px; background: #ddd; margin: 0 5px;"></div>
+                                <button type="button" onclick="inserirTabela()" title="Inserir Tabela" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;">📊 Tabela</button>
+                            </div>
+                            
+                            <!-- Área Editável -->
+                            <div id="email_corpo" contenteditable="true" 
+                                style="min-height: 300px; max-height: 400px; overflow-y: auto; padding: 15px; border: 1px solid #ddd; border-radius: 0 0 4px 4px; background: white; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6;">
+                            </div>
+                        </div>
+                        
+                        <!-- Upload de Anexos -->
+                        <div class="form-group">
+                            <label>Anexos (Opcional)</label>
+                            <input type="file" id="email_anexos" multiple 
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip" 
+                                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
+                            <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">
+                                Formatos aceitos: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, ZIP (máx. 10MB por arquivo)
+                            </small>
+                            <div id="lista_anexos" style="margin-top: 10px;"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalEmailFornecedor()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="enviarEmailFornecedor()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                        📧 Enviar E-mail
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <script>
             let semanas = [];
             let semanaAtual = 0;
@@ -1824,6 +1901,9 @@
             let celulasIntervalo = [];
             let tiposDemandaConfig = {}; // Armazenar configurações completas dos tipos
             let cssClassesGeradas = false; // Controle para gerar CSS dinâmico apenas uma vez
+            // ========== VARIÁVEIS GLOBAIS PARA EMAIL FORNECEDOR ==========
+            let dadosVinculoFornecedor = null;
+            let idDemandaParaEmailFornecedor = null;
 
             // ========== FUNÇÕES PARA MODAIS PADRÃO ==========
 
@@ -2809,6 +2889,208 @@
                     limparSelecaoIntervalo();
                 }
             });
+
+            // ========== FUNÇÕES DO EDITOR DE TEXTO ==========
+            function formatarTexto(comando, valor = null) {
+                document.getElementById('email_corpo').focus();
+                if (valor) {
+                    document.execCommand(comando, false, valor);
+                } else {
+                    document.execCommand(comando, false, null);
+                }
+            }
+
+            function inserirTabela() {
+                const linhas = prompt('Número de linhas:', '3');
+                const colunas = prompt('Número de colunas:', '3');
+                
+                if (linhas && colunas) {
+                    let tabelaHtml = '<table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 10px 0;">';
+                    
+                    for (let i = 0; i < parseInt(linhas); i++) {
+                        tabelaHtml += '<tr>';
+                        for (let j = 0; j < parseInt(colunas); j++) {
+                            tabelaHtml += '<td style="border: 1px solid #ddd; padding: 8px;">&nbsp;</td>';
+                        }
+                        tabelaHtml += '</tr>';
+                    }
+                    
+                    tabelaHtml += '</table><p><br></p>';
+                    
+                    document.execCommand('insertHTML', false, tabelaHtml);
+                }
+            }
+
+            // Atualizar lista de anexos
+            document.addEventListener('DOMContentLoaded', function() {
+                const inputAnexos = document.getElementById('email_anexos');
+                if (inputAnexos) {
+                    inputAnexos.addEventListener('change', function() {
+                        const listaAnexos = document.getElementById('lista_anexos');
+                        listaAnexos.innerHTML = '';
+                        
+                        if (this.files.length > 0) {
+                            listaAnexos.innerHTML = '<div style="margin-top: 10px;"><strong>Arquivos selecionados:</strong></div>';
+                            
+                            Array.from(this.files).forEach((file, index) => {
+                                const tamanhoMB = (file.size / (1024 * 1024)).toFixed(2);
+                                const cor = file.size > 10 * 1024 * 1024 ? '#dc3545' : '#28a745';
+                                
+                                listaAnexos.innerHTML += `
+                                    <div style="padding: 8px; background: #f8f9fa; margin: 5px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-size: 13px;">
+                                            📎 ${file.name} 
+                                            <span style="color: ${cor}; font-weight: 600;">(${tamanhoMB} MB)</span>
+                                        </span>
+                                    </div>
+                                `;
+                            });
+                        }
+                    });
+                }
+            });
+
+            // ========== FUNÇÃO: Abrir Modal de Email para Fornecedor ==========
+            async function abrirModalEmailFornecedor(dadosDemanda) {
+                try {
+                    // Preencher campos
+                    document.getElementById('email_id_demanda').value = idDemandaParaEmailFornecedor;
+                    document.getElementById('email_destinatario').value = dadosVinculoFornecedor.email_fornecedor;
+                    
+                    // Assunto padrão
+                    const assunto = `TJRO - Solicitação de Locação - ${dadosVinculoFornecedor.de_tipoveiculo}`;
+                    document.getElementById('email_assunto').value = assunto;
+                    
+                    // Corpo do email padrão
+                    const nomeUsuario = '${session.get("usuario_nome", "Administrador")}'; // Será substituído no backend
+                    
+                    // Formatar datas
+                    const dataInicio = new Date(dadosDemanda.dt_inicio + 'T00:00:00');
+                    const dataFim = new Date(dadosDemanda.dt_fim + 'T00:00:00');
+                    const dataInicioFormatada = dataInicio.toLocaleDateString('pt-BR');
+                    const dataFimFormatada = dataFim.toLocaleDateString('pt-BR');
+                    
+                    const corpoHtml = `
+            <p>Prezados,</p>
+
+            <p>Solicito locação de veículo conforme informações abaixo:</p>
+
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 15px 0;">
+                <tr>
+                    <td style="background: #f0f0f0; font-weight: bold; width: 30%;">Período:</td>
+                    <td>${dataInicioFormatada} a ${dataFimFormatada}</td>
+                </tr>
+                <tr>
+                    <td style="background: #f0f0f0; font-weight: bold;">Tipo de Veículo:</td>
+                    <td>${dadosVinculoFornecedor.de_tipoveiculo}</td>
+                </tr>
+                ${dadosDemanda.setor ? `<tr>
+                    <td style="background: #f0f0f0; font-weight: bold;">Setor:</td>
+                    <td>${dadosDemanda.setor}</td>
+                </tr>` : ''}
+                ${dadosDemanda.destino ? `<tr>
+                    <td style="background: #f0f0f0; font-weight: bold;">Destino:</td>
+                    <td>${dadosDemanda.destino}</td>
+                </tr>` : ''}
+                ${dadosDemanda.nu_sei ? `<tr>
+                    <td style="background: #f0f0f0; font-weight: bold;">Nº SEI:</td>
+                    <td>${dadosDemanda.nu_sei}</td>
+                </tr>` : ''}
+            </table>
+
+            <p>Atenciosamente,</p>
+
+            <p><strong>${nomeUsuario}</strong><br>
+            Tribunal de Justiça do Estado de Rondônia<br>
+            Seção de Gestão Operacional do Transporte<br>
+            📞 (69) 3309-6229/6227</p>
+                    `;
+                    
+                    document.getElementById('email_corpo').innerHTML = corpoHtml;
+                    
+                    // Limpar anexos
+                    document.getElementById('email_anexos').value = '';
+                    document.getElementById('lista_anexos').innerHTML = '';
+                    
+                    // Abrir modal
+                    document.getElementById('modalEmailFornecedor').style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('Erro ao abrir modal de email:', error);
+                    mostrarAlerta('Erro ao abrir formulário de email!', '❌ Erro', '#dc3545');
+                }
+            }
+
+            // ========== FUNÇÃO: Fechar Modal de Email ==========
+            function fecharModalEmailFornecedor() {
+                document.getElementById('modalEmailFornecedor').style.display = 'none';
+                dadosVinculoFornecedor = null;
+                idDemandaParaEmailFornecedor = null;
+            }
+
+            // ========== FUNÇÃO: Enviar Email para Fornecedor ==========
+            async function enviarEmailFornecedor() {
+                try {
+                    const destinatario = document.getElementById('email_destinatario').value;
+                    const assunto = document.getElementById('email_assunto').value;
+                    const corpoHtml = document.getElementById('email_corpo').innerHTML;
+                    const idDemanda = document.getElementById('email_id_demanda').value;
+                    
+                    if (!destinatario || !assunto || !corpoHtml.trim()) {
+                        mostrarAlerta('Preencha todos os campos obrigatórios!', '⚠️ Atenção', '#ffc107');
+                        return;
+                    }
+                    
+                    // Preparar FormData
+                    const formData = new FormData();
+                    formData.append('email_destinatario', destinatario);
+                    formData.append('assunto', assunto);
+                    formData.append('corpo_html', corpoHtml);
+                    formData.append('id_demanda', idDemanda);
+                    
+                    // Adicionar anexos
+                    const inputAnexos = document.getElementById('email_anexos');
+                    if (inputAnexos.files.length > 0) {
+                        Array.from(inputAnexos.files).forEach(file => {
+                            formData.append('anexos', file);
+                        });
+                    }
+                    
+                    mostrarSpinner();
+                    
+                    const response = await fetch('/api/enviar_email_fornecedor', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const resultado = await response.json();
+                    
+                    esconderSpinner();
+                    
+                    if (response.ok && resultado.success) {
+                        fecharModalEmailFornecedor();
+                        
+                        mostrarAlerta(
+                            '📧 E-mail enviado com sucesso!<br><br>A solicitação foi registrada.',
+                            '✅ Sucesso',
+                            '#28a745'
+                        );
+                        
+                        // Recarregar agenda
+                        await carregarSemanas();
+                        await carregarAgenda();
+                        inicializarDestaqueLinha();
+                        
+                    } else {
+                        mostrarAlerta('Erro ao enviar e-mail: ' + (resultado.erro || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                    }
+                    
+                } catch (error) {
+                    esconderSpinner();
+                    console.error('Erro ao enviar email:', error);
+                    mostrarAlerta('Erro ao enviar e-mail: ' + error.message, '❌ Erro', '#dc3545');
+                }
+            }
 
 
             async function init() {
@@ -4406,329 +4688,6 @@
                 html += '</tbody></table></div>';
                 return html;
             }
-
-            /*   // anterior, se a atual não funcionar retorna pra essa
-            function renderizarSecaoVeiculosAlocados(dias) {
-                const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1 && d.id_tipoveiculo !== null);
-
-                if (demandasAlocadas.length === 0) return '';
-
-                const grupos = {};
-                demandasAlocadas.forEach(d => {
-                    const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.setor}|${d.destino}|${d.id_tipoveiculo}`;
-                    if (!grupos[key]) {
-                        grupos[key] = {
-                            de_tipoveiculo: d.de_tipoveiculo,
-                            nu_sei: d.nu_sei,
-                            setor: d.setor,
-                            destino: d.destino,
-                            id_tipoveiculo: d.id_tipoveiculo,
-                            demandas: []
-                        };
-                    }
-                    grupos[key].demandas.push(d);
-                });
-
-                // ========== ORDENAÇÃO DINÂMICA BASEADA EM CONFIGURAÇÃO ==========
-                const gruposArray = Object.values(grupos);
-                gruposArray.sort((a, b) => {
-                    const configA = tiposDemandaConfig[a.id_tipoveiculo];
-                    const configB = tiposDemandaConfig[b.id_tipoveiculo];
-                    
-                    // Tipos que exibem checkbox solicitado têm prioridade
-                    const prioridadeA = configA && configA.exibir_checkbox_solicitado;
-                    const prioridadeB = configB && configB.exibir_checkbox_solicitado;
-                    
-                    if (prioridadeA && prioridadeB) {
-                        // Ambos prioritários: ordenar por ID tipo veículo crescente
-                        if (a.id_tipoveiculo !== b.id_tipoveiculo) {
-                            return a.id_tipoveiculo - b.id_tipoveiculo;
-                        }
-                        // Mesmo ID: ordenar por data de lançamento
-                        const dataA = a.demandas[0].dt_lancamento || '';
-                        const dataB = b.demandas[0].dt_lancamento || '';
-                        return dataA.localeCompare(dataB);
-                    }
-                    
-                    if (!prioridadeA && !prioridadeB) {
-                        // Nenhum prioritário: ordenar por data de lançamento
-                        const dataA = a.demandas[0].dt_lancamento || '';
-                        const dataB = b.demandas[0].dt_lancamento || '';
-                        return dataA.localeCompare(dataB);
-                    }
-                    
-                    // Prioritários vêm primeiro
-                    return prioridadeB - prioridadeA;
-                });
-
-                let html = '<div class="agenda-section">';
-                html += `
-                    <div class="section-header">
-                        <span>🚌 SEGEOP - VEÍCULOS ALOCADOS</span>
-                        <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('veiculos-alocados')">👁️ Visualizar</button>
-                    </div>
-                `;
-                html += '<table class="agenda-table"><thead><tr>';
-                html += '<th class="col-numero">N.</th><th class="col-nome">Tipo Veículo / SEI / Destino</th>';
-                dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
-                html += '</tr></thead><tbody>';
-
-                gruposArray.forEach((grupo, index) => {
-                    // ========== USAR CONFIGURAÇÃO PARA VERIFICAR SE É "ESPECIAL" ==========
-                    const tipoConfig = tiposDemandaConfig[grupo.id_tipoveiculo];
-                    const isIdEspecial = tipoConfig && tipoConfig.exibir_checkbox_solicitado;
-                    
-                    html += `<tr><td class="col-numero">${index + 1}</td>`;
-                    html += `<td class="col-nome">`;
-                    html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
-                    html += `<div>${grupo.nu_sei || ''}</div>`;
-                    
-                    // Montar linha Setor - Destino com setor em negrito
-                    if (grupo.setor && grupo.destino) {
-                        html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
-                    } else if (grupo.setor) {
-                        html += `<div><strong>${grupo.setor}</strong></div>`;
-                    } else if (grupo.destino) {
-                        html += `<div>${grupo.destino}</div>`;
-                    }
-                    
-                    // Verificar se existe locação finalizada
-                    const primeiraLocacao = locacoesAtivas.find(loc => 
-                        loc.fl_status === 'F' && 
-                        grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
-                    );
-                    if (primeiraLocacao) {
-                        html += `<div style="color: #6c757d; font-size: 11px; margin-top: 3px;">${primeiraLocacao.ds_veiculo_mod}</div>`;
-                    }
-                    
-                    html += `</td>`;
-                    
-                    dias.forEach(dia => {
-                        const feriado = isFeriado(dia.data);
-                        const demandasDia = grupo.demandas.filter(d => 
-                            d.dt_inicio <= dia.data && 
-                            d.dt_fim >= dia.data
-                        );
-                        
-                        if (demandasDia.length > 0) {
-                            const demanda = demandasDia[0];
-                            
-                            let corClass = '';
-                            
-                            if (isIdEspecial) {
-                                // Para tipos "especiais": verificar se foi solicitado
-                                corClass = demanda.solicitado === 'S' ? 'tipo-solicitado' : '';
-                            } else {
-                                // Para outros tipos: verificar se existe locação
-                                const temLocacao = locacoesAtivas.some(loc => 
-                                    loc.id_motorista === demanda.id_motorista &&
-                                    loc.data_inicio <= dia.data &&
-                                    loc.data_fim >= dia.data
-                                );
-                                corClass = temLocacao ? 'tipo-locacao' : '';
-                            }
-                            
-                            const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                            html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipPeriodo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
-                            html += '<div class="cell-content-veiculos">';
-                            
-                            if (isIdEspecial) {
-                                // Para tipos "especiais": mostrar apenas setor e destino
-                                if (demanda.setor) {
-                                    html += `<div><strong>${demanda.setor}</strong></div>`;
-                                }
-                                if (demanda.destino) {
-                                    html += `<div>${demanda.destino}</div>`;
-                                }                            
-                            } else {
-                                // Para outros tipos: mostrar motorista (nome ou NC) e setor
-                                if (demanda.id_motorista === 0 && demanda.nc_motorista) {
-                                    html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
-                                } else {
-                                    html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
-                                }
-                                if (demanda.setor) {
-                                    html += `<div>${demanda.setor}</div>`;
-                                }
-                            }
-                            
-                            html += '</div></td>';
-                        } else if (feriado) {
-                            html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
-                        } else {
-                            const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
-                            const weekendClass = isWeekend ? 'weekend-empty' : '';
-                            html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
-                        }
-                    });
-                    html += '</tr>';
-                });
-
-                html += '</tbody></table></div>';
-                return html;
-
-            }
-            */
-            
-            /*
-            function renderizarSecaoVeiculosAlocados(dias) {
-                const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1 && d.id_tipoveiculo !== null);
-                
-                if (demandasAlocadas.length === 0) return '';
-                
-                const grupos = {};
-                demandasAlocadas.forEach(d => {
-                    const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.setor}|${d.destino}|${d.id_tipoveiculo}`;
-                    if (!grupos[key]) {
-                        grupos[key] = {
-                            de_tipoveiculo: d.de_tipoveiculo,
-                            nu_sei: d.nu_sei,
-                            setor: d.setor,
-                            destino: d.destino,
-                            id_tipoveiculo: d.id_tipoveiculo,
-                            demandas: []
-                        };
-                    }
-                    grupos[key].demandas.push(d);
-                });
-                
-                // Ordenar grupos: primeiro IDs 7, 8, 9 (em ordem crescente), depois ordenar por ID_AD ASC
-                const gruposArray = Object.values(grupos);
-                gruposArray.sort((a, b) => {
-                    const prioridadeA = [7, 8, 9].includes(a.id_tipoveiculo);
-                    const prioridadeB = [7, 8, 9].includes(b.id_tipoveiculo);
-                    
-                    // Se ambos são prioritários (7, 8, 9)
-                    if (prioridadeA && prioridadeB) {
-                        // Ordenar por ID_TIPOVEICULO crescente (7, 8, 9)
-                        if (a.id_tipoveiculo !== b.id_tipoveiculo) {
-                            return a.id_tipoveiculo - b.id_tipoveiculo;
-                        }
-                        // Se mesmo ID_TIPOVEICULO, ordenar por data de lançamento ASC
-                        const dataA = a.demandas[0].dt_lancamento || '';
-                        const dataB = b.demandas[0].dt_lancamento || '';
-                        return dataA.localeCompare(dataB);
-                    }
-                    
-                    // Se ambos NÃO são prioritários, ordenar por data de lançamento ASC
-                    if (!prioridadeA && !prioridadeB) {
-                        const dataA = a.demandas[0].dt_lancamento || '';
-                        const dataB = b.demandas[0].dt_lancamento || '';
-                        return dataA.localeCompare(dataB);
-                    }
-                    
-                    // Prioritários (7, 8, 9) vêm primeiro
-                    return prioridadeB - prioridadeA;
-                });
-                
-                let html = '<div class="agenda-section">';
-                html += `
-                    <div class="section-header">
-                        <span>🚌 SEGEOP - VEÍCULOS ALOCADOS</span>
-                        <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('veiculos-alocados')">👁️ Visualizar</button>
-                    </div>
-                `;
-                html += '<table class="agenda-table"><thead><tr>';
-                html += '<th class="col-numero">N.</th><th class="col-nome">Tipo Veículo / SEI / Destino</th>';
-                dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
-                html += '</tr></thead><tbody>';
-                
-                gruposArray.forEach((grupo, index) => {
-                    const isIdEspecial = [7, 8, 9].includes(grupo.id_tipoveiculo);
-                    
-                    html += `<tr><td class="col-numero">${index + 1}</td>`;
-                    html += `<td class="col-nome">`;
-                    html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
-                    html += `<div>${grupo.nu_sei || ''}</div>`;
-                    
-                    // Montar linha Setor - Destino com setor em negrito
-                    if (grupo.setor && grupo.destino) {
-                        html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
-                    } else if (grupo.setor) {
-                        html += `<div><strong>${grupo.setor}</strong></div>`;
-                    } else if (grupo.destino) {
-                        html += `<div>${grupo.destino}</div>`;
-                    }
-                    
-                    // Verificar se existe locação finalizada
-                    const primeiraLocacao = locacoesAtivas.find(loc => 
-                        loc.fl_status === 'F' && 
-                        grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
-                    );
-                    if (primeiraLocacao) {
-                        html += `<div style="color: #6c757d; font-size: 11px; margin-top: 3px;">${primeiraLocacao.ds_veiculo_mod}</div>`;
-                    }
-                    
-                    html += `</td>`;
-                    
-                    dias.forEach(dia => {
-                        const feriado = isFeriado(dia.data);
-                        const demandasDia = grupo.demandas.filter(d => 
-                            d.dt_inicio <= dia.data && 
-                            d.dt_fim >= dia.data
-                        );
-                        
-                        if (demandasDia.length > 0) {
-                            const demanda = demandasDia[0];
-                            
-                            let corClass = '';
-                            
-                            if (isIdEspecial) {
-                                // Para IDs 7, 8, 9: verificar se foi solicitado
-                                corClass = demanda.solicitado === 'S' ? 'tipo-solicitado' : '';
-                            } else {
-                                // Para outros IDs: verificar se existe locação
-                                const temLocacao = locacoesAtivas.some(loc => 
-                                    loc.id_motorista === demanda.id_motorista &&
-                                    loc.data_inicio <= dia.data &&
-                                    loc.data_fim >= dia.data
-                                );
-                                corClass = temLocacao ? 'tipo-locacao' : '';
-                            }
-                            
-                            const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                            // html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
-                            html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipPeriodo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
-                            html += '<div class="cell-content-veiculos">';
-                            
-                            if (isIdEspecial) {
-                                // Para IDs 7, 8, 9: mostrar apenas setor e destino
-                                if (demanda.setor) {
-                                    html += `<div><strong>${demanda.setor}</strong></div>`;
-                                }
-                                if (demanda.destino) {
-                                    html += `<div>${demanda.destino}</div>`;
-                                }                            
-
-                            } else {
-                                // Para outros IDs: mostrar motorista (nome ou NC) e setor
-                                if (demanda.id_motorista === 0 && demanda.nc_motorista) {
-                                    html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
-                                } else {
-                                    html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
-                                }
-                                if (demanda.setor) {
-                                    html += `<div>${demanda.setor}</div>`;
-                                }
-                            }
-                            
-                            html += '</div></td>';
-                        } else if (feriado) {
-                            // Célula de feriado sem demanda
-                            html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
-                        } else {
-                            const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
-                            const weekendClass = isWeekend ? 'weekend-empty' : '';
-                            html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
-                        }
-                    });
-                    html += '</tr>';
-                });
-                
-                html += '</tbody></table></div>';
-                return html;
-            }
-            */
             
             async function abrirModalNovo() {
                 document.getElementById('modalTitle').textContent = 'Nova Demanda';
@@ -5104,7 +5063,6 @@
                 }
             }
 
-            // ========== MODIFICAR FUNÇÃO EXISTENTE: salvarDemanda ==========
             async function salvarDemanda() {
                 const idAd = document.getElementById('idAd').value;
                 const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
@@ -5143,13 +5101,13 @@
                     usuario: document.getElementById('usuario').value
                 };
                 
-                // ========== VALIDAÇÕES OBRIGATÓRIAS BÁSICAS ==========
+                // Validações obrigatórias básicas
                 if (!dados.id_tipodemanda || !dados.dt_inicio || !dados.dt_fim) {
                     mostrarAlerta('Preencha todos os campos obrigatórios: Tipo de Demanda, Data Início e Data Fim!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
-                // ========== BUSCAR CONFIGURAÇÃO DO TIPO DE DEMANDA ==========
+                // Buscar configuração do tipo de demanda
                 const config = tiposDemandaConfig[idTipoDemanda];
                 
                 if (!config) {
@@ -5157,57 +5115,48 @@
                     return;
                 }
                 
-                // ========== VALIDAÇÕES DINÂMICAS BASEADAS NA CONFIGURAÇÃO ==========
-                
-                // Validação de Motorista
+                // Validações dinâmicas (mantém as mesmas validações existentes)
                 if (config.motorista_obrigatorio && !dados.id_motorista) {
                     mostrarAlerta('O campo Motorista é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
 
-                // Validação específica para motorista não cadastrado
                 if (dados.id_motorista === '0' && !dados.nc_motorista) {
                     mostrarAlerta('Informe o nome do motorista não cadastrado!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
-                // Validação de Tipo de Veículo
                 if (config.tipo_veiculo_obrigatorio && !dados.id_tipoveiculo) {
                     mostrarAlerta('O campo Tipo de Veículo é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
-                // Validação de Veículo
                 if (config.veiculo_obrigatorio && !dados.id_veiculo) {
                     mostrarAlerta('O campo Veículo é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
-                // Validação de Setor
                 if (config.setor_obrigatorio && !dados.setor) {
                     mostrarAlerta('O campo Setor é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
-                // Validação de Solicitante
                 if (config.solicitante_obrigatorio && !dados.solicitante) {
                     mostrarAlerta('O campo Solicitante é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
-                // Validação de Destino
                 if (config.destino_obrigatorio && !dados.destino) {
                     mostrarAlerta('O campo Destino é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
-                // ========== CONTINUA O RESTO DA FUNÇÃO IGUAL ==========
                 try {
                     let res;
                     let demandaIdRetornado = null;
                     
                     if (idAd) {
-                        // EDIÇÃO - não verifica locação
+                        // ========== EDIÇÃO - NÃO VERIFICA LOCAÇÃO ==========
                         res = await fetch(`/api/agenda/demanda/${idAd}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
@@ -5217,10 +5166,7 @@
                         const result = await res.json();
                         
                         if (result.success || result.id) {
-                            // Fechar modal da demanda
                             fecharModal();
-                            
-                            // Recarregar semanas e agenda
                             await carregarSemanas();
                             await carregarAgenda();
                             inicializarDestaqueLinha();
@@ -5229,19 +5175,18 @@
                         }
                         
                     } else {
-                        // ====== NOVA DEMANDA - VERIFICAR LOCAÇÃO ANTES DE SALVAR ======
+                        // ========== NOVA DEMANDA - VERIFICAR LOCAÇÃO OU FORNECEDOR ==========
                         
-                        // Verificar se tem os dados necessários para locação
-                        if (dados.id_tipoveiculo && dados.id_motorista && parseInt(dados.id_motorista) > 0) {
+                        if (dados.id_tipoveiculo) {
                             try {
-                                // Chamar API para verificar vínculo
-                                const urlVerificar = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista}`;
-                                const resVerificar = await fetch(urlVerificar);
-                                const resultadoVerificar = await resVerificar.json();
+                                // ========== VERIFICAR LOCAÇÃO EXISTENTE (PRIORIDADE) ==========
+                                const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista || 0}`;
+                                const resVerificarLocacao = await fetch(urlVerificarLocacao);
+                                const resultadoLocacao = await resVerificarLocacao.json();
                                 
-                                if (resultadoVerificar.tem_vinculo) {
-                                    // Guardar dados do vínculo
-                                    dadosVinculoLocacao = resultadoVerificar;
+                                if (resultadoLocacao.tem_vinculo) {
+                                    // TEM VÍNCULO COM LOCAÇÃO - USA FLUXO EXISTENTE
+                                    dadosVinculoLocacao = resultadoLocacao;
                                     
                                     // Perguntar se quer solicitar locação ANTES de salvar
                                     mostrarModalConfirmacaoLocacao(async function(respostaLocacao) {
@@ -5259,22 +5204,17 @@
                                                 demandaIdRetornado = resultSalvar.id;
                                                 idDemandaParaLocacao = demandaIdRetornado;
                                                 
-                                                // Fechar modal da demanda
                                                 fecharModal();
-                                                
-                                                // Recarregar semanas e agenda
                                                 await carregarSemanas();
                                                 await carregarAgenda();
                                                 inicializarDestaqueLinha();
                                                 
-                                                // Abrir formulário de locação
                                                 await abrirFormularioLocacao(dados);
                                             } else {
                                                 mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                                             }
                                             
                                         } else {
-                                            // Usuário não quer solicitar locação - apenas salvar demanda
                                             const resSalvar = await fetch('/api/agenda/demanda', {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
@@ -5284,10 +5224,7 @@
                                             const resultSalvar = await resSalvar.json();
                                             
                                             if (resultSalvar.success || resultSalvar.id) {
-                                                // Fechar modal da demanda
                                                 fecharModal();
-                                                
-                                                // Recarregar semanas e agenda
                                                 await carregarSemanas();
                                                 await carregarAgenda();
                                                 inicializarDestaqueLinha();
@@ -5297,17 +5234,61 @@
                                         }
                                     });
                                     
-                                    // Retornar aqui para não executar o código abaixo
-                                    return;
-                                    
+                                    return; // Retorna para não executar o código abaixo
                                 }
+                                
+                                // ========== NÃO TEM LOCAÇÃO - VERIFICAR FORNECEDOR ==========
+                                const urlVerificarFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${dados.id_tipoveiculo}`;
+                                const resVerificarFornecedor = await fetch(urlVerificarFornecedor);
+                                const resultadoFornecedor = await resVerificarFornecedor.json();
+                                
+                                if (resultadoFornecedor.tem_vinculo) {
+                                    // TEM VÍNCULO COM FORNECEDOR - PERGUNTAR SE QUER ENVIAR EMAIL
+                                    dadosVinculoFornecedor = resultadoFornecedor;
+                                    
+                                    mostrarConfirmacao(
+                                        '📧 Este tipo de veículo possui fornecedor cadastrado.<br><br>Deseja enviar e-mail de solicitação de locação?',
+                                        async function(respostaEmail) {
+                                            // Salvar demanda PRIMEIRO
+                                            const resSalvar = await fetch('/api/agenda/demanda', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify(dados)
+                                            });
+                                            
+                                            const resultSalvar = await resSalvar.json();
+                                            
+                                            if (resultSalvar.success || resultSalvar.id) {
+                                                demandaIdRetornado = resultSalvar.id;
+                                                idDemandaParaEmailFornecedor = demandaIdRetornado;
+                                                
+                                                fecharModal();
+                                                
+                                                if (respostaEmail) {
+                                                    // Abrir modal de email
+                                                    await abrirModalEmailFornecedor(dados);
+                                                } else {
+                                                    // Apenas recarregar
+                                                    await carregarSemanas();
+                                                    await carregarAgenda();
+                                                    inicializarDestaqueLinha();
+                                                }
+                                            } else {
+                                                mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                            }
+                                        },
+                                        '📧 Enviar E-mail?'
+                                    );
+                                    
+                                    return; // Retorna para não executar o código abaixo
+                                }
+                                
                             } catch (errorVerificar) {
-                                console.error('Erro ao verificar locação:', errorVerificar);
-                                // Se der erro na verificação, continua salvando normalmente
+                                console.error('Erro ao verificar vínculos:', errorVerificar);
                             }
                         }
                         
-                        // Se não tem vínculo ou erro na verificação, salvar normalmente
+                        // ========== SEM VÍNCULOS - SALVAR NORMALMENTE ==========
                         res = await fetch('/api/agenda/demanda', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -5317,10 +5298,7 @@
                         const result = await res.json();
                         
                         if (result.success || result.id) {
-                            // Fechar modal da demanda
                             fecharModal();
-                            
-                            // Recarregar semanas e agenda
                             await carregarSemanas();
                             await carregarAgenda();
                             inicializarDestaqueLinha();
@@ -5452,52 +5430,6 @@
                     '⚠️ Excluir Demanda'
                 );
             }
-            
-            // ========== EVENT LISTENER CONSOLIDADO PARA TODOS OS MODAIS ==========
-            /*
-            window.addEventListener('click', function(event) {
-                // Modal principal de demanda
-                const modal = document.getElementById('modal');
-                if (event.target === modal) {
-                    fecharModal();
-                }
-                
-                // Modais de alerta e confirmação padrão
-                const modalAlerta = document.getElementById('modalAlerta');
-                const modalConfirmacao = document.getElementById('modalConfirmacao');
-                
-                if (event.target === modalAlerta) {
-                    fecharModalAlerta();
-                }
-                
-                if (event.target === modalConfirmacao) {
-                    fecharModalConfirmacao(false);
-                }
-                
-                // Modais de locação
-                const modalFormLocacao = document.getElementById('modalFormLocacao');
-                const modalSucessoLocacao = document.getElementById('modalSucessoLocacao');
-                const modalConfirmacaoLocacao = document.getElementById('modalConfirmacaoLocacao');
-                
-                if (event.target === modalFormLocacao) {
-                    fecharModalFormLocacao();
-                }
-                
-                if (event.target === modalSucessoLocacao) {
-                    fecharModalSucessoLocacao();
-                }
-                
-                if (event.target === modalConfirmacaoLocacao) {
-                    fecharModalConfirmacaoLocacao(false);
-                }
-                
-                // Modal de feriados
-                const modalFeriados = document.getElementById('modalFeriados');
-                if (event.target === modalFeriados) {
-                    fecharModalFeriados();
-                }
-            });
-            */
 
             // ========== EVENT LISTENER SELETIVO - NÃO FECHA MODAIS DE FORMULÁRIO ==========
             window.addEventListener('click', function(event) {
@@ -6016,145 +5948,6 @@
                 html += '</tbody></table></div>';
                 return html;
             }
-
-            /*
-            function renderizarSecaoMotoristasCompleta(dias, titulo) {
-                let html = '<div class="agenda-section">';
-                html += `<div class="section-title">${titulo}</div>`;
-                html += '<table class="agenda-table"><thead><tr>';
-                html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
-                dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
-                html += '</tr></thead><tbody>';
-                
-                motoristas.forEach((m, motoristaGlobalIndex) => {
-                    const demandasPorDia = dias.map(dia => {
-                        return dadosAgenda.demandas.filter(d => 
-                            d.id_motorista === m.id && 
-                            d.dt_inicio <= dia.data && 
-                            d.dt_fim >= dia.data
-                        );
-                    });
-                    
-                    const maxDemandasPorDia = Math.max(...demandasPorDia.map(d => d.length), 1);
-                    const celulasRenderizadas = Array(maxDemandasPorDia).fill(0).map(() => Array(dias.length).fill(false));
-                    
-                    for (let linhaIndex = 0; linhaIndex < maxDemandasPorDia; linhaIndex++) {
-                        html += `<tr>`;
-                        
-                        if (linhaIndex === 0) {
-                            if (maxDemandasPorDia > 1) {
-                                html += `<td class="col-numero" rowspan="${maxDemandasPorDia}">${motoristaGlobalIndex + 1}</td>`;
-                                html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">${m.nome}</td>`;
-                            } else {
-                                html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
-                                html += `<td class="col-nome">${m.nome}</td>`;
-                            }
-                        }
-                        
-                        for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
-                            if (celulasRenderizadas[linhaIndex][diaIndex]) continue;
-                            
-                            const dia = dias[diaIndex];
-                            const feriado = isFeriado(dia.data);
-                            const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
-                            const demandasDia = demandasPorDia[diaIndex];
-                            const demanda = demandasDia[linhaIndex];
-                            
-                            if (demanda) {
-                                let rowspanCount = 1;
-                                for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
-                                    if (!demandasDia[proxLinha]) {
-                                        rowspanCount++;
-                                        celulasRenderizadas[proxLinha][diaIndex] = true;
-                                    } else break;
-                                }
-                                
-                                const corClass = `tipo-${demanda.id_tipodemanda}`;
-                                const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                                // html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>`;
-                                html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onmouseenter="mostrarTooltipVeiculo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
-        
-                                html += '<div class="cell-content">';
-                                
-                                // ID 9 (Oficina)
-                                if (demanda.id_tipodemanda === 9) {
-                                    html += `<div><strong>${demanda.de_tipodemanda || 'Oficina'}</strong></div>`;
-                                    if (demanda.id_motorista === 0 && demanda.nc_motorista) {
-                                        html += `<div class="cell-divider"></div>`;
-                                        html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
-                                    } else if (demanda.nm_motorista) {
-                                        html += `<div class="cell-divider"></div>`;
-                                        html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
-                                    }
-                                    if (demanda.destino) {
-                                        html += `<div>${demanda.destino}</div>`;
-                                    }
-                                }
-                                // ID 10 (Cedência)
-                                else if (demanda.id_tipodemanda === 10) {
-                                    html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
-                                    if (demanda.id_motorista === 0 && demanda.nc_motorista) {
-                                        html += `<div class="cell-divider"></div>`;
-                                        html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
-                                    } else if (demanda.nm_motorista) {
-                                        html += `<div class="cell-divider"></div>`;
-                                        html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
-                                    }
-                                    if (demanda.setor) {
-                                        html += `<div><strong>${demanda.setor}</strong></div>`;
-                                    }
-                                    if (demanda.nu_sei) {
-                                        html += `<div>${demanda.nu_sei}</div>`;
-                                    }
-                                }
-                                // ID 1, 2 ou 11 com horário
-                                else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
-                                    if (demanda.setor || demanda.solicitante) {
-                                        html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
-                                    }
-                                    html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
-                                    html += `<div>${demanda.nu_sei || ''}</div>`;
-                                }
-                                // Outros tipos
-                                else {
-                                    if (demanda.setor || demanda.solicitante) {
-                                        html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
-                                    }
-                                    html += `<div>${demanda.destino || ''}</div>`;
-                                    html += `<div>${demanda.nu_sei || ''}</div>`;
-                                }
-                                
-                                if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10, 12].includes(demanda.id_tipodemanda)) {
-                                    html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
-                                }
-                                
-                                html += '</div></td>';
-                                celulasRenderizadas[linhaIndex][diaIndex] = true;
-                            } else {
-                                let rowspanCount = 1;
-                                for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
-                                    if (!demandasDia[proxLinha]) {
-                                        rowspanCount++;
-                                        celulasRenderizadas[proxLinha][diaIndex] = true;
-                                    } else break;
-                                }
-                                
-                                if (feriado) {
-                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
-                                } else {
-                                    const weekendClass = isWeekend ? 'weekend-empty' : '';
-                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
-                                }
-                                celulasRenderizadas[linhaIndex][diaIndex] = true;
-                            }
-                        }
-                        html += '</tr>';
-                    }
-                });
-                
-                html += '</tbody></table></div>';
-                return html;
-            } */
 
             // Função para retornar à página inicial
             function voltarPaginaInicial() {
