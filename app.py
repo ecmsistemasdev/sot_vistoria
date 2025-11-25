@@ -4558,6 +4558,80 @@ def buscar_tipos_demanda():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/agenda/tipos-demanda-completo', methods=['GET'])
+@login_required
+def buscar_tipos_demanda_completo():
+    """
+    Retorna todos os tipos de demanda com suas configurações completas
+    (cores, regras de obrigatoriedade, bloqueios, etc.)
+    """
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                ID_TIPODEMANDA,
+                DE_TIPODEMANDA,
+                COR_GRADIENTE_INICIO,
+                COR_GRADIENTE_FIM,
+                NEGRITO,
+                MOTORISTA_OBRIGATORIO,
+                TIPO_VEICULO_OBRIGATORIO,
+                VEICULO_OBRIGATORIO,
+                SETOR_OBRIGATORIO,
+                SOLICITANTE_OBRIGATORIO,
+                DESTINO_OBRIGATORIO,
+                DESTINO_AUTO_PREENCHER,
+                EXIBIR_CHECKBOX_SOLICITADO,
+                BLOQUEAR_TIPO_VEICULO,
+                BLOQUEAR_VEICULO,
+                BLOQUEAR_SETOR,
+                BLOQUEAR_SOLICITANTE,
+                BLOQUEAR_DESTINO,
+                ORDEM_EXIBICAO,
+                ATIVO
+            FROM TIPO_DEMANDA
+            WHERE ATIVO = 'S'
+            ORDER BY ORDEM_EXIBICAO, ID_TIPODEMANDA
+        """)
+        
+        tipos = []
+        for r in cursor.fetchall():
+            tipos.append({
+                'id': r[0],
+                'descricao': r[1],
+                'cor_inicio': r[2] or '#5fa1df',
+                'cor_fim': r[3] or '#8dbde8',
+                'negrito': r[4] == 'S',
+                'motorista_obrigatorio': r[5] == 'S',
+                'tipo_veiculo_obrigatorio': r[6] == 'S',
+                'veiculo_obrigatorio': r[7] == 'S',
+                'setor_obrigatorio': r[8] == 'S',
+                'solicitante_obrigatorio': r[9] == 'S',
+                'destino_obrigatorio': r[10] == 'S',
+                'destino_auto_preencher': r[11] == 'S',
+                'exibir_checkbox_solicitado': r[12] == 'S',
+                'bloquear_tipo_veiculo': r[13] == 'S',
+                'bloquear_veiculo': r[14] == 'S',
+                'bloquear_setor': r[15] == 'S',
+                'bloquear_solicitante': r[16] == 'S',
+                'bloquear_destino': r[17] == 'S',
+                'ordem_exibicao': r[18] or 999,
+                'ativo': r[19] == 'S'
+            })
+        
+        return jsonify(tipos)
+        
+    except Exception as e:
+        print(f"Erro em buscar_tipos_demanda_completo: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
 # API: Buscar tipos de veículo
 @app.route('/api/agenda/tipos-veiculo', methods=['GET'])
 @login_required
