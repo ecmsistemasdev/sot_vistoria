@@ -1250,8 +1250,8 @@ def api_processos_locacao():
     try:
         cursor = mysql.connection.cursor()
         query = """
-        SELECT cl.ID_CL, cl.ANO_EXERCICIO,
-               f.NM_FORNECEDOR, cl.NU_SEI, cl.NU_CONTRATO
+        SELECT cl.ID_CL, cl.ANO_EXERCICIO, f.NM_FORNECEDOR, 
+		cl.NU_SEI, cl.NU_CONTRATO, f.EMAIL
         FROM TJ_CONTROLE_LOCACAO cl, TJ_FORNECEDOR f
         WHERE f.ID_FORNECEDOR = cl.ID_FORNECEDOR
         AND cl.ATIVO = 'S'
@@ -1268,7 +1268,8 @@ def api_processos_locacao():
                 'ANO_EXERCICIO': processo[1],
                 'NM_FORNECEDOR': processo[2],
                 'NU_SEI': processo[3],
-                'NU_CONTRATO': processo[4]
+                'NU_CONTRATO': processo[4],
+				'EMAIL': processo[5]
             })
         
         cursor.close()
