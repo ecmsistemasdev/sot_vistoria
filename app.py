@@ -2090,10 +2090,23 @@ def nova_locacao():
         # Obter ID do usuário da sessão
         usuario = session.get('usuario_login')
         
-        # Verificar se o motorista tem CNH cadastrada
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Verificar se o motorista tem CNH cadastrada
         cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO, EMAIL FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
         motorista_info = cursor.fetchone()
+        
+        # Buscar o email do fornecedor
+        cursor.execute("SELECT EMAIL FROM TJ_FORNECEDOR f INNER JOIN TJ_CONTROLE_LOCACAO cl ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR WHERE cl.ID_CL = %s", (id_cl,))
+        fornecedor_info = cursor.fetchone()
+        email_fornecedor = fornecedor_info['EMAIL'] if fornecedor_info and fornecedor_info['EMAIL'] else None
+        
+        if not email_fornecedor:
+            cursor.close()
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Email do fornecedor não cadastrado. Por favor, configure o email do fornecedor antes de solicitar locações.'
+            }), 400
         
         # Verificar se é necessário salvar a CNH
         file_pdf = motorista_info['FILE_PDF'] if motorista_info['FILE_PDF'] else None
@@ -2139,10 +2152,13 @@ def nova_locacao():
         # Obter email do motorista
         motorista_email = motorista_info['EMAIL']
         
-        # Enviar e-mail para a empresa locadora
+        cursor.close()
+        
+        # Enviar e-mail para a empresa locadora (passando email_fornecedor)
         email_enviado, erro_email = enviar_email_locacao(
-            id_item, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'], dt_inicial, dt_final, hr_inicial, 
-			de_veiculo, obs, nome_arquivo_cnh, motorista_email, objetivo, file_pdf  # Passando o conteúdo do PDF
+            id_item, id_cl, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'], 
+            dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, 
+            motorista_email, objetivo, email_fornecedor, file_pdf
         )
         
         response_data = {
@@ -2154,7 +2170,6 @@ def nova_locacao():
         if not email_enviado and erro_email:
             response_data['erro_email'] = erro_email
             
-        cursor.close()
         return jsonify(response_data)
         
     except Exception as e:
@@ -2163,12 +2178,29 @@ def nova_locacao():
             'sucesso': False,
             'mensagem': str(e)
         }), 500
-		
-        
-def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, objetivo, file_pdf_content=None):
+
+
+def enviar_email_locacao(id_item, id_cl, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, 
+                         hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, objetivo, 
+                         email_fornecedor, file_pdf_content=None):
     try:
         # Importar pytz para timezone
         from pytz import timezone
+        
+        # Tratar email do fornecedor
+        # Remove espaços em branco extras e divide por vírgula
+        emails_lista = []
+        if email_fornecedor:
+            # Remove espaços extras, divide por vírgula e filtra emails vazios
+            emails_lista = [email.strip() for email in email_fornecedor.split(',') if email.strip()]
+        
+        # Validar se temos pelo menos um email
+        if not emails_lista:
+            app.logger.error("Nenhum email válido encontrado para o fornecedor")
+            return False, "Email do fornecedor não configurado"
+        
+        # String formatada para salvar no banco (com vírgulas e espaços)
+        emails_string = ", ".join(emails_lista)
         
         # Obter hora atual no fuso horário de Manaus
         tz_manaus = timezone('America/Manaus')
@@ -2193,7 +2225,7 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
         else:
             info_condutor = nm_motorista
         
-        # Tratamento das observações - removido o "Obs:"
+        # Tratamento das observações
         if obs and obs.strip() and obs != 'None':
             obs_texto = obs
         else:
@@ -2334,6 +2366,7 @@ Prezados,
     Período: {dt_inicial} ({hr_inicial}) a {dt_final}
     Veículo: {de_veiculo} ou Similar
     Condutor: {info_condutor}
+    Objetivo: {objetivo}
     Observações: {obs_texto}
 
 Segue anexo CNH do condutor.
@@ -2344,34 +2377,23 @@ Atenciosamente,
 Tribunal de Justiça do Estado de Rondônia
 Seção de Gestão Operacional do Transporte
 (69) 3309-6229/6227'''
-        
-        # Criar mensagem
-        # msg = Message(
-        #     subject=assunto,
-        #     recipients=["naicm12@gmail.com", "elienai@tjro.jus.br"],
-        #     html=corpo_html,  # Versão HTML
-        #     body=corpo_texto,  # Versão texto (fallback)
-        #     sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
-        # )
 
+        # Criar mensagem usando a lista de emails tratada
         msg = Message(
             subject=assunto,
-            recipients=["atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br", "Carmem@rovemalocadora.com.br"],
-            #recipients=["naicm12@gmail.com", "ecmsistemasdeveloper@gmail.com"],
-            html=corpo_html,  # Versão HTML
-            body=corpo_texto,  # Versão texto (fallback)
+            recipients=emails_lista,  # Usa a lista de emails processada
+            html=corpo_html,
+            body=corpo_texto,
             sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
         )
 
-        # Anexar CNH - Corrigido para usar file_pdf_content primeiro
+        # Anexar CNH
         if file_pdf_content:
-            # Se temos o conteúdo do arquivo em memória, usa ele
             nome_anexo = f"CNH_{nm_motorista.replace(' ', '_')}.pdf"
             if nome_arquivo_cnh:
                 nome_anexo = 'CNH_' + os.path.basename(nome_arquivo_cnh)
             msg.attach(nome_anexo, 'application/pdf', file_pdf_content)
         elif nome_arquivo_cnh and nome_arquivo_cnh != 'None':
-            # Se não temos o conteúdo, tenta ler do arquivo
             try:
                 with open(nome_arquivo_cnh, 'rb') as f:
                     msg.attach('CNH_' + os.path.basename(nome_arquivo_cnh), 'application/pdf', f.read())
@@ -2387,27 +2409,21 @@ Seção de Gestão Operacional do Transporte
         # Formatação da data e hora atual no fuso de Manaus
         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
-        # Obter ID_CL com base no ID_ITEM
-        cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
-        resultado = cursor.fetchone()
-        id_cl = resultado[0] if resultado else None
+        # Inserir na tabela de emails usando a string formatada de emails
+        cursor.execute(
+            "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
+            (id_item, id_cl, emails_string, assunto, corpo_texto, data_hora_atual)
+        )
         
-        if id_cl:
-            # Inserir na tabela de emails (salvando a versão HTML)
-            cursor.execute(
-                "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
-                (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo_texto, data_hora_atual)
-            )
-            
-            # Atualizar flag de email na tabela de locações
-            cursor.execute(
-                "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
-                (id_item,)
-            )
-            
-            mysql.connection.commit()
+        # Atualizar flag de email na tabela de locações
+        cursor.execute(
+            "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
+            (id_item,)
+        )
         
+        mysql.connection.commit()
         cursor.close()
+        
         return True, None
     
     except Exception as e:
