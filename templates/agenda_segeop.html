@@ -1276,6 +1276,19 @@
                 font-size: 1.03em;
                 transition: all 0.2s ease;
             }
+
+            /* Animação de erro para células */
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+                20%, 40%, 60%, 80% { transform: translateX(3px); }
+            }
+
+            .cell-intervalo-invalido {
+                animation: shake 0.5s;
+                background: rgba(255, 0, 0, 0.1) !important;
+            }
+
         </style>
     </head>
     <body>
@@ -3829,43 +3842,57 @@
                 celulaSelecionada = cell;
             }
             
-            // Função para validar se um intervalo está completamente vazio
+            // Função para validar se um intervalo está completamente vazio (incluindo verificação de demandas entre as datas)
             function validarIntervaloVazio(linhaElement, dtInicio, dtFim) {
                 const celulas = linhaElement.querySelectorAll('td.col-dia');
                 
                 const dataInicioObj = new Date(dtInicio + 'T00:00:00');
                 const dataFimObj = new Date(dtFim + 'T00:00:00');
                 
-                // Verificar cada célula da linha
+                // Verificar TODAS as células entre as datas selecionadas
                 for (let celula of celulas) {
+                    // Verificar células vazias (com onclick)
                     const onclickAttr = celula.getAttribute('onclick');
-                    if (!onclickAttr) continue;
+                    if (onclickAttr && onclickAttr.includes('handleClickCelulaVazia')) {
+                        const matchData = onclickAttr.match(/'(\d{4}-\d{2}-\d{2})'/);
+                        if (matchData) {
+                            const dataCell = matchData[1];
+                            const dataCellObj = new Date(dataCell + 'T00:00:00');
+                            
+                            // Se está no intervalo, verificar se realmente está vazia
+                            if (dataCellObj >= dataInicioObj && dataCellObj <= dataFimObj) {
+                                if (!celula.classList.contains('empty-cell')) {
+                                    return false; // Célula não está vazia
+                                }
+                            }
+                        }
+                    }
                     
-                    // Extrair data do onclick
-                    const matchData = onclickAttr.match(/'(\d{4}-\d{2}-\d{2})'/);
-                    if (!matchData) continue;
-                    
-                    const dataCell = matchData[1];
-                    const dataCellObj = new Date(dataCell + 'T00:00:00');
-                    
-                    // Se a data está no intervalo selecionado
-                    if (dataCellObj >= dataInicioObj && dataCellObj <= dataFimObj) {
-                        // Verificar se a célula está vazia (tem classe empty-cell)
-                        if (!celula.classList.contains('empty-cell')) {
-                            // Célula não está vazia - intervalo inválido
-                            return false;
+                    // Verificar células com demanda (com data-id-demanda)
+                    const idDemanda = celula.getAttribute('data-id-demanda');
+                    if (idDemanda) {
+                        // Encontrou uma célula com demanda, verificar se está no intervalo
+                        const demanda = dadosAgenda.demandas.find(d => d.id == idDemanda);
+                        if (demanda) {
+                            const demandaInicio = new Date(demanda.dt_inicio + 'T00:00:00');
+                            const demandaFim = new Date(demanda.dt_fim + 'T00:00:00');
+                            
+                            // Verificar se a demanda se sobrepõe ao intervalo selecionado
+                            // Sobrepõe se: (demanda começa antes do fim do intervalo) E (demanda termina depois do início do intervalo)
+                            if (demandaInicio <= dataFimObj && demandaFim >= dataInicioObj) {
+                                return false; // Há sobreposição
+                            }
                         }
                     }
                 }
                 
-                // Todas as células do intervalo estão vazias
-                return true;
+                return true; // Intervalo completamente vazio
             }            
 
             function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula) {
                 event.stopPropagation();
                 
-                // Se Ctrl NÃO está pressionado, comportamento normal
+                // Se Ctrl NÃO estÃ¡ pressionado, comportamento normal
                 if (!modoSelecaoIntervalo) {
                     if (idMotorista) {
                         abrirModalNovoComData(data, idMotorista);
@@ -3910,7 +3937,8 @@
                     if (!validarIntervaloVazio(linhaAtualSelecao, dtInicio, dtFim)) {
                         // Intervalo contém demandas - não permitir
                         mostrarAlerta(
-                            'Não é possível selecionar este intervalo pois há demandas entre as datas selecionadas.',
+                            'Não é possível selecionar este intervalo pois há demandas entre as datas selecionadas.<br><br>' +
+                            '<strong>Regra:</strong> Não é permitido criar demandas que atravessem períodos já ocupados.',
                             '⚠️ Intervalo Inválido',
                             '#ffc107'
                         );
@@ -3919,11 +3947,26 @@
                     }
                     // ====== FIM DA VALIDAÇÃO ======
                     
-                    // Marcar todas as células do intervalo
+                    // Marcar todas as células do intervalo (feedback visual rápido)
                     marcarIntervaloCelulas(linhaAtualSelecao, dtInicio, dtFim);
                     
+                    // Pequeno delay para mostrar as células marcadas antes de abrir o modal
+                    setTimeout(() => {
+                        // Abrir modal com as datas preenchidas
+                        if (idMotorista) {
+                            abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista, null);
+                        } else if (idVeiculo) {
+                            abrirModalNovoComIntervalo(dtInicio, dtFim, null, idVeiculo);
+                        }
+                        
+                        // Limpar seleção após abrir modal
+                        setTimeout(() => {
+                            limparSelecaoIntervalo();
+                        }, 100);
+                    }, 200);
+                    
                 } else {
-                    // CLICOU EM LINHA DIFERENTE - ignorar ou resetar
+                    // CLICOU EM LINHA DIFERENTE - resetar
                     limparSelecaoIntervalo();
                 }
             }            
