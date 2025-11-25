@@ -250,6 +250,7 @@
             }
 
             /* Cores por tipo de demanda */
+            /*
             .tipo-1 { 
                 background: linear-gradient(to bottom, #5fa1df, #8dbde8);
             }
@@ -281,6 +282,7 @@
                 background: linear-gradient(to bottom, #ff5d5d, #fca5a5) !important;
                 font-weight: bold;
             }
+            */
             .empty-cell {
                 background: #fafafa;
             }
@@ -1820,6 +1822,8 @@
             let segundaDataSelecionada = null;
             let linhaAtualSelecao = null;
             let celulasIntervalo = [];
+            let tiposDemandaConfig = {}; // Armazenar configurações completas dos tipos
+            let cssClassesGeradas = false; // Controle para gerar CSS dinâmico apenas uma vez
 
             // ========== FUNÇÕES PARA MODAIS PADRÃO ==========
 
@@ -2875,6 +2879,33 @@
                 document.getElementById('modalFeriados').style.display = 'none';
             }
 
+            function gerarCSSClassesDinamicas() {
+                // Criar elemento <style> dinâmico
+                const style = document.createElement('style');
+                style.id = 'dynamic-tipo-demanda-styles';
+                
+                let css = '/* Estilos dinâmicos de tipos de demanda */\n';
+                
+                tiposDemanda.forEach(tipo => {
+                    const corInicio = tipo.cor_inicio || '#5fa1df';
+                    const corFim = tipo.cor_fim || '#8dbde8';
+                    const negrito = tipo.negrito ? 'font-weight: bold;' : '';
+                    
+                    css += `
+            .tipo-${tipo.id} {
+                background: linear-gradient(to bottom, ${corInicio}, ${corFim}) !important;
+                ${negrito}
+            }
+            `;
+                });
+                
+                style.textContent = css;
+                document.head.appendChild(style);
+                
+                console.log('✅ CSS dinâmico gerado para tipos de demanda');
+            }            
+            
+            
             // Carregar lista de todos os feriados
             async function carregarListaFeriados() {
                 const lista = document.getElementById('feriadosLista');
@@ -3020,12 +3051,24 @@
             async function carregarSelectsFixos() {
                 try {
                     const [resTiposDemanda, resTiposVeiculo] = await Promise.all([
-                        fetch('/api/agenda/tipos-demanda'),
+                        fetch('/api/agenda/tipos-demanda-completo'), // ALTERADO: usar rota completa
                         fetch('/api/agenda/tipos-veiculo')
                     ]);
                     
                     tiposDemanda = await resTiposDemanda.json();
                     tiposVeiculo = await resTiposVeiculo.json();
+                    
+                    // Armazenar configurações em objeto para acesso rápido
+                    tiposDemandaConfig = {};
+                    tiposDemanda.forEach(t => {
+                        tiposDemandaConfig[t.id] = t;
+                    });
+                    
+                    // Gerar CSS dinâmico para as cores (apenas uma vez)
+                    if (!cssClassesGeradas) {
+                        gerarCSSClassesDinamicas();
+                        cssClassesGeradas = true;
+                    }
                     
                     const selectTipoDemanda = document.getElementById('idTipoDemanda');
                     const selectTipoVeiculo = document.getElementById('idTipoVeiculo');
@@ -3052,17 +3095,27 @@
             
             function aplicarRegrasTipoDemanda() {
                 const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
-                const selectTipoDemanda = document.getElementById('idTipoDemanda');
-                const optionSelecionada = selectTipoDemanda.options[selectTipoDemanda.selectedIndex];
-                const descricaoTipoDemanda = optionSelecionada ? optionSelecionada.getAttribute('data-descricao') : '';
                 
+                if (!idTipoDemanda) return;
+                
+                // Buscar configuração do tipo selecionado
+                const config = tiposDemandaConfig[idTipoDemanda];
+                
+                if (!config) {
+                    console.error('Configuração não encontrada para tipo demanda:', idTipoDemanda);
+                    return;
+                }
+                
+                // Elementos do formulário
                 const motorista = document.getElementById('idMotorista');
                 const tipoVeiculo = document.getElementById('idTipoVeiculo');
                 const veiculo = document.getElementById('idVeiculo');
                 const setor = document.getElementById('setor');
                 const solicitante = document.getElementById('solicitante');
                 const destino = document.getElementById('destino');
+                const divSolicitado = document.getElementById('divSolicitado');
                 
+                // Labels
                 const labelTipoVeiculo = document.getElementById('labelTipoVeiculo');
                 const labelVeiculo = document.getElementById('labelVeiculo');
                 const labelSetor = document.getElementById('labelSetor');
@@ -3070,77 +3123,104 @@
                 const labelDestino = document.getElementById('labelDestino');
                 const labelMotorista = document.getElementById('labelMotorista');
                 
-                // Resetar labels
-                labelTipoVeiculo.innerHTML = 'Tipo de Veículo';
-                labelVeiculo.innerHTML = 'Veículo';
-                labelSetor.innerHTML = 'Setor';
-                labelSolicitante.innerHTML = 'Solicitante';
-                labelDestino.innerHTML = 'Destino';
-                
-                if (labelMotorista) {
-                    labelMotorista.innerHTML = 'Motorista <span class="required">*</span>';
-                }
-                
-                // Habilitar todos primeiro
+                // ========== RESETAR TUDO PRIMEIRO ==========
                 motorista.disabled = false;
-                motorista.required = true;
                 tipoVeiculo.disabled = false;
                 veiculo.disabled = false;
                 setor.disabled = false;
                 solicitante.disabled = false;
                 destino.disabled = false;
                 
-                if (idTipoDemanda === 10) {
-                    // ID 10 (Cedência): Motorista não obrigatório, Setor obrigatório
-                    motorista.required = false;
-                    if (labelMotorista) {
-                        labelMotorista.innerHTML = 'Motorista';
-                    }
-                    
-                    // Setor obrigatório
-                    setor.disabled = false;
+                motorista.required = true;
+                tipoVeiculo.required = false;
+                veiculo.required = false;
+                setor.required = false;
+                solicitante.required = false;
+                destino.required = false;
+                
+                divSolicitado.style.display = 'none';
+                
+                // Resetar labels (sem asteriscos)
+                labelTipoVeiculo.innerHTML = 'Tipo de Veículo';
+                labelVeiculo.innerHTML = 'Veículo';
+                labelSetor.innerHTML = 'Setor';
+                labelSolicitante.innerHTML = 'Solicitante';
+                labelDestino.innerHTML = 'Destino';
+                labelMotorista.innerHTML = 'Motorista <span class="required">*</span>';
+                
+                // ========== APLICAR CONFIGURAÇÕES DO BANCO ==========
+                
+                // Obrigatoriedade do Motorista
+                motorista.required = config.motorista_obrigatorio;
+                if (config.motorista_obrigatorio) {
+                    labelMotorista.innerHTML = 'Motorista <span class="required">*</span>';
+                } else {
+                    labelMotorista.innerHTML = 'Motorista';
+                }
+                
+                // Obrigatoriedade do Setor
+                setor.required = config.setor_obrigatorio;
+                if (config.setor_obrigatorio) {
                     labelSetor.innerHTML = 'Setor <span class="required">*</span>';
-                    
-                    // Solicitante aberto mas não obrigatório
-                    solicitante.disabled = false;
-                    
-                } else if (idTipoDemanda === 9 || idTipoDemanda === 12) {
-                    // ID 9 (Oficina): Motorista não obrigatório, fecha Setor e Solicitante
-                    motorista.required = false;
-                    if (labelMotorista) {
-                        labelMotorista.innerHTML = 'Motorista';
-                    }
-                    
-                    setor.disabled = true;
-                    setor.value = '';
-                    solicitante.disabled = true;
-                    solicitante.value = '';
-                    
-                } else if (idTipoDemanda >= 6 && idTipoDemanda <= 8) {
-                    // ID 6-8: Fecha e desobriga Tipo Veículo, Veículo, Setor, Solicitante, Destino
+                }
+                
+                // Obrigatoriedade do Solicitante
+                solicitante.required = config.solicitante_obrigatorio;
+                if (config.solicitante_obrigatorio) {
+                    labelSolicitante.innerHTML = 'Solicitante <span class="required">*</span>';
+                }
+                
+                // Obrigatoriedade do Destino
+                destino.required = config.destino_obrigatorio;
+                if (config.destino_obrigatorio) {
+                    labelDestino.innerHTML = 'Destino <span class="required">*</span>';
+                }
+                
+                // Tipo de Veículo obrigatório
+                tipoVeiculo.required = config.tipo_veiculo_obrigatorio;
+                if (config.tipo_veiculo_obrigatorio) {
+                    labelTipoVeiculo.innerHTML = 'Tipo de Veículo <span class="required">*</span>';
+                }
+                
+                // Veículo obrigatório
+                veiculo.required = config.veiculo_obrigatorio;
+                if (config.veiculo_obrigatorio) {
+                    labelVeiculo.innerHTML = 'Veículo <span class="required">*</span>';
+                }
+                
+                // Bloqueios de campos
+                if (config.bloquear_tipo_veiculo) {
                     tipoVeiculo.disabled = true;
                     tipoVeiculo.value = '';
+                }
+                
+                if (config.bloquear_veiculo) {
                     veiculo.disabled = true;
                     veiculo.value = '';
+                }
+                
+                if (config.bloquear_setor) {
                     setor.disabled = true;
                     setor.value = '';
+                }
+                
+                if (config.bloquear_solicitante) {
                     solicitante.disabled = true;
                     solicitante.value = '';
+                }
+                
+                if (config.bloquear_destino) {
                     destino.disabled = true;
-                    if (!destino.value) {
-                        destino.value = descricaoTipoDemanda;
-                    }
-                } else if (idTipoDemanda === 4 || idTipoDemanda === 5) {
-                    // ID 4-5: Setor e Solicitante podem ficar em branco, Destino = DE_TIPODEMANDA
-                    if (!destino.value) {
-                        destino.value = descricaoTipoDemanda;
-                    }
-                } else if (idTipoDemanda === 3) {
-                    // ID 3: Setor e Solicitante podem ficar em branco, Destino usuário preenche
-                    // Não preenche automaticamente
-                } else if (idTipoDemanda === 1 || idTipoDemanda === 2 || idTipoDemanda === 11) {
-                    labelSetor.innerHTML = 'Setor';
-                    labelSolicitante.innerHTML = 'Solicitante';
+                }
+                
+                // Auto-preencher destino com descrição do tipo
+                if (config.destino_auto_preencher && !destino.value) {
+                    destino.value = config.descricao;
+                }
+                
+                // Exibir checkbox Solicitado
+                if (config.exibir_checkbox_solicitado) {
+                    divSolicitado.style.display = 'block';
                 }
             }
                     
@@ -3486,7 +3566,7 @@
                 let html = '<div class="agenda-section">';
                 html += `
                     <div class="section-header">
-                        <span>👲 SEGEOP - MOTORISTAS</span>
+                        <span>💲 SEGEOP - MOTORISTAS</span>
                         <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('motoristas')">👁️ Visualizar</button>
                     </div>
                 `;
@@ -3556,25 +3636,29 @@
                                 
                                 const corClass = `tipo-${demanda.id_tipodemanda}`;
                                 const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                                // html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
                                 html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipVeiculo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
-        
+                                
                                 html += '<div class="cell-content">';
                                 
-                                // ID 9 (Oficina) ou ID 12 (Lava-Jato)
-                                if (demanda.id_tipodemanda === 9 || demanda.id_tipodemanda === 12) {
-                                    html += `<div><strong>${demanda.de_tipodemanda || (demanda.id_tipodemanda === 9 ? 'Oficina' : 'Lava-Jato')}</strong></div>`;
-                                    // if (demanda.nm_motorista) {
-                                    //     html += `<div class="cell-divider"></div>`;
-                                    //     html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
-                                    // }
+                                // ========== LÓGICA DINÂMICA BASEADA EM CONFIGURAÇÃO ==========
+                                const tipoConfig = tiposDemandaConfig[demanda.id_tipodemanda];
+                                
+                                // Verificar se é tipo que bloqueia setor e solicitante (ex: Oficina, Lava-Jato)
+                                const bloqueiaSetorSolicitante = tipoConfig && tipoConfig.bloquear_setor && tipoConfig.bloquear_solicitante;
+                                
+                                // Verificar se é tipo Cedência (setor obrigatório)
+                                const isCedencia = tipoConfig && tipoConfig.setor_obrigatorio && !tipoConfig.bloquear_setor;
+                                
+                                if (bloqueiaSetorSolicitante) {
+                                    // Tipos como Oficina (ID 9) ou Lava-Jato (ID 12)
+                                    html += `<div><strong>${demanda.de_tipodemanda || tipoConfig.descricao}</strong></div>`;
                                     if (demanda.destino) {
                                         html += `<div>${demanda.destino}</div>`;
                                     }
                                 }
-                                // ID 10 (Cedência)
-                                else if (demanda.id_tipodemanda === 10) {
-                                    html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
+                                else if (isCedencia) {
+                                    // Tipo Cedência (ID 10)
+                                    html += `<div><strong>${demanda.de_tipodemanda || tipoConfig.descricao}</strong></div>`;
                                     if (demanda.nm_motorista) {
                                         html += `<div class="cell-divider"></div>`;
                                         html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
@@ -3586,20 +3670,26 @@
                                         html += `<div>${demanda.nu_sei}</div>`;
                                     }
                                 }
-                                // ID 1, 2 ou 11 com horário
-                                else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
+                                else if (demanda.horario) {
+                                    // Qualquer tipo com horário definido
                                     html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                                     html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                     html += `<div>${demanda.nu_sei || ''}</div>`;
                                 }
-                                // Outros tipos
                                 else {
+                                    // Padrão para outros tipos
                                     html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                                     html += `<div><strong>${demanda.destino || ''}</strong></div>`;
                                     html += `<div>${demanda.nu_sei || ''}</div>`;
                                 }
-                                                            
-                                if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10, 12].includes(demanda.id_tipodemanda)) {
+                                
+                                // Exibir aviso "INFORMAR VEÍCULO" se necessário
+                                const deveMostrarAvisoVeiculo = !demanda.id_tipoveiculo && 
+                                                                tipoConfig && 
+                                                                !tipoConfig.bloquear_tipo_veiculo && 
+                                                                !tipoConfig.bloquear_veiculo;
+                                
+                                if (deveMostrarAvisoVeiculo) {
                                     html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
                                 }
                                 
@@ -3656,7 +3746,7 @@
                 let html = '<div class="agenda-section">';
                 html += `
                     <div class="section-header">
-                        <span>👲 OUTROS MOTORISTAS</span>
+                        <span>💲 OUTROS MOTORISTAS</span>
                         <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('outros-motoristas')">👁️ Visualizar</button>
                     </div>
                 `;
@@ -3677,7 +3767,7 @@
                     
                     const maxDemandasPorDia = Math.max(...demandasPorDia.map(d => d.length), 1);
                     
-                    // Criar matriz de controle de células (qual célula já foi renderizada)
+                    // Criar matriz de controle de células
                     const celulasRenderizadas = Array(maxDemandasPorDia).fill(0).map(() => Array(dias.length).fill(false));
                     
                     // Renderizar cada linha deste motorista
@@ -3711,24 +3801,18 @@
                         
                         // Renderizar células de cada dia
                         for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
-                            // Se esta célula já foi renderizada (mesclada), pular
-                            if (celulasRenderizadas[linhaIndex][diaIndex]) {
-                                continue;
-                            }
+                            if (celulasRenderizadas[linhaIndex][diaIndex]) continue;
                             
                             const dia = dias[diaIndex];
                             const feriado = isFeriado(dia.data);
                             const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                             const demandasDia = demandasPorDia[diaIndex];
                             
-                            // Pegar a demanda correspondente a esta linha
                             const demanda = demandasDia[linhaIndex];
                             
                             if (demanda) {
-                                // Tem demanda - verificar se pode mesclar com linhas vazias abaixo
                                 let rowspanCount = 1;
                                 
-                                // Contar quantas linhas abaixo estão vazias para este dia
                                 for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
                                     if (!demandasDia[proxLinha]) {
                                         rowspanCount++;
@@ -3740,20 +3824,23 @@
                                 
                                 const corClass = `tipo-${demanda.id_tipodemanda}`;
                                 const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                                // html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})">`;
                                 html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipVeiculo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
                                 html += '<div class="cell-content">';
                                 
-                                // ID 9 (Oficina) ou ID 12 (Lava-Jato)
-                                if (demanda.id_tipodemanda === 9 || demanda.id_tipodemanda === 12) {
-                                    html += `<div>${demanda.de_tipodemanda || (demanda.id_tipodemanda === 9 ? 'Oficina' : 'Lava-Jato')}</div>`;
+                                // ========== LÓGICA DINÂMICA ==========
+                                const tipoConfig = tiposDemandaConfig[demanda.id_tipodemanda];
+                                
+                                const bloqueiaSetorSolicitante = tipoConfig && tipoConfig.bloquear_setor && tipoConfig.bloquear_solicitante;
+                                const isCedencia = tipoConfig && tipoConfig.setor_obrigatorio && !tipoConfig.bloquear_setor;
+                                
+                                if (bloqueiaSetorSolicitante) {
+                                    html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}</div>`;
                                     if (demanda.destino) {
                                         html += `<div>${demanda.destino}</div>`;
                                     }
                                 }
-                                // ID 10 (Cedência)
-                                else if (demanda.id_tipodemanda === 10) {
-                                    html += `<div><strong>${demanda.de_tipodemanda || 'Cedência'}</strong></div>`;
+                                else if (isCedencia) {
+                                    html += `<div><strong>${demanda.de_tipodemanda || tipoConfig.descricao}</strong></div>`;
                                     if (demanda.setor) {
                                         html += `<div><strong>${demanda.setor}</strong></div>`;
                                     }
@@ -3761,20 +3848,23 @@
                                         html += `<div>${demanda.nu_sei}</div>`;
                                     }
                                 }
-                                // ID 1, 2 ou 11 com horário
-                                else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
+                                else if (demanda.horario) {
                                     html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                                     html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                     html += `<div>${demanda.nu_sei || ''}</div>`;
                                 }
-                                // Outros tipos
                                 else {
                                     html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                                     html += `<div>${demanda.destino || ''}</div>`;
                                     html += `<div>${demanda.nu_sei || ''}</div>`;
                                 }
                                 
-                                if (!demanda.id_tipoveiculo && ![6, 7, 8, 9, 10, 12].includes(demanda.id_tipodemanda)) {
+                                const deveMostrarAvisoVeiculo = !demanda.id_tipoveiculo && 
+                                                                tipoConfig && 
+                                                                !tipoConfig.bloquear_tipo_veiculo && 
+                                                                !tipoConfig.bloquear_veiculo;
+                                
+                                if (deveMostrarAvisoVeiculo) {
                                     html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
                                 }
                                 
@@ -3782,10 +3872,8 @@
                                 celulasRenderizadas[linhaIndex][diaIndex] = true;
                                 
                             } else {
-                                // Não tem demanda - calcular rowspan (mesclar com células vazias abaixo)
                                 let rowspanCount = 1;
                                 
-                                // Contar quantas linhas abaixo também não têm demanda para este dia
                                 for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
                                     if (!demandasDia[proxLinha]) {
                                         rowspanCount++;
@@ -3795,7 +3883,6 @@
                                     }
                                 }
                                 
-                                // Renderizar célula vazia com rowspan
                                 if (feriado) {
                                     if (linhaIndex === 0 && demandasDia.length === 0) {
                                         html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
@@ -4010,7 +4097,6 @@
                 todosVeiculos.forEach((v, veiculoGlobalIndex) => {
                     const extraClass = v.isExtra ? 'veiculo-extra' : '';
                     
-                    // Para cada dia, verificar quantas demandas diferentes existem
                     const demandasPorDia = dias.map(dia => {
                         return dadosAgenda.demandas.filter(d => 
                             d.id_veiculo === v.id && 
@@ -4020,15 +4106,11 @@
                     });
                     
                     const maxDemandasPorDia = Math.max(...demandasPorDia.map(d => d.length), 1);
-                    
-                    // Criar matriz de controle de células
                     const celulasRenderizadas = Array(maxDemandasPorDia).fill(0).map(() => Array(dias.length).fill(false));
                     
-                    // Renderizar cada linha deste veículo
                     for (let linhaIndex = 0; linhaIndex < maxDemandasPorDia; linhaIndex++) {
                         html += `<tr>`;
                         
-                        // Mostrar número e nome apenas na primeira linha
                         if (linhaIndex === 0) {
                             if (maxDemandasPorDia > 1) {
                                 html += `<td class="col-numero ${extraClass}" rowspan="${maxDemandasPorDia}">${veiculoGlobalIndex + 1}</td>`;
@@ -4039,26 +4121,19 @@
                             }
                         }
                         
-                        // Renderizar células de cada dia
                         for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
-                            // Se esta célula já foi renderizada (mesclada), pular
-                            if (celulasRenderizadas[linhaIndex][diaIndex]) {
-                                continue;
-                            }
+                            if (celulasRenderizadas[linhaIndex][diaIndex]) continue;
                             
                             const dia = dias[diaIndex];
                             const feriado = isFeriado(dia.data);
                             const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
                             const demandasDia = demandasPorDia[diaIndex];
                             
-                            // Pegar a demanda correspondente a esta linha
                             const demanda = demandasDia[linhaIndex];
                             
                             if (demanda) {
-                                // Tem demanda - verificar se pode mesclar com linhas vazias abaixo
                                 let rowspanCount = 1;
                                 
-                                // Contar quantas linhas abaixo estão vazias para este dia
                                 for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
                                     if (!demandasDia[proxLinha]) {
                                         rowspanCount++;
@@ -4070,13 +4145,17 @@
                                 
                                 const corClass = `tipo-${demanda.id_tipodemanda}`;
                                 const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
-                                //html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalEditar(${demanda.id})">`;
                                 html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalEditar(${demanda.id})" onmouseenter="mostrarTooltipPeriodo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
                                 html += '<div class="cell-content-veiculos">';
                                 
-                                // ID 9 (Oficina) ou ID 12 (Lava-Jato)
-                                if (demanda.id_tipodemanda === 9 || demanda.id_tipodemanda === 12) {
-                                    html += `<div>${demanda.de_tipodemanda || (demanda.id_tipodemanda === 9 ? 'Oficina' : 'Lava-Jato')}</div>`;
+                                // ========== LÓGICA DINÂMICA ==========
+                                const tipoConfig = tiposDemandaConfig[demanda.id_tipodemanda];
+                                
+                                const bloqueiaSetorSolicitante = tipoConfig && tipoConfig.bloquear_setor && tipoConfig.bloquear_solicitante;
+                                const isCedencia = tipoConfig && tipoConfig.setor_obrigatorio && !tipoConfig.bloquear_setor;
+                                
+                                if (bloqueiaSetorSolicitante) {
+                                    html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}</div>`;
                                     if (demanda.id_motorista === 0 && demanda.nc_motorista) {
                                         html += `<div class="cell-divider"></div>`;
                                         html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
@@ -4088,15 +4167,13 @@
                                         html += `<div><strong>${demanda.destino}</strong></div>`;
                                     }
                                 }
-                                // ID 10 (Cedência)
-                                else if (demanda.id_tipodemanda === 10) {
-                                    html += `<div>${demanda.de_tipodemanda || 'Cedência'}<strong>${' - ' + demanda.setor || ''}</strong></div>`;
+                                else if (isCedencia) {
+                                    html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}<strong>${' - ' + demanda.setor || ''}</strong></div>`;
                                     if (demanda.nu_sei) {
                                         html += `<div>${demanda.nu_sei}</div>`;
                                     }
                                 }
-                                // ID 1, 2 ou 11 com horário
-                                else if ((demanda.id_tipodemanda === 1 || demanda.id_tipodemanda === 2 || demanda.id_tipodemanda === 11) && demanda.horario) {
+                                else if (demanda.horario) {
                                     html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                                     if (demanda.nu_sei) {
                                         html += `<div>${demanda.nu_sei}</div>`;
@@ -4105,22 +4182,19 @@
                                         html += `<div>${demanda.destino} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                     }
                                 }
-                                // Outros tipos
                                 else {
                                     html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                                     if (demanda.nu_sei) {
                                         html += `<div>${demanda.nu_sei}</div>`;
                                     }
                                 }
-                                                            
+                                
                                 html += '</div></td>';
                                 celulasRenderizadas[linhaIndex][diaIndex] = true;
                                 
                             } else {
-                                // Não tem demanda - calcular rowspan (mesclar com células vazias abaixo)
                                 let rowspanCount = 1;
                                 
-                                // Contar quantas linhas abaixo também não têm demanda para este dia
                                 for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
                                     if (!demandasDia[proxLinha]) {
                                         rowspanCount++;
@@ -4130,7 +4204,6 @@
                                     }
                                 }
                                 
-                                // Renderizar célula vazia com rowspan
                                 if (feriado) {
                                     if (linhaIndex === 0 && demandasDia.length === 0) {
                                         html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', null, ${v.id}, this)">${feriado.descricao}</td>`;
@@ -4156,7 +4229,333 @@
                 html += '</tbody></table></div>';
                 return html;
             }
+
+            function renderizarSecaoVeiculosAlocados(dias) {
+                const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1 && d.id_tipoveiculo !== null);
+
+                if (demandasAlocadas.length === 0) return '';
+
+                const grupos = {};
+                demandasAlocadas.forEach(d => {
+                    const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.setor}|${d.destino}|${d.id_tipoveiculo}`;
+                    if (!grupos[key]) {
+                        grupos[key] = {
+                            de_tipoveiculo: d.de_tipoveiculo,
+                            nu_sei: d.nu_sei,
+                            setor: d.setor,
+                            destino: d.destino,
+                            id_tipoveiculo: d.id_tipoveiculo,
+                            demandas: []
+                        };
+                    }
+                    grupos[key].demandas.push(d);
+                });
+
+                // ========== ORDENAÇÃO DINÂMICA BASEADA EM CONFIGURAÇÃO ==========
+                const gruposArray = Object.values(grupos);
+                gruposArray.sort((a, b) => {
+                    const configA = tiposDemandaConfig[a.id_tipoveiculo];
+                    const configB = tiposDemandaConfig[b.id_tipoveiculo];
                     
+                    // Tipos que exibem checkbox solicitado têm prioridade
+                    const prioridadeA = configA && configA.exibir_checkbox_solicitado;
+                    const prioridadeB = configB && configB.exibir_checkbox_solicitado;
+                    
+                    if (prioridadeA && prioridadeB) {
+                        // Ambos prioritários: ordenar por ID tipo veículo crescente
+                        if (a.id_tipoveiculo !== b.id_tipoveiculo) {
+                            return a.id_tipoveiculo - b.id_tipoveiculo;
+                        }
+                        // Mesmo ID: ordenar por data de lançamento
+                        const dataA = a.demandas[0].dt_lancamento || '';
+                        const dataB = b.demandas[0].dt_lancamento || '';
+                        return dataA.localeCompare(dataB);
+                    }
+                    
+                    if (!prioridadeA && !prioridadeB) {
+                        // Nenhum prioritário: ordenar por data de lançamento
+                        const dataA = a.demandas[0].dt_lancamento || '';
+                        const dataB = b.demandas[0].dt_lancamento || '';
+                        return dataA.localeCompare(dataB);
+                    }
+                    
+                    // Prioritários vêm primeiro
+                    return prioridadeB - prioridadeA;
+                });
+
+                let html = '<div class="agenda-section">';
+                html += `
+                    <div class="section-header">
+                        <span>🚌 SEGEOP - VEÍCULOS ALOCADOS</span>
+                        <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('veiculos-alocados')">👁️ Visualizar</button>
+                    </div>
+                `;
+                html += '<table class="agenda-table"><thead><tr>';
+                html += '<th class="col-numero">N.</th><th class="col-nome">Tipo Veículo / SEI / Destino</th>';
+                dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+                html += '</tr></thead><tbody>';
+
+                gruposArray.forEach((grupo, index) => {
+                    // ========== USAR CONFIGURAÇÃO PARA VERIFICAR SE É "ESPECIAL" ==========
+                    const tipoConfig = tiposDemandaConfig[grupo.id_tipoveiculo];
+                    const isIdEspecial = tipoConfig && tipoConfig.exibir_checkbox_solicitado;
+                    
+                    html += `<tr><td class="col-numero">${index + 1}</td>`;
+                    html += `<td class="col-nome">`;
+                    html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
+                    html += `<div>${grupo.nu_sei || ''}</div>`;
+                    
+                    // Montar linha Setor - Destino com setor em negrito
+                    if (grupo.setor && grupo.destino) {
+                        html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
+                    } else if (grupo.setor) {
+                        html += `<div><strong>${grupo.setor}</strong></div>`;
+                    } else if (grupo.destino) {
+                        html += `<div>${grupo.destino}</div>`;
+                    }
+                    
+                    // Verificar se existe locação finalizada
+                    const primeiraLocacao = locacoesAtivas.find(loc => 
+                        loc.fl_status === 'F' && 
+                        grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
+                    );
+                    if (primeiraLocacao) {
+                        html += `<div style="color: #6c757d; font-size: 11px; margin-top: 3px;">${primeiraLocacao.ds_veiculo_mod}</div>`;
+                    }
+                    
+                    html += `</td>`;
+                    
+                    dias.forEach(dia => {
+                        const feriado = isFeriado(dia.data);
+                        const demandasDia = grupo.demandas.filter(d => 
+                            d.dt_inicio <= dia.data && 
+                            d.dt_fim >= dia.data
+                        );
+                        
+                        if (demandasDia.length > 0) {
+                            const demanda = demandasDia[0];
+                            
+                            let corClass = '';
+                            
+                            if (isIdEspecial) {
+                                // Para tipos "especiais": verificar se foi solicitado
+                                corClass = demanda.solicitado === 'S' ? 'tipo-solicitado' : '';
+                            } else {
+                                // Para outros tipos: verificar se existe locação
+                                const temLocacao = locacoesAtivas.some(loc => 
+                                    loc.id_motorista === demanda.id_motorista &&
+                                    loc.data_inicio <= dia.data &&
+                                    loc.data_fim >= dia.data
+                                );
+                                corClass = temLocacao ? 'tipo-locacao' : '';
+                            }
+                            
+                            const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipPeriodo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
+                            html += '<div class="cell-content-veiculos">';
+                            
+                            if (isIdEspecial) {
+                                // Para tipos "especiais": mostrar apenas setor e destino
+                                if (demanda.setor) {
+                                    html += `<div><strong>${demanda.setor}</strong></div>`;
+                                }
+                                if (demanda.destino) {
+                                    html += `<div>${demanda.destino}</div>`;
+                                }                            
+                            } else {
+                                // Para outros tipos: mostrar motorista (nome ou NC) e setor
+                                // ========== TRATAR MOTORISTA NÃO CADASTRADO (nc_motorista) ==========
+                                if (demanda.id_motorista === 0 && demanda.nc_motorista) {
+                                    html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                                } else if (demanda.nm_motorista) {
+                                    html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                                }
+                                
+                                if (demanda.setor) {
+                                    html += `<div>${demanda.setor}</div>`;
+                                }
+                            }
+                            
+                            html += '</div></td>';
+                        } else if (feriado) {
+                            html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
+                        } else {
+                            const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                            const weekendClass = isWeekend ? 'weekend-empty' : '';
+                            html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                        }
+                    });
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table></div>';
+                return html;
+            }
+
+            /*   // anterior, se a atual não funcionar retorna pra essa
+            function renderizarSecaoVeiculosAlocados(dias) {
+                const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1 && d.id_tipoveiculo !== null);
+
+                if (demandasAlocadas.length === 0) return '';
+
+                const grupos = {};
+                demandasAlocadas.forEach(d => {
+                    const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.setor}|${d.destino}|${d.id_tipoveiculo}`;
+                    if (!grupos[key]) {
+                        grupos[key] = {
+                            de_tipoveiculo: d.de_tipoveiculo,
+                            nu_sei: d.nu_sei,
+                            setor: d.setor,
+                            destino: d.destino,
+                            id_tipoveiculo: d.id_tipoveiculo,
+                            demandas: []
+                        };
+                    }
+                    grupos[key].demandas.push(d);
+                });
+
+                // ========== ORDENAÇÃO DINÂMICA BASEADA EM CONFIGURAÇÃO ==========
+                const gruposArray = Object.values(grupos);
+                gruposArray.sort((a, b) => {
+                    const configA = tiposDemandaConfig[a.id_tipoveiculo];
+                    const configB = tiposDemandaConfig[b.id_tipoveiculo];
+                    
+                    // Tipos que exibem checkbox solicitado têm prioridade
+                    const prioridadeA = configA && configA.exibir_checkbox_solicitado;
+                    const prioridadeB = configB && configB.exibir_checkbox_solicitado;
+                    
+                    if (prioridadeA && prioridadeB) {
+                        // Ambos prioritários: ordenar por ID tipo veículo crescente
+                        if (a.id_tipoveiculo !== b.id_tipoveiculo) {
+                            return a.id_tipoveiculo - b.id_tipoveiculo;
+                        }
+                        // Mesmo ID: ordenar por data de lançamento
+                        const dataA = a.demandas[0].dt_lancamento || '';
+                        const dataB = b.demandas[0].dt_lancamento || '';
+                        return dataA.localeCompare(dataB);
+                    }
+                    
+                    if (!prioridadeA && !prioridadeB) {
+                        // Nenhum prioritário: ordenar por data de lançamento
+                        const dataA = a.demandas[0].dt_lancamento || '';
+                        const dataB = b.demandas[0].dt_lancamento || '';
+                        return dataA.localeCompare(dataB);
+                    }
+                    
+                    // Prioritários vêm primeiro
+                    return prioridadeB - prioridadeA;
+                });
+
+                let html = '<div class="agenda-section">';
+                html += `
+                    <div class="section-header">
+                        <span>🚌 SEGEOP - VEÍCULOS ALOCADOS</span>
+                        <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('veiculos-alocados')">👁️ Visualizar</button>
+                    </div>
+                `;
+                html += '<table class="agenda-table"><thead><tr>';
+                html += '<th class="col-numero">N.</th><th class="col-nome">Tipo Veículo / SEI / Destino</th>';
+                dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+                html += '</tr></thead><tbody>';
+
+                gruposArray.forEach((grupo, index) => {
+                    // ========== USAR CONFIGURAÇÃO PARA VERIFICAR SE É "ESPECIAL" ==========
+                    const tipoConfig = tiposDemandaConfig[grupo.id_tipoveiculo];
+                    const isIdEspecial = tipoConfig && tipoConfig.exibir_checkbox_solicitado;
+                    
+                    html += `<tr><td class="col-numero">${index + 1}</td>`;
+                    html += `<td class="col-nome">`;
+                    html += `<div><strong>${grupo.de_tipoveiculo}</strong></div>`;
+                    html += `<div>${grupo.nu_sei || ''}</div>`;
+                    
+                    // Montar linha Setor - Destino com setor em negrito
+                    if (grupo.setor && grupo.destino) {
+                        html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
+                    } else if (grupo.setor) {
+                        html += `<div><strong>${grupo.setor}</strong></div>`;
+                    } else if (grupo.destino) {
+                        html += `<div>${grupo.destino}</div>`;
+                    }
+                    
+                    // Verificar se existe locação finalizada
+                    const primeiraLocacao = locacoesAtivas.find(loc => 
+                        loc.fl_status === 'F' && 
+                        grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
+                    );
+                    if (primeiraLocacao) {
+                        html += `<div style="color: #6c757d; font-size: 11px; margin-top: 3px;">${primeiraLocacao.ds_veiculo_mod}</div>`;
+                    }
+                    
+                    html += `</td>`;
+                    
+                    dias.forEach(dia => {
+                        const feriado = isFeriado(dia.data);
+                        const demandasDia = grupo.demandas.filter(d => 
+                            d.dt_inicio <= dia.data && 
+                            d.dt_fim >= dia.data
+                        );
+                        
+                        if (demandasDia.length > 0) {
+                            const demanda = demandasDia[0];
+                            
+                            let corClass = '';
+                            
+                            if (isIdEspecial) {
+                                // Para tipos "especiais": verificar se foi solicitado
+                                corClass = demanda.solicitado === 'S' ? 'tipo-solicitado' : '';
+                            } else {
+                                // Para outros tipos: verificar se existe locação
+                                const temLocacao = locacoesAtivas.some(loc => 
+                                    loc.id_motorista === demanda.id_motorista &&
+                                    loc.data_inicio <= dia.data &&
+                                    loc.data_fim >= dia.data
+                                );
+                                corClass = temLocacao ? 'tipo-locacao' : '';
+                            }
+                            
+                            const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipPeriodo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
+                            html += '<div class="cell-content-veiculos">';
+                            
+                            if (isIdEspecial) {
+                                // Para tipos "especiais": mostrar apenas setor e destino
+                                if (demanda.setor) {
+                                    html += `<div><strong>${demanda.setor}</strong></div>`;
+                                }
+                                if (demanda.destino) {
+                                    html += `<div>${demanda.destino}</div>`;
+                                }                            
+                            } else {
+                                // Para outros tipos: mostrar motorista (nome ou NC) e setor
+                                if (demanda.id_motorista === 0 && demanda.nc_motorista) {
+                                    html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                                } else {
+                                    html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                                }
+                                if (demanda.setor) {
+                                    html += `<div>${demanda.setor}</div>`;
+                                }
+                            }
+                            
+                            html += '</div></td>';
+                        } else if (feriado) {
+                            html += `<td class="cell-feriado col-dia">${feriado.descricao}</td>`;
+                        } else {
+                            const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                            const weekendClass = isWeekend ? 'weekend-empty' : '';
+                            html += `<td class="empty-cell ${weekendClass} col-dia"></td>`;
+                        }
+                    });
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table></div>';
+                return html;
+
+            }
+            */
+            
+            /*
             function renderizarSecaoVeiculosAlocados(dias) {
                 const demandasAlocadas = dadosAgenda.demandas.filter(d => d.id_tipoveiculo != 1 && d.id_tipoveiculo !== null);
                 
@@ -4314,7 +4713,8 @@
                 html += '</tbody></table></div>';
                 return html;
             }
-                            
+            */
+            
             async function abrirModalNovo() {
                 document.getElementById('modalTitle').textContent = 'Nova Demanda';
                 document.getElementById('idAd').value = '';
@@ -4696,7 +5096,7 @@
                 const definirHorario = document.getElementById('definirHorario').checked;
                 const horario = document.getElementById('horario').value;
                 const expandirVeiculos = document.getElementById('expandirVeiculos').checked;
-            
+
                 // Validar horário se checkbox estiver marcado
                 if (definirHorario) {
                     if (!horario) {
@@ -4708,7 +5108,7 @@
                         return;
                     }
                 }
-            
+
                 const dados = {
                     id_motorista: document.getElementById('idMotorista').value || null,
                     id_tipodemanda: idTipoDemanda,
@@ -4728,36 +5128,65 @@
                     usuario: document.getElementById('usuario').value
                 };
                 
-                // Validações obrigatórias básicas
+                // ========== VALIDAÇÕES OBRIGATÓRIAS BÁSICAS ==========
                 if (!dados.id_tipodemanda || !dados.dt_inicio || !dados.dt_fim) {
                     mostrarAlerta('Preencha todos os campos obrigatórios: Tipo de Demanda, Data Início e Data Fim!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
                 
-                const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
+                // ========== BUSCAR CONFIGURAÇÃO DO TIPO DE DEMANDA ==========
+                const config = tiposDemandaConfig[idTipoDemanda];
                 
-                // Validação de Motorista: obrigatório exceto para ID 9, 10, 12 e IDs tipo veículo 7, 8, 9
-                const dispensaMotorista = idTipoDemanda === 9 || idTipoDemanda === 10 || idTipoDemanda === 12 ||
-                                        idTipoVeiculo === 7 || idTipoVeiculo === 8 || idTipoVeiculo === 9;
-                
-                if (!dispensaMotorista && !dados.id_motorista) {
-                    mostrarAlerta('O campo Motorista é obrigatório!', '⚠️ Atenção', '#ffc107');
+                if (!config) {
+                    mostrarAlerta('Configuração do tipo de demanda não encontrada!', '❌ Erro', '#dc3545');
                     return;
                 }
-            
+                
+                // ========== VALIDAÇÕES DINÂMICAS BASEADAS NA CONFIGURAÇÃO ==========
+                
+                // Validação de Motorista
+                if (config.motorista_obrigatorio && !dados.id_motorista) {
+                    mostrarAlerta('O campo Motorista é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
+                    return;
+                }
+
                 // Validação específica para motorista não cadastrado
                 if (dados.id_motorista === '0' && !dados.nc_motorista) {
                     mostrarAlerta('Informe o nome do motorista não cadastrado!', '⚠️ Atenção', '#ffc107');
                     return;
-                }            
+                }
                 
-                // Validação para ID 10: Setor obrigatório
-                if (idTipoDemanda === 10 && !dados.setor) {
-                    mostrarAlerta('Para Cedência, o campo Setor é obrigatório!', '⚠️ Atenção', '#ffc107');
+                // Validação de Tipo de Veículo
+                if (config.tipo_veiculo_obrigatorio && !dados.id_tipoveiculo) {
+                    mostrarAlerta('O campo Tipo de Veículo é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
-            
                 
+                // Validação de Veículo
+                if (config.veiculo_obrigatorio && !dados.id_veiculo) {
+                    mostrarAlerta('O campo Veículo é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
+                    return;
+                }
+                
+                // Validação de Setor
+                if (config.setor_obrigatorio && !dados.setor) {
+                    mostrarAlerta('O campo Setor é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
+                    return;
+                }
+                
+                // Validação de Solicitante
+                if (config.solicitante_obrigatorio && !dados.solicitante) {
+                    mostrarAlerta('O campo Solicitante é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
+                    return;
+                }
+                
+                // Validação de Destino
+                if (config.destino_obrigatorio && !dados.destino) {
+                    mostrarAlerta('O campo Destino é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
+                    return;
+                }
+                
+                // ========== CONTINUA O RESTO DA FUNÇÃO IGUAL ==========
                 try {
                     let res;
                     let demandaIdRetornado = null;
@@ -5437,6 +5866,143 @@
                 novaJanela.document.close();
             }
 
+            //renderizarSecaoMotoristasCompleta() - COMPLETA (Para Visualização)**
+            function renderizarSecaoMotoristasCompleta(dias, titulo) {
+                let html = '<div class="agenda-section">';
+                html += `<div class="section-title">${titulo}</div>`;
+                html += '<table class="agenda-table"><thead><tr>';
+                html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
+                dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+                html += '</tr></thead><tbody>';
+                
+                motoristas.forEach((m, motoristaGlobalIndex) => {
+                    const demandasPorDia = dias.map(dia => {
+                        return dadosAgenda.demandas.filter(d => 
+                            d.id_motorista === m.id && 
+                            d.dt_inicio <= dia.data && 
+                            d.dt_fim >= dia.data
+                        );
+                    });
+                    
+                    const maxDemandasPorDia = Math.max(...demandasPorDia.map(d => d.length), 1);
+                    const celulasRenderizadas = Array(maxDemandasPorDia).fill(0).map(() => Array(dias.length).fill(false));
+                    
+                    for (let linhaIndex = 0; linhaIndex < maxDemandasPorDia; linhaIndex++) {
+                        html += `<tr>`;
+                        
+                        if (linhaIndex === 0) {
+                            if (maxDemandasPorDia > 1) {
+                                html += `<td class="col-numero" rowspan="${maxDemandasPorDia}">${motoristaGlobalIndex + 1}</td>`;
+                                html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">${m.nome}</td>`;
+                            } else {
+                                html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
+                                html += `<td class="col-nome">${m.nome}</td>`;
+                            }
+                        }
+                        
+                        for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
+                            if (celulasRenderizadas[linhaIndex][diaIndex]) continue;
+                            
+                            const dia = dias[diaIndex];
+                            const feriado = isFeriado(dia.data);
+                            const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                            const demandasDia = demandasPorDia[diaIndex];
+                            const demanda = demandasDia[linhaIndex];
+                            
+                            if (demanda) {
+                                let rowspanCount = 1;
+                                for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                    if (!demandasDia[proxLinha]) {
+                                        rowspanCount++;
+                                        celulasRenderizadas[proxLinha][diaIndex] = true;
+                                    } else break;
+                                }
+                                
+                                const corClass = `tipo-${demanda.id_tipodemanda}`;
+                                const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                                html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>`;
+                                html += '<div class="cell-content">';
+                                
+                                // ========== LÓGICA DINÂMICA BASEADA EM CONFIGURAÇÃO ==========
+                                const tipoConfig = tiposDemandaConfig[demanda.id_tipodemanda];
+                                
+                                // Verificar se é tipo que bloqueia setor e solicitante (ex: Oficina, Lava-Jato)
+                                const bloqueiaSetorSolicitante = tipoConfig && tipoConfig.bloquear_setor && tipoConfig.bloquear_solicitante;
+                                
+                                // Verificar se é tipo Cedência (setor obrigatório)
+                                const isCedencia = tipoConfig && tipoConfig.setor_obrigatorio && !tipoConfig.bloquear_setor;
+                                
+                                if (bloqueiaSetorSolicitante) {
+                                    // Tipos como Oficina (ID 9) ou Lava-Jato (ID 12)
+                                    // NOTA: Na seção MOTORISTAS SEGEOP não há nc_motorista
+                                    html += `<div><strong>${demanda.de_tipodemanda || tipoConfig.descricao}</strong></div>`;
+                                    if (demanda.destino) {
+                                        html += `<div>${demanda.destino}</div>`;
+                                    }
+                                }
+                                else if (isCedencia) {
+                                    // Tipo Cedência (ID 10)
+                                    // NOTA: Na seção MOTORISTAS SEGEOP não há nc_motorista
+                                    html += `<div><strong>${demanda.de_tipodemanda || tipoConfig.descricao}</strong></div>`;
+                                    if (demanda.setor) {
+                                        html += `<div><strong>${demanda.setor}</strong></div>`;
+                                    }
+                                    if (demanda.nu_sei) {
+                                        html += `<div>${demanda.nu_sei}</div>`;
+                                    }
+                                }
+                                else if (demanda.horario) {
+                                    // Qualquer tipo com horário definido
+                                    html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                    html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
+                                    html += `<div>${demanda.nu_sei || ''}</div>`;
+                                }
+                                else {
+                                    // Padrão para outros tipos
+                                    html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                    html += `<div><strong>${demanda.destino || ''}</strong></div>`;
+                                    html += `<div>${demanda.nu_sei || ''}</div>`;
+                                }
+                                
+                                // Exibir aviso "INFORMAR VEÍCULO" se necessário
+                                const deveMostrarAvisoVeiculo = !demanda.id_tipoveiculo && 
+                                                                tipoConfig && 
+                                                                !tipoConfig.bloquear_tipo_veiculo && 
+                                                                !tipoConfig.bloquear_veiculo;
+                                
+                                if (deveMostrarAvisoVeiculo) {
+                                    html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
+                                }
+                                
+                                html += '</div></td>';
+                                celulasRenderizadas[linhaIndex][diaIndex] = true;
+                            } else {
+                                let rowspanCount = 1;
+                                for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                    if (!demandasDia[proxLinha]) {
+                                        rowspanCount++;
+                                        celulasRenderizadas[proxLinha][diaIndex] = true;
+                                    } else break;
+                                }
+                                
+                                if (feriado) {
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
+                                } else {
+                                    const weekendClass = isWeekend ? 'weekend-empty' : '';
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
+                                }
+                                celulasRenderizadas[linhaIndex][diaIndex] = true;
+                            }
+                        }
+                        html += '</tr>';
+                    }
+                });
+                
+                html += '</tbody></table></div>';
+                return html;
+            }
+
+            /*
             function renderizarSecaoMotoristasCompleta(dias, titulo) {
                 let html = '<div class="agenda-section">';
                 html += `<div class="section-title">${titulo}</div>`;
@@ -5573,7 +6139,7 @@
                 
                 html += '</tbody></table></div>';
                 return html;
-            }
+            } */
 
             // Função para retornar à página inicial
             function voltarPaginaInicial() {
