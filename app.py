@@ -4173,7 +4173,8 @@ def criar_registro_locacao_fornecedor(id_demanda):
         dt_final_br = dt_fim_obj.strftime('%d/%m/%Y')
         
         # Converter horário para formato hh:mm (garantir que seja string)
-        hr_inicial = horario if horario else None
+        #hr_inicial = horario if horario else None
+        hr_inicial = horario[:5] if horario else None
         
         # Inserir registro
         cursor.execute("""
