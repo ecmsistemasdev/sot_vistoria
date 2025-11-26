@@ -4693,7 +4693,7 @@ def criar_demanda():
                 SELECT F.EMAIL 
                 FROM TJ_FORNECEDOR F
                 INNER JOIN TIPO_VEICULO TV ON F.ID_FORNECEDOR = TV.ID_FORNECEDOR
-                WHERE TV.ID_TIPOVEICULO = %s AND F.FL_ATIVO = 'S'
+                WHERE TV.ID_TIPOVEICULO = %s
             """, (id_tipoveiculo,))
             
             fornecedor = cursor.fetchone()
