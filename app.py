@@ -2011,77 +2011,70 @@ def verificar_vinculo_locacao():
 
 
 
-
-
 @app.route('/api/verificar_vinculo_fornecedor', methods=['GET'])
 @login_required
 def verificar_vinculo_fornecedor():
-    """
-    Verifica se o tipo de veículo tem vínculo com fornecedor (sem TJ_VEICULO_LOCACAO)
-    Busca item do fornecedor baseado no ID_TIPOVEICULO
-    """
-    cursor = None
     try:
         id_tipoveiculo = request.args.get('id_tipoveiculo')
         
         if not id_tipoveiculo:
-            return jsonify({'tem_vinculo': False}), 400
+            return jsonify({'tem_vinculo': False})
         
         cursor = mysql.connection.cursor()
         
-        # Verificar se tem vínculo com TJ_VEICULO_LOCACAO (se tiver, não entra na nova regra)
-        cursor.execute("""
-            SELECT COUNT(*) 
-            FROM TJ_VEICULO_LOCACAO 
-            WHERE ID_TIPOVEICULO = %s
-        """, (id_tipoveiculo,))
-        
-        tem_vinculo_locacao = cursor.fetchone()[0] > 0
-        
-        if tem_vinculo_locacao:
-            return jsonify({'tem_vinculo': False, 'tipo': 'locacao_existente'})
-        
-        # Verificar se tem fornecedor vinculado com email e buscar item correspondente
+        # Buscar fornecedor vinculado
         cursor.execute("""
             SELECT 
-                tv.ID_FORNECEDOR,
-                f.EMAIL,
-                f.NM_FORNECEDOR,
-                tv.DE_TIPOVEICULO,
-                fi.IDITEM,
-                fi.DESCRICAO
-            FROM TIPO_VEICULO tv
-            INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
-            LEFT JOIN TJ_FORNECEDOR_ITEM fi ON fi.ID_FORNECEDOR = tv.ID_FORNECEDOR 
-                                             AND fi.ID_TIPOVEICULO = tv.ID_TIPOVEICULO
-            WHERE tv.ID_TIPOVEICULO = %s 
-              AND tv.ID_FORNECEDOR IS NOT NULL
-              AND f.EMAIL IS NOT NULL
-              AND f.EMAIL != ''
+                F.ID_FORNECEDOR,
+                F.EMAIL,
+                TV.DESCRICAO
+            FROM TJ_FORNECEDOR F
+            INNER JOIN TIPO_VEICULO TV ON F.ID_FORNECEDOR = TV.ID_FORNECEDOR
+            WHERE TV.ID_TIPOVEICULO = %s
         """, (id_tipoveiculo,))
         
-        resultado = cursor.fetchone()
+        fornecedor = cursor.fetchone()
         
-        if resultado:
+        if fornecedor:
+            # ADICIONAR: Buscar ID_ITEM mais recente desta demanda/tipo
+            id_demanda = request.args.get('id_demanda')
+            id_item = None
+            
+            if id_demanda:
+                # Buscar ID_ITEM da tabela TJ_CONTROLE_LOCACAO_ITENS
+                cursor.execute("""
+                    SELECT CLI.ID_ITEM
+                    FROM TJ_CONTROLE_LOCACAO_ITENS CLI
+                    INNER JOIN ATENDIMENTO_DEMANDAS AD ON 
+                        CLI.DATA_INICIO = AD.DT_INICIO AND
+                        CLI.DATA_FIM = AD.DT_FIM AND
+                        CLI.ID_VEICULO_LOC = AD.ID_TIPOVEICULO
+                    WHERE AD.ID_AD = %s
+                    ORDER BY CLI.DATA_CRIACAO DESC
+                    LIMIT 1
+                """, (id_demanda,))
+                
+                result_item = cursor.fetchone()
+                if result_item:
+                    id_item = result_item[0]
+            
+            cursor.close()
+            
             return jsonify({
                 'tem_vinculo': True,
                 'tipo': 'fornecedor',
-                'id_fornecedor': resultado[0],
-                'email_fornecedor': resultado[1],
-                'nome_fornecedor': resultado[2],
-                'de_tipoveiculo': resultado[3],
-                'iditem': resultado[4] if resultado[4] else 0,
-                'descricao_item': resultado[5] if resultado[5] else resultado[3]  # Usa descrição do item ou tipo veículo
+                'id_fornecedor': fornecedor[0],
+                'email_fornecedor': fornecedor[1],
+                'de_tipoveiculo': fornecedor[2],
+                'id_item': id_item  # ADICIONAR
             })
         
+        cursor.close()
         return jsonify({'tem_vinculo': False})
         
     except Exception as e:
-        app.logger.error(f"Erro ao verificar vínculo com fornecedor: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
+        print(f"Erro ao verificar vínculo fornecedor: {str(e)}")
+        return jsonify({'tem_vinculo': False, 'erro': str(e)})
 
 
 @app.route('/api/verificar_locacao_existente', methods=['GET'])
