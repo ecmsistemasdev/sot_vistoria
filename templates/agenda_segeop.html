@@ -3152,8 +3152,25 @@
         }
 
         // ========== FUNÇÃO: Fechar Modal de Email ==========
-        async function fecharModalEmailFornecedor() {
+        async function fecharModalEmailFornecedor(emailEnviado = false) {
             const modal = document.getElementById('modalEmailFornecedor');
+            
+            // Se o email foi enviado com sucesso, fechar diretamente
+            if (emailEnviado) {
+                // Limpar variáveis
+                idItemLocacaoFornecedor = null;
+                dadosVinculoFornecedor = null;
+                idDemandaParaEmailFornecedor = null;
+                
+                // Fechar modal
+                modal.style.display = 'none';
+                
+                // Recarregar seções
+                await carregarSemanas();
+                await carregarAgenda();
+                inicializarDestaqueLinha();
+                return;
+            }
             
             // ===== NOVO: Verificar se deve excluir registro de locação =====
             if (idItemLocacaoFornecedor) {
@@ -3253,7 +3270,8 @@
                 esconderSpinner();
                 
                 if (response.ok && resultado.success) {
-                    await fecharModalEmailFornecedor();
+                    // Passar true para indicar que o email foi enviado com sucesso
+                    await fecharModalEmailFornecedor(true);
                     
                     mostrarAlerta(
                         '📧 E-mail enviado com sucesso!<br><br>A solicitação foi registrada.',
