@@ -1794,7 +1794,7 @@
     
     <!-- Modal de Solicitação de Locação por Email -->
     <div id="modalEmailFornecedor" class="modal" style="z-index: 10003;">
-        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-content" style="max-width: 1040px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <h2 style="font-size: 18px; margin: 0;">📧 Solicitação de Locação por E-mail</h2>
                 <span class="close" onclick="fecharModalEmailFornecedor()">&times;</span>
@@ -1824,7 +1824,7 @@
                         <label>Corpo do E-mail <span class="required">*</span></label>
                         
                         <!-- Barra de Ferramentas -->
-                        <div id="email_toolbar" style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; border-bottom: none; border-radius: 4px 4px 0 0; display: flex; gap: 5px; flex-wrap: wrap;">
+                        <div id="email_toolbar" style="background: #f8f9fa; padding: 8px; border: 1px solid #ddd; border-bottom: none; border-radius: 4px 4px 0 0; display: flex; gap: 5px; align-items: center; flex-wrap: nowrap;">
                             <button type="button" onclick="formatarTexto('bold')" title="Negrito" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;"><strong>B</strong></button>
                             <button type="button" onclick="formatarTexto('italic')" title="Itálico" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;"><em>I</em></button>
                             <button type="button" onclick="formatarTexto('underline')" title="Sublinhado" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;"><u>U</u></button>
@@ -1832,7 +1832,7 @@
                             <button type="button" onclick="formatarTexto('insertUnorderedList')" title="Lista" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;">• Lista</button>
                             <button type="button" onclick="formatarTexto('insertOrderedList')" title="Lista Numerada" style="padding: 5px 10px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 3px;">1. Lista</button>
                             <div style="width: 1px; background: #ddd; margin: 0 5px;"></div>
-                            <select onchange="formatarTexto('fontSize', this.value); this.selectedIndex=0;" style="padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                            <select onchange="formatarTexto('fontSize', this.value); this.selectedIndex=0;" style="padding: 5px; border: 1px solid #ddd; border-radius: 3px; width: auto;">
                                 <option value="">Tamanho</option>
                                 <option value="1">Pequeno</option>
                                 <option value="3">Normal</option>
@@ -3253,7 +3253,7 @@
                 esconderSpinner();
                 
                 if (response.ok && resultado.success) {
-                    fecharModalEmailFornecedor();
+                    await fecharModalEmailFornecedor();
                     
                     mostrarAlerta(
                         '📧 E-mail enviado com sucesso!<br><br>A solicitação foi registrada.',
