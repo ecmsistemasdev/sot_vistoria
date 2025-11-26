@@ -2147,8 +2147,8 @@ def enviar_email_fornecedor():
         assunto = request.form.get('assunto')
         corpo_html = request.form.get('corpo_html')
         id_demanda = request.form.get('id_demanda')
-        id_item_fornecedor = request.form.get('id_item_fornecedor')
-        
+        id_item = request.form.get('id_item_fornecedor')
+
         if not all([email_destinatario, assunto, corpo_html, id_demanda]):
             return jsonify({'erro': 'Dados incompletos'}), 400
         
@@ -2217,7 +2217,7 @@ def enviar_email_fornecedor():
             INSERT INTO EMAIL_OUTRAS_LOCACOES 
             (ID_AD, IDITEM_FORNECEDOR, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
             VALUES (%s, %s, %s, %s, %s, %s)
-        """, (id_demanda, id_item_fornecedor or 0, email_destinatario, assunto, corpo_texto, data_hora_atual))
+        """, (id_demanda, id_item, email_destinatario, assunto, corpo_texto, data_hora_atual))
         
         id_email = cursor.lastrowid
         
@@ -2785,6 +2785,11 @@ def excluir_locacao(iditem):
             WHERE ID_ITEM = %s
         """, (iditem,))
         
+        cursor.execute("""
+            DELETE FROM EMAIL_OUTRAS_LOCACOES
+            WHERE ID_ITEM = %s
+        """, (iditem,))
+
         # Exclui a locação
         cursor.execute("""
             DELETE FROM TJ_CONTROLE_LOCACAO_ITENS
@@ -4642,7 +4647,7 @@ def criar_demanda():
         data = request.get_json()
         cursor = mysql.connection.cursor()
 
-		# Obter ID do usuário da sessão
+        # Obter ID do usuário da sessão
         usuario = session.get('usuario_login')		
         
         # Converter horário para formato TIME ou NULL
@@ -4677,8 +4682,73 @@ def criar_demanda():
             usuario
         ))
         
-        mysql.connection.commit()
         id_ad = cursor.lastrowid
+        
+        # ===== NOVO: VERIFICAR SE PRECISA INSERIR EM TJ_CONTROLE_LOCACAO_ITENS =====
+        id_tipoveiculo = data.get('id_tipoveiculo')
+        
+        if id_tipoveiculo:
+            # Verificar se tem vínculo com fornecedor
+            cursor.execute("""
+                SELECT F.EMAIL 
+                FROM TJ_FORNECEDOR F
+                INNER JOIN TJ_TIPO_VEICULO TV ON F.ID_FORNECEDOR = TV.ID_FORNECEDOR
+                WHERE TV.ID_TIPOVEICULO = %s AND F.FL_ATIVO = 'S'
+            """, (id_tipoveiculo,))
+            
+            fornecedor = cursor.fetchone()
+            
+            if fornecedor:  # Tem fornecedor vinculado
+                # Obter próximo ID_ITEM
+                id_item = obter_proximo_id_item()
+                
+                # Converter datas
+                from datetime import datetime
+                dt_inicio = datetime.strptime(data['dt_inicio'], '%Y-%m-%d')
+                dt_fim = datetime.strptime(data['dt_fim'], '%Y-%m-%d')
+                
+                # Extrair ano e mês
+                id_exercicio = dt_fim.year
+                id_mes = dt_fim.month
+                
+                # Formatar datas para string dd/mm/yyyy
+                dt_inicial_str = dt_inicio.strftime('%d/%m/%Y')
+                dt_final_str = dt_fim.strftime('%d/%m/%Y')
+                
+                # Formatar horário para string hh:mm
+                hr_inicial_str = horario if horario else '07:00'
+                
+                # Data e hora atual para DT_TRANSACAO
+                dt_transacao = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+                
+                # Inserir em TJ_CONTROLE_LOCACAO_ITENS
+                cursor.execute("""
+                    INSERT INTO TJ_CONTROLE_LOCACAO_ITENS 
+                    (ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, 
+                     ID_MES, ID_VEICULO_LOC, DT_INICIAL, HR_INICIAL, DT_FINAL, 
+                     NU_SEI, FL_STATUS, USUARIO, DT_TRANSACAO, 
+                     DATA_INICIO, DATA_FIM, DATA_CRIACAO, HORA_INICIO)
+                    VALUES (%s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'P', %s, %s, %s, %s, NOW(), %s)
+                """, (
+                    id_item,
+                    id_exercicio,
+                    data.get('setor'),
+                    data.get('destino'),
+                    id_mes,
+                    id_tipoveiculo,
+                    dt_inicial_str,
+                    hr_inicial_str,
+                    dt_final_str,
+                    data.get('nu_sei'),
+                    usuario,
+                    dt_transacao,
+                    data['dt_inicio'],  # DATA_INICIO (formato date)
+                    data['dt_fim'],     # DATA_FIM (formato date)
+                    horario_value       # HORA_INICIO (formato time)
+                ))
+        # ===== FIM DA INSERÇÃO =====
+        
+        mysql.connection.commit()
         cursor.close()
         
         return jsonify({'success': True, 'id': id_ad})
