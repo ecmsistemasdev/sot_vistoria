@@ -1949,7 +1949,6 @@
                 checkboxHorario.disabled = true;
                 inputHorario.disabled = false;
                 inputHorario.required = true;
-                labelHorario.textContent = 'Horário de Saída';
                 labelHorario.innerHTML = 'Horário de Saída <span class="required">*</span>';
                 
                 // Bloquear Motorista
@@ -1984,7 +1983,7 @@
                     inputHorario.disabled = true;
                     inputHorario.required = false;
                 }
-                labelHorario.textContent = 'Horário';
+                labelHorario.innerHTML = 'Horário';
                 
                 // Desbloquear Motorista (se não houver outra regra bloqueando)
                 const selectMotorista = document.getElementById('idMotorista');
@@ -3642,24 +3641,38 @@
                 const divExpandirVeiculos = document.getElementById('divExpandirVeiculos');
                 const labelMotorista = document.getElementById('labelMotorista');
                 
-                // ========== NOVO: Verificar se tem fornecedor vinculado ==========
+                // ========== VERIFICAR SE TEM FORNECEDOR VINCULADO (PRIORIDADE) ==========
+                if (idTipoVeiculo) {
+                    verificarFornecedorTipoVeiculo(idTipoVeiculo);
+                }
+
+                // ========== NÃO CONTINUA SE TEM FORNECEDOR ATIVO ==========
                 if (temVinculoFornecedorAtivo) {
-                    // Se tem fornecedor, forçar bloqueio de motorista e veículo
-                    motorista.value = '';
-                    motorista.disabled = true;
-                    motorista.required = false;
-                    document.getElementById('motoristaFilter').style.display = 'none';
-                    labelMotorista.innerHTML = 'Motorista';
-                    
-                    veiculo.value = '';
-                    veiculo.disabled = true;
-                    veiculo.required = false;
-                    
                     divSolicitado.style.display = 'none';
                     divExpandirVeiculos.style.display = 'none';
-                    
-                    return; // Não continua com as outras regras
+                    return;
                 }
+                
+                
+                
+                // // ========== NOVO: Verificar se tem fornecedor vinculado ==========
+                // if (temVinculoFornecedorAtivo) {
+                //     // Se tem fornecedor, forçar bloqueio de motorista e veículo
+                //     motorista.value = '';
+                //     motorista.disabled = true;
+                //     motorista.required = false;
+                //     document.getElementById('motoristaFilter').style.display = 'none';
+                //     labelMotorista.innerHTML = 'Motorista';
+                    
+                //     veiculo.value = '';
+                //     veiculo.disabled = true;
+                //     veiculo.required = false;
+                    
+                //     divSolicitado.style.display = 'none';
+                //     divExpandirVeiculos.style.display = 'none';
+                    
+                //     return; // Não continua com as outras regras
+                // }
                 
                 // ========== Resto da função continua igual ==========
                 // Ocultar checkbox Solicitado e Expandir Veículos por padrão
@@ -5291,7 +5304,7 @@
                     return;
                 }
                 
-                // Validações dinâmicas (mantém as mesmas validações existentes)
+                // Validações dinâmicas
                 if (config.motorista_obrigatorio && !dados.id_motorista) {
                     mostrarAlerta('O campo Motorista é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
@@ -5330,10 +5343,10 @@
                 try {
                     let res;
                     let demandaIdRetornado = null;
-                    let idItemRetornado = null;       
+                    let idItemRetornado = null;
                     
                     if (idAd) {
-                        // ========== EDIÇÃO - NÃO VERIFICA LOCAÇÃO ==========
+                        // EDIÇÃO - código existente
                         res = await fetch(`/api/agenda/demanda/${idAd}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
@@ -5352,11 +5365,12 @@
                         }
                         
                     } else {
-                        // ========== NOVA DEMANDA - VERIFICAR LOCAÇÃO OU FORNECEDOR ==========
+                        // ========== NOVA DEMANDA ==========
                         
+                        // VERIFICAR SE TEM TIPO DE VEÍCULO
                         if (dados.id_tipoveiculo) {
                             try {
-                                // ========== VERIFICAR LOCAÇÃO EXISTENTE (PRIORIDADE) ==========
+                                // ========== 1. VERIFICAR LOCAÇÃO EXISTENTE (PRIORIDADE) ==========
                                 const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista || 0}`;
                                 const resVerificarLocacao = await fetch(urlVerificarLocacao);
                                 const resultadoLocacao = await resVerificarLocacao.json();
@@ -5365,10 +5379,8 @@
                                     // TEM VÍNCULO COM LOCAÇÃO - USA FLUXO EXISTENTE
                                     dadosVinculoLocacao = resultadoLocacao;
                                     
-                                    // Perguntar se quer solicitar locação ANTES de salvar
                                     mostrarModalConfirmacaoLocacao(async function(respostaLocacao) {
                                         if (respostaLocacao) {
-                                            // Usuário quer solicitar locação - salvar demanda primeiro
                                             const resSalvar = await fetch('/api/agenda/demanda', {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
@@ -5411,18 +5423,16 @@
                                         }
                                     });
                                     
-                                    return; // Retorna para não executar o código abaixo
+                                    return; // SAIR DA FUNÇÃO
                                 }
                                 
-                                // ========== NÃO TEM LOCAÇÃO - VERIFICAR FORNECEDOR ==========
+                                // ========== 2. NÃO TEM LOCAÇÃO - VERIFICAR FORNECEDOR ==========
                                 const urlVerificarFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${dados.id_tipoveiculo}`;
                                 const resVerificarFornecedor = await fetch(urlVerificarFornecedor);
                                 const resultadoFornecedor = await resVerificarFornecedor.json();
                                 
                                 if (resultadoFornecedor.tem_vinculo) {
-                                    // TEM VÍNCULO COM FORNECEDOR - PERGUNTAR SE QUER ENVIAR EMAIL
-                                    dadosVinculoFornecedor = resultadoFornecedor;
-                                    
+                                    // TEM VÍNCULO COM FORNECEDOR
                                     mostrarConfirmacao(
                                         '📧 Este tipo de veículo possui fornecedor cadastrado.<br><br>Deseja enviar e-mail de solicitação de locação?',
                                         async function(respostaEmail) {
@@ -5463,7 +5473,7 @@
                                         '📧 Enviar E-mail?'
                                     );
                                     
-                                    return; // Retorna para não executar o código abaixo
+                                    return; // SAIR DA FUNÇÃO
                                 }
                                 
                             } catch (errorVerificar) {
@@ -5471,7 +5481,7 @@
                             }
                         }
                         
-                        // ========== SEM VÍNCULOS - SALVAR NORMALMENTE ==========
+                        // ========== 3. SEM VÍNCULOS - SALVAR NORMALMENTE ==========
                         res = await fetch('/api/agenda/demanda', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -5651,9 +5661,8 @@
                 const selectTipoVeiculo = document.getElementById('idTipoVeiculo');
                 
                 if (selectTipoVeiculo) {
-                    selectTipoVeiculo.addEventListener('change', async function() {
-                        await verificarFornecedorTipoVeiculo(this.value);
-                        aplicarRegrasTipoVeiculo(); // Manter lógica existente
+                    selectTipoVeiculo.addEventListener('change', function() {
+                        aplicarRegrasTipoVeiculo(); // Chama função que já verifica fornecedor internamente
                     });
                 }
             });
