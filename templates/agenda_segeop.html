@@ -3050,16 +3050,13 @@
                     // Preencher campos
                     document.getElementById('email_id_demanda').value = idDemandaParaEmailFornecedor;
                     document.getElementById('email_destinatario').value = dadosVinculoFornecedor.email_fornecedor;
-                    
-                    // MODIFICADO: Pegar ID_ITEM do vínculo
-                    const idItem = dadosVinculoFornecedor.id_item || 0;
-                    document.getElementById('email_iditem').value = idItem;                    
+                    document.getElementById('email_iditem').value = dadosVinculoFornecedor.iditem || 0;
                     
                     // Usar descrição do item ou tipo de veículo
                     const descricaoVeiculo = dadosVinculoFornecedor.descricao_item || dadosVinculoFornecedor.de_tipoveiculo;
-        
+                    
                     // Assunto
-                    const assunto = `TJRO - Solicitação de Locação ${idItem} - ${descricaoVeiculo}`;
+                    const assunto = `TJRO - Solicitação de Locação - ${descricaoVeiculo}`;
                     document.getElementById('email_assunto').value = assunto;
                     
                     // Nome do usuário (obter do backend via sessão)
@@ -3081,7 +3078,7 @@
 
             <p>Solicito locação de veículo conforme informações abaixo:</p>
 
-            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0;">
                 <tr>
                     <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Período:</td>
                     <td> ${dataInicioFormatada} a ${dataFimFormatada}</td>
@@ -3633,7 +3630,7 @@
                 }
             }
                     
-            function aplicarRegrasTipoVeiculo() {
+function aplicarRegrasTipoVeiculo() {
                 const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
                 const veiculo = document.getElementById('idVeiculo');
                 const motorista = document.getElementById('idMotorista');
@@ -3641,38 +3638,24 @@
                 const divExpandirVeiculos = document.getElementById('divExpandirVeiculos');
                 const labelMotorista = document.getElementById('labelMotorista');
                 
-                // ========== VERIFICAR SE TEM FORNECEDOR VINCULADO (PRIORIDADE) ==========
-                if (idTipoVeiculo) {
-                    verificarFornecedorTipoVeiculo(idTipoVeiculo);
-                }
-
-                // ========== NÃO CONTINUA SE TEM FORNECEDOR ATIVO ==========
+                // ========== NOVO: Verificar se tem fornecedor vinculado ==========
                 if (temVinculoFornecedorAtivo) {
+                    // Se tem fornecedor, forçar bloqueio de motorista e veículo
+                    motorista.value = '';
+                    motorista.disabled = true;
+                    motorista.required = false;
+                    document.getElementById('motoristaFilter').style.display = 'none';
+                    labelMotorista.innerHTML = 'Motorista';
+                    
+                    veiculo.value = '';
+                    veiculo.disabled = true;
+                    veiculo.required = false;
+                    
                     divSolicitado.style.display = 'none';
                     divExpandirVeiculos.style.display = 'none';
-                    return;
+                    
+                    return; // Não continua com as outras regras
                 }
-                
-                
-                
-                // // ========== NOVO: Verificar se tem fornecedor vinculado ==========
-                // if (temVinculoFornecedorAtivo) {
-                //     // Se tem fornecedor, forçar bloqueio de motorista e veículo
-                //     motorista.value = '';
-                //     motorista.disabled = true;
-                //     motorista.required = false;
-                //     document.getElementById('motoristaFilter').style.display = 'none';
-                //     labelMotorista.innerHTML = 'Motorista';
-                    
-                //     veiculo.value = '';
-                //     veiculo.disabled = true;
-                //     veiculo.required = false;
-                    
-                //     divSolicitado.style.display = 'none';
-                //     divExpandirVeiculos.style.display = 'none';
-                    
-                //     return; // Não continua com as outras regras
-                // }
                 
                 // ========== Resto da função continua igual ==========
                 // Ocultar checkbox Solicitado e Expandir Veículos por padrão
@@ -5432,7 +5415,9 @@
                                 const resultadoFornecedor = await resVerificarFornecedor.json();
                                 
                                 if (resultadoFornecedor.tem_vinculo) {
-                                    // TEM VÍNCULO COM FORNECEDOR
+                                    // TEM VÍNCULO COM FORNECEDOR - PERGUNTAR SE QUER ENVIAR EMAIL
+                                    dadosVinculoFornecedor = resultadoFornecedor;
+
                                     mostrarConfirmacao(
                                         '📧 Este tipo de veículo possui fornecedor cadastrado.<br><br>Deseja enviar e-mail de solicitação de locação?',
                                         async function(respostaEmail) {
@@ -5447,12 +5432,6 @@
                                             
                                             if (resultSalvar.success || resultSalvar.id) {
                                                 demandaIdRetornado = resultSalvar.id;
-                                                idItemRetornado = resultSalvar.id_item;
-                                                
-                                                // Guardar no vínculo para usar no modal
-                                                dadosVinculoFornecedor = resultadoFornecedor;
-                                                dadosVinculoFornecedor.id_item = idItemRetornado;
-                                                
                                                 idDemandaParaEmailFornecedor = demandaIdRetornado;
                                                 
                                                 fecharModal();
