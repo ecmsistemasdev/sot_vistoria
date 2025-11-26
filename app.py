@@ -2133,164 +2133,6 @@ def obter_usuario_logado():
         'login': session.get('usuario_login', '')
     })
 
-
-@app.route('/api/criar_locacao_fornecedor', methods=['POST'])
-@login_required
-def criar_locacao_fornecedor():
-    """
-    Cria registro na TJ_CONTROLE_LOCACAO_ITENS para locação com fornecedor
-    """
-    try:
-        data = request.get_json()
-        id_demanda = data.get('id_demanda')
-        
-        if not id_demanda:
-            return jsonify({'erro': 'ID da demanda não informado'}), 400
-        
-        id_item = criar_registro_locacao_fornecedor(id_demanda)
-        
-        if id_item:
-            return jsonify({
-                'success': True,
-                'id_item': id_item,
-                'mensagem': 'Registro de locação criado com sucesso'
-            })
-        else:
-            return jsonify({
-                'erro': 'Erro ao criar registro de locação'
-            }), 500
-            
-    except Exception as e:
-        app.logger.error(f"Erro em criar_locacao_fornecedor: {str(e)}")
-        return jsonify({'erro': str(e)}), 500
-    
-
-@app.route('/api/enviar_email_fornecedor', methods=['POST'])
-@login_required
-def enviar_email_fornecedor():
-    """
-    Envia email de solicitação de locação para fornecedor
-    """
-    cursor = None
-    try:
-        # Receber dados do formulário
-        email_destinatario = request.form.get('email_destinatario')
-        assunto = request.form.get('assunto')
-        corpo_html = request.form.get('corpo_html')
-        id_demanda = request.form.get('id_demanda')
-        id_item_fornecedor = request.form.get('id_item_fornecedor')  # ID_ITEM da TJ_CONTROLE_LOCACAO_ITENS
-        
-        if not all([email_destinatario, assunto, corpo_html, id_demanda]):
-            return jsonify({'erro': 'Dados incompletos'}), 400
-        
-        # Processar anexos
-        anexos = []
-        if 'anexos' in request.files:
-            files = request.files.getlist('anexos')
-            for file in files:
-                if file and file.filename:
-                    anexos.append({
-                        'nome': file.filename,
-                        'conteudo': file.read(),
-                        'tipo': file.content_type or 'application/octet-stream'
-                    })
-        
-        # Obter nome do usuário
-        nome_usuario = session.get('usuario_nome', 'Administrador')
-        
-        # Versão texto simples (fallback)
-        from html.parser import HTMLParser
-        
-        class HTMLToText(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.text = []
-            
-            def handle_data(self, data):
-                self.text.append(data)
-            
-            def get_text(self):
-                return ''.join(self.text)
-        
-        parser = HTMLToText()
-        parser.feed(corpo_html)
-        corpo_texto = parser.get_text()
-        
-        # Criar mensagem
-        msg = Message(
-            subject=assunto,
-            recipients=[email_destinatario],
-            html=corpo_html,
-            body=corpo_texto,
-            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
-        )
-        
-        # Anexar arquivos
-        for anexo in anexos:
-            msg.attach(
-                anexo['nome'],
-                anexo['tipo'],
-                anexo['conteudo']
-            )
-        
-        # Enviar email
-        mail.send(msg)
-        
-        # Registrar no banco
-        cursor = mysql.connection.cursor()
-        
-        from pytz import timezone
-        tz_manaus = timezone('America/Manaus')
-        data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
-        
-        # Inserir registro de email (COM ID_ITEM)
-        cursor.execute("""
-            INSERT INTO EMAIL_OUTRAS_LOCACOES 
-            (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (
-            id_demanda, 
-            id_item_fornecedor or 0,  # ID_ITEM (novo campo)
-            email_destinatario, 
-            assunto, 
-            corpo_texto, 
-            data_hora_atual
-        ))
-        
-        id_email = cursor.lastrowid
-        
-        # ===== CORREÇÃO: Atualizar campo SOLICITADO na demanda =====
-        cursor.execute("""
-            UPDATE ATENDIMENTO_DEMANDAS 
-            SET SOLICITADO = 'S' 
-            WHERE ID_AD = %s
-        """, (id_demanda,))
-        
-        # ===== NOVO: Atualizar FL_EMAIL na TJ_CONTROLE_LOCACAO_ITENS =====
-        if id_item_fornecedor:
-            cursor.execute("""
-                UPDATE TJ_CONTROLE_LOCACAO_ITENS 
-                SET FL_EMAIL = 'S' 
-                WHERE ID_ITEM = %s
-            """, (id_item_fornecedor,))
-        
-        mysql.connection.commit()
-        
-        return jsonify({
-            'success': True,
-            'id_email': id_email,
-            'mensagem': 'Email enviado com sucesso!'
-        })
-        
-    except Exception as e:
-        app.logger.error(f"Erro ao enviar email para fornecedor: {str(e)}")
-        if cursor:
-            mysql.connection.rollback()
-        return jsonify({'erro': str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-
 #####....#####.....
     
 @app.route('/api/nova_locacao', methods=['POST'])
@@ -5349,6 +5191,163 @@ def agenda_busca_setor():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+
+@app.route('/api/criar_locacao_fornecedor', methods=['POST'])
+@login_required
+def criar_locacao_fornecedor():
+    """
+    Cria registro na TJ_CONTROLE_LOCACAO_ITENS para locação com fornecedor
+    """
+    try:
+        data = request.get_json()
+        id_demanda = data.get('id_demanda')
+        
+        if not id_demanda:
+            return jsonify({'erro': 'ID da demanda não informado'}), 400
+        
+        id_item = criar_registro_locacao_fornecedor(id_demanda)
+        
+        if id_item:
+            return jsonify({
+                'success': True,
+                'id_item': id_item,
+                'mensagem': 'Registro de locação criado com sucesso'
+            })
+        else:
+            return jsonify({
+                'erro': 'Erro ao criar registro de locação'
+            }), 500
+            
+    except Exception as e:
+        app.logger.error(f"Erro em criar_locacao_fornecedor: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
+    
+
+@app.route('/api/enviar_email_fornecedor', methods=['POST'])
+@login_required
+def enviar_email_fornecedor():
+    """
+    Envia email de solicitação de locação para fornecedor
+    """
+    cursor = None
+    try:
+        # Receber dados do formulário
+        email_destinatario = request.form.get('email_destinatario')
+        assunto = request.form.get('assunto')
+        corpo_html = request.form.get('corpo_html')
+        id_demanda = request.form.get('id_demanda')
+        id_item_fornecedor = request.form.get('id_item_fornecedor')  # ID_ITEM da TJ_CONTROLE_LOCACAO_ITENS
+        
+        if not all([email_destinatario, assunto, corpo_html, id_demanda]):
+            return jsonify({'erro': 'Dados incompletos'}), 400
+        
+        # Processar anexos
+        anexos = []
+        if 'anexos' in request.files:
+            files = request.files.getlist('anexos')
+            for file in files:
+                if file and file.filename:
+                    anexos.append({
+                        'nome': file.filename,
+                        'conteudo': file.read(),
+                        'tipo': file.content_type or 'application/octet-stream'
+                    })
+        
+        # Obter nome do usuário
+        nome_usuario = session.get('usuario_nome', 'Administrador')
+        
+        # Versão texto simples (fallback)
+        from html.parser import HTMLParser
+        
+        class HTMLToText(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.text = []
+            
+            def handle_data(self, data):
+                self.text.append(data)
+            
+            def get_text(self):
+                return ''.join(self.text)
+        
+        parser = HTMLToText()
+        parser.feed(corpo_html)
+        corpo_texto = parser.get_text()
+        
+        # Criar mensagem
+        msg = Message(
+            subject=assunto,
+            recipients=[email_destinatario],
+            html=corpo_html,
+            body=corpo_texto,
+            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+        )
+        
+        # Anexar arquivos
+        for anexo in anexos:
+            msg.attach(
+                anexo['nome'],
+                anexo['tipo'],
+                anexo['conteudo']
+            )
+        
+        # Enviar email
+        mail.send(msg)
+        
+        # Registrar no banco
+        cursor = mysql.connection.cursor()
+        
+        from pytz import timezone
+        tz_manaus = timezone('America/Manaus')
+        data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
+        
+        # Inserir registro de email (COM ID_ITEM)
+        cursor.execute("""
+            INSERT INTO EMAIL_OUTRAS_LOCACOES 
+            (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (
+            id_demanda, 
+            id_item_fornecedor or 0,  # ID_ITEM (novo campo)
+            email_destinatario, 
+            assunto, 
+            corpo_texto, 
+            data_hora_atual
+        ))
+        
+        id_email = cursor.lastrowid
+        
+        # ===== CORREÇÃO: Atualizar campo SOLICITADO na demanda =====
+        cursor.execute("""
+            UPDATE ATENDIMENTO_DEMANDAS 
+            SET SOLICITADO = 'S' 
+            WHERE ID_AD = %s
+        """, (id_demanda,))
+        
+        # ===== NOVO: Atualizar FL_EMAIL na TJ_CONTROLE_LOCACAO_ITENS =====
+        if id_item_fornecedor:
+            cursor.execute("""
+                UPDATE TJ_CONTROLE_LOCACAO_ITENS 
+                SET FL_EMAIL = 'S' 
+                WHERE ID_ITEM = %s
+            """, (id_item_fornecedor,))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            'success': True,
+            'id_email': id_email,
+            'mensagem': 'Email enviado com sucesso!'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao enviar email para fornecedor: {str(e)}")
+        if cursor:
+            mysql.connection.rollback()
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 ###....###
 
