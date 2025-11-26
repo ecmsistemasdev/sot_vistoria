@@ -1433,7 +1433,7 @@
                             </label>
                         </div>
                         <div class="form-group">
-                            <label id="labelHorario">Horário</label>
+                            <label>Horário</label>
                             <input type="text" id="horario" maxlength="5" placeholder="HH:MM" disabled>
                         </div>
                     </div>
@@ -1910,10 +1910,8 @@
         let temVinculoFornecedorAtivo = false;
 
         
-        // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de VeÃ­culo ==========
+        // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
-            console.log('🔍 Verificando fornecedor para tipo veículo:', idTipoVeiculo);
-            
             if (!idTipoVeiculo) {
                 temVinculoFornecedorAtivo = false;
                 resetarCamposFornecedor();
@@ -1925,26 +1923,19 @@
                 const response = await fetch(url);
                 const resultado = await response.json();
                 
-                console.log('📦 Resultado da verificação:', resultado);
-                
                 if (resultado.tem_vinculo && resultado.tipo === 'fornecedor') {
                     // TEM FORNECEDOR - Aplicar regras especiais
                     temVinculoFornecedorAtivo = true;
-                    dadosVinculoFornecedor = resultado;
-                    console.log('✅ TEM FORNECEDOR - Aplicando regras especiais');
                     aplicarRegrasFornecedor();
                 } else {
                     // NÃO TEM FORNECEDOR - Voltar ao normal
                     temVinculoFornecedorAtivo = false;
-                    dadosVinculoFornecedor = null;
-                    console.log('❌ NÃO tem fornecedor - resetando campos');
                     resetarCamposFornecedor();
                 }
                 
             } catch (error) {
-                console.error('❌ Erro ao verificar fornecedor:', error);
+                console.error('Erro ao verificar fornecedor:', error);
                 temVinculoFornecedorAtivo = false;
-                dadosVinculoFornecedor = null;
             }
         }
 
@@ -1952,12 +1943,13 @@
             // Horário obrigatório
             const checkboxHorario = document.getElementById('definirHorario');
             const inputHorario = document.getElementById('horario');
-            const labelHorarioContainer = document.querySelector('#horario').closest('.form-group').querySelector('label');
+            const labelHorario = inputHorario.previousElementSibling;
             
             checkboxHorario.checked = true;
             checkboxHorario.disabled = true;
             inputHorario.disabled = false;
             inputHorario.required = true;
+            labelHorario.textContent = 'Horário de Saída';
             labelHorario.innerHTML = 'Horário de Saída <span class="required">*</span>';
             
             // Bloquear Motorista
@@ -1978,51 +1970,33 @@
             selectVeiculo.value = '';
             selectVeiculo.disabled = true;
             selectVeiculo.required = false;
-            selectVeiculo.innerHTML = '<option value="">Selecione...</option>';
             labelVeiculo.innerHTML = 'Veículo';
-            
-            // Ocultar checkbox expandir veículos
-            const divExpandirVeiculos = document.getElementById('divExpandirVeiculos');
-            divExpandirVeiculos.style.display = 'none';
-            
-            console.log('✅ Regras de fornecedor aplicadas - Horário obrigatório ativado');
         }
 
         function resetarCamposFornecedor() {
             // Resetar Horário
             const checkboxHorario = document.getElementById('definirHorario');
             const inputHorario = document.getElementById('horario');
-            const labelHorarioContainer = document.querySelector('#horario').closest('.form-group').querySelector('label');
+            const labelHorario = inputHorario.previousElementSibling;
             
             checkboxHorario.disabled = false;
             if (!checkboxHorario.checked) {
                 inputHorario.disabled = true;
                 inputHorario.required = false;
             }
+            labelHorario.textContent = 'Horário';
             
-            // CRÍTICO: Resetar a label do horário
-            if (labelHorarioContainer) {
-                labelHorarioContainer.innerHTML = 'Horário';
-            }
-            
-            // Desbloquear Motorista
+            // Desbloquear Motorista (se não houver outra regra bloqueando)
             const selectMotorista = document.getElementById('idMotorista');
             const motoristaFilter = document.getElementById('motoristaFilter');
             
-            selectMotorista.disabled = false;
-            motoristaFilter.style.display = 'flex';
-            
-            // Desbloquear Veículo
-            const selectVeiculo = document.getElementById('idVeiculo');
-            selectVeiculo.disabled = false;
-            
-            // Reaplicar regras do tipo de demanda (se houver)
             const idTipoDemanda = document.getElementById('idTipoDemanda').value;
             if (idTipoDemanda) {
-                aplicarRegrasTipoDemanda();
+                aplicarRegrasTipoDemanda(); // Reaplicar regras do tipo de demanda
+            } else {
+                selectMotorista.disabled = false;
+                motoristaFilter.style.display = 'flex';
             }
-            
-            console.log('✅ Campos de fornecedor resetados');
         }
         
         
@@ -3657,7 +3631,7 @@
             }
         }
                 
-function aplicarRegrasTipoVeiculo() {
+        function aplicarRegrasTipoVeiculo() {
             const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
             const veiculo = document.getElementById('idVeiculo');
             const motorista = document.getElementById('idMotorista');
@@ -4698,16 +4672,43 @@ function aplicarRegrasTipoVeiculo() {
                         setor: d.setor,
                         destino: d.destino,
                         id_tipoveiculo: d.id_tipoveiculo,
-                        solicitado: d.solicitado,  // ADICIONAR
                         demandas: []
                     };
                 }
                 grupos[key].demandas.push(d);
             });
 
-            // Ordenação existente...
+            // ========== ORDENAÇÃO DINÂMICA BASEADA EM CONFIGURAÇÃO ==========
             const gruposArray = Object.values(grupos);
-            // ... código de ordenação ...
+            gruposArray.sort((a, b) => {
+                const configA = tiposDemandaConfig[a.id_tipoveiculo];
+                const configB = tiposDemandaConfig[b.id_tipoveiculo];
+                
+                // Tipos que exibem checkbox solicitado têm prioridade
+                const prioridadeA = configA && configA.exibir_checkbox_solicitado;
+                const prioridadeB = configB && configB.exibir_checkbox_solicitado;
+                
+                if (prioridadeA && prioridadeB) {
+                    // Ambos prioritários: ordenar por ID tipo veículo crescente
+                    if (a.id_tipoveiculo !== b.id_tipoveiculo) {
+                        return a.id_tipoveiculo - b.id_tipoveiculo;
+                    }
+                    // Mesmo ID: ordenar por data de lançamento
+                    const dataA = a.demandas[0].dt_lancamento || '';
+                    const dataB = b.demandas[0].dt_lancamento || '';
+                    return dataA.localeCompare(dataB);
+                }
+                
+                if (!prioridadeA && !prioridadeB) {
+                    // Nenhum prioritário: ordenar por data de lançamento
+                    const dataA = a.demandas[0].dt_lancamento || '';
+                    const dataB = b.demandas[0].dt_lancamento || '';
+                    return dataA.localeCompare(dataB);
+                }
+                
+                // Prioritários vêm primeiro
+                return prioridadeB - prioridadeA;
+            });
 
             let html = '<div class="agenda-section">';
             html += `
@@ -4722,6 +4723,7 @@ function aplicarRegrasTipoVeiculo() {
             html += '</tr></thead><tbody>';
 
             gruposArray.forEach((grupo, index) => {
+                // ========== USAR CONFIGURAÇÃO PARA VERIFICAR SE É "ESPECIAL" ==========
                 const tipoConfig = tiposDemandaConfig[grupo.id_tipoveiculo];
                 const isIdEspecial = tipoConfig && tipoConfig.exibir_checkbox_solicitado;
                 
@@ -4729,7 +4731,7 @@ function aplicarRegrasTipoVeiculo() {
                 html += `<td class="col-nome">`;
                 html += `<div><strong>${grupo.de_tipoveiculo}</strong>`;
                 
-                // Buscar locação ou mostrar botão
+                // ========== BUSCAR ID_ITEM DA LOCAÇÃO CORRESPONDENTE ==========
                 const locacaoCorrespondente = locacoesAtivas.find(loc => 
                     grupo.demandas.some(d => 
                         d.id_motorista === loc.id_motorista &&
@@ -4745,37 +4747,13 @@ function aplicarRegrasTipoVeiculo() {
                 html += `</div>`;
                 html += `<div>${grupo.nu_sei || ''}</div>`;
                 
-                // Setor - Destino
+                // Montar linha Setor - Destino com setor em negrito
                 if (grupo.setor && grupo.destino) {
                     html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
                 } else if (grupo.setor) {
                     html += `<div><strong>${grupo.setor}</strong></div>`;
                 } else if (grupo.destino) {
                     html += `<div>${grupo.destino}</div>`;
-                }
-                
-                // NOVO: Mostrar botão ou status de solicitação (apenas para fornecedor)
-                if (isIdEspecial && !locacaoCorrespondente) {
-                    // Verificar se é fornecedor (não locação)
-                    const primeiraLocacao = locacoesAtivas.find(loc => 
-                        loc.fl_status === 'F' && 
-                        grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
-                    );
-                    
-                    if (!primeiraLocacao) {  // Não tem locação = é fornecedor
-                        if (grupo.solicitado === 'S') {
-                            html += `<div style="color: #28a745; font-size: 11px; margin-top: 3px; font-weight: 600;">✓ Locação Solicitada</div>`;
-                        } else {
-                            // Mostrar botão (apenas primeira demanda do grupo)
-                            const primeiraDemanada = grupo.demandas[0];
-                            html += `<div style="margin-top: 5px;">
-                                <button onclick="solicitarLocacaoFornecedor(${primeiraDemanada.id})" 
-                                        style="background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;">
-                                    📧 Solicitar Locação
-                                </button>
-                            </div>`;
-                        }
-                    }
                 }
                 
                 // Verificar se existe locação finalizada
@@ -4788,7 +4766,7 @@ function aplicarRegrasTipoVeiculo() {
                 }
                 
                 html += `</td>`;
-
+                
                 dias.forEach(dia => {
                     const feriado = isFeriado(dia.data);
                     const demandasDia = grupo.demandas.filter(d => 
@@ -4855,38 +4833,6 @@ function aplicarRegrasTipoVeiculo() {
             html += '</tbody></table></div>';
             return html;
         }
-
-        async function solicitarLocacaoFornecedor(idDemanda) {
-            try {
-                // Buscar demanda
-                const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
-                if (!demanda) {
-                    mostrarAlerta('Demanda não encontrada!', '❌ Erro', '#dc3545');
-                    return;
-                }
-                
-                // Verificar vínculo com fornecedor (PASSANDO ID_DEMANDA)
-                const urlVinculo = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${demanda.id_tipoveiculo}&id_demanda=${idDemanda}`;
-                const resVinculo = await fetch(urlVinculo);
-                const resultVinculo = await resVinculo.json();
-                
-                if (!resultVinculo.tem_vinculo) {
-                    mostrarAlerta('Fornecedor não encontrado!', '❌ Erro', '#dc3545');
-                    return;
-                }
-                
-                // Guardar dados (com ID_ITEM)
-                dadosVinculoFornecedor = resultVinculo;
-                idDemandaParaEmailFornecedor = idDemanda;
-                
-                // Abrir modal de email
-                await abrirModalEmailFornecedor(demanda);
-                
-            } catch (error) {
-                console.error('Erro ao solicitar locação:', error);
-                mostrarAlerta('Erro ao abrir formulário de solicitação!', '❌ Erro', '#dc3545');
-            }
-        }            
         
         async function abrirModalNovo() {
             document.getElementById('modalTitle').textContent = 'Nova Demanda';
@@ -5281,13 +5227,6 @@ function aplicarRegrasTipoVeiculo() {
                 }
             }
 
-            // Validar horário obrigatório para fornecedor
-            if (temVinculoFornecedorAtivo && !horario) {
-                mostrarAlerta('O horário de saída é obrigatório para locação com fornecedor!', '⚠️ Atenção', '#ffc107');
-                document.getElementById('horario').focus();
-                return;
-            }
-            
             const dados = {
                 id_motorista: document.getElementById('idMotorista').value || null,
                 id_tipodemanda: idTipoDemanda,
@@ -5321,7 +5260,7 @@ function aplicarRegrasTipoVeiculo() {
                 return;
             }
             
-            // Validações dinâmicas
+            // Validações dinâmicas (mantém as mesmas validações existentes)
             if (config.motorista_obrigatorio && !dados.id_motorista) {
                 mostrarAlerta('O campo Motorista é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                 return;
@@ -5360,10 +5299,9 @@ function aplicarRegrasTipoVeiculo() {
             try {
                 let res;
                 let demandaIdRetornado = null;
-                let idItemRetornado = null;
                 
                 if (idAd) {
-                    // EDIÇÃO - código existente
+                    // ========== EDIÇÃO - NÃO VERIFICA LOCAÇÃO ==========
                     res = await fetch(`/api/agenda/demanda/${idAd}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -5382,12 +5320,11 @@ function aplicarRegrasTipoVeiculo() {
                     }
                     
                 } else {
-                    // ========== NOVA DEMANDA ==========
+                    // ========== NOVA DEMANDA - VERIFICAR LOCAÇÃO OU FORNECEDOR ==========
                     
-                    // VERIFICAR SE TEM TIPO DE VEÍCULO
                     if (dados.id_tipoveiculo) {
                         try {
-                            // ========== 1. VERIFICAR LOCAÇÃO EXISTENTE (PRIORIDADE) ==========
+                            // ========== VERIFICAR LOCAÇÃO EXISTENTE (PRIORIDADE) ==========
                             const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista || 0}`;
                             const resVerificarLocacao = await fetch(urlVerificarLocacao);
                             const resultadoLocacao = await resVerificarLocacao.json();
@@ -5396,8 +5333,10 @@ function aplicarRegrasTipoVeiculo() {
                                 // TEM VÍNCULO COM LOCAÇÃO - USA FLUXO EXISTENTE
                                 dadosVinculoLocacao = resultadoLocacao;
                                 
+                                // Perguntar se quer solicitar locação ANTES de salvar
                                 mostrarModalConfirmacaoLocacao(async function(respostaLocacao) {
                                     if (respostaLocacao) {
+                                        // Usuário quer solicitar locação - salvar demanda primeiro
                                         const resSalvar = await fetch('/api/agenda/demanda', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
@@ -5440,27 +5379,21 @@ function aplicarRegrasTipoVeiculo() {
                                     }
                                 });
                                 
-                                return; // SAIR DA FUNÇÃO
+                                return; // Retorna para não executar o código abaixo
                             }
                             
-                            // ========== 2. NÃO TEM LOCAÇÃO - VERIFICAR FORNECEDOR ==========
+                            // ========== NÃO TEM LOCAÇÃO - VERIFICAR FORNECEDOR ==========
                             const urlVerificarFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${dados.id_tipoveiculo}`;
                             const resVerificarFornecedor = await fetch(urlVerificarFornecedor);
                             const resultadoFornecedor = await resVerificarFornecedor.json();
-
-                            console.log('🔍 Verificação de fornecedor no salvar:', resultadoFornecedor);
-
-                            if (resultadoFornecedor.tem_vinculo && resultadoFornecedor.tipo === 'fornecedor') {
-                                console.log('✅ TEM FORNECEDOR - Preparando fluxo de email');
-                                
+                            
+                            if (resultadoFornecedor.tem_vinculo) {
                                 // TEM VÍNCULO COM FORNECEDOR - PERGUNTAR SE QUER ENVIAR EMAIL
                                 dadosVinculoFornecedor = resultadoFornecedor;
-
+                                
                                 mostrarConfirmacao(
                                     '📧 Este tipo de veículo possui fornecedor cadastrado.<br><br>Deseja enviar e-mail de solicitação de locação?',
                                     async function(respostaEmail) {
-                                        console.log('📧 Resposta do usuário sobre email:', respostaEmail);
-                                        
                                         // Salvar demanda PRIMEIRO
                                         const resSalvar = await fetch('/api/agenda/demanda', {
                                             method: 'POST',
@@ -5469,56 +5402,30 @@ function aplicarRegrasTipoVeiculo() {
                                         });
                                         
                                         const resultSalvar = await resSalvar.json();
-                                        console.log('💾 Resultado do salvamento:', resultSalvar);
                                         
                                         if (resultSalvar.success || resultSalvar.id) {
                                             demandaIdRetornado = resultSalvar.id;
                                             idDemandaParaEmailFornecedor = demandaIdRetornado;
                                             
-                                            // IMPORTANTE: Guardar o ID_ITEM retornado
-                                            if (resultSalvar.id_item) {
-                                                dadosVinculoFornecedor.iditem = resultSalvar.id_item;
-                                                console.log('📦 ID_ITEM guardado:', resultSalvar.id_item);
-                                            }
-                                            
                                             fecharModal();
                                             
                                             if (respostaEmail) {
-                                                console.log('✅ Usuário confirmou - Abrindo modal de email');
-                                                
-                                                // Preparar dados completos para o email
-                                                const dadosCompletos = {
-                                                    ...dados,
-                                                    id: demandaIdRetornado,
-                                                    dt_inicio: dados.dt_inicio,
-                                                    dt_fim: dados.dt_fim,
-                                                    horario: dados.horario,
-                                                    destino: dados.destino,
-                                                    nu_sei: dados.nu_sei
-                                                };
-                                                
-                                                console.log('📧 Dados completos para email:', dadosCompletos);
-                                                
-                                                // Pequeno delay para garantir que o modal principal fechou
-                                                setTimeout(async () => {
-                                                    await abrirModalEmailFornecedor(dadosCompletos);
-                                                }, 300);
+                                                // Abrir modal de email
+                                                await abrirModalEmailFornecedor(dados);
                                             } else {
-                                                console.log('❌ Usuário recusou email - Apenas recarregando');
                                                 // Apenas recarregar
                                                 await carregarSemanas();
                                                 await carregarAgenda();
                                                 inicializarDestaqueLinha();
                                             }
                                         } else {
-                                            console.error('❌ Erro ao salvar demanda:', resultSalvar.error);
                                             mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                                         }
                                     },
                                     '📧 Enviar E-mail?'
                                 );
                                 
-                                return; // SAIR DA FUNÇÃO
+                                return; // Retorna para não executar o código abaixo
                             }
                             
                         } catch (errorVerificar) {
@@ -5526,7 +5433,7 @@ function aplicarRegrasTipoVeiculo() {
                         }
                     }
                     
-                    // ========== 3. SEM VÍNCULOS - SALVAR NORMALMENTE ==========
+                    // ========== SEM VÍNCULOS - SALVAR NORMALMENTE ==========
                     res = await fetch('/api/agenda/demanda', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -5701,26 +5608,14 @@ function aplicarRegrasTipoVeiculo() {
             // - modalConfirmacaoLocacao (Confirmação de Locação)
         });
 
-        // ========== EVENT LISTENER: Tipo de Veí­culo ==========
+        // ========== EVENT LISTENER: Tipo de Veículo ==========
         document.addEventListener('DOMContentLoaded', function() {
             const selectTipoVeiculo = document.getElementById('idTipoVeiculo');
             
             if (selectTipoVeiculo) {
                 selectTipoVeiculo.addEventListener('change', async function() {
-                    const idTipoVeiculo = this.value;
-                    
-                    // PRIMEIRO: Verificar fornecedor (prioridade)
-                    if (idTipoVeiculo) {
-                        await verificarFornecedorTipoVeiculo(idTipoVeiculo);
-                    } else {
-                        temVinculoFornecedorAtivo = false;
-                        resetarCamposFornecedor();
-                    }
-                    
-                    // DEPOIS: Aplicar outras regras (se não tiver fornecedor ativo)
-                    if (!temVinculoFornecedorAtivo) {
-                        aplicarRegrasTipoVeiculo();
-                    }
+                    await verificarFornecedorTipoVeiculo(this.value);
+                    aplicarRegrasTipoVeiculo(); // Manter lógica existente
                 });
             }
         });
