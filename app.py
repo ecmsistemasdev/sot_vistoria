@@ -4466,7 +4466,7 @@ def buscar_dados_agenda():
               AND ATIVO = 'S'
               AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
               AND (DT_FIM IS NULL OR DT_FIM >= %s)
-            ORDER BY DS_MODELO
+            ORDER BY ORIGEM_VEICULO DESC, DS_MODELO
         """, (fim, inicio))
         veiculos = []
         for r in cursor.fetchall():
