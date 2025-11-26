@@ -30,6 +30,7 @@ app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
+app.config['MYSQL_CHARSET'] = 'utf8mb4'
 mysql = MySQL(app)
 
 # Configuração para segurança
@@ -2007,7 +2008,82 @@ def verificar_vinculo_locacao():
     except Exception as e:
         print(f"Erro ao verificar vínculo de locação: {str(e)}")
         return jsonify({'erro': str(e), 'tem_vinculo': False}), 500
-		
+
+
+
+
+
+@app.route('/api/verificar_vinculo_fornecedor', methods=['GET'])
+@login_required
+def verificar_vinculo_fornecedor():
+    """
+    Verifica se o tipo de veículo tem vínculo com fornecedor (sem TJ_VEICULO_LOCACAO)
+    Busca item do fornecedor baseado no ID_TIPOVEICULO
+    """
+    cursor = None
+    try:
+        id_tipoveiculo = request.args.get('id_tipoveiculo')
+        
+        if not id_tipoveiculo:
+            return jsonify({'tem_vinculo': False}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Verificar se tem vínculo com TJ_VEICULO_LOCACAO (se tiver, não entra na nova regra)
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM TJ_VEICULO_LOCACAO 
+            WHERE ID_TIPOVEICULO = %s
+        """, (id_tipoveiculo,))
+        
+        tem_vinculo_locacao = cursor.fetchone()[0] > 0
+        
+        if tem_vinculo_locacao:
+            return jsonify({'tem_vinculo': False, 'tipo': 'locacao_existente'})
+        
+        # Verificar se tem fornecedor vinculado com email e buscar item correspondente
+        cursor.execute("""
+            SELECT 
+                tv.ID_FORNECEDOR,
+                f.EMAIL,
+                f.NM_FORNECEDOR,
+                tv.DE_TIPOVEICULO,
+                fi.IDITEM,
+                fi.DESCRICAO
+            FROM TIPO_VEICULO tv
+            INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
+            LEFT JOIN TJ_FORNECEDOR_ITEM fi ON fi.ID_FORNECEDOR = tv.ID_FORNECEDOR 
+                                             AND fi.ID_TIPOVEICULO = tv.ID_TIPOVEICULO
+            WHERE tv.ID_TIPOVEICULO = %s 
+              AND tv.ID_FORNECEDOR IS NOT NULL
+              AND f.EMAIL IS NOT NULL
+              AND f.EMAIL != ''
+        """, (id_tipoveiculo,))
+        
+        resultado = cursor.fetchone()
+        
+        if resultado:
+            return jsonify({
+                'tem_vinculo': True,
+                'tipo': 'fornecedor',
+                'id_fornecedor': resultado[0],
+                'email_fornecedor': resultado[1],
+                'nome_fornecedor': resultado[2],
+                'de_tipoveiculo': resultado[3],
+                'iditem': resultado[4] if resultado[4] else 0,
+                'descricao_item': resultado[5] if resultado[5] else resultado[3]  # Usa descrição do item ou tipo veículo
+            })
+        
+        return jsonify({'tem_vinculo': False})
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao verificar vínculo com fornecedor: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
 @app.route('/api/verificar_locacao_existente', methods=['GET'])
 @login_required
 def verificar_locacao_existente():
@@ -2046,6 +2122,129 @@ def verificar_locacao_existente():
     except Exception as e:
         print(f"Erro ao verificar locação existente: {str(e)}")
         return jsonify({'erro': str(e), 'tem_locacao': False}), 500
+
+
+@app.route('/api/usuario_logado', methods=['GET'])
+@login_required
+def obter_usuario_logado():
+    """Retorna informações do usuário logado"""
+    return jsonify({
+        'nome': session.get('usuario_nome', 'Administrador'),
+        'login': session.get('usuario_login', '')
+    })
+
+
+@app.route('/api/enviar_email_fornecedor', methods=['POST'])
+@login_required
+def enviar_email_fornecedor():
+    """
+    Envia email de solicitação de locação para fornecedor
+    """
+    cursor = None
+    try:
+        # Receber dados do formulário
+        email_destinatario = request.form.get('email_destinatario')
+        assunto = request.form.get('assunto')
+        corpo_html = request.form.get('corpo_html')
+        id_demanda = request.form.get('id_demanda')
+        id_item_fornecedor = request.form.get('id_item_fornecedor')
+        
+        if not all([email_destinatario, assunto, corpo_html, id_demanda]):
+            return jsonify({'erro': 'Dados incompletos'}), 400
+        
+        # Processar anexos
+        anexos = []
+        if 'anexos' in request.files:
+            files = request.files.getlist('anexos')
+            for file in files:
+                if file and file.filename:
+                    anexos.append({
+                        'nome': file.filename,
+                        'conteudo': file.read(),
+                        'tipo': file.content_type or 'application/octet-stream'
+                    })
+        
+        # Obter nome do usuário
+        nome_usuario = session.get('usuario_nome', 'Administrador')
+        
+        # Versão texto simples (fallback)
+        from html.parser import HTMLParser
+        
+        class HTMLToText(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.text = []
+            
+            def handle_data(self, data):
+                self.text.append(data)
+            
+            def get_text(self):
+                return ''.join(self.text)
+        
+        parser = HTMLToText()
+        parser.feed(corpo_html)
+        corpo_texto = parser.get_text()
+        
+        # Criar mensagem
+        msg = Message(
+            subject=assunto,
+            recipients=[email_destinatario],
+            html=corpo_html,
+            body=corpo_texto,
+            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+        )
+        
+        # Anexar arquivos
+        for anexo in anexos:
+            msg.attach(
+                anexo['nome'],
+                anexo['tipo'],
+                anexo['conteudo']
+            )
+        
+        # Enviar email
+        mail.send(msg)
+        
+        # Registrar no banco
+        cursor = mysql.connection.cursor()
+        
+        from pytz import timezone
+        tz_manaus = timezone('America/Manaus')
+        data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
+        
+        # Inserir registro de email
+        cursor.execute("""
+            INSERT INTO EMAIL_OUTRAS_LOCACOES 
+            (ID_AD, IDITEM_FORNECEDOR, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (id_demanda, id_item_fornecedor or 0, email_destinatario, assunto, corpo_texto, data_hora_atual))
+        
+        id_email = cursor.lastrowid
+        
+        # Atualizar campo SOLICITADO na demanda
+        cursor.execute("""
+            UPDATE ATENDIMENTO_DEMANDAS 
+            SET SOLICITADO = 'S' 
+            WHERE ID_AD = %s
+        """, (id_demanda,))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            'success': True,
+            'id_email': id_email,
+            'mensagem': 'Email enviado com sucesso!'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao enviar email para fornecedor: {str(e)}")
+        if cursor:
+            mysql.connection.rollback()
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
 
 #####....#####.....
     
@@ -2090,10 +2289,23 @@ def nova_locacao():
         # Obter ID do usuário da sessão
         usuario = session.get('usuario_login')
         
-        # Verificar se o motorista tem CNH cadastrada
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Verificar se o motorista tem CNH cadastrada
         cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO, EMAIL FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
         motorista_info = cursor.fetchone()
+        
+        # Buscar o email do fornecedor
+        cursor.execute("SELECT EMAIL FROM TJ_FORNECEDOR f INNER JOIN TJ_CONTROLE_LOCACAO cl ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR WHERE cl.ID_CL = %s", (id_cl,))
+        fornecedor_info = cursor.fetchone()
+        email_fornecedor = fornecedor_info['EMAIL'] if fornecedor_info and fornecedor_info['EMAIL'] else None
+        
+        if not email_fornecedor:
+            cursor.close()
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Email do fornecedor não cadastrado. Por favor, configure o email do fornecedor antes de solicitar locações.'
+            }), 400
         
         # Verificar se é necessário salvar a CNH
         file_pdf = motorista_info['FILE_PDF'] if motorista_info['FILE_PDF'] else None
@@ -2139,10 +2351,13 @@ def nova_locacao():
         # Obter email do motorista
         motorista_email = motorista_info['EMAIL']
         
-        # Enviar e-mail para a empresa locadora
+        cursor.close()
+        
+        # Enviar e-mail para a empresa locadora (passando email_fornecedor)
         email_enviado, erro_email = enviar_email_locacao(
-            id_item, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'], dt_inicial, dt_final, hr_inicial, 
-			de_veiculo, obs, nome_arquivo_cnh, motorista_email, objetivo, file_pdf  # Passando o conteúdo do PDF
+            id_item, id_cl, nu_sei, motorista_info['NM_MOTORISTA'], motorista_info['NU_TELEFONE'], 
+            dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, 
+            motorista_email, objetivo, email_fornecedor, file_pdf
         )
         
         response_data = {
@@ -2154,7 +2369,6 @@ def nova_locacao():
         if not email_enviado and erro_email:
             response_data['erro_email'] = erro_email
             
-        cursor.close()
         return jsonify(response_data)
         
     except Exception as e:
@@ -2163,12 +2377,29 @@ def nova_locacao():
             'sucesso': False,
             'mensagem': str(e)
         }), 500
-		
-        
-def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, objetivo, file_pdf_content=None):
+
+
+def enviar_email_locacao(id_item, id_cl, nu_sei, nm_motorista, nu_telefone, dt_inicial, dt_final, 
+                         hr_inicial, de_veiculo, obs, nome_arquivo_cnh, email_mot, objetivo, 
+                         email_fornecedor, file_pdf_content=None):
     try:
         # Importar pytz para timezone
         from pytz import timezone
+        
+        # Tratar email do fornecedor
+        # Remove espaços em branco extras e divide por vírgula
+        emails_lista = []
+        if email_fornecedor:
+            # Remove espaços extras, divide por vírgula e filtra emails vazios
+            emails_lista = [email.strip() for email in email_fornecedor.split(',') if email.strip()]
+        
+        # Validar se temos pelo menos um email
+        if not emails_lista:
+            app.logger.error("Nenhum email válido encontrado para o fornecedor")
+            return False, "Email do fornecedor não configurado"
+        
+        # String formatada para salvar no banco (com vírgulas e espaços)
+        emails_string = ", ".join(emails_lista)
         
         # Obter hora atual no fuso horário de Manaus
         tz_manaus = timezone('America/Manaus')
@@ -2193,7 +2424,7 @@ def enviar_email_locacao(id_item, nu_sei, nm_motorista, nu_telefone, dt_inicial,
         else:
             info_condutor = nm_motorista
         
-        # Tratamento das observações - removido o "Obs:"
+        # Tratamento das observações
         if obs and obs.strip() and obs != 'None':
             obs_texto = obs
         else:
@@ -2334,6 +2565,7 @@ Prezados,
     Período: {dt_inicial} ({hr_inicial}) a {dt_final}
     Veículo: {de_veiculo} ou Similar
     Condutor: {info_condutor}
+    Objetivo: {objetivo}
     Observações: {obs_texto}
 
 Segue anexo CNH do condutor.
@@ -2344,34 +2576,23 @@ Atenciosamente,
 Tribunal de Justiça do Estado de Rondônia
 Seção de Gestão Operacional do Transporte
 (69) 3309-6229/6227'''
-        
-        # Criar mensagem
-        # msg = Message(
-        #     subject=assunto,
-        #     recipients=["naicm12@gmail.com", "elienai@tjro.jus.br"],
-        #     html=corpo_html,  # Versão HTML
-        #     body=corpo_texto,  # Versão texto (fallback)
-        #     sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
-        # )
 
+        # Criar mensagem usando a lista de emails tratada
         msg = Message(
             subject=assunto,
-            recipients=["atendimentopvh@rovemalocadora.com.br", "atendimento02@rovemalocadora.com.br", "Carmem@rovemalocadora.com.br"],
-            #recipients=["naicm12@gmail.com", "ecmsistemasdeveloper@gmail.com"],
-            html=corpo_html,  # Versão HTML
-            body=corpo_texto,  # Versão texto (fallback)
+            recipients=emails_lista,  # Usa a lista de emails processada
+            html=corpo_html,
+            body=corpo_texto,
             sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
         )
 
-        # Anexar CNH - Corrigido para usar file_pdf_content primeiro
+        # Anexar CNH
         if file_pdf_content:
-            # Se temos o conteúdo do arquivo em memória, usa ele
             nome_anexo = f"CNH_{nm_motorista.replace(' ', '_')}.pdf"
             if nome_arquivo_cnh:
                 nome_anexo = 'CNH_' + os.path.basename(nome_arquivo_cnh)
             msg.attach(nome_anexo, 'application/pdf', file_pdf_content)
         elif nome_arquivo_cnh and nome_arquivo_cnh != 'None':
-            # Se não temos o conteúdo, tenta ler do arquivo
             try:
                 with open(nome_arquivo_cnh, 'rb') as f:
                     msg.attach('CNH_' + os.path.basename(nome_arquivo_cnh), 'application/pdf', f.read())
@@ -2387,27 +2608,21 @@ Seção de Gestão Operacional do Transporte
         # Formatação da data e hora atual no fuso de Manaus
         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
-        # Obter ID_CL com base no ID_ITEM
-        cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
-        resultado = cursor.fetchone()
-        id_cl = resultado[0] if resultado else None
+        # Inserir na tabela de emails usando a string formatada de emails
+        cursor.execute(
+            "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
+            (id_item, id_cl, emails_string, assunto, corpo_texto, data_hora_atual)
+        )
         
-        if id_cl:
-            # Inserir na tabela de emails (salvando a versão HTML)
-            cursor.execute(
-                "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
-                (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo_texto, data_hora_atual)
-            )
-            
-            # Atualizar flag de email na tabela de locações
-            cursor.execute(
-                "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
-                (id_item,)
-            )
-            
-            mysql.connection.commit()
+        # Atualizar flag de email na tabela de locações
+        cursor.execute(
+            "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
+            (id_item,)
+        )
         
+        mysql.connection.commit()
         cursor.close()
+        
         return True, None
     
     except Exception as e:
