@@ -4759,7 +4759,7 @@ def excluir_demanda(id_ad):
 def buscar_tipos_demanda():
     try:
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT ID_TIPODEMANDA, DE_TIPODEMANDA FROM TIPO_DEMANDA ORDER BY ID_TIPODEMANDA")
+        cursor.execute("SELECT ID_TIPODEMANDA, DE_TIPODEMANDA FROM TIPO_DEMANDA ORDER BY ORDEM_EXIBICAO")
         tipos = [{'id': r[0], 'descricao': r[1]} for r in cursor.fetchall()]
         cursor.close()
         return jsonify(tipos)
@@ -4908,7 +4908,7 @@ def buscar_tipos_demanda_filtrados():
                 SELECT ID_TIPODEMANDA, DE_TIPODEMANDA 
                 FROM TIPO_DEMANDA 
                 WHERE ID_TIPODEMANDA NOT IN (9, 10)
-                ORDER BY ID_TIPODEMANDA
+                ORDER BY ORDEM_EXIBICAO
             """)
         elif contexto == 'veiculo':
             # Excluir IDs 6, 7, 8 quando contexto for veículo
@@ -4916,14 +4916,14 @@ def buscar_tipos_demanda_filtrados():
                 SELECT ID_TIPODEMANDA, DE_TIPODEMANDA 
                 FROM TIPO_DEMANDA 
                 WHERE ID_TIPODEMANDA NOT IN (6, 7, 8)
-                ORDER BY ID_TIPODEMANDA
+                ORDER BY ORDEM_EXIBICAO
             """)
         else:
             # Retornar todos quando não houver contexto (edição)
             cursor.execute("""
                 SELECT ID_TIPODEMANDA, DE_TIPODEMANDA 
                 FROM TIPO_DEMANDA 
-                ORDER BY ID_TIPODEMANDA
+                ORDER BY ORDEM_EXIBICAO
             """)
         
         tipos = [{'id': r[0], 'descricao': r[1]} for r in cursor.fetchall()]
@@ -5361,9 +5361,7 @@ def enviar_email_fornecedor():
         if cursor:
             cursor.close()
 
-###....###
-
-##...casdastro do tipo de demanda.###
+###...casdastro do tipo de demanda.###
 
 @app.route('/api/tipo-demanda', methods=['GET'])
 @login_required
