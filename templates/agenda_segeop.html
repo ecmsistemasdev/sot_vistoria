@@ -4754,34 +4754,27 @@
             // ========== ORDENAÇÃO DINÂMICA BASEADA EM CONFIGURAÇÃO ==========
             const gruposArray = Object.values(grupos);
             gruposArray.sort((a, b) => {
-                const configA = tiposDemandaConfig[a.id_tipoveiculo];
-                const configB = tiposDemandaConfig[b.id_tipoveiculo];
+                // Aplicar a mesma lógica do ORDER BY da SQL
+                const getPrioridade = (id_tipoveiculo) => {
+                    if (id_tipoveiculo === 7) return 1;
+                    if (id_tipoveiculo === 8) return 2;
+                    if (id_tipoveiculo === 9) return 3;
+                    return 4;
+                };
                 
-                // Tipos que exibem checkbox solicitado têm prioridade
-                const prioridadeA = configA && configA.exibir_checkbox_solicitado;
-                const prioridadeB = configB && configB.exibir_checkbox_solicitado;
+                const prioridadeA = getPrioridade(a.id_tipoveiculo);
+                const prioridadeB = getPrioridade(b.id_tipoveiculo);
                 
-                if (prioridadeA && prioridadeB) {
-                    // Ambos prioritários: ordenar por ID tipo veículo crescente
-                    if (a.id_tipoveiculo !== b.id_tipoveiculo) {
-                        return a.id_tipoveiculo - b.id_tipoveiculo;
-                    }
-                    // Mesmo ID: ordenar por data de lançamento
-                    const dataA = a.demandas[0].dt_lancamento || '';
-                    const dataB = b.demandas[0].dt_lancamento || '';
-                    return dataA.localeCompare(dataB);
+                // Primeiro: ordenar por prioridade
+                if (prioridadeA !== prioridadeB) {
+                    return prioridadeA - prioridadeB;
                 }
                 
-                if (!prioridadeA && !prioridadeB) {
-                    // Nenhum prioritário: ordenar por data de lançamento
-                    const dataA = a.demandas[0].dt_lancamento || '';
-                    const dataB = b.demandas[0].dt_lancamento || '';
-                    return dataA.localeCompare(dataB);
-                }
-                
-                // Prioritários vêm primeiro
-                return prioridadeB - prioridadeA;
-            });
+                // Segundo: se mesma prioridade, ordenar por ID da primeira demanda (equivalente ao ID_AD ASC)
+                const idA = a.demandas[0].id || 0;
+                const idB = b.demandas[0].id || 0;
+                return idA - idB;
+            })
 
             let html = '<div class="agenda-section">';
             html += `
