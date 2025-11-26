@@ -4692,7 +4692,7 @@ def criar_demanda():
             cursor.execute("""
                 SELECT F.EMAIL 
                 FROM TJ_FORNECEDOR F
-                INNER JOIN TJ_TIPO_VEICULO TV ON F.ID_FORNECEDOR = TV.ID_FORNECEDOR
+                INNER JOIN TIPO_VEICULO TV ON F.ID_FORNECEDOR = TV.ID_FORNECEDOR
                 WHERE TV.ID_TIPOVEICULO = %s AND F.FL_ATIVO = 'S'
             """, (id_tipoveiculo,))
             
