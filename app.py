@@ -4683,6 +4683,7 @@ def criar_demanda():
         ))
         
         id_ad = cursor.lastrowid
+        id_item_criado = None  # ADICIONAR ESTA VARIÁVEL
         
         # ===== NOVO: VERIFICAR SE PRECISA INSERIR EM TJ_CONTROLE_LOCACAO_ITENS =====
         id_tipoveiculo = data.get('id_tipoveiculo')
@@ -4701,6 +4702,7 @@ def criar_demanda():
             if fornecedor:  # Tem fornecedor vinculado
                 # Obter próximo ID_ITEM
                 id_item = obter_proximo_id_item()
+                id_item_criado = id_item  # GUARDAR O ID_ITEM CRIADO
                 
                 # Converter datas
                 from datetime import datetime
@@ -4751,7 +4753,12 @@ def criar_demanda():
         mysql.connection.commit()
         cursor.close()
         
-        return jsonify({'success': True, 'id': id_ad})
+        # MODIFICADO: Retornar também o ID_ITEM se foi criado
+        return jsonify({
+            'success': True, 
+            'id': id_ad,
+            'id_item': id_item_criado  # ADICIONAR
+        })
     except Exception as e:
         mysql.connection.rollback()
         print(f"Erro ao criar demanda: {str(e)}")
