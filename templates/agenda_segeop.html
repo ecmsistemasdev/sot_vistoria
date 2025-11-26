@@ -1908,7 +1908,7 @@
         let dadosVinculoFornecedor = null;
         let idDemandaParaEmailFornecedor = null;
         let temVinculoFornecedorAtivo = false;
-
+        let idItemLocacaoFornecedor = null;
         
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
@@ -3051,13 +3051,20 @@
                 // Preencher campos
                 document.getElementById('email_id_demanda').value = idDemandaParaEmailFornecedor;
                 document.getElementById('email_destinatario').value = dadosVinculoFornecedor.email_fornecedor;
-                document.getElementById('email_iditem').value = dadosVinculoFornecedor.iditem || 0;
+                
+                // ===== NOVO: Preencher ID_ITEM =====
+                document.getElementById('email_iditem').value = idItemLocacaoFornecedor || 0;
                 
                 // Usar descrição do item ou tipo de veículo
                 const descricaoVeiculo = dadosVinculoFornecedor.descricao_item || dadosVinculoFornecedor.de_tipoveiculo;
                 
-                // Assunto
-                const assunto = `TJRO - Solicitação de Locação - ${descricaoVeiculo}`;
+                // ===== MODIFICADO: Assunto com ID_ITEM =====
+                let assunto = 'TJRO - Solicitação de Locação';
+                if (idItemLocacaoFornecedor) {
+                    assunto += ` ${idItemLocacaoFornecedor}`;
+                }
+                assunto += ` - ${descricaoVeiculo}`;
+                
                 document.getElementById('email_assunto').value = assunto;
                 
                 // Nome do usuário (obter do backend via sessão)
@@ -3146,14 +3153,62 @@
 
         // ========== FUNÇÃO: Fechar Modal de Email ==========
         async function fecharModalEmailFornecedor() {
-            document.getElementById('modalEmailFornecedor').style.display = 'none';
-            dadosVinculoFornecedor = null;
-            idDemandaParaEmailFornecedor = null;
+            const modal = document.getElementById('modalEmailFornecedor');
             
-            // Recarregar seções
-            await carregarSemanas();
-            await carregarAgenda();
-            inicializarDestaqueLinha();
+            // ===== NOVO: Verificar se deve excluir registro de locação =====
+            if (idItemLocacaoFornecedor) {
+                // Perguntar se quer realmente cancelar
+                mostrarConfirmacao(
+                    'Ao fechar sem enviar o e-mail, o registro de locação será excluído.<br><br>Deseja realmente cancelar?',
+                    async function(confirmarCancelamento) {
+                        if (confirmarCancelamento) {
+                            // Excluir registro de locação
+                            mostrarSpinner();
+                            
+                            try {
+                                const resExcluir = await fetch(`/api/excluir_locacao/${idItemLocacaoFornecedor}`, {
+                                    method: 'DELETE'
+                                });
+                                
+                                esconderSpinner();
+                                
+                                if (resExcluir.ok) {
+                                    console.log(`Registro de locação ID_ITEM ${idItemLocacaoFornecedor} excluído`);
+                                } else {
+                                    console.error('Erro ao excluir registro de locação');
+                                }
+                            } catch (error) {
+                                esconderSpinner();
+                                console.error('Erro ao excluir registro:', error);
+                            }
+                            
+                            // Limpar variáveis
+                            idItemLocacaoFornecedor = null;
+                            dadosVinculoFornecedor = null;
+                            idDemandaParaEmailFornecedor = null;
+                            
+                            // Fechar modal
+                            modal.style.display = 'none';
+                            
+                            // Recarregar seções
+                            await carregarSemanas();
+                            await carregarAgenda();
+                            inicializarDestaqueLinha();
+                        }
+                        // Se não confirmar, não faz nada (modal continua aberto)
+                    },
+                    '⚠️ Cancelar Solicitação'
+                );
+            } else {
+                // Não tem ID_ITEM, fechar normalmente
+                modal.style.display = 'none';
+                dadosVinculoFornecedor = null;
+                idDemandaParaEmailFornecedor = null;
+                
+                await carregarSemanas();
+                await carregarAgenda();
+                inicializarDestaqueLinha();
+            }
         }
 
         // ========== FUNÇÃO: Enviar Email para Fornecedor ==========
@@ -3177,7 +3232,7 @@
                 formData.append('corpo_html', corpoHtml);
                 formData.append('id_demanda', idDemanda);
                 formData.append('id_item_fornecedor', idItem);
-                
+    
                 // Adicionar anexos
                 const inputAnexos = document.getElementById('email_anexos');
                 if (inputAnexos.files.length > 0) {
@@ -5388,13 +5443,13 @@
                             const resultadoFornecedor = await resVerificarFornecedor.json();
                             
                             if (resultadoFornecedor.tem_vinculo) {
-                                // TEM VÍNCULO COM FORNECEDOR - PERGUNTAR SE QUER ENVIAR EMAIL
+                                // TEM VÍNCULO COM FORNECEDOR
                                 dadosVinculoFornecedor = resultadoFornecedor;
                                 
                                 mostrarConfirmacao(
                                     '📧 Este tipo de veículo possui fornecedor cadastrado.<br><br>Deseja enviar e-mail de solicitação de locação?',
                                     async function(respostaEmail) {
-                                        // Salvar demanda PRIMEIRO
+                                        // ===== PASSO 1: Salvar demanda PRIMEIRO =====
                                         const resSalvar = await fetch('/api/agenda/demanda', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
@@ -5403,23 +5458,64 @@
                                         
                                         const resultSalvar = await resSalvar.json();
                                         
-                                        if (resultSalvar.success || resultSalvar.id) {
-                                            demandaIdRetornado = resultSalvar.id;
-                                            idDemandaParaEmailFornecedor = demandaIdRetornado;
+                                        if (!resultSalvar.success && !resultSalvar.id) {
+                                            mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                            return;
+                                        }
+                                        
+                                        demandaIdRetornado = resultSalvar.id;
+                                        idDemandaParaEmailFornecedor = demandaIdRetornado;
+                                        
+                                        fecharModal();
+                                        
+                                        if (respostaEmail) {
+                                            // ===== PASSO 2: Criar registro de locação =====
+                                            mostrarSpinner();
                                             
-                                            fecharModal();
-                                            
-                                            if (respostaEmail) {
-                                                // Abrir modal de email
-                                                await abrirModalEmailFornecedor(dados);
-                                            } else {
-                                                // Apenas recarregar
+                                            try {
+                                                const resLocacao = await fetch('/api/criar_locacao_fornecedor', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ id_demanda: demandaIdRetornado })
+                                                });
+                                                
+                                                const resultLocacao = await resLocacao.json();
+                                                
+                                                esconderSpinner();
+                                                
+                                                if (resultLocacao.success && resultLocacao.id_item) {
+                                                    // Guardar ID_ITEM para uso no modal de email
+                                                    idItemLocacaoFornecedor = resultLocacao.id_item;
+                                                    
+                                                    // ===== PASSO 3: Abrir modal de email =====
+                                                    await abrirModalEmailFornecedor(dados);
+                                                } else {
+                                                    mostrarAlerta(
+                                                        'Demanda criada, mas erro ao criar registro de locação.<br><br>Erro: ' + (resultLocacao.erro || 'Desconhecido'),
+                                                        '⚠️ Aviso',
+                                                        '#ffc107'
+                                                    );
+                                                    await carregarSemanas();
+                                                    await carregarAgenda();
+                                                    inicializarDestaqueLinha();
+                                                }
+                                            } catch (errorLocacao) {
+                                                esconderSpinner();
+                                                console.error('Erro ao criar registro de locação:', errorLocacao);
+                                                mostrarAlerta(
+                                                    'Demanda criada, mas erro ao criar registro de locação.',
+                                                    '⚠️ Aviso',
+                                                    '#ffc107'
+                                                );
                                                 await carregarSemanas();
                                                 await carregarAgenda();
                                                 inicializarDestaqueLinha();
                                             }
                                         } else {
-                                            mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                            // Usuário não quis enviar email - apenas recarregar
+                                            await carregarSemanas();
+                                            await carregarAgenda();
+                                            inicializarDestaqueLinha();
                                         }
                                     },
                                     '📧 Enviar E-mail?'
