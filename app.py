@@ -5363,6 +5363,278 @@ def enviar_email_fornecedor():
 
 ###....###
 
+##...casdastro do tipo de demanda.###
+
+@app.route('/api/tipo-demanda', methods=['GET'])
+@login_required
+def listar_tipo_demanda():
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT 
+                ID_TIPODEMANDA,
+                DE_TIPODEMANDA,
+                COR_GRADIENTE_INICIO,
+                COR_GRADIENTE_FIM,
+                NEGRITO,
+                MOTORISTA_OBRIGATORIO,
+                TIPO_VEICULO_OBRIGATORIO,
+                VEICULO_OBRIGATORIO,
+                SETOR_OBRIGATORIO,
+                SOLICITANTE_OBRIGATORIO,
+                DESTINO_OBRIGATORIO,
+                DESTINO_AUTO_PREENCHER,
+                EXIBIR_CHECKBOX_SOLICITADO,
+                BLOQUEAR_TIPO_VEICULO,
+                BLOQUEAR_VEICULO,
+                BLOQUEAR_SETOR,
+                BLOQUEAR_SOLICITANTE,
+                BLOQUEAR_DESTINO,
+                ORDEM_EXIBICAO,
+                ATIVO
+            FROM TIPO_DEMANDA
+            ORDER BY ORDEM_EXIBICAO, DE_TIPODEMANDA
+        """)
+        
+        tipos = []
+        for r in cursor.fetchall():
+            tipos.append({
+                'id': r[0],
+                'descricao': r[1],
+                'corInicio': r[2],
+                'corFim': r[3],
+                'negrito': r[4],
+                'motoristaObrigatorio': r[5],
+                'tipoVeiculoObrigatorio': r[6],
+                'veiculoObrigatorio': r[7],
+                'setorObrigatorio': r[8],
+                'solicitanteObrigatorio': r[9],
+                'destinoObrigatorio': r[10],
+                'destinoAutoPreencher': r[11],
+                'exibirCheckboxSolicitado': r[12],
+                'bloquearTipoVeiculo': r[13],
+                'bloquearVeiculo': r[14],
+                'bloquearSetor': r[15],
+                'bloquearSolicitante': r[16],
+                'bloquearDestino': r[17],
+                'ordemExibicao': r[18],
+                'ativo': r[19]
+            })
+        
+        return jsonify(tipos)
+        
+    except Exception as e:
+        print(f"Erro em listar_tipo_demanda: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+@app.route('/api/tipo-demanda/<int:id>', methods=['GET'])
+@login_required
+def obter_tipo_demanda(id):
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT 
+                ID_TIPODEMANDA, DE_TIPODEMANDA, COR_GRADIENTE_INICIO,
+                COR_GRADIENTE_FIM, NEGRITO, MOTORISTA_OBRIGATORIO,
+                TIPO_VEICULO_OBRIGATORIO, VEICULO_OBRIGATORIO,
+                SETOR_OBRIGATORIO, SOLICITANTE_OBRIGATORIO,
+                DESTINO_OBRIGATORIO, DESTINO_AUTO_PREENCHER,
+                EXIBIR_CHECKBOX_SOLICITADO, BLOQUEAR_TIPO_VEICULO,
+                BLOQUEAR_VEICULO, BLOQUEAR_SETOR,
+                BLOQUEAR_SOLICITANTE, BLOQUEAR_DESTINO,
+                ORDEM_EXIBICAO, ATIVO
+            FROM TIPO_DEMANDA
+            WHERE ID_TIPODEMANDA = %s
+        """, (id,))
+        
+        r = cursor.fetchone()
+        if not r:
+            return jsonify({'error': 'Tipo de demanda não encontrado'}), 404
+        
+        tipo = {
+            'id': r[0], 'descricao': r[1], 'corInicio': r[2],
+            'corFim': r[3], 'negrito': r[4], 'motoristaObrigatorio': r[5],
+            'tipoVeiculoObrigatorio': r[6], 'veiculoObrigatorio': r[7],
+            'setorObrigatorio': r[8], 'solicitanteObrigatorio': r[9],
+            'destinoObrigatorio': r[10], 'destinoAutoPreencher': r[11],
+            'exibirCheckboxSolicitado': r[12], 'bloquearTipoVeiculo': r[13],
+            'bloquearVeiculo': r[14], 'bloquearSetor': r[15],
+            'bloquearSolicitante': r[16], 'bloquearDestino': r[17],
+            'ordemExibicao': r[18], 'ativo': r[19]
+        }
+        
+        return jsonify(tipo)
+        
+    except Exception as e:
+        print(f"Erro em obter_tipo_demanda: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+@app.route('/api/tipo-demanda', methods=['POST'])
+@login_required
+def criar_tipo_demanda():
+    cursor = None
+    try:
+        data = request.get_json()
+        
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            INSERT INTO TIPO_DEMANDA (
+                DE_TIPODEMANDA, COR_GRADIENTE_INICIO, COR_GRADIENTE_FIM,
+                NEGRITO, MOTORISTA_OBRIGATORIO, TIPO_VEICULO_OBRIGATORIO,
+                VEICULO_OBRIGATORIO, SETOR_OBRIGATORIO, SOLICITANTE_OBRIGATORIO,
+                DESTINO_OBRIGATORIO, DESTINO_AUTO_PREENCHER, EXIBIR_CHECKBOX_SOLICITADO,
+                BLOQUEAR_TIPO_VEICULO, BLOQUEAR_VEICULO, BLOQUEAR_SETOR,
+                BLOQUEAR_SOLICITANTE, BLOQUEAR_DESTINO, ORDEM_EXIBICAO, ATIVO
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+        """, (
+            data.get('descricao'),
+            data.get('corInicio', '#5fa1df'),
+            data.get('corFim', '#8dbde8'),
+            data.get('negrito', 'N'),
+            data.get('motoristaObrigatorio', 'S'),
+            data.get('tipoVeiculoObrigatorio', 'S'),
+            data.get('veiculoObrigatorio', 'N'),
+            data.get('setorObrigatorio', 'N'),
+            data.get('solicitanteObrigatorio', 'N'),
+            data.get('destinoObrigatorio', 'N'),
+            data.get('destinoAutoPreencher', 'N'),
+            data.get('exibirCheckboxSolicitado', 'N'),
+            data.get('bloquearTipoVeiculo', 'N'),
+            data.get('bloquearVeiculo', 'N'),
+            data.get('bloquearSetor', 'N'),
+            data.get('bloquearSolicitante', 'N'),
+            data.get('bloquearDestino', 'N'),
+            data.get('ordemExibicao', 999),
+            data.get('ativo', 'S')
+        ))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            'message': 'Tipo de demanda criado com sucesso',
+            'id': cursor.lastrowid
+        }), 201
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"Erro em criar_tipo_demanda: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+@app.route('/api/tipo-demanda/<int:id>', methods=['PUT'])
+@login_required
+def atualizar_tipo_demanda(id):
+    cursor = None
+    try:
+        data = request.get_json()
+        
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            UPDATE TIPO_DEMANDA SET
+                DE_TIPODEMANDA = %s,
+                COR_GRADIENTE_INICIO = %s,
+                COR_GRADIENTE_FIM = %s,
+                NEGRITO = %s,
+                MOTORISTA_OBRIGATORIO = %s,
+                TIPO_VEICULO_OBRIGATORIO = %s,
+                VEICULO_OBRIGATORIO = %s,
+                SETOR_OBRIGATORIO = %s,
+                SOLICITANTE_OBRIGATORIO = %s,
+                DESTINO_OBRIGATORIO = %s,
+                DESTINO_AUTO_PREENCHER = %s,
+                EXIBIR_CHECKBOX_SOLICITADO = %s,
+                BLOQUEAR_TIPO_VEICULO = %s,
+                BLOQUEAR_VEICULO = %s,
+                BLOQUEAR_SETOR = %s,
+                BLOQUEAR_SOLICITANTE = %s,
+                BLOQUEAR_DESTINO = %s,
+                ORDEM_EXIBICAO = %s,
+                ATIVO = %s
+            WHERE ID_TIPODEMANDA = %s
+        """, (
+            data.get('descricao'),
+            data.get('corInicio'),
+            data.get('corFim'),
+            data.get('negrito'),
+            data.get('motoristaObrigatorio'),
+            data.get('tipoVeiculoObrigatorio'),
+            data.get('veiculoObrigatorio'),
+            data.get('setorObrigatorio'),
+            data.get('solicitanteObrigatorio'),
+            data.get('destinoObrigatorio'),
+            data.get('destinoAutoPreencher'),
+            data.get('exibirCheckboxSolicitado'),
+            data.get('bloquearTipoVeiculo'),
+            data.get('bloquearVeiculo'),
+            data.get('bloquearSetor'),
+            data.get('bloquearSolicitante'),
+            data.get('bloquearDestino'),
+            data.get('ordemExibicao'),
+            data.get('ativo'),
+            id
+        ))
+        
+        mysql.connection.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({'error': 'Tipo de demanda não encontrado'}), 404
+        
+        return jsonify({'message': 'Tipo de demanda atualizado com sucesso'})
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"Erro em atualizar_tipo_demanda: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+@app.route('/api/tipo-demanda/<int:id>', methods=['DELETE'])
+@login_required
+def deletar_tipo_demanda(id):
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("DELETE FROM TIPO_DEMANDA WHERE ID_TIPODEMANDA = %s", (id,))
+        mysql.connection.commit()
+        
+        if cursor.rowcount == 0:
+            return jsonify({'error': 'Tipo de demanda não encontrado'}), 404
+        
+        return jsonify({'message': 'Tipo de demanda deletado com sucesso'})
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"Erro em deletar_tipo_demanda: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+# Rota para renderizar a página HTML
+@app.route('/tipo-demanda')
+@login_required
+def pagina_tipo_demanda():
+    return render_template('tipo_demanda.html')
+
 
 #######################################
 
