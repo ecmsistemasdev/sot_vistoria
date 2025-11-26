@@ -3079,28 +3079,30 @@
 
             <p>Solicito locação de veículo conforme informações abaixo:</p>
 
-            <p>&nbsp;</p>
-
-            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 15px 0;">
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0;">
                 <tr>
-                    <td style="background: #f0f0f0; font-weight: bold; width: 30%;">Período:</td>
-                    <td>${dataInicioFormatada} a ${dataFimFormatada}</td>
+                    <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Período:</td>
+                    <td> ${dataInicioFormatada} a ${dataFimFormatada}</td>
                 </tr>
                 <tr>
                     <td style="background: #f0f0f0; font-weight: bold;">Horário de Saída:</td>
-                    <td>${horarioSaida}</td>
+                    <td> ${horarioSaida}</td>
                 </tr>
                 <tr>
+                    <td style="background: #f0f0f0; font-weight: bold;">Local de Saída:</td>
+                    <td></td>
+                </tr>                
+                <tr>
                     <td style="background: #f0f0f0; font-weight: bold;">Tipo de Veículo:</td>
-                    <td>${descricaoVeiculo}</td>
+                    <td> ${descricaoVeiculo}</td>
                 </tr>
                 ${dadosDemanda.destino ? `<tr>
                     <td style="background: #f0f0f0; font-weight: bold;">Destino:</td>
-                    <td>${dadosDemanda.destino}</td>
+                    <td> ${dadosDemanda.destino}</td>
                 </tr>` : ''}
                 ${dadosDemanda.nu_sei ? `<tr>
-                    <td style="background: #f0f0f0; font-weight: bold;">Nº SEI:</td>
-                    <td>${dadosDemanda.nu_sei}</td>
+                    <td style="background: #f0f0f0; font-weight: bold;">Nº Processo:</td>
+                    <td> ${dadosDemanda.nu_sei}</td>
                 </tr>` : ''}
             </table>
 
@@ -3307,7 +3309,7 @@
                 style.textContent = css;
                 document.head.appendChild(style);
                 
-                console.log('✅ CSS dinâmico gerado para tipos de demanda');
+                // console.log('✅ CSS dinâmico gerado para tipos de demanda');
             }            
             
             
