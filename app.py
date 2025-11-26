@@ -4174,8 +4174,19 @@ def criar_registro_locacao_fornecedor(id_demanda):
         
         # Converter horário para formato hh:mm (garantir que seja string)
         #hr_inicial = horario if horario else None
-        hr_inicial = horario[:5] if horario else None
+        #hr_inicial = horario[:5] if horario else None
         
+        if isinstance(horario, timedelta):
+            total_segundos = int(horario.total_seconds())
+            horas = total_segundos // 3600
+            minutos = (total_segundos % 3600) // 60
+            hr_inicial = f"{horas:02d}:{minutos:02d}"
+        elif isinstance(horario, str):
+            hr_inicial = horario[:5]  # manter só hh:mm
+        else:
+            hr_inicial = None
+
+
         # Inserir registro
         cursor.execute("""
             INSERT INTO TJ_CONTROLE_LOCACAO_ITENS 
