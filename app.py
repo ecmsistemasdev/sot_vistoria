@@ -2134,6 +2134,37 @@ def obter_usuario_logado():
     })
 
 
+@app.route('/api/criar_locacao_fornecedor', methods=['POST'])
+@login_required
+def criar_locacao_fornecedor():
+    """
+    Cria registro na TJ_CONTROLE_LOCACAO_ITENS para locação com fornecedor
+    """
+    try:
+        data = request.get_json()
+        id_demanda = data.get('id_demanda')
+        
+        if not id_demanda:
+            return jsonify({'erro': 'ID da demanda não informado'}), 400
+        
+        id_item = criar_registro_locacao_fornecedor(id_demanda)
+        
+        if id_item:
+            return jsonify({
+                'success': True,
+                'id_item': id_item,
+                'mensagem': 'Registro de locação criado com sucesso'
+            })
+        else:
+            return jsonify({
+                'erro': 'Erro ao criar registro de locação'
+            }), 500
+            
+    except Exception as e:
+        app.logger.error(f"Erro em criar_locacao_fornecedor: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
+    
+
 @app.route('/api/enviar_email_fornecedor', methods=['POST'])
 @login_required
 def enviar_email_fornecedor():
@@ -2147,7 +2178,7 @@ def enviar_email_fornecedor():
         assunto = request.form.get('assunto')
         corpo_html = request.form.get('corpo_html')
         id_demanda = request.form.get('id_demanda')
-        id_item_fornecedor = request.form.get('id_item_fornecedor')
+        id_item_fornecedor = request.form.get('id_item_fornecedor')  # ID_ITEM da TJ_CONTROLE_LOCACAO_ITENS
         
         if not all([email_destinatario, assunto, corpo_html, id_demanda]):
             return jsonify({'erro': 'Dados incompletos'}), 400
@@ -2212,21 +2243,36 @@ def enviar_email_fornecedor():
         tz_manaus = timezone('America/Manaus')
         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
-        # Inserir registro de email
+        # Inserir registro de email (COM ID_ITEM)
         cursor.execute("""
             INSERT INTO EMAIL_OUTRAS_LOCACOES 
-            (ID_AD, IDITEM_FORNECEDOR, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+            (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
             VALUES (%s, %s, %s, %s, %s, %s)
-        """, (id_demanda, id_item_fornecedor or 0, email_destinatario, assunto, corpo_texto, data_hora_atual))
+        """, (
+            id_demanda, 
+            id_item_fornecedor or 0,  # ID_ITEM (novo campo)
+            email_destinatario, 
+            assunto, 
+            corpo_texto, 
+            data_hora_atual
+        ))
         
         id_email = cursor.lastrowid
         
-        # Atualizar campo SOLICITADO na demanda
+        # ===== CORREÇÃO: Atualizar campo SOLICITADO na demanda =====
         cursor.execute("""
             UPDATE ATENDIMENTO_DEMANDAS 
             SET SOLICITADO = 'S' 
             WHERE ID_AD = %s
         """, (id_demanda,))
+        
+        # ===== NOVO: Atualizar FL_EMAIL na TJ_CONTROLE_LOCACAO_ITENS =====
+        if id_item_fornecedor:
+            cursor.execute("""
+                UPDATE TJ_CONTROLE_LOCACAO_ITENS 
+                SET FL_EMAIL = 'S' 
+                WHERE ID_ITEM = %s
+            """, (id_item_fornecedor,))
         
         mysql.connection.commit()
         
@@ -2244,7 +2290,6 @@ def enviar_email_fornecedor():
     finally:
         if cursor:
             cursor.close()
-
 
 #####....#####.....
     
@@ -4235,6 +4280,99 @@ def fluxo_pesquisar():
         return jsonify({'erro': f'Erro interno: {str(e)}'}), 500
 
 #######################################
+
+def criar_registro_locacao_fornecedor(id_demanda):
+    """
+    Cria registro na TJ_CONTROLE_LOCACAO_ITENS para locações com fornecedor
+    Retorna o ID_ITEM criado ou None em caso de erro
+    """
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # Buscar dados da demanda
+        cursor.execute("""
+            SELECT DT_INICIO, DT_FIM, SETOR, DESTINO, NU_SEI, 
+                   ID_TIPOVEICULO, HORARIO
+            FROM ATENDIMENTO_DEMANDAS 
+            WHERE ID_AD = %s
+        """, (id_demanda,))
+        
+        demanda = cursor.fetchone()
+        
+        if not demanda:
+            app.logger.error(f"Demanda {id_demanda} não encontrada")
+            return None
+        
+        dt_inicio, dt_fim, setor, destino, nu_sei, id_tipoveiculo, horario = demanda
+        
+        # Obter próximo ID_ITEM
+        id_item = obter_proximo_id_item()
+        
+        # Obter usuário da sessão
+        usuario = session.get('usuario_login', 'SISTEMA')
+        
+        # Extrair ano e mês da DT_FIM
+        if isinstance(dt_fim, str):
+            dt_fim_obj = datetime.strptime(dt_fim, '%Y-%m-%d')
+        else:
+            dt_fim_obj = dt_fim
+        
+        id_exercicio = dt_fim_obj.year
+        id_mes = dt_fim_obj.month
+        
+        # Converter datas para formato brasileiro (string)
+        if isinstance(dt_inicio, str):
+            dt_inicio_obj = datetime.strptime(dt_inicio, '%Y-%m-%d')
+        else:
+            dt_inicio_obj = dt_inicio
+        
+        dt_inicial_br = dt_inicio_obj.strftime('%d/%m/%Y')
+        dt_final_br = dt_fim_obj.strftime('%d/%m/%Y')
+        
+        # Converter horário para formato hh:mm (garantir que seja string)
+        hr_inicial = horario if horario else None
+        
+        # Inserir registro
+        cursor.execute("""
+            INSERT INTO TJ_CONTROLE_LOCACAO_ITENS 
+            (ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, 
+             ID_MES, ID_VEICULO_LOC, DT_INICIAL, HR_INICIAL, DT_FINAL, 
+             NU_SEI, FL_EMAIL, FL_STATUS, USUARIO, DATA_INICIO, DATA_FIM)
+            VALUES (%s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'N', 'P', %s, %s, %s)
+        """, (
+            id_item,
+            id_exercicio,
+            setor,
+            destino,
+            id_mes,
+            id_tipoveiculo,
+            dt_inicial_br,
+            hr_inicial,
+            dt_final_br,
+            nu_sei,
+            usuario,
+            dt_inicio,  # Data no formato original (YYYY-MM-DD)
+            dt_fim      # Data no formato original (YYYY-MM-DD)
+        ))
+        
+        mysql.connection.commit()
+        
+        app.logger.info(f"Registro de locação criado: ID_ITEM={id_item} para demanda {id_demanda}")
+        
+        return id_item
+        
+    except Exception as e:
+        if cursor:
+            mysql.connection.rollback()
+        app.logger.error(f"Erro ao criar registro de locação: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+    finally:
+        if cursor:
+            cursor.close()
+
 
 # Rota principal da agenda
 @app.route('/agendasegeop')
