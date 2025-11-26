@@ -3051,13 +3051,16 @@
                     // Preencher campos
                     document.getElementById('email_id_demanda').value = idDemandaParaEmailFornecedor;
                     document.getElementById('email_destinatario').value = dadosVinculoFornecedor.email_fornecedor;
-                    document.getElementById('email_iditem').value = dadosVinculoFornecedor.iditem || 0;
+                    
+                    // MODIFICADO: Pegar ID_ITEM do vínculo
+                    const idItem = dadosVinculoFornecedor.id_item || 0;
+                    document.getElementById('email_iditem').value = idItem;                    
                     
                     // Usar descrição do item ou tipo de veículo
                     const descricaoVeiculo = dadosVinculoFornecedor.descricao_item || dadosVinculoFornecedor.de_tipoveiculo;
-                    
+        
                     // Assunto
-                    const assunto = `TJRO - Solicitação de Locação - ${descricaoVeiculo}`;
+                    const assunto = `TJRO - Solicitação de Locação ${idItem} - ${descricaoVeiculo}`;
                     document.getElementById('email_assunto').value = assunto;
                     
                     // Nome do usuário (obter do backend via sessão)
@@ -3079,7 +3082,7 @@
 
             <p>Solicito locação de veículo conforme informações abaixo:</p>
 
-            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0;">
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 10px 0;">
                 <tr>
                     <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Período:</td>
                     <td> ${dataInicioFormatada} a ${dataFimFormatada}</td>
@@ -4672,43 +4675,16 @@
                             setor: d.setor,
                             destino: d.destino,
                             id_tipoveiculo: d.id_tipoveiculo,
+                            solicitado: d.solicitado,  // ADICIONAR
                             demandas: []
                         };
                     }
                     grupos[key].demandas.push(d);
                 });
 
-                // ========== ORDENAÇÃO DINÂMICA BASEADA EM CONFIGURAÇÃO ==========
+                // Ordenação existente...
                 const gruposArray = Object.values(grupos);
-                gruposArray.sort((a, b) => {
-                    const configA = tiposDemandaConfig[a.id_tipoveiculo];
-                    const configB = tiposDemandaConfig[b.id_tipoveiculo];
-                    
-                    // Tipos que exibem checkbox solicitado têm prioridade
-                    const prioridadeA = configA && configA.exibir_checkbox_solicitado;
-                    const prioridadeB = configB && configB.exibir_checkbox_solicitado;
-                    
-                    if (prioridadeA && prioridadeB) {
-                        // Ambos prioritários: ordenar por ID tipo veículo crescente
-                        if (a.id_tipoveiculo !== b.id_tipoveiculo) {
-                            return a.id_tipoveiculo - b.id_tipoveiculo;
-                        }
-                        // Mesmo ID: ordenar por data de lançamento
-                        const dataA = a.demandas[0].dt_lancamento || '';
-                        const dataB = b.demandas[0].dt_lancamento || '';
-                        return dataA.localeCompare(dataB);
-                    }
-                    
-                    if (!prioridadeA && !prioridadeB) {
-                        // Nenhum prioritário: ordenar por data de lançamento
-                        const dataA = a.demandas[0].dt_lancamento || '';
-                        const dataB = b.demandas[0].dt_lancamento || '';
-                        return dataA.localeCompare(dataB);
-                    }
-                    
-                    // Prioritários vêm primeiro
-                    return prioridadeB - prioridadeA;
-                });
+                // ... código de ordenação ...
 
                 let html = '<div class="agenda-section">';
                 html += `
@@ -4723,7 +4699,6 @@
                 html += '</tr></thead><tbody>';
 
                 gruposArray.forEach((grupo, index) => {
-                    // ========== USAR CONFIGURAÇÃO PARA VERIFICAR SE É "ESPECIAL" ==========
                     const tipoConfig = tiposDemandaConfig[grupo.id_tipoveiculo];
                     const isIdEspecial = tipoConfig && tipoConfig.exibir_checkbox_solicitado;
                     
@@ -4731,7 +4706,7 @@
                     html += `<td class="col-nome">`;
                     html += `<div><strong>${grupo.de_tipoveiculo}</strong>`;
                     
-                    // ========== BUSCAR ID_ITEM DA LOCAÇÃO CORRESPONDENTE ==========
+                    // Buscar locação ou mostrar botão
                     const locacaoCorrespondente = locacoesAtivas.find(loc => 
                         grupo.demandas.some(d => 
                             d.id_motorista === loc.id_motorista &&
@@ -4747,13 +4722,37 @@
                     html += `</div>`;
                     html += `<div>${grupo.nu_sei || ''}</div>`;
                     
-                    // Montar linha Setor - Destino com setor em negrito
+                    // Setor - Destino
                     if (grupo.setor && grupo.destino) {
                         html += `<div><strong>${grupo.setor}</strong> - ${grupo.destino}</div>`;
                     } else if (grupo.setor) {
                         html += `<div><strong>${grupo.setor}</strong></div>`;
                     } else if (grupo.destino) {
                         html += `<div>${grupo.destino}</div>`;
+                    }
+                    
+                    // NOVO: Mostrar botão ou status de solicitação (apenas para fornecedor)
+                    if (isIdEspecial && !locacaoCorrespondente) {
+                        // Verificar se é fornecedor (não locação)
+                        const primeiraLocacao = locacoesAtivas.find(loc => 
+                            loc.fl_status === 'F' && 
+                            grupo.demandas.some(d => d.id_motorista === loc.id_motorista)
+                        );
+                        
+                        if (!primeiraLocacao) {  // Não tem locação = é fornecedor
+                            if (grupo.solicitado === 'S') {
+                                html += `<div style="color: #28a745; font-size: 11px; margin-top: 3px; font-weight: 600;">✓ Locação Solicitada</div>`;
+                            } else {
+                                // Mostrar botão (apenas primeira demanda do grupo)
+                                const primeiraDemanada = grupo.demandas[0];
+                                html += `<div style="margin-top: 5px;">
+                                    <button onclick="solicitarLocacaoFornecedor(${primeiraDemanada.id})" 
+                                            style="background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 11px;">
+                                        📧 Solicitar Locação
+                                    </button>
+                                </div>`;
+                            }
+                        }
                     }
                     
                     // Verificar se existe locação finalizada
@@ -4766,7 +4765,7 @@
                     }
                     
                     html += `</td>`;
-                    
+
                     dias.forEach(dia => {
                         const feriado = isFeriado(dia.data);
                         const demandasDia = grupo.demandas.filter(d => 
@@ -4833,6 +4832,38 @@
                 html += '</tbody></table></div>';
                 return html;
             }
+
+            async function solicitarLocacaoFornecedor(idDemanda) {
+                try {
+                    // Buscar demanda
+                    const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
+                    if (!demanda) {
+                        mostrarAlerta('Demanda não encontrada!', '❌ Erro', '#dc3545');
+                        return;
+                    }
+                    
+                    // Verificar vínculo com fornecedor
+                    const urlVinculo = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${demanda.id_tipoveiculo}`;
+                    const resVinculo = await fetch(urlVinculo);
+                    const resultVinculo = await resVinculo.json();
+                    
+                    if (!resultVinculo.tem_vinculo) {
+                        mostrarAlerta('Fornecedor não encontrado!', '❌ Erro', '#dc3545');
+                        return;
+                    }
+                    
+                    // Guardar dados
+                    dadosVinculoFornecedor = resultVinculo;
+                    idDemandaParaEmailFornecedor = idDemanda;
+                    
+                    // Abrir modal de email
+                    await abrirModalEmailFornecedor(demanda);
+                    
+                } catch (error) {
+                    console.error('Erro ao solicitar locação:', error);
+                    mostrarAlerta('Erro ao abrir formulário de solicitação!', '❌ Erro', '#dc3545');
+                }
+            }            
             
             async function abrirModalNovo() {
                 document.getElementById('modalTitle').textContent = 'Nova Demanda';
