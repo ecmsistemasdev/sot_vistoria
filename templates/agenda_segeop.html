@@ -4842,8 +4842,8 @@
                         return;
                     }
                     
-                    // Verificar vínculo com fornecedor
-                    const urlVinculo = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${demanda.id_tipoveiculo}`;
+                    // Verificar vínculo com fornecedor (PASSANDO ID_DEMANDA)
+                    const urlVinculo = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${demanda.id_tipoveiculo}&id_demanda=${idDemanda}`;
                     const resVinculo = await fetch(urlVinculo);
                     const resultVinculo = await resVinculo.json();
                     
@@ -4852,7 +4852,7 @@
                         return;
                     }
                     
-                    // Guardar dados
+                    // Guardar dados (com ID_ITEM)
                     dadosVinculoFornecedor = resultVinculo;
                     idDemandaParaEmailFornecedor = idDemanda;
                     
@@ -5330,6 +5330,7 @@
                 try {
                     let res;
                     let demandaIdRetornado = null;
+                    let idItemRetornado = null;       
                     
                     if (idAd) {
                         // ========== EDIÇÃO - NÃO VERIFICA LOCAÇÃO ==========
@@ -5436,6 +5437,12 @@
                                             
                                             if (resultSalvar.success || resultSalvar.id) {
                                                 demandaIdRetornado = resultSalvar.id;
+                                                idItemRetornado = resultSalvar.id_item;
+                                                
+                                                // Guardar no vínculo para usar no modal
+                                                dadosVinculoFornecedor = resultadoFornecedor;
+                                                dadosVinculoFornecedor.id_item = idItemRetornado;
+                                                
                                                 idDemandaParaEmailFornecedor = demandaIdRetornado;
                                                 
                                                 fecharModal();
