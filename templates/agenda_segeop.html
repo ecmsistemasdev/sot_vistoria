@@ -4863,9 +4863,10 @@
                         html += '<div class="cell-content-veiculos">';
                         
                         if (isIdEspecial) {
-                            // Para tipos "especiais": mostrar apenas setor e destino
+                            // Para tipos "especiais": mostrar DE_TIPODEMANDA em negrito e depois setor
+                            html += `<div><strong>${demanda.de_tipodemanda}</strong></div>`;
                             if (demanda.setor) {
-                                html += `<div><strong>${demanda.setor}</strong></div>`;
+                                html += `<div>${demanda.setor}</div>`;
                             }
                             if (demanda.destino) {
                                 html += `<div>${demanda.destino}</div>`;
