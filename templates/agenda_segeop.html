@@ -1433,7 +1433,7 @@
                             </label>
                         </div>
                         <div class="form-group">
-                            <label>Horário</label>
+                            <label id="labelHorario">Horário</label>
                             <input type="text" id="horario" maxlength="5" placeholder="HH:MM" disabled>
                         </div>
                     </div>
@@ -1912,6 +1912,8 @@
         
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de VeÃ­culo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
+            console.log('🔍 Verificando fornecedor para tipo veículo:', idTipoVeiculo);
+            
             if (!idTipoVeiculo) {
                 temVinculoFornecedorAtivo = false;
                 resetarCamposFornecedor();
@@ -1923,20 +1925,24 @@
                 const response = await fetch(url);
                 const resultado = await response.json();
                 
+                console.log('📦 Resultado da verificação:', resultado);
+                
                 if (resultado.tem_vinculo && resultado.tipo === 'fornecedor') {
                     // TEM FORNECEDOR - Aplicar regras especiais
                     temVinculoFornecedorAtivo = true;
-                    dadosVinculoFornecedor = resultado; // GUARDAR DADOS DO FORNECEDOR
+                    dadosVinculoFornecedor = resultado;
+                    console.log('✅ TEM FORNECEDOR - Aplicando regras especiais');
                     aplicarRegrasFornecedor();
                 } else {
                     // NÃO TEM FORNECEDOR - Voltar ao normal
                     temVinculoFornecedorAtivo = false;
                     dadosVinculoFornecedor = null;
+                    console.log('❌ NÃO tem fornecedor - resetando campos');
                     resetarCamposFornecedor();
                 }
                 
             } catch (error) {
-                console.error('Erro ao verificar fornecedor:', error);
+                console.error('❌ Erro ao verificar fornecedor:', error);
                 temVinculoFornecedorAtivo = false;
                 dadosVinculoFornecedor = null;
             }
@@ -1946,7 +1952,7 @@
             // Horário obrigatório
             const checkboxHorario = document.getElementById('definirHorario');
             const inputHorario = document.getElementById('horario');
-            const labelHorario = inputHorario.previousElementSibling;
+            const labelHorarioContainer = document.querySelector('#horario').closest('.form-group').querySelector('label');
             
             checkboxHorario.checked = true;
             checkboxHorario.disabled = true;
@@ -1978,20 +1984,26 @@
             // Ocultar checkbox expandir veículos
             const divExpandirVeiculos = document.getElementById('divExpandirVeiculos');
             divExpandirVeiculos.style.display = 'none';
+            
+            console.log('✅ Regras de fornecedor aplicadas - Horário obrigatório ativado');
         }
 
         function resetarCamposFornecedor() {
             // Resetar Horário
             const checkboxHorario = document.getElementById('definirHorario');
             const inputHorario = document.getElementById('horario');
-            const labelHorario = inputHorario.previousElementSibling;
+            const labelHorarioContainer = document.querySelector('#horario').closest('.form-group').querySelector('label');
             
             checkboxHorario.disabled = false;
             if (!checkboxHorario.checked) {
                 inputHorario.disabled = true;
                 inputHorario.required = false;
             }
-            labelHorario.innerHTML = 'Horário';
+            
+            // CRÍTICO: Resetar a label do horário
+            if (labelHorarioContainer) {
+                labelHorarioContainer.innerHTML = 'Horário';
+            }
             
             // Desbloquear Motorista
             const selectMotorista = document.getElementById('idMotorista');
@@ -2009,6 +2021,8 @@
             if (idTipoDemanda) {
                 aplicarRegrasTipoDemanda();
             }
+            
+            console.log('✅ Campos de fornecedor resetados');
         }
         
         
@@ -5433,14 +5447,20 @@ function aplicarRegrasTipoVeiculo() {
                             const urlVerificarFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${dados.id_tipoveiculo}`;
                             const resVerificarFornecedor = await fetch(urlVerificarFornecedor);
                             const resultadoFornecedor = await resVerificarFornecedor.json();
-                            
+
+                            console.log('🔍 Verificação de fornecedor no salvar:', resultadoFornecedor);
+
                             if (resultadoFornecedor.tem_vinculo && resultadoFornecedor.tipo === 'fornecedor') {
+                                console.log('✅ TEM FORNECEDOR - Preparando fluxo de email');
+                                
                                 // TEM VÍNCULO COM FORNECEDOR - PERGUNTAR SE QUER ENVIAR EMAIL
                                 dadosVinculoFornecedor = resultadoFornecedor;
 
                                 mostrarConfirmacao(
                                     '📧 Este tipo de veículo possui fornecedor cadastrado.<br><br>Deseja enviar e-mail de solicitação de locação?',
                                     async function(respostaEmail) {
+                                        console.log('📧 Resposta do usuário sobre email:', respostaEmail);
+                                        
                                         // Salvar demanda PRIMEIRO
                                         const resSalvar = await fetch('/api/agenda/demanda', {
                                             method: 'POST',
@@ -5449,6 +5469,7 @@ function aplicarRegrasTipoVeiculo() {
                                         });
                                         
                                         const resultSalvar = await resSalvar.json();
+                                        console.log('💾 Resultado do salvamento:', resultSalvar);
                                         
                                         if (resultSalvar.success || resultSalvar.id) {
                                             demandaIdRetornado = resultSalvar.id;
@@ -5457,26 +5478,40 @@ function aplicarRegrasTipoVeiculo() {
                                             // IMPORTANTE: Guardar o ID_ITEM retornado
                                             if (resultSalvar.id_item) {
                                                 dadosVinculoFornecedor.iditem = resultSalvar.id_item;
+                                                console.log('📦 ID_ITEM guardado:', resultSalvar.id_item);
                                             }
                                             
                                             fecharModal();
                                             
                                             if (respostaEmail) {
+                                                console.log('✅ Usuário confirmou - Abrindo modal de email');
+                                                
                                                 // Preparar dados completos para o email
                                                 const dadosCompletos = {
                                                     ...dados,
-                                                    id: demandaIdRetornado
+                                                    id: demandaIdRetornado,
+                                                    dt_inicio: dados.dt_inicio,
+                                                    dt_fim: dados.dt_fim,
+                                                    horario: dados.horario,
+                                                    destino: dados.destino,
+                                                    nu_sei: dados.nu_sei
                                                 };
                                                 
-                                                // Abrir modal de email
-                                                await abrirModalEmailFornecedor(dadosCompletos);
+                                                console.log('📧 Dados completos para email:', dadosCompletos);
+                                                
+                                                // Pequeno delay para garantir que o modal principal fechou
+                                                setTimeout(async () => {
+                                                    await abrirModalEmailFornecedor(dadosCompletos);
+                                                }, 300);
                                             } else {
+                                                console.log('❌ Usuário recusou email - Apenas recarregando');
                                                 // Apenas recarregar
                                                 await carregarSemanas();
                                                 await carregarAgenda();
                                                 inicializarDestaqueLinha();
                                             }
                                         } else {
+                                            console.error('❌ Erro ao salvar demanda:', resultSalvar.error);
                                             mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                                         }
                                     },
