@@ -1909,7 +1909,6 @@
             let idDemandaParaEmailFornecedor = null;
             let temVinculoFornecedorAtivo = false;
 
-            
             // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
             async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
                 if (!idTipoVeiculo) {
@@ -1988,6 +1987,7 @@
                 // Desbloquear Motorista (se não houver outra regra bloqueando)
                 const selectMotorista = document.getElementById('idMotorista');
                 const motoristaFilter = document.getElementById('motoristaFilter');
+                const labelMotorista = document.getElementById('labelMotorista');
                 
                 const idTipoDemanda = document.getElementById('idTipoDemanda').value;
                 if (idTipoDemanda) {
@@ -1995,7 +1995,12 @@
                 } else {
                     selectMotorista.disabled = false;
                     motoristaFilter.style.display = 'flex';
+                    labelMotorista.innerHTML = 'Motorista <span class="required">*</span>';
                 }
+                
+                // Desbloquear Veículo
+                const selectVeiculo = document.getElementById('idVeiculo');
+                selectVeiculo.disabled = false;
             }
             
             
@@ -3051,13 +3056,13 @@
                     document.getElementById('email_id_demanda').value = idDemandaParaEmailFornecedor;
                     document.getElementById('email_destinatario').value = dadosVinculoFornecedor.email_fornecedor;
                     
-                    // MODIFICADO: Pegar ID_ITEM do vínculo
+                    // USAR ID_ITEM DO VÍNCULO (já foi preenchido em salvarDemanda)
                     const idItem = dadosVinculoFornecedor.id_item || 0;
-                    document.getElementById('email_iditem').value = idItem;                    
+                    document.getElementById('email_iditem').value = idItem;
                     
                     // Usar descrição do item ou tipo de veículo
                     const descricaoVeiculo = dadosVinculoFornecedor.descricao_item || dadosVinculoFornecedor.de_tipoveiculo;
-        
+            
                     // Assunto
                     const assunto = `TJRO - Solicitação de Locação ${idItem} - ${descricaoVeiculo}`;
                     document.getElementById('email_assunto').value = assunto;
@@ -3076,11 +3081,11 @@
                     
                     const corpoHtml = `
             <p>Prezados,</p>
-
+            
             <p>&nbsp;</p>
-
+            
             <p>Solicito locação de veículo conforme informações abaixo:</p>
-
+            
             <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 10px 0;">
                 <tr>
                     <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Período:</td>
@@ -3107,13 +3112,13 @@
                     <td> ${dadosDemanda.nu_sei}</td>
                 </tr>` : ''}
             </table>
-
+            
             <p>&nbsp;</p>
-
+            
             <p>Atenciosamente,</p>
-
+            
             <p>&nbsp;</p>
-
+            
             <p><strong>${nomeUsuario}</strong><br>
             Tribunal de Justiça do Estado de Rondônia<br>
             Seção de Gestão Operacional do Transporte<br>
@@ -5339,6 +5344,12 @@
                     mostrarAlerta('O campo Destino é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                     return;
                 }
+
+                // Validação adicional para fornecedor - Horário obrigatório
+                if (temVinculoFornecedorAtivo && !dados.horario) {
+                    mostrarAlerta('O horário de saída é obrigatório para este tipo de veículo!', '⚠️ Atenção', '#ffc107');
+                    return;
+                }
                 
                 try {
                     let res;
@@ -5433,6 +5444,8 @@
                                 
                                 if (resultadoFornecedor.tem_vinculo) {
                                     // TEM VÍNCULO COM FORNECEDOR
+                                    dadosVinculoFornecedor = resultadoFornecedor;
+                                    
                                     mostrarConfirmacao(
                                         '📧 Este tipo de veículo possui fornecedor cadastrado.<br><br>Deseja enviar e-mail de solicitação de locação?',
                                         async function(respostaEmail) {
@@ -5447,13 +5460,11 @@
                                             
                                             if (resultSalvar.success || resultSalvar.id) {
                                                 demandaIdRetornado = resultSalvar.id;
-                                                idItemRetornado = resultSalvar.id_item;
-                                                
-                                                // Guardar no vínculo para usar no modal
-                                                dadosVinculoFornecedor = resultadoFornecedor;
-                                                dadosVinculoFornecedor.id_item = idItemRetornado;
-                                                
                                                 idDemandaParaEmailFornecedor = demandaIdRetornado;
+                                                
+                                                // BUSCAR ID_ITEM que foi retornado pelo backend
+                                                const idItemRetornado = resultSalvar.id_item || 0;
+                                                dadosVinculoFornecedor.id_item = idItemRetornado;
                                                 
                                                 fecharModal();
                                                 
