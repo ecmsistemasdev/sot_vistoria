@@ -2081,12 +2081,15 @@ def verificar_vinculo_fornecedor():
                 f.NM_FORNECEDOR,
                 tv.DE_TIPOVEICULO,
                 fi.IDITEM,
-                fi.DESCRICAO
+                fi.DESCRICAO,
+                cl.ID_CL
             FROM TIPO_VEICULO tv
             INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
             LEFT JOIN TJ_FORNECEDOR_ITEM fi ON fi.ID_FORNECEDOR = tv.ID_FORNECEDOR 
                                              AND fi.ID_TIPOVEICULO = tv.ID_TIPOVEICULO
-            WHERE tv.ID_TIPOVEICULO = %s 
+            LEFT JOIN TJ_CONTROLE_LOCACAO cl ON cl.ID_FORNECEDOR = tv.ID_FORNECEDOR 
+            WHERE cl.ATIVO = 'S'
+              AND tv.ID_TIPOVEICULO = %s 
               AND tv.ID_FORNECEDOR IS NOT NULL
               AND f.EMAIL IS NOT NULL
               AND f.EMAIL != ''
@@ -2103,7 +2106,8 @@ def verificar_vinculo_fornecedor():
                 'nome_fornecedor': resultado[2],
                 'de_tipoveiculo': resultado[3],
                 'iditem': resultado[4] if resultado[4] else 0,
-                'descricao_item': resultado[5] if resultado[5] else resultado[3]  # Usa descrição do item ou tipo veículo
+                'descricao_item': resultado[5] if resultado[5] else resultado[3],  # Usa descrição do item ou tipo veículo
+                'id_cl': resultado[6]
             })
         
         return jsonify({'tem_vinculo': False})
@@ -4166,9 +4170,12 @@ def criar_registro_locacao_fornecedor(id_demanda):
         
         # Buscar dados da demanda
         cursor.execute("""
-            SELECT DT_INICIO, DT_FIM, SETOR, DESTINO, NU_SEI, 
-                   ID_TIPOVEICULO, HORARIO
-            FROM ATENDIMENTO_DEMANDAS 
+            SELECT ad.DT_INICIO, ad.DT_FIM, ad.SETOR, ad.DESTINO, ad.NU_SEI, 
+                ad.ID_TIPOVEICULO, ad.HORARIO, 
+                COALESCE(cl.ID_CL, 0) AS ID_CL
+            FROM ATENDIMENTO_DEMANDAS ad
+            JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ad.ID_TIPOVEICULO
+            LEFT JOIN TJ_CONTROLE_LOCACAO cl ON cl.ID_FORNECEDOR = tv.ID_FORNECEDOR
             WHERE ID_AD = %s
         """, (id_demanda,))
         
@@ -4178,6 +4185,11 @@ def criar_registro_locacao_fornecedor(id_demanda):
             app.logger.error(f"Demanda {id_demanda} não encontrada")
             return None
         
+        if demanda:
+            id_cl = demanda[7]  # índice 7, pois é zero-based
+        else:
+            id_cl = 0  # ou outro valor padrão caso não encontre
+
         dt_inicio, dt_fim, setor, destino, nu_sei, id_tipoveiculo, horario = demanda
         
         # Obter próximo ID_ITEM
@@ -4225,9 +4237,10 @@ def criar_registro_locacao_fornecedor(id_demanda):
             (ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, 
              ID_MES, ID_VEICULO_LOC, DT_INICIAL, HR_INICIAL, DT_FINAL, 
              NU_SEI, FL_EMAIL, FL_STATUS, USUARIO, DATA_INICIO, DATA_FIM)
-            VALUES (%s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'N', 'P', %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'N', 'P', %s, %s, %s)
         """, (
             id_item,
+            id_cl,
             id_exercicio,
             setor,
             destino,
