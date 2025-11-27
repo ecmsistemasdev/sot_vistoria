@@ -5459,7 +5459,7 @@
                                 dadosVinculoFornecedor = resultadoFornecedor;
                                 
                                 mostrarConfirmacao(
-                                    '📧 Este tipo de veículo possui fornecedor cadastrado.<br><br>Deseja enviar e-mail de solicitação de locação?',
+                                    '📧 Esta demanda possui vínculo com locação.<br><br>Deseja enviar e-mail de solicitação desta locação?',
                                     async function(respostaEmail) {
                                         // ===== PASSO 1: Salvar demanda PRIMEIRO =====
                                         const resSalvar = await fetch('/api/agenda/demanda', {
