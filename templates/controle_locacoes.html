@@ -220,24 +220,15 @@
             <!-- GroupBox - Processos de Locação -->
             <div class="col-md-6">
                 <div class="groupbox">
-                    <div class="groupbox-header">Processos de Locação</div>
-                    <div class="groupbox-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Ano</th>
-                                        <th>Fornecedor</th>
-                                        <th>Nº SEI</th>
-                                        <th>Nº Contrato</th>
-                                        <th class="sticky-column">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabela-processos">
-                                    <!-- Dados carregados via AJAX -->
-                                </tbody>
-                            </table>
+                    <div class="tabs-body">
+                        <!-- Guias (Tabs) para Tipos de Locação -->
+                        <ul class="nav nav-tabs" id="tiposLocacaoTabs" role="tablist">
+                            <!-- As guias serão carregadas dinamicamente via JavaScript -->
+                        </ul>
+                        
+                        <!-- Conteúdo das Guias -->
+                        <div class="tab-content" id="tiposLocacaoTabsContent">
+                            <!-- O conteúdo será carregado dinamicamente via JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -3591,38 +3582,145 @@
             }
         }   
         
-        // Função para carregar processos de locação
+        // Função para carregar tipos de locação e criar as guias
         function carregarProcessos() {
+            // Primeiro, carregar os tipos de locação
+            $.ajax({
+                url: '/api/tipos_locacao',
+                type: 'GET',
+                dataType: 'json',
+                success: function(tipos) {
+                    if (tipos.length === 0) {
+                        $('#tiposLocacaoTabs').html('<li class="nav-item"><span class="nav-link">Nenhum tipo de locação encontrado</span></li>');
+                        return;
+                    }
+                    
+                    // Criar as guias dinamicamente
+                    let tabsHtml = '';
+                    let contentHtml = '';
+                    
+                    tipos.forEach(function(tipo, index) {
+                        const isActive = index === 0 ? 'active' : '';
+                        const isShow = index === 0 ? 'show active' : '';
+                        const tabId = `tipo-locacao-${tipo.ID_TIPO_LOCACAO}`;
+                        
+                        // Criar a guia
+                        tabsHtml += `
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link ${isActive}" 
+                                        id="${tabId}-tab" 
+                                        data-bs-toggle="tab" 
+                                        data-bs-target="#${tabId}" 
+                                        type="button" 
+                                        role="tab" 
+                                        aria-controls="${tabId}" 
+                                        aria-selected="${index === 0}">
+                                    ${tipo.DE_TIPO_LOCACAO}
+                                </button>
+                            </li>
+                        `;
+                        
+                        // Criar o conteúdo da guia
+                        contentHtml += `
+                            <div class="tab-pane fade ${isShow}" 
+                                id="${tabId}" 
+                                role="tabpanel" 
+                                aria-labelledby="${tabId}-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Ano</th>
+                                                <th>Fornecedor</th>
+                                                <th>Nº SEI</th>
+                                                <th>Nº Contrato</th>
+                                                <th class="sticky-column">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tabela-processos-${tipo.ID_TIPO_LOCACAO}">
+                                            <tr><td colspan="6" class="text-center">Carregando...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    // Inserir as guias e conteúdos no DOM
+                    $('#tiposLocacaoTabs').html(tabsHtml);
+                    $('#tiposLocacaoTabsContent').html(contentHtml);
+                    
+                    // Agora carregar os processos
+                    carregarProcessosPorTipo();
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erro ao carregar tipos de locação:", error);
+                    $('#tiposLocacaoTabs').html('<li class="nav-item"><span class="nav-link text-danger">Erro ao carregar tipos</span></li>');
+                }
+            });
+        }
+
+        // Função para carregar os processos e distribuí-los pelas guias
+        function carregarProcessosPorTipo() {
             $.ajax({
                 url: '/api/processos_locacao',
                 type: 'GET',
                 dataType: 'json',
                 success: function(data) {
-                    let html = '';
+                    // Agrupar processos por tipo de locação
+                    const processosPorTipo = {};
+                    
                     data.forEach(function(item) {
-                        html += `<tr data-id="${item.ID_CL}">
-                            <td>${item.ID_CL}</td>
-                            <td>${item.ANO_EXERCICIO}</td>
-                            <td>${item.NM_FORNECEDOR}</td>
-                            <td>${item.NU_SEI}</td>
-                            <td>${item.NU_CONTRATO}</td>
-                            <td class="sticky-column">
-                                <div class="d-flex justify-content-around">
-                                    <a href="javascript:void(0)" onclick="selecionarProcesso(${item.ID_CL})" class="btn btn-sm btn-primary" title="Selecionar">
-                                        <i class="fas fa-check-circle"></i>
-                                    </a>
-                                    <a href="javascript:void(0)" onclick="sairProcesso(${item.ID_CL})" class="btn btn-sm btn-danger ms-1" title="Sair" style="display: none;">
-                                        <i class="fas fa-times-circle"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>`;
+                        const tipoId = item.ID_TIPO_LOCACAO;
+                        if (!processosPorTipo[tipoId]) {
+                            processosPorTipo[tipoId] = [];
+                        }
+                        processosPorTipo[tipoId].push(item);
                     });
-                    $('#tabela-processos').html(html);
+                    
+                    // Preencher cada tabela
+                    Object.keys(processosPorTipo).forEach(function(tipoId) {
+                        let html = '';
+                        const processos = processosPorTipo[tipoId];
+                        
+                        if (processos.length === 0) {
+                            html = '<tr><td colspan="6" class="text-center">Nenhum processo encontrado</td></tr>';
+                        } else {
+                            processos.forEach(function(item) {
+                                html += `<tr data-id="${item.ID_CL}">
+                                    <td>${item.ID_CL}</td>
+                                    <td>${item.ANO_EXERCICIO}</td>
+                                    <td>${item.NM_FORNECEDOR}</td>
+                                    <td>${item.NU_SEI}</td>
+                                    <td>${item.NU_CONTRATO}</td>
+                                    <td class="sticky-column">
+                                        <div class="d-flex justify-content-around">
+                                            <a href="javascript:void(0)" onclick="selecionarProcesso(${item.ID_CL})" class="btn btn-sm btn-primary" title="Selecionar">
+                                                <i class="fas fa-check-circle"></i>
+                                            </a>
+                                            <a href="javascript:void(0)" onclick="sairProcesso(${item.ID_CL})" class="btn btn-sm btn-danger ms-1" title="Sair" style="display: none;">
+                                                <i class="fas fa-times-circle"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>`;
+                            });
+                        }
+                        
+                        $(`#tabela-processos-${tipoId}`).html(html);
+                    });
+                    
+                    // Se alguma guia não tiver processos, mostrar mensagem
+                    $('.table tbody[id^="tabela-processos-"]').each(function() {
+                        if ($(this).find('tr').length === 0) {
+                            $(this).html('<tr><td colspan="6" class="text-center">Nenhum processo encontrado</td></tr>');
+                        }
+                    });
                 },
                 error: function(xhr, status, error) {
                     console.error("Erro ao carregar processos:", error);
-                    alert("Erro ao carregar dados. Verifique o console para mais detalhes.");
+                    $('.table tbody[id^="tabela-processos-"]').html('<tr><td colspan="6" class="text-center text-danger">Erro ao carregar dados</td></tr>');
                 }
             });
         }
@@ -3961,7 +4059,8 @@
         }
         
         // Função para selecionar um processo e carregar os dados relacionados
-        function selecionarProcesso(id_cl) {processoIdSelecionado = id_cl;
+        function selecionarProcesso(id_cl) {
+            processoIdSelecionado = id_cl;
         
             // Mostrar modal de carregamento
             mostrarModalCarregando();
@@ -3971,11 +4070,21 @@
             
             // Armazenar no localStorage
             localStorage.setItem('fornecedorNome', fornecedorNome);// Ocultar todos os processos exceto o selecionado
-            $(`#tabela-processos tr`).hide();
-            $(`#tabela-processos tr[data-id="${id_cl}"]`).show();
+            // $(`#tabela-processos tr`).hide();
+            // Ocultar todos os processos de todas as guias
+            $('[id^="tabela-processos-"] tr').hide();
+            
+            // Mostrar apenas o processo selecionado em sua respectiva guia
+            $('[id^="tabela-processos-"] tr[data-id="' + id_cl + '"]').show();
             
             // Mostrar o botão de sair apenas para o processo selecionado
-            $(`#tabela-processos tr[data-id="${id_cl}"] .btn-danger`).show();
+            $('[id^="tabela-processos-"] tr[data-id="' + id_cl + '"] .btn-danger').show();
+
+
+            // $(`#tabela-processos tr[data-id="${id_cl}"]`).show();
+            
+            // Mostrar o botão de sair apenas para o processo selecionado
+            // $(`#tabela-processos tr[data-id="${id_cl}"] .btn-danger`).show();
         
             // Contador para controlar carregamentos pendentes
             let carregamentosPendentes = 7; // Quantidade de carregamentos assíncronos
@@ -4267,7 +4376,8 @@
         }
 
         // Nova função para sair do processo selecionado
-        function sairProcesso(id_cl) {processoIdSelecionado = null;
+        function sairProcesso(id_cl) {
+            processoIdSelecionado = null;
             
             // Limpar localStorage
             localStorage.removeItem('fornecedorNome');
