@@ -4782,6 +4782,8 @@ def excluir_demanda(id_ad):
     try:
         cursor = mysql.connection.cursor()
         cursor.execute("DELETE FROM ATENDIMENTO_DEMANDAS WHERE ID_AD = %s", (id_ad,))
+		cursor.execute("DELETE FROM EMAIL_OUTRAS_LOCACOES WHERE ID_AD = %s", (id_ad,))
+		cursor.execute("DELETE FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_AD = %s", (id_ad,))
         mysql.connection.commit()
         cursor.close()
         
