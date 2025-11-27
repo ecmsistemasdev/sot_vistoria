@@ -1245,6 +1245,33 @@ def visualizar_cnh(id_motorista):
 def controle_locacoes():
     return render_template('controle_locacoes.html')
 
+@app.route('/api/tipos_locacao')
+@login_required
+def api_tipos_locacao():
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT ID_TIPO_LOCACAO, DE_TIPO_LOCACAO
+        FROM TJ_TIPO_LOCACAO
+        WHERE ATIVO = 'S'
+        ORDER BY ID_TIPO_LOCACAO
+        """
+        cursor.execute(query)
+        tipos = cursor.fetchall()
+        
+        resultado = []
+        for tipo in tipos:
+            resultado.append({
+                'ID_TIPO_LOCACAO': tipo[0],
+                'DE_TIPO_LOCACAO': tipo[1]
+            })
+        
+        cursor.close()
+        return jsonify(resultado)
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar tipos de locação: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/processos_locacao')
 @login_required
 def api_processos_locacao():
@@ -1252,16 +1279,19 @@ def api_processos_locacao():
         cursor = mysql.connection.cursor()
         query = """
         SELECT cl.ID_CL, cl.ANO_EXERCICIO, f.NM_FORNECEDOR, 
-		cl.NU_SEI, cl.NU_CONTRATO, f.EMAIL
-        FROM TJ_CONTROLE_LOCACAO cl, TJ_FORNECEDOR f
-        WHERE f.ID_FORNECEDOR = cl.ID_FORNECEDOR
-        AND cl.ATIVO = 'S'
-	ORDER BY cl.ID_CL DESC
+               cl.NU_SEI, cl.NU_CONTRATO, f.EMAIL, 
+               cl.ID_TIPO_LOCACAO, tl.DE_TIPO_LOCACAO
+        FROM TJ_CONTROLE_LOCACAO cl
+        INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR
+        INNER JOIN TJ_TIPO_LOCACAO tl ON tl.ID_TIPO_LOCACAO = cl.ID_TIPO_LOCACAO
+        WHERE cl.ATIVO = 'S'
+          AND tl.ATIVO = 'S'
+        ORDER BY cl.ID_CL DESC
         """
         cursor.execute(query)
         processos = cursor.fetchall()
         
-        # Converter para dicionários para facilitar o uso no JSON
+        # Converter para dicionários
         resultado = []
         for processo in processos:
             resultado.append({
@@ -1270,7 +1300,9 @@ def api_processos_locacao():
                 'NM_FORNECEDOR': processo[2],
                 'NU_SEI': processo[3],
                 'NU_CONTRATO': processo[4],
-				'EMAIL': processo[5]
+                'EMAIL': processo[5],
+                'ID_TIPO_LOCACAO': processo[6],
+                'DE_TIPO_LOCACAO': processo[7]
             })
         
         cursor.close()
