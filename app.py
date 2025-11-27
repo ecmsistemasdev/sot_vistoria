@@ -4226,10 +4226,9 @@ def criar_registro_locacao_fornecedor(id_demanda):
         # Inserir registro
         cursor.execute("""
             INSERT INTO TJ_CONTROLE_LOCACAO_ITENS 
-            (ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, 
-             ID_MES, ID_VEICULO_LOC, DT_INICIAL, HR_INICIAL, DT_FINAL, 
-             NU_SEI, FL_EMAIL, FL_STATUS, USUARIO, DATA_INICIO, DATA_FIM)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'N', 'P', %s, %s, %s)
+            (ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, ID_VEICULO_LOC, DT_INICIAL, 
+            HR_INICIAL, DT_FINAL, NU_SEI, FL_EMAIL, FL_STATUS, USUARIO, DATA_INICIO, DATA_FIM, ID_AD)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'N', 'P', %s, %s, %s, %s)
         """, (
             id_item,
             id_cl,
@@ -4244,7 +4243,8 @@ def criar_registro_locacao_fornecedor(id_demanda):
             nu_sei,
             usuario,
             dt_inicio,  # Data no formato original (YYYY-MM-DD)
-            dt_fim      # Data no formato original (YYYY-MM-DD)
+            dt_fim,      # Data no formato original (YYYY-MM-DD)
+            id_demanda
         ))
         
         mysql.connection.commit()
