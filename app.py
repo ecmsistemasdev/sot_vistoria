@@ -4185,12 +4185,8 @@ def criar_registro_locacao_fornecedor(id_demanda):
             app.logger.error(f"Demanda {id_demanda} não encontrada")
             return None
         
-        if demanda:
-            id_cl = demanda[7]  # índice 7, pois é zero-based
-        else:
-            id_cl = 0  # ou outro valor padrão caso não encontre
-
-        dt_inicio, dt_fim, setor, destino, nu_sei, id_tipoveiculo, horario = demanda
+        # Desempacotar TODOS os 8 valores retornados pela query
+        dt_inicio, dt_fim, setor, destino, nu_sei, id_tipoveiculo, horario, id_cl = demanda
         
         # Obter próximo ID_ITEM
         id_item = obter_proximo_id_item()
@@ -4217,9 +4213,6 @@ def criar_registro_locacao_fornecedor(id_demanda):
         dt_final_br = dt_fim_obj.strftime('%d/%m/%Y')
         
         # Converter horário para formato hh:mm (garantir que seja string)
-        #hr_inicial = horario if horario else None
-        #hr_inicial = horario[:5] if horario else None
-        
         if isinstance(horario, timedelta):
             total_segundos = int(horario.total_seconds())
             horas = total_segundos // 3600
@@ -4229,7 +4222,6 @@ def criar_registro_locacao_fornecedor(id_demanda):
             hr_inicial = horario[:5]  # manter só hh:mm
         else:
             hr_inicial = None
-
 
         # Inserir registro
         cursor.execute("""
