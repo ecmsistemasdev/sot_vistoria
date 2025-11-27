@@ -3172,7 +3172,7 @@
                 return;
             }
             
-            // ===== NOVO: Verificar se deve excluir registro de locação =====
+            // ===== VERIFICAR SE DEVE EXCLUIR REGISTRO DE LOCAÇÃO =====
             if (idItemLocacaoFornecedor) {
                 // Perguntar se quer realmente cancelar
                 mostrarConfirmacao(
@@ -5714,6 +5714,7 @@
             // - modal (Nova/Editar Demanda)
             // - modalFormLocacao (Formulário de Locação)
             // - modalConfirmacaoLocacao (Confirmação de Locação)
+            // - modalEmailFornecedor (Email para Fornecedor) ← ADICIONADO
         });
 
         // ========== EVENT LISTENER: Tipo de Veículo ==========
@@ -5745,7 +5746,7 @@
                     fecharModalFeriados();
                 }
                 
-                // NÃO fecha modal de demanda, locação ou confirmação de locação
+                // NÃO fecha modal de demanda, locação, confirmação de locação ou email de fornecedor
             }
         });
 
