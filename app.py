@@ -1080,6 +1080,7 @@ def cadastrar_motorista():
         email = request.form.get('email', '')
         dt_inicio = request.form.get('dt_inicio')
         dt_fim = request.form.get('dt_fim', None)
+		id_fornecedor = request.form.get('id_fornecedor', None)
         
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
         
@@ -1162,7 +1163,8 @@ def atualizar_motorista():
         ativo = 'S' if request.form.get('ativo') == 'on' else 'N'
         dt_inicio = request.form.get('dt_inicio')
         dt_fim = request.form.get('dt_fim', None)
-        
+        id_fornecedor = request.form.get('id_fornecedor', None)
+		
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
         
         # File 
