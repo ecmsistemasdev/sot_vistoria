@@ -927,12 +927,17 @@ def listar_motoristas():
                 CAD_MOTORISTA LIKE %s OR
                 NM_MOTORISTA LIKE %s OR
                 SIGLA_SETOR LIKE %s OR
-                ORDEM_LISTA LIKE %s
+                (ORDEM_LISTA = 1 AND 'Administrativo' LIKE %s) OR
+                (ORDEM_LISTA = 2 AND 'Motorista Desembargador' LIKE %s) OR
+                (ORDEM_LISTA = 3 AND 'Motorista Atendimento' LIKE %s) OR
+                (ORDEM_LISTA = 4 AND 'Cadastro de Condutores' LIKE %s) OR
+                (ORDEM_LISTA = 5 AND 'Tercerizado' LIKE %s)
             )
             ORDER BY NM_MOTORISTA
             """
             search_term = f'%{nome}%'
-            cursor.execute(query, (search_term, search_term, search_term, search_term, search_term))
+            cursor.execute(query, (search_term, search_term, search_term, search_term, 
+                                   search_term, search_term, search_term, search_term, search_term))
         else:
             query = """
             SELECT 
