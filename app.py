@@ -1112,11 +1112,10 @@ def cadastrar_motorista():
         # Insert query
         query = """
         INSERT INTO TJ_MOTORISTA (
-            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, 
-            SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
-            NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, DT_TRANSACAO, 
-            FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL, DT_INICIO, DT_FIM
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s, %s, %s)
+            ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR, CAT_CNH, 
+			DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, 
+			DT_TRANSACAO, FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL, DT_INICIO, DT_FIM, ID_FORNECEDOR
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         cursor.execute(query, (
@@ -1124,7 +1123,7 @@ def cadastrar_motorista():
             sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
             nu_telefone, obs_motorista, session.get('usuario_id'), 
             dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email,
-            dt_inicio_db, dt_fim_db
+            dt_inicio_db, dt_fim_db, id_fornecedor
         ))
         
         mysql.connection.commit()
@@ -1204,7 +1203,7 @@ def atualizar_motorista():
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
                 ATIVO = %s, USUARIO = %s, 
                 FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s, EMAIL = %s,
-                DT_INICIO = %s, DT_FIM = %s
+                DT_INICIO = %s, DT_FIM = %s, ID_FORNECEDOR = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1213,7 +1212,7 @@ def atualizar_motorista():
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
                 file_blob, nome_arquivo, tipo_cadastro, email,
-                dt_inicio_db, dt_fim_db, id_motorista
+                dt_inicio_db, dt_fim_db, id_fornecedor, id_motorista
             ))
         else:
             # Update without changing file
@@ -1223,7 +1222,7 @@ def atualizar_motorista():
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
                 ATIVO = %s, USUARIO = %s, ORDEM_LISTA = %s, EMAIL = %s,
-                DT_INICIO = %s, DT_FIM = %s
+                DT_INICIO = %s, DT_FIM = %s, ID_FORNECEDOR = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -1231,7 +1230,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                tipo_cadastro, email, dt_inicio_db, dt_fim_db, id_motorista
+                tipo_cadastro, email, dt_inicio_db, dt_fim_db, id_fornecedor, id_motorista
             ))
         
         mysql.connection.commit()
