@@ -920,8 +920,8 @@ def listar_motoristas():
                 ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
                 FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
-                DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
-                DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
+                DATE_FORMAT(DT_INICIO, '%%d/%%m/%%Y') AS DT_INICIO,
+                DATE_FORMAT(DT_FIM, '%%d/%%m/%%Y') AS DT_FIM
             FROM TJ_MOTORISTA 
             WHERE ID_MOTORISTA > 0
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
@@ -937,8 +937,8 @@ def listar_motoristas():
                 ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA, 
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
                 FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
-                DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
-                DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
+                DATE_FORMAT(DT_INICIO, '%%d/%%m/%%Y') AS DT_INICIO,
+                DATE_FORMAT(DT_FIM, '%%d/%%m/%%Y') AS DT_FIM
             FROM TJ_MOTORISTA
             WHERE ID_MOTORISTA > 0
             ORDER BY NM_MOTORISTA
@@ -959,7 +959,7 @@ def listar_motoristas():
     finally:
         if cursor:
             cursor.close()
-
+			
 # API atualizada para detalhe do motorista incluindo ID_FORNECEDOR
 @app.route('/api/motoristas/<int:id_motorista>')
 @login_required
