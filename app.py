@@ -1031,7 +1031,25 @@ def detalhe_motorista(id_motorista):
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
-
+# API para listar fornecedores
+@app.route('/api/motorista/fornecedores')
+@login_required
+def motorista_listar_fornecedores():
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT ID_FORNECEDOR, NM_FORNECEDOR 
+        FROM TJ_FORNECEDOR
+        ORDER BY NM_FORNECEDOR
+        """
+        cursor.execute(query)
+        columns = ['id_fornecedor', 'nm_fornecedor']
+        fornecedores = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cursor.close()
+        return jsonify(fornecedores)
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
+		
 @app.route('/api/motoristas/cadastrar', methods=['POST'])
 @login_required
 def cadastrar_motorista():
