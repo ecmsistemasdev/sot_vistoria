@@ -912,41 +912,66 @@ def listar_motoristas():
         
         if nome:
             # Criar mapeamento dos tipos para busca
-            tipo_busca = ''
+            tipo_busca = None
             nome_lower = nome.lower()
             if 'admin' in nome_lower:
-                tipo_busca = '1'
+                tipo_busca = 1
             elif 'desembargador' in nome_lower:
-                tipo_busca = '2'
+                tipo_busca = 2
             elif 'atendimento' in nome_lower:
-                tipo_busca = '3'
+                tipo_busca = 3
             elif 'condutores' in nome_lower:
-                tipo_busca = '4'
+                tipo_busca = 4
             elif 'tercerizado' in nome_lower or 'terceriz' in nome_lower:
-                tipo_busca = '5'
+                tipo_busca = 5
             
-            query = """
-            SELECT 
-                ID_MOTORISTA, CAD_MOTORISTA,
-                CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
-                ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
-                ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
-                DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
-                DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
-            FROM TJ_MOTORISTA 
-            WHERE ID_MOTORISTA > 0
-            AND (
-                CAST(ID_MOTORISTA AS CHAR) LIKE %s OR
-                CAD_MOTORISTA LIKE %s OR
-                NM_MOTORISTA LIKE %s OR
-                SIGLA_SETOR LIKE %s OR
-                ORDEM_LISTA = %s
-            )
-            ORDER BY NM_MOTORISTA
-            """
             search_term = f'%{nome}%'
-            cursor.execute(query, (search_term, search_term, search_term, search_term, tipo_busca if tipo_busca else '0'))
+            
+            if tipo_busca:
+                # Se encontrou um tipo de cadastro, inclui na busca
+                query = """
+                SELECT 
+                    ID_MOTORISTA, CAD_MOTORISTA,
+                    CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
+                    ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
+                    ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
+                    FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
+                    DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
+                    DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
+                FROM TJ_MOTORISTA 
+                WHERE ID_MOTORISTA > 0
+                AND (
+                    CAST(ID_MOTORISTA AS CHAR) LIKE %s OR
+                    CAD_MOTORISTA LIKE %s OR
+                    NM_MOTORISTA LIKE %s OR
+                    SIGLA_SETOR LIKE %s OR
+                    ORDEM_LISTA = %s
+                )
+                ORDER BY NM_MOTORISTA
+                """
+                cursor.execute(query, (search_term, search_term, search_term, search_term, tipo_busca))
+            else:
+                # Busca sem tipo de cadastro
+                query = """
+                SELECT 
+                    ID_MOTORISTA, CAD_MOTORISTA,
+                    CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
+                    ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
+                    ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
+                    FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
+                    DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
+                    DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
+                FROM TJ_MOTORISTA 
+                WHERE ID_MOTORISTA > 0
+                AND (
+                    CAST(ID_MOTORISTA AS CHAR) LIKE %s OR
+                    CAD_MOTORISTA LIKE %s OR
+                    NM_MOTORISTA LIKE %s OR
+                    SIGLA_SETOR LIKE %s
+                )
+                ORDER BY NM_MOTORISTA
+                """
+                cursor.execute(query, (search_term, search_term, search_term, search_term))
         else:
             query = """
             SELECT 
@@ -1080,7 +1105,11 @@ def cadastrar_motorista():
         email = request.form.get('email', '')
         dt_inicio = request.form.get('dt_inicio')
         dt_fim = request.form.get('dt_fim', None)
-		id_fornecedor = request.form.get('id_fornecedor', None)
+        id_fornecedor = request.form.get('id_fornecedor', None)  # CORRIGIDO - indentação
+        
+        # Converter id_fornecedor para None se estiver vazio
+        if id_fornecedor == '' or id_fornecedor == 'null':
+            id_fornecedor = None
         
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
         
@@ -1113,8 +1142,8 @@ def cadastrar_motorista():
         query = """
         INSERT INTO TJ_MOTORISTA (
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR, CAT_CNH, 
-			DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, 
-			DT_TRANSACAO, FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL, DT_INICIO, DT_FIM, ID_FORNECEDOR
+            DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, 
+            DT_TRANSACAO, FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL, DT_INICIO, DT_FIM, ID_FORNECEDOR
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
@@ -1132,6 +1161,7 @@ def cadastrar_motorista():
         return jsonify({'sucesso': True, 'id_motorista': novo_id})
     except Exception as e:
         mysql.connection.rollback()
+        print(f"Erro ao cadastrar motorista: {str(e)}")  # Debug
         return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
 
 @app.route('/api/motoristas/atualizar', methods=['POST'])
@@ -1162,8 +1192,12 @@ def atualizar_motorista():
         ativo = 'S' if request.form.get('ativo') == 'on' else 'N'
         dt_inicio = request.form.get('dt_inicio')
         dt_fim = request.form.get('dt_fim', None)
-        id_fornecedor = request.form.get('id_fornecedor', None)
-		
+        id_fornecedor = request.form.get('id_fornecedor', None)  # CORRIGIDO - indentação
+        
+        # Converter id_fornecedor para None se estiver vazio
+        if id_fornecedor == '' or id_fornecedor == 'null':
+            id_fornecedor = None
+        
         tipo_cadastro_desc = tipo_cad[tipo_cadastro]
         
         # File 
@@ -1239,6 +1273,7 @@ def atualizar_motorista():
         return jsonify({'sucesso': True, 'id_motorista': id_motorista})
     except Exception as e:
         mysql.connection.rollback()
+        print(f"Erro ao atualizar motorista: {str(e)}")  # Debug
         return jsonify({'sucesso': False, 'mensagem': str(e)}), 500
 
 @app.route('/api/motoristas/download_cnh/<int:id_motorista>')
