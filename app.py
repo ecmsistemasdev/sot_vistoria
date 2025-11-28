@@ -922,10 +922,17 @@ def listar_motoristas():
                 DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
             FROM TJ_MOTORISTA 
             WHERE ID_MOTORISTA > 0
-            AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
+            AND (
+                CAST(ID_MOTORISTA AS CHAR) LIKE %s OR
+                CAD_MOTORISTA LIKE %s OR
+                NM_MOTORISTA LIKE %s OR
+                SIGLA_SETOR LIKE %s OR
+                ORDEM_LISTA LIKE %s
+            )
             ORDER BY NM_MOTORISTA
             """
-            cursor.execute(query, (f'%{nome}%',))
+            search_term = f'%{nome}%'
+            cursor.execute(query, (search_term, search_term, search_term, search_term, search_term))
         else:
             query = """
             SELECT 
@@ -949,6 +956,8 @@ def listar_motoristas():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+
+# API atualizada para detalhe do motorista incluindo ID_FORNECEDOR
 @app.route('/api/motoristas/<int:id_motorista>')
 @login_required
 def detalhe_motorista(id_motorista):
@@ -959,7 +968,7 @@ def detalhe_motorista(id_motorista):
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, ORDEM_LISTA, 
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
             NU_TELEFONE, OBS_MOTORISTA, ATIVO, NOME_ARQUIVO, EMAIL,
-            DT_INICIO, DT_FIM
+            DT_INICIO, DT_FIM, ID_FORNECEDOR
         FROM TJ_MOTORISTA 
         WHERE ID_MOTORISTA = %s
         """
@@ -968,7 +977,6 @@ def detalhe_motorista(id_motorista):
         cursor.close()
         
         if result:
-            # Formatar datas manualmente em Python
             dt_inicio_formatada = None
             dt_fim_formatada = None
             
@@ -999,13 +1007,15 @@ def detalhe_motorista(id_motorista):
                 'nome_arquivo': result[11],
                 'email': result[12],
                 'dt_inicio': dt_inicio_formatada,
-                'dt_fim': dt_fim_formatada
+                'dt_fim': dt_fim_formatada,
+                'id_fornecedor': result[15]
             }
             return jsonify(motorista)
         else:
             return jsonify({'erro': 'Motorista não encontrado'}), 404
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
+
 
 @app.route('/api/motoristas/cadastrar', methods=['POST'])
 @login_required
