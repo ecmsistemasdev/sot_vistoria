@@ -911,7 +911,7 @@ def listar_motoristas():
         cursor = mysql.connection.cursor()
         
         if nome:
-			app.logger.info(" ::::  Executando consulta de motorista com parametro ::::  ")
+            app.logger.info(" ::::  Executando consulta de motorista com parametro ::::  ")
             query = """
             SELECT 
                 ID_MOTORISTA, CAD_MOTORISTA,
@@ -929,7 +929,7 @@ def listar_motoristas():
             cursor.execute(query, (f'%{nome}%',))
         else:
             app.logger.info(" ::::  Listando todos os motorista ::::  ")
-			query = """
+            query = """
             SELECT 
                 ID_MOTORISTA, CAD_MOTORISTA, 
                 CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
@@ -943,7 +943,7 @@ def listar_motoristas():
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
-			
+            
         columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo', 'dt_inicio', 'dt_fim']
         motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
         cursor.close()
