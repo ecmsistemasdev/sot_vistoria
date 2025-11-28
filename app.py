@@ -906,6 +906,7 @@ def listar_setores():
 @app.route('/api/motoristas')
 @login_required
 def listar_motoristas():
+    cursor = None
     try:
         nome = request.args.get('nome', '')
         cursor = mysql.connection.cursor()
@@ -946,10 +947,18 @@ def listar_motoristas():
             
         columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo', 'dt_inicio', 'dt_fim']
         motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        cursor.close()
+        
         return jsonify(motoristas)
+        
     except Exception as e:
+        app.logger.error(f"Erro ao listar motoristas: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         return jsonify({'erro': str(e)}), 500
+        
+    finally:
+        if cursor:
+            cursor.close()
 
 # API atualizada para detalhe do motorista incluindo ID_FORNECEDOR
 @app.route('/api/motoristas/<int:id_motorista>')
