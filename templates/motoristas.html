@@ -199,6 +199,15 @@
                             </div>
                         </div>
 
+                        <div class="row" id="secaoFornecedor" style="display:none;">
+                            <div class="col-md-12 mb-3">
+                                <label for="idFornecedor" class="form-label">Fornecedor <span class="text-danger">*</span></label>
+                                <select class="form-select" id="idFornecedor" name="id_fornecedor">
+                                    <option value="">Selecione o Fornecedor</option>
+                                </select>
+                            </div>
+                        </div>
+                        
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label for="obsMotorist" class="form-label">Observações</label>
@@ -287,6 +296,19 @@
             $('#nuTelefone').mask('(00) 00000-0000');
             $('#catCnh').css('text-transform', 'uppercase');
 
+            // Controlar exibição do select de fornecedor baseado no tipo de cadastro
+            $('#tipoCadastro').on('change', function() {
+                const tipoSelecionado = $(this).val();
+                if (tipoSelecionado === '5') { // 5 = Tercerizado
+                    $('#secaoFornecedor').show();
+                    $('#idFornecedor').prop('required', true);
+                } else {
+                    $('#secaoFornecedor').hide();
+                    $('#idFornecedor').prop('required', false);
+                    $('#idFornecedor').val(''); // Limpar seleção
+                }
+            });
+
             // Mapeamento de tipos de cadastro
             const tipoCadastroMap = {
                 1: 'Administrativo',
@@ -313,6 +335,26 @@
             }
             carregarSetores();
 
+            // Carregar fornecedores
+            let fornecedores = []; // Global fornecedores array
+            function carregarFornecedores() {
+                fetch('/api/motorista/fornecedores')
+                    .then(response => response.json())
+                    .then(data => {
+                        fornecedores = data;
+                        const selectFornecedor = $('#idFornecedor');
+                        selectFornecedor.empty();
+                        selectFornecedor.append('<option value="">Selecione o Fornecedor</option>');
+                        data.forEach(fornecedor => {
+                            selectFornecedor.append(`<option value="${fornecedor.id_fornecedor}">${fornecedor.nm_fornecedor}</option>`);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar fornecedores:', error);
+                    });
+            }
+            carregarFornecedores();
+            
             // File input name display
             $('#fileCnh').on('change', function() {
                 const fileName = this.files[0] ? this.files[0].name : '';
@@ -336,6 +378,7 @@
                 $('#secaoCadastro, #formFooter').show();
                 $('#idMotorista').val('');
                 $('#secaoAtivo').hide();
+                $('#secaoFornecedor').hide(); // Ocultar seção de fornecedor
                 $('#cadastroForm')[0].reset();
                 $('#fileNameDisplay').text('');
                 $('#btnVisualizarCnh').hide();
@@ -443,8 +486,30 @@
                         $('#nmMotorista').val(motorista.nm_motorista);
                         $('#tipoCadastro').val(motorista.tipo_cadastro);
                         
+                        // Controlar exibição do fornecedor baseado no tipo
+                        if (motorista.tipo_cadastro == 5) { // Tercerizado
+                            $('#secaoFornecedor').show();
+                            $('#idFornecedor').prop('required', true);
+                            $('#idFornecedor').val(motorista.id_fornecedor || '');
+                        } else {
+                            $('#secaoFornecedor').hide();
+                            $('#idFornecedor').prop('required', false);
+                            $('#idFornecedor').val('');
+                        }
+                        
                         // Setor: Ensure the correct sector is selected
                         $('#siglasSetor').val(motorista.sigla_setor);
+
+                        // Controlar exibição do fornecedor baseado no tipo
+                        if (motorista.tipo_cadastro == 5) { // Tercerizado
+                            $('#secaoFornecedor').show();
+                            $('#idFornecedor').prop('required', true);
+                            $('#idFornecedor').val(motorista.id_fornecedor || '');
+                        } else {
+                            $('#secaoFornecedor').hide();
+                            $('#idFornecedor').prop('required', false);
+                            $('#idFornecedor').val('');
+                        }
                         
                         $('#catCnh').val(motorista.cat_cnh);
                         
@@ -631,5 +696,6 @@
     </script>
 </body>
 </html>
+
 
 
