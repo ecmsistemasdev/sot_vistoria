@@ -911,69 +911,26 @@ def listar_motoristas():
         cursor = mysql.connection.cursor()
         
         if nome:
-            # Criar mapeamento dos tipos para busca
-            tipo_busca = None
-            nome_lower = nome.lower()
-            if 'admin' in nome_lower:
-                tipo_busca = 1
-            elif 'desembargador' in nome_lower:
-                tipo_busca = 2
-            elif 'atendimento' in nome_lower:
-                tipo_busca = 3
-            elif 'condutores' in nome_lower:
-                tipo_busca = 4
-            elif 'tercerizado' in nome_lower or 'terceriz' in nome_lower:
-                tipo_busca = 5
-            
-            search_term = f'%{nome}%'
-            
-            if tipo_busca:
-                # Se encontrou um tipo de cadastro, inclui na busca
-                query = """
-                SELECT 
-                    ID_MOTORISTA, CAD_MOTORISTA,
-                    CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
-                    ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
-                    ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                    FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
-                    DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
-                    DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
-                FROM TJ_MOTORISTA 
-                WHERE ID_MOTORISTA > 0
-                AND (
-                    CAST(ID_MOTORISTA AS CHAR) LIKE %s OR
-                    CAD_MOTORISTA LIKE %s OR
-                    NM_MOTORISTA LIKE %s OR
-                    SIGLA_SETOR LIKE %s OR
-                    ORDEM_LISTA = %s
-                )
-                ORDER BY NM_MOTORISTA
-                """
-                cursor.execute(query, (search_term, search_term, search_term, search_term, tipo_busca))
-            else:
-                # Busca sem tipo de cadastro
-                query = """
-                SELECT 
-                    ID_MOTORISTA, CAD_MOTORISTA,
-                    CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
-                    ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
-                    ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                    FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
-                    DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
-                    DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
-                FROM TJ_MOTORISTA 
-                WHERE ID_MOTORISTA > 0
-                AND (
-                    CAST(ID_MOTORISTA AS CHAR) LIKE %s OR
-                    CAD_MOTORISTA LIKE %s OR
-                    NM_MOTORISTA LIKE %s OR
-                    SIGLA_SETOR LIKE %s
-                )
-                ORDER BY NM_MOTORISTA
-                """
-                cursor.execute(query, (search_term, search_term, search_term, search_term))
-        else:
+			app.logger.info(" ::::  Executando consulta de motorista com parametro ::::  ")
             query = """
+            SELECT 
+                ID_MOTORISTA, CAD_MOTORISTA,
+                CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
+                ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
+                ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
+                DATE_FORMAT(DT_INICIO, '%d/%m/%Y') AS DT_INICIO,
+                DATE_FORMAT(DT_FIM, '%d/%m/%Y') AS DT_FIM
+            FROM TJ_MOTORISTA 
+            WHERE ID_MOTORISTA > 0
+            AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
+            ORDER BY NM_MOTORISTA
+            """
+            cursor.execute(query, (f'%{nome}%',))
+			app.logger.info(f" Dados da SQL: {query}")
+        else:
+            app.logger.info(" ::::  Listando todos os motorista ::::  ")
+			query = """
             SELECT 
                 ID_MOTORISTA, CAD_MOTORISTA, 
                 CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
@@ -987,15 +944,14 @@ def listar_motoristas():
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
-        
+        	app.logger.info(f" Dados da SQL: {query}")
+			
         columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo', 'dt_inicio', 'dt_fim']
         motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
         cursor.close()
         return jsonify(motoristas)
     except Exception as e:
-        print(f"Erro ao listar motoristas: {str(e)}")  # Para debug
         return jsonify({'erro': str(e)}), 500
-
 
 # API atualizada para detalhe do motorista incluindo ID_FORNECEDOR
 @app.route('/api/motoristas/<int:id_motorista>')
