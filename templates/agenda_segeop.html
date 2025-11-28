@@ -1909,7 +1909,11 @@
         let idDemandaParaEmailFornecedor = null;
         let temVinculoFornecedorAtivo = false;
         let idItemLocacaoFornecedor = null;
-        
+        // ========== VARIÁVEIS GLOBAIS PARA DIÁRIAS DE MOTORISTA ==========
+        let dadosVinculoDiarias = null;
+        let idDemandaParaDiarias = null;
+        let temVinculoDiariasAtivo = false;
+
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
             if (!idTipoVeiculo) {
@@ -1937,6 +1941,187 @@
                 console.error('Erro ao verificar fornecedor:', error);
                 temVinculoFornecedorAtivo = false;
             }
+        }
+
+        // ========== FUNÇÃO: Verificar se Motorista Terceirizado tem Fornecedor com Email ==========
+        async function verificarVinculoDiarias(idTipoDemanda, idMotorista) {
+            // Resetar
+            temVinculoDiariasAtivo = false;
+            dadosVinculoDiarias = null;
+            
+            // Só verifica se for Tipo Demanda = 2 (Viagem) e tem motorista selecionado
+            if (parseInt(idTipoDemanda) !== 2 || !idMotorista || parseInt(idMotorista) <= 0) {
+                return;
+            }
+            
+            try {
+                const url = `/api/verificar_vinculo_diarias?id_motorista=${idMotorista}`;
+                const response = await fetch(url);
+                const resultado = await response.json();
+                
+                if (resultado.tem_vinculo) {
+                    temVinculoDiariasAtivo = true;
+                    dadosVinculoDiarias = resultado;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao verificar vínculo de diárias:', error);
+                temVinculoDiariasAtivo = false;
+            }
+        }       
+        
+        // ========== FUNÇÃO: Calcular Diárias COM/SEM Pernoite ==========
+        function calcularDiarias(dtInicio, dtFim) {
+            const dataInicio = new Date(dtInicio + 'T00:00:00');
+            const dataFim = new Date(dtFim + 'T00:00:00');
+            
+            if (dtInicio === dtFim) {
+                // Mesmo dia = apenas SEM PERNOITE
+                return {
+                    com_pernoite: 0,
+                    sem_pernoite: 1,
+                    total_dias: 1
+                };
+            }
+            
+            // Calcular diferença em dias
+            const diffTime = dataFim.getTime() - dataInicio.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 porque conta início e fim
+            
+            // Total - 1 = COM PERNOITE
+            // Último dia = SEM PERNOITE
+            const comPernoite = diffDays - 1;
+            const semPernoite = 1;
+            
+            return {
+                com_pernoite: comPernoite,
+                sem_pernoite: semPernoite,
+                total_dias: diffDays
+            };
+        }
+
+        // ========== FUNÇÃO: Formatar Período para Assunto do Email ==========
+        function formatarPeriodoAssunto(dtInicio, dtFim) {
+            const dataInicio = new Date(dtInicio + 'T00:00:00');
+            const dataFim = new Date(dtFim + 'T00:00:00');
+            
+            const diaIni = dataInicio.getDate().toString().padStart(2, '0');
+            const mesIni = (dataInicio.getMonth() + 1).toString().padStart(2, '0');
+            const anoIni = dataInicio.getFullYear();
+            
+            const diaFim = dataFim.getDate().toString().padStart(2, '0');
+            const mesFim = (dataFim.getMonth() + 1).toString().padStart(2, '0');
+            const anoFim = dataFim.getFullYear();
+            
+            if (dtInicio === dtFim) {
+                // Mesmo dia
+                return `dia ${diaIni}/${mesIni}/${anoIni}`;
+            } else if (mesIni === mesFim && anoIni === anoFim) {
+                // Mesmo mês/ano
+                return `dias ${diaIni} a ${diaFim}/${mesFim}/${anoFim}`;
+            } else {
+                // Meses/anos diferentes
+                return `dias ${diaIni}/${mesIni}/${anoIni} a ${diaFim}/${mesFim}/${anoFim}`;
+            }
+        }
+
+        // ========== FUNÇÃO: Abrir Modal de Email para Diárias ==========
+        async function abrirModalEmailDiarias(dadosDemanda) {
+            try {
+                // Calcular diárias
+                const diarias = calcularDiarias(dadosDemanda.dt_inicio, dadosDemanda.dt_fim);
+                
+                // Formatar datas
+                const dataInicio = new Date(dadosDemanda.dt_inicio + 'T00:00:00');
+                const dataFim = new Date(dadosDemanda.dt_fim + 'T00:00:00');
+                const dataInicioFormatada = dataInicio.toLocaleDateString('pt-BR');
+                const dataFimFormatada = dataFim.toLocaleDateString('pt-BR');
+                
+                // Período para assunto
+                const periodoAssunto = formatarPeriodoAssunto(dadosDemanda.dt_inicio, dadosDemanda.dt_fim);
+                
+                // Buscar nome do motorista
+                let nomeMotorista = dadosVinculoDiarias.nome_motorista || 'Motorista';
+                
+                // Preencher campos do modal
+                document.getElementById('email_id_demanda').value = idDemandaParaDiarias || '';
+                document.getElementById('email_destinatario').value = dadosVinculoDiarias.email_fornecedor;
+                document.getElementById('email_iditem').value = ''; // Não usado para diárias
+                
+                // Assunto
+                const assunto = `TJRO - Viagem motorista ${nomeMotorista} ${periodoAssunto}`;
+                document.getElementById('email_assunto').value = assunto;
+                
+                // Montar texto das diárias
+                let textoDiarias = '';
+                
+                if (diarias.com_pernoite > 0) {
+                    const quantidadeExtenso = converterNumeroExtenso(diarias.com_pernoite);
+                    textoDiarias += `- ${quantidadeExtenso} (${String(diarias.com_pernoite).padStart(2, '0')}) diária${diarias.com_pernoite > 1 ? 's' : ''} COM PERNOITE; e<br>`;
+                }
+                
+                const quantidadeSemPernoite = converterNumeroExtenso(diarias.sem_pernoite);
+                textoDiarias += `- ${quantidadeSemPernoite} (${String(diarias.sem_pernoite).padStart(2, '0')}) diária${diarias.sem_pernoite > 1 ? 's' : ''} SEM PERNOITE.`;
+                
+                // Corpo do email
+                const corpoHtml = `
+        <p>Ref. aos autos ${dadosDemanda.nu_sei || '[NÃO INFORMADO]'}</p>
+
+        <p>&nbsp;</p>
+
+        <p>Prezados,</p>
+
+        <p>&nbsp;</p>
+
+        <p>Informamos à Vossa Senhoria que o funcionário <strong>${nomeMotorista}</strong> foi designado para deslocamento ao <strong>${dadosDemanda.destino || '[DESTINO NÃO INFORMADO]'}</strong>, no período de ${dataInicioFormatada} a ${dataFimFormatada} com saída dia ${dataInicioFormatada} e retorno no dia ${dataFimFormatada}, necessitando de pagamento de:</p>
+
+        <p>&nbsp;</p>
+
+        ${textoDiarias}
+
+        <p>&nbsp;</p>
+
+        <p>Solicitamos observar o disposto no item 11.10 - Das Diárias, constante no Contrato 13/2025, bem como prazo para pagamento da diária de no mínimo 24 (vinte e quatro) horas antes da viagem.</p>
+
+        <p>&nbsp;</p>
+
+        <p><strong>Favor confirmar o recebimento do e-mail.</strong></p>
+
+        <p>&nbsp;</p>
+
+        <p>Atenciosamente,</p>
+
+        <p>&nbsp;</p>
+
+        <p><strong>${await obterNomeUsuario()}</strong><br>
+        Tribunal de Justiça do Estado de Rondônia - TJRO<br>
+        Seção de Gestão Operacional do Transporte - SEGEOP<br>
+        ☎ (69) 3309-6229</p>
+                `;
+                
+                document.getElementById('email_corpo').innerHTML = corpoHtml;
+                
+                // Limpar anexos
+                document.getElementById('email_anexos').value = '';
+                document.getElementById('lista_anexos').innerHTML = '';
+                
+                // Abrir modal
+                document.getElementById('modalEmailFornecedor').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Erro ao abrir modal de diárias:', error);
+                mostrarAlerta('Erro ao preparar e-mail de diárias!', '❌ Erro', '#dc3545');
+            }
+        }
+
+        // ========== FUNÇÃO: Converter Número para Extenso (1-10) ==========
+        function converterNumeroExtenso(numero) {
+            const extenso = {
+                1: 'Uma', 2: 'Duas', 3: 'Três', 4: 'Quatro', 5: 'Cinco',
+                6: 'Seis', 7: 'Sete', 8: 'Oito', 9: 'Nove', 10: 'Dez'
+            };
+            
+            return extenso[numero] || numero.toString();
         }
 
         function aplicarRegrasFornecedor() {
@@ -2284,6 +2469,23 @@
                         inputNcMotorista.required = false;
                         inputNcMotorista.value = '';
                     }
+                });
+            }
+
+            const selectTipoDemanda = document.getElementById('idTipoDemanda');
+            if (selectTipoDemanda) {
+                selectTipoDemanda.addEventListener('change', async function() {
+                    const idMotorista = document.getElementById('idMotorista').value;
+                    await verificarVinculoDiarias(this.value, idMotorista);
+                });
+            }
+
+            // Event listener para Motorista (verificar diárias)
+            const selectMotorista2 = document.getElementById('idMotorista');
+            if (selectMotorista2) {
+                selectMotorista2.addEventListener('change', async function() {
+                    const idTipoDemanda = document.getElementById('idTipoDemanda').value;
+                    await verificarVinculoDiarias(idTipoDemanda, this.value);
                 });
             }
 
@@ -3151,16 +3353,19 @@
             }
         }
 
-        // ========== FUNÇÃO: Fechar Modal de Email ==========
+        // ========== FUNÇÃO: Fechar Modal de Email (Locação ou Diárias) ==========
         async function fecharModalEmailFornecedor(emailEnviado = false) {
             const modal = document.getElementById('modalEmailFornecedor');
             
             // Se o email foi enviado com sucesso, fechar diretamente
             if (emailEnviado) {
-                // Limpar variáveis
+                // Limpar variáveis (ambos os tipos)
                 idItemLocacaoFornecedor = null;
                 dadosVinculoFornecedor = null;
                 idDemandaParaEmailFornecedor = null;
+                idDemandaParaDiarias = null;
+                dadosVinculoDiarias = null;
+                temVinculoDiariasAtivo = false;
                 
                 // Fechar modal
                 modal.style.display = 'none';
@@ -3172,7 +3377,7 @@
                 return;
             }
             
-            // ===== VERIFICAR SE DEVE EXCLUIR REGISTRO DE LOCAÇÃO =====
+            // ===== VERIFICAR SE DEVE EXCLUIR REGISTRO DE LOCAÇÃO (APENAS PARA LOCAÇÃO) =====
             if (idItemLocacaoFornecedor) {
                 // Perguntar se quer realmente cancelar
                 mostrarConfirmacao(
@@ -3217,10 +3422,15 @@
                     '⚠️ Cancelar Solicitação'
                 );
             } else {
-                // Não tem ID_ITEM, fechar normalmente
+                // Não tem ID_ITEM (pode ser diárias), fechar normalmente
                 modal.style.display = 'none';
+                
+                // Limpar todas as variáveis
                 dadosVinculoFornecedor = null;
                 idDemandaParaEmailFornecedor = null;
+                idDemandaParaDiarias = null;
+                dadosVinculoDiarias = null;
+                temVinculoDiariasAtivo = false;
                 
                 await carregarSemanas();
                 await carregarAgenda();
@@ -3228,7 +3438,7 @@
             }
         }
 
-        // ========== FUNÇÃO: Enviar Email para Fornecedor ==========
+        // ========== FUNÇÃO: Enviar Email para Fornecedor (Locação OU Diárias) ==========
         async function enviarEmailFornecedor() {
             try {
                 const destinatario = document.getElementById('email_destinatario').value;
@@ -3248,8 +3458,18 @@
                 formData.append('assunto', assunto);
                 formData.append('corpo_html', corpoHtml);
                 formData.append('id_demanda', idDemanda);
-                formData.append('id_item_fornecedor', idItem);
-    
+                
+                // Determinar tipo de email baseado em variáveis globais
+                if (idDemandaParaDiarias && temVinculoDiariasAtivo) {
+                    // É email de DIÁRIAS
+                    formData.append('tipo_email', 'diarias');
+                    formData.append('id_item_fornecedor', '0');
+                } else {
+                    // É email de LOCAÇÃO
+                    formData.append('tipo_email', 'locacao');
+                    formData.append('id_item_fornecedor', idItem);
+                }
+
                 // Adicionar anexos
                 const inputAnexos = document.getElementById('email_anexos');
                 if (inputAnexos.files.length > 0) {
@@ -3270,7 +3490,18 @@
                 esconderSpinner();
                 
                 if (response.ok && resultado.success) {
-                    // Passar true para indicar que o email foi enviado com sucesso
+                    // Limpar variáveis globais
+                    if (idDemandaParaDiarias) {
+                        idDemandaParaDiarias = null;
+                        dadosVinculoDiarias = null;
+                        temVinculoDiariasAtivo = false;
+                    } else {
+                        idItemLocacaoFornecedor = null;
+                        dadosVinculoFornecedor = null;
+                        idDemandaParaEmailFornecedor = null;
+                    }
+                    
+                    // Fechar modal
                     await fecharModalEmailFornecedor(true);
                     
                     mostrarAlerta(
@@ -5387,6 +5618,50 @@
                     }
                     
                 } else {
+
+                    // ========== NOVA DEMANDA ==========
+                    
+                    // ===== PRIORIDADE 1: VERIFICAR DIÁRIAS DE MOTORISTA TERCEIRIZADO =====
+                    if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
+                        // Perguntar se quer enviar email de diárias
+                        mostrarConfirmacao(
+                            `📧 O motorista <strong>${dadosVinculoDiarias.nome_motorista}</strong> é terceirizado e necessita de solicitação de diárias.<br><br>Deseja enviar e-mail para a empresa solicitando pagamento das diárias?`,
+                            async function(respostaEmail) {
+                                // ===== PASSO 1: Salvar demanda PRIMEIRO =====
+                                const resSalvar = await fetch('/api/agenda/demanda', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(dados)
+                                });
+                                
+                                const resultSalvar = await resSalvar.json();
+                                
+                                if (!resultSalvar.success && !resultSalvar.id) {
+                                    mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                                    return;
+                                }
+                                
+                                demandaIdRetornado = resultSalvar.id;
+                                idDemandaParaDiarias = demandaIdRetornado;
+                                
+                                fecharModal();
+                                
+                                if (respostaEmail) {
+                                    // ===== PASSO 2: Abrir modal de email =====
+                                    await abrirModalEmailDiarias(dados);
+                                } else {
+                                    // Usuário não quis enviar email - apenas recarregar
+                                    await carregarSemanas();
+                                    await carregarAgenda();
+                                    inicializarDestaqueLinha();
+                                }
+                            },
+                            '✈️ Solicitar Diárias?'
+                        );
+                        
+                        return; // Retorna para não executar o código abaixo
+                    }
+
                     // ========== NOVA DEMANDA - VERIFICAR LOCAÇÃO OU FORNECEDOR ==========
                     
                     if (dados.id_tipoveiculo) {
