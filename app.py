@@ -911,6 +911,20 @@ def listar_motoristas():
         cursor = mysql.connection.cursor()
         
         if nome:
+            # Criar mapeamento dos tipos para busca
+            tipo_busca = ''
+            nome_lower = nome.lower()
+            if 'admin' in nome_lower:
+                tipo_busca = '1'
+            elif 'desembargador' in nome_lower:
+                tipo_busca = '2'
+            elif 'atendimento' in nome_lower:
+                tipo_busca = '3'
+            elif 'condutores' in nome_lower:
+                tipo_busca = '4'
+            elif 'tercerizado' in nome_lower or 'terceriz' in nome_lower:
+                tipo_busca = '5'
+            
             query = """
             SELECT 
                 ID_MOTORISTA, CAD_MOTORISTA,
@@ -927,17 +941,12 @@ def listar_motoristas():
                 CAD_MOTORISTA LIKE %s OR
                 NM_MOTORISTA LIKE %s OR
                 SIGLA_SETOR LIKE %s OR
-                (ORDEM_LISTA = 1 AND 'Administrativo' LIKE %s) OR
-                (ORDEM_LISTA = 2 AND 'Motorista Desembargador' LIKE %s) OR
-                (ORDEM_LISTA = 3 AND 'Motorista Atendimento' LIKE %s) OR
-                (ORDEM_LISTA = 4 AND 'Cadastro de Condutores' LIKE %s) OR
-                (ORDEM_LISTA = 5 AND 'Tercerizado' LIKE %s)
+                ORDEM_LISTA = %s
             )
             ORDER BY NM_MOTORISTA
             """
             search_term = f'%{nome}%'
-            cursor.execute(query, (search_term, search_term, search_term, search_term, 
-                                   search_term, search_term, search_term, search_term, search_term))
+            cursor.execute(query, (search_term, search_term, search_term, search_term, tipo_busca if tipo_busca else '0'))
         else:
             query = """
             SELECT 
@@ -959,6 +968,7 @@ def listar_motoristas():
         cursor.close()
         return jsonify(motoristas)
     except Exception as e:
+        print(f"Erro ao listar motoristas: {str(e)}")  # Para debug
         return jsonify({'erro': str(e)}), 500
 
 
