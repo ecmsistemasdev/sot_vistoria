@@ -399,10 +399,34 @@
             // Carregar motoristas
             function carregarMotoristas(filtroNome = '') {
                 fetch(`/api/motoristas?nome=${encodeURIComponent(filtroNome)}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Erro HTTP: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        // Verificar se data é um array
+                        if (!Array.isArray(data)) {
+                            console.error('Resposta não é um array:', data);
+                            if (data.erro) {
+                                alert('Erro ao carregar motoristas: ' + data.erro);
+                            }
+                            return;
+                        }
+                        
                         const corpoTabela = $('#corpoTabela');
                         corpoTabela.empty();
+                        
+                        if (data.length === 0) {
+                            corpoTabela.append(`
+                                <tr>
+                                    <td colspan="7" class="text-center">Nenhum motorista encontrado</td>
+                                </tr>
+                            `);
+                            return;
+                        }
+                        
                         data.forEach(motorista => {
                             // Adiciona descrição do tipo de cadastro
                             const tipoCadastroDesc = tipoCadastroMap[motorista.tipo_cadastro] || 'Não definido';
@@ -440,7 +464,7 @@
                     })
                     .catch(error => {
                         console.error('Erro ao carregar motoristas:', error);
-                        alert('Erro ao carregar motoristas');
+                        alert('Erro ao carregar motoristas: ' + error.message);
                     });
             }
             carregarMotoristas();
@@ -696,6 +720,7 @@
     </script>
 </body>
 </html>
+
 
 
 
