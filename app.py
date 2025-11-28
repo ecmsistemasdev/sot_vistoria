@@ -2162,6 +2162,64 @@ def verificar_vinculo_fornecedor():
             cursor.close()
 
 
+@app.route('/api/verificar_vinculo_diarias', methods=['GET'])
+@login_required
+def verificar_vinculo_diarias():
+    """
+    Verifica se motorista é terceirizado e tem fornecedor com email cadastrado
+    Para solicitação de diárias de viagem
+    """
+    cursor = None
+    try:
+        id_motorista = request.args.get('id_motorista')
+        
+        if not id_motorista or int(id_motorista) <= 0:
+            return jsonify({'tem_vinculo': False}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Verificar se motorista é terceirizado e tem fornecedor com email
+        cursor.execute("""
+            SELECT 
+                m.ID_MOTORISTA,
+                m.NM_MOTORISTA,
+                m.TIPO_CADASTRO,
+                m.ID_FORNECEDOR,
+                f.EMAIL,
+                f.NM_FORNECEDOR
+            FROM TJ_MOTORISTA m
+            INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
+            WHERE m.ID_MOTORISTA = %s
+              AND m.TIPO_CADASTRO = 'Tercerizado'
+              AND m.ATIVO = 'S'
+              AND m.ID_FORNECEDOR IS NOT NULL
+              AND f.EMAIL IS NOT NULL
+              AND f.EMAIL != ''
+        """, (id_motorista,))
+        
+        resultado = cursor.fetchone()
+        
+        if resultado:
+            return jsonify({
+                'tem_vinculo': True,
+                'id_motorista': resultado[0],
+                'nome_motorista': resultado[1],
+                'tipo_cadastro': resultado[2],
+                'id_fornecedor': resultado[3],
+                'email_fornecedor': resultado[4],
+                'nome_fornecedor': resultado[5]
+            })
+        
+        return jsonify({'tem_vinculo': False})
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao verificar vínculo de diárias: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
 @app.route('/api/verificar_locacao_existente', methods=['GET'])
 @login_required
 def verificar_locacao_existente():
@@ -5325,7 +5383,10 @@ def criar_locacao_fornecedor():
 @login_required
 def enviar_email_fornecedor():
     """
-    Envia email de solicitação de locação para fornecedor
+    Envia email de solicitação para fornecedor
+    Aceita dois tipos:
+    1. Locação de veículo (com id_item_fornecedor)
+    2. Diárias de motorista (tipo_email='diarias')
     """
     cursor = None
     try:
@@ -5335,6 +5396,7 @@ def enviar_email_fornecedor():
         corpo_html = request.form.get('corpo_html')
         id_demanda = request.form.get('id_demanda')
         id_item_fornecedor = request.form.get('id_item_fornecedor')  # ID_ITEM da TJ_CONTROLE_LOCACAO_ITENS
+        tipo_email = request.form.get('tipo_email', 'locacao')  # NOVO: 'locacao' ou 'diarias'
         
         if not all([email_destinatario, assunto, corpo_html, id_demanda]):
             return jsonify({'erro': 'Dados incompletos'}), 400
@@ -5399,14 +5461,14 @@ def enviar_email_fornecedor():
         tz_manaus = timezone('America/Manaus')
         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
-        # Inserir registro de email (COM ID_ITEM)
+        # Inserir registro de email
         cursor.execute("""
             INSERT INTO EMAIL_OUTRAS_LOCACOES 
             (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (
             id_demanda, 
-            id_item_fornecedor or 0,  # ID_ITEM (novo campo)
+            id_item_fornecedor or 0,  # ID_ITEM (pode ser 0 para diárias)
             email_destinatario, 
             assunto, 
             corpo_texto, 
@@ -5415,15 +5477,15 @@ def enviar_email_fornecedor():
         
         id_email = cursor.lastrowid
         
-        # ===== CORREÇÃO: Atualizar campo SOLICITADO na demanda =====
+        # Atualizar SOLICITADO na demanda (para ambos os tipos)
         cursor.execute("""
             UPDATE ATENDIMENTO_DEMANDAS 
             SET SOLICITADO = 'S' 
             WHERE ID_AD = %s
         """, (id_demanda,))
         
-        # ===== NOVO: Atualizar FL_EMAIL na TJ_CONTROLE_LOCACAO_ITENS =====
-        if id_item_fornecedor:
+        # Se for locação de veículo, atualizar FL_EMAIL
+        if tipo_email == 'locacao' and id_item_fornecedor:
             cursor.execute("""
                 UPDATE TJ_CONTROLE_LOCACAO_ITENS 
                 SET FL_EMAIL = 'S' 
