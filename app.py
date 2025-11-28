@@ -927,7 +927,6 @@ def listar_motoristas():
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query, (f'%{nome}%',))
-			app.logger.info(f" Dados da SQL: {query}")
         else:
             app.logger.info(" ::::  Listando todos os motorista ::::  ")
 			query = """
@@ -944,7 +943,6 @@ def listar_motoristas():
             ORDER BY NM_MOTORISTA
             """
             cursor.execute(query)
-        	app.logger.info(f" Dados da SQL: {query}")
 			
         columns = ['id_motorista', 'cad_motorista', 'nm_motorista', 'tipo_cadastro', 'sigla_setor', 'file_pdf', 'ativo', 'dt_inicio', 'dt_fim']
         motoristas = [dict(zip(columns, row)) for row in cursor.fetchall()]
