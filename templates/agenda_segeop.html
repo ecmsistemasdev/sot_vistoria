@@ -1913,6 +1913,14 @@
         let dadosVinculoDiarias = null;
         let idDemandaParaDiarias = null;
         let temVinculoDiariasAtivo = false;
+        // ========== VARIÁVEIS GLOBAIS PARA CONTROLE DE FLUXO DE VÍNCULOS ==========
+        let fluxoVinculosAtivo = false;
+        let vinculosPendentes = {
+            diarias: false,
+            locacao: false
+        };
+        let dadosDemandaParaVinculos = null;
+        let demandaIdVinculos = null;
 
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
@@ -2673,10 +2681,14 @@
             document.getElementById('formSolicitacaoLocacao').reset();
             dadosVinculoLocacao = null;
             idDemandaParaLocacao = null;
+            
+            // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+            if (fluxoVinculosAtivo) {
+                // Continuar processando próximo vínculo
+                processarVinculosSequencial();
+            }
         }
 
-        // ========== FUNÇÃO: Fechar Modal de Sucesso ==========
-                    
         // ========== FUNÇÃO: Fechar Modal de Sucesso ==========
         async function fecharModalSucessoLocacao() {    
             document.getElementById('modalSucessoLocacao').style.display = 'none';
@@ -2686,16 +2698,16 @@
             fecharModal(); // Fecha o modal de demanda
             // ====== FIM ======
             
-            await carregarAgenda();
-        }            
-        
-        /*
-        async function fecharModalSucessoLocacao() {    
-            document.getElementById('modalSucessoLocacao').style.display = 'none';
-            await carregarAgenda();
+            // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+            if (fluxoVinculosAtivo) {
+                // Continuar processando próximo vínculo
+                await processarVinculosSequencial();
+            } else {
+                // Fluxo normal - recarregar
+                await carregarAgenda();
+            }
         }
-        */
-        
+
         // ========== FUNÇÃO CORRETA: confirmarSolicitacaoLocacao ==========
         async function confirmarSolicitacaoLocacao(event) {
             // Prevenir comportamento padrão
@@ -3370,10 +3382,16 @@
                 // Fechar modal
                 modal.style.display = 'none';
                 
-                // Recarregar seções
-                await carregarSemanas();
-                await carregarAgenda();
-                inicializarDestaqueLinha();
+                // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+                if (fluxoVinculosAtivo) {
+                    // Continuar processando próximo vínculo
+                    await processarVinculosSequencial();
+                } else {
+                    // Fluxo normal - recarregar seções
+                    await carregarSemanas();
+                    await carregarAgenda();
+                    inicializarDestaqueLinha();
+                }
                 return;
             }
             
@@ -3412,10 +3430,16 @@
                             // Fechar modal
                             modal.style.display = 'none';
                             
-                            // Recarregar seções
-                            await carregarSemanas();
-                            await carregarAgenda();
-                            inicializarDestaqueLinha();
+                            // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+                            if (fluxoVinculosAtivo) {
+                                // Continuar processando próximo vínculo
+                                await processarVinculosSequencial();
+                            } else {
+                                // Fluxo normal - recarregar seções
+                                await carregarSemanas();
+                                await carregarAgenda();
+                                inicializarDestaqueLinha();
+                            }
                         }
                         // Se não confirmar, não faz nada (modal continua aberto)
                     },
@@ -3432,9 +3456,16 @@
                 dadosVinculoDiarias = null;
                 temVinculoDiariasAtivo = false;
                 
-                await carregarSemanas();
-                await carregarAgenda();
-                inicializarDestaqueLinha();
+                // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+                if (fluxoVinculosAtivo) {
+                    // Continuar processando próximo vínculo
+                    await processarVinculosSequencial();
+                } else {
+                    // Fluxo normal - recarregar seções
+                    await carregarSemanas();
+                    await carregarAgenda();
+                    inicializarDestaqueLinha();
+                }
             }
         }
 
@@ -5506,6 +5537,62 @@
             }
         }
 
+        // ========== FUNÇÃO: Processar Vínculos em Sequência ==========
+        async function processarVinculosSequencial() {
+            // Se não tem mais vínculos pendentes, finalizar
+            if (!vinculosPendentes.diarias && !vinculosPendentes.locacao) {
+                // Limpar variáveis
+                fluxoVinculosAtivo = false;
+                dadosDemandaParaVinculos = null;
+                vinculosPendentes = { diarias: false, locacao: false };
+                
+                // Recarregar agenda
+                await carregarSemanas();
+                await carregarAgenda();
+                inicializarDestaqueLinha();
+                return;
+            }
+            
+            // ===== 1º PRIORIDADE: DIÁRIAS =====
+            if (vinculosPendentes.diarias) {
+                vinculosPendentes.diarias = false; // Marcar como processado
+                
+                mostrarConfirmacao(
+                    `📧 O motorista <strong>${dadosVinculoDiarias.nome_motorista}</strong> é terceirizado e necessita de solicitação de diárias.<br><br>Deseja enviar e-mail para a empresa solicitando pagamento das diárias?`,
+                    async function(respostaEmail) {
+                        if (respostaEmail) {
+                            // Abrir modal de email de diárias
+                            await abrirModalEmailDiarias(dadosDemandaParaVinculos);
+                            // Quando fechar o modal de email, processar próximo vínculo
+                        } else {
+                            // Usuário disse NÃO - processar próximo vínculo
+                            await processarVinculosSequencial();
+                        }
+                    },
+                    '✈️ Solicitar Diárias?'
+                );
+                return;
+            }
+            
+            // ===== 2º PRIORIDADE: LOCAÇÃO =====
+            if (vinculosPendentes.locacao) {
+                vinculosPendentes.locacao = false; // Marcar como processado
+                
+                mostrarModalConfirmacaoLocacao(async function(respostaLocacao) {
+                    if (respostaLocacao) {
+                        // Abrir formulário de locação
+                        await abrirFormularioLocacao(dadosDemandaParaVinculos);
+                        // Quando fechar o modal de locação, processar próximo vínculo (se houver)
+                    } else {
+                        // Usuário disse NÃO - processar próximo vínculo
+                        await processarVinculosSequencial();
+                    }
+                });
+                return;
+            }
+        }
+
+
         async function salvarDemanda() {
             const idAd = document.getElementById('idAd').value;
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
@@ -5618,152 +5705,78 @@
                     }
                     
                 } else {
-
                     // ========== NOVA DEMANDA ==========
                     
-                    // ===== PRIORIDADE 1: VERIFICAR DIÁRIAS DE MOTORISTA TERCEIRIZADO =====
-                    if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
-                        // Perguntar se quer enviar email de diárias
-                        mostrarConfirmacao(
-                            `📧 O motorista <strong>${dadosVinculoDiarias.nome_motorista}</strong> é terceirizado e necessita de solicitação de diárias.<br><br>Deseja enviar e-mail para a empresa solicitando pagamento das diárias?`,
-                            async function(respostaEmail) {
-                                // ===== PASSO 1: Salvar demanda PRIMEIRO =====
-                                const resSalvar = await fetch('/api/agenda/demanda', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(dados)
-                                });
-                                
-                                const resultSalvar = await resSalvar.json();
-                                
-                                if (!resultSalvar.success && !resultSalvar.id) {
-                                    mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
-                                    return;
-                                }
-                                
-                                demandaIdRetornado = resultSalvar.id;
-                                idDemandaParaDiarias = demandaIdRetornado;
-                                
-                                fecharModal();
-                                
-                                if (respostaEmail) {
-                                    // ===== PASSO 2: Abrir modal de email =====
-                                    await abrirModalEmailDiarias(dados);
-                                } else {
-                                    // Usuário não quis enviar email - apenas recarregar
-                                    await carregarSemanas();
-                                    await carregarAgenda();
-                                    inicializarDestaqueLinha();
-                                }
-                            },
-                            '✈️ Solicitar Diárias?'
-                        );
-                        
-                        return; // Retorna para não executar o código abaixo
-                    }
-
-                    // ========== NOVA DEMANDA - VERIFICAR LOCAÇÃO OU FORNECEDOR ==========
+                    // ===== SALVAR DEMANDA PRIMEIRO =====
+                    const resSalvar = await fetch('/api/agenda/demanda', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dados)
+                    });
                     
-                    if (dados.id_tipoveiculo) {
+                    const resultSalvar = await resSalvar.json();
+                    
+                    if (!resultSalvar.success && !resultSalvar.id) {
+                        mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
+                        return;
+                    }
+                    
+                    demandaIdVinculos = resultSalvar.id;
+                    dadosDemandaParaVinculos = dados;
+                    
+                    // Fechar modal principal
+                    fecharModal();
+                    
+                    // ===== VERIFICAR TODOS OS VÍNCULOS =====
+                    let temDiarias = false;
+                    let temLocacao = false;
+                    
+                    // 1. Verificar Diárias de Motorista Terceirizado
+                    if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
+                        temDiarias = true;
+                        idDemandaParaDiarias = demandaIdVinculos;
+                    }
+                    
+                    // 2. Verificar Locação de Veículo
+                    if (dados.id_tipoveiculo && dados.id_motorista && parseInt(dados.id_motorista) > 0) {
                         try {
-                            // ========== VERIFICAR LOCAÇÃO EXISTENTE (PRIORIDADE) ==========
-                            const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista || 0}`;
+                            const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista}`;
                             const resVerificarLocacao = await fetch(urlVerificarLocacao);
                             const resultadoLocacao = await resVerificarLocacao.json();
                             
                             if (resultadoLocacao.tem_vinculo) {
-                                // TEM VÍNCULO COM LOCAÇÃO - USA FLUXO EXISTENTE
+                                temLocacao = true;
                                 dadosVinculoLocacao = resultadoLocacao;
-                                
-                                // Perguntar se quer solicitar locação ANTES de salvar
-                                mostrarModalConfirmacaoLocacao(async function(respostaLocacao) {
-                                    if (respostaLocacao) {
-                                        // Usuário quer solicitar locação - salvar demanda primeiro
-                                        const resSalvar = await fetch('/api/agenda/demanda', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify(dados)
-                                        });
-                                        
-                                        const resultSalvar = await resSalvar.json();
-                                        
-                                        if (resultSalvar.success || resultSalvar.id) {
-                                            demandaIdRetornado = resultSalvar.id;
-                                            idDemandaParaLocacao = demandaIdRetornado;
-                                            
-                                            fecharModal();
-                                            await carregarSemanas();
-                                            await carregarAgenda();
-                                            inicializarDestaqueLinha();
-                                            
-                                            await abrirFormularioLocacao(dados);
-                                        } else {
-                                            mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
-                                        }
-                                        
-                                    } else {
-                                        const resSalvar = await fetch('/api/agenda/demanda', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify(dados)
-                                        });
-                                        
-                                        const resultSalvar = await resSalvar.json();
-                                        
-                                        if (resultSalvar.success || resultSalvar.id) {
-                                            fecharModal();
-                                            await carregarSemanas();
-                                            await carregarAgenda();
-                                            inicializarDestaqueLinha();
-                                        } else {
-                                            mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
-                                        }
-                                    }
-                                });
-                                
-                                return; // Retorna para não executar o código abaixo
+                                idDemandaParaLocacao = demandaIdVinculos;
                             }
-                            
-                            // ========== NÃO TEM LOCAÇÃO - VERIFICAR FORNECEDOR ==========
+                        } catch (error) {
+                            console.error('Erro ao verificar locação:', error);
+                        }
+                    }
+                    
+                    // 3. Verificar Fornecedor (se não tem locação)
+                    if (!temLocacao && dados.id_tipoveiculo) {
+                        try {
                             const urlVerificarFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${dados.id_tipoveiculo}`;
                             const resVerificarFornecedor = await fetch(urlVerificarFornecedor);
                             const resultadoFornecedor = await resVerificarFornecedor.json();
                             
                             if (resultadoFornecedor.tem_vinculo) {
-                                // TEM VÍNCULO COM FORNECEDOR
                                 dadosVinculoFornecedor = resultadoFornecedor;
+                                idDemandaParaEmailFornecedor = demandaIdVinculos;
                                 
+                                // Para fornecedor, perguntar imediatamente
                                 mostrarConfirmacao(
                                     '📧 Esta demanda possui vínculo com locação.<br><br>Deseja enviar e-mail de solicitação desta locação?',
                                     async function(respostaEmail) {
-                                        // ===== PASSO 1: Salvar demanda PRIMEIRO =====
-                                        const resSalvar = await fetch('/api/agenda/demanda', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify(dados)
-                                        });
-                                        
-                                        const resultSalvar = await resSalvar.json();
-                                        
-                                        if (!resultSalvar.success && !resultSalvar.id) {
-                                            mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
-                                            return;
-                                        }
-                                        
-                                        demandaIdRetornado = resultSalvar.id;
-                                        idDemandaParaEmailFornecedor = demandaIdRetornado;
-                                        
-                                        fecharModal();
-                                        
                                         if (respostaEmail) {
-                                            // ===== PASSO 2: Criar registro de locação =====
                                             mostrarSpinner();
                                             
                                             try {
                                                 const resLocacao = await fetch('/api/criar_locacao_fornecedor', {
                                                     method: 'POST',
                                                     headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ id_demanda: demandaIdRetornado })
+                                                    body: JSON.stringify({ id_demanda: demandaIdVinculos })
                                                 });
                                                 
                                                 const resultLocacao = await resLocacao.json();
@@ -5771,10 +5784,7 @@
                                                 esconderSpinner();
                                                 
                                                 if (resultLocacao.success && resultLocacao.id_item) {
-                                                    // Guardar ID_ITEM para uso no modal de email
                                                     idItemLocacaoFornecedor = resultLocacao.id_item;
-                                                    
-                                                    // ===== PASSO 3: Abrir modal de email =====
                                                     await abrirModalEmailFornecedor(dados);
                                                 } else {
                                                     mostrarAlerta(
@@ -5799,7 +5809,6 @@
                                                 inicializarDestaqueLinha();
                                             }
                                         } else {
-                                            // Usuário não quis enviar email - apenas recarregar
                                             await carregarSemanas();
                                             await carregarAgenda();
                                             inicializarDestaqueLinha();
@@ -5807,31 +5816,28 @@
                                     },
                                     '📧 Enviar E-mail?'
                                 );
-                                
-                                return; // Retorna para não executar o código abaixo
+                                return;
                             }
-                            
-                        } catch (errorVerificar) {
-                            console.error('Erro ao verificar vínculos:', errorVerificar);
+                        } catch (errorFornecedor) {
+                            console.error('Erro ao verificar fornecedor:', errorFornecedor);
                         }
                     }
                     
-                    // ========== SEM VÍNCULOS - SALVAR NORMALMENTE ==========
-                    res = await fetch('/api/agenda/demanda', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(dados)
-                    });
-                    
-                    const result = await res.json();
-                    
-                    if (result.success || result.id) {
-                        fecharModal();
+                    // ===== PROCESSAR VÍNCULOS EM SEQUÊNCIA =====
+                    if (temDiarias || temLocacao) {
+                        fluxoVinculosAtivo = true;
+                        vinculosPendentes = {
+                            diarias: temDiarias,
+                            locacao: temLocacao
+                        };
+                        
+                        // Iniciar processamento sequencial
+                        await processarVinculosSequencial();
+                    } else {
+                        // Sem vínculos - apenas recarregar
                         await carregarSemanas();
                         await carregarAgenda();
                         inicializarDestaqueLinha();
-                    } else {
-                        mostrarAlerta('Erro ao salvar: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                     }
                 }
                 
