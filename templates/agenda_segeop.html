@@ -1984,27 +1984,28 @@
             const dataFim = new Date(dtFim + 'T00:00:00');
             
             if (dtInicio === dtFim) {
-                // Mesmo dia = apenas SEM PERNOITE
+                // Mesmo dia = apenas SEM PERNOITE = 0.5 diária
                 return {
                     com_pernoite: 0,
-                    sem_pernoite: 1,
-                    total_dias: 1
+                    sem_pernoite: 0.5,
+                    total_diarias: 0.5
                 };
             }
             
             // Calcular diferença em dias
             const diffTime = dataFim.getTime() - dataInicio.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 porque conta início e fim
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
             
-            // Total - 1 = COM PERNOITE
-            // Último dia = SEM PERNOITE
+            // Total de dias - 1 = COM PERNOITE (1.0 cada)
+            // Último dia = SEM PERNOITE (0.5)
             const comPernoite = diffDays - 1;
-            const semPernoite = 1;
+            const semPernoite = 0.5;
+            const totalDiarias = comPernoite + semPernoite;
             
             return {
                 com_pernoite: comPernoite,
                 sem_pernoite: semPernoite,
-                total_dias: diffDays
+                total_diarias: totalDiarias
             };
         }
 
@@ -2054,22 +2055,22 @@
                 // Preencher campos do modal
                 document.getElementById('email_id_demanda').value = idDemandaParaDiarias || '';
                 document.getElementById('email_destinatario').value = dadosVinculoDiarias.email_fornecedor;
-                document.getElementById('email_iditem').value = ''; // Não usado para diárias
+                document.getElementById('email_iditem').value = ''; // Será preenchido após salvar diária
                 
                 // Assunto
                 const assunto = `TJRO - Viagem motorista ${nomeMotorista} ${periodoAssunto}`;
                 document.getElementById('email_assunto').value = assunto;
                 
-                // Montar texto das diárias
+                // ===== MODIFICAÇÃO: MONTAR TEXTO DAS DIÁRIAS COM NOVA LÓGICA =====
                 let textoDiarias = '';
                 
                 if (diarias.com_pernoite > 0) {
                     const quantidadeExtenso = converterNumeroExtenso(diarias.com_pernoite);
-                    textoDiarias += `- ${quantidadeExtenso} (${String(diarias.com_pernoite).padStart(2, '0')}) diária${diarias.com_pernoite > 1 ? 's' : ''} COM PERNOITE; e<br>`;
+                    const numeroFormatado = diarias.com_pernoite.toString().padStart(2, '0');
+                    textoDiarias += `- ${quantidadeExtenso} (${numeroFormatado}) diária${diarias.com_pernoite > 1 ? 's' : ''} <strong>INTEIRA${diarias.com_pernoite > 1 ? 'S' : ''}</strong> (COM PERNOITE); e<br>`;
                 }
                 
-                const quantidadeSemPernoite = converterNumeroExtenso(diarias.sem_pernoite);
-                textoDiarias += `- ${quantidadeSemPernoite} (${String(diarias.sem_pernoite).padStart(2, '0')}) diária${diarias.sem_pernoite > 1 ? 's' : ''} SEM PERNOITE.`;
+                textoDiarias += `- Uma (01) <strong>MEIA DIÁRIA</strong> (SEM PERNOITE).`;
                 
                 // Corpo do email
                 const corpoHtml = `
@@ -2915,6 +2916,144 @@
             }
         }
 
+        // ========== FUNÇÃO: Verificar e Exibir Botão/Status de Diária na Edição ==========
+        async function verificarBotaoDiariaEdicao(idAd) {
+            try {
+                const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
+                if (!demanda) return;
+                
+                // Verificar se é tipo viagem (ID=2) e tem motorista
+                if (demanda.id_tipodemanda !== 2 || !demanda.id_motorista || parseInt(demanda.id_motorista) <= 0) {
+                    return;
+                }
+                
+                // Verificar se tem vínculo de diárias
+                const urlVinculo = `/api/verificar_vinculo_diarias?id_motorista=${demanda.id_motorista}`;
+                const resVinculo = await fetch(urlVinculo);
+                const resultVinculo = await resVinculo.json();
+                
+                if (!resultVinculo.tem_vinculo) {
+                    return;
+                }
+                
+                // Verificar se já tem registro de diária salvo
+                const urlDiaria = `/api/verificar_diaria_solicitada?id_ad=${idAd}`;
+                const resDiaria = await fetch(urlDiaria);
+                const resultDiaria = await resDiaria.json();
+                
+                const modalFooter = document.querySelector('#modal .modal-footer');
+                
+                // Remover elementos anteriores se existirem
+                const elementoExistente = document.getElementById('areaDiariaStatus');
+                if (elementoExistente) {
+                    elementoExistente.remove();
+                }
+                
+                // Criar novo elemento
+                const divStatus = document.createElement('div');
+                divStatus.id = 'areaDiariaStatus';
+                divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
+                
+                if (resultDiaria.tem_diaria && resultDiaria.email_enviado) {
+                    // ===== JÁ TEM DIÁRIA E EMAIL ENVIADO =====
+                    divStatus.innerHTML = `
+                        <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
+                            ✅ Diária solicitada
+                        </div>
+                    `;
+                    
+                } else if (resultDiaria.tem_diaria && !resultDiaria.email_enviado) {
+                    // ===== TEM DIÁRIA MAS EMAIL NÃO ENVIADO =====
+                    divStatus.innerHTML = `
+                        <button type="button" class="btn btn-primary" id="btnSolicitarDiariaEdicao" style="background: #17a2b8; border-color: #17a2b8;">
+                            ✈️ Solicitar Diária
+                        </button>
+                    `;
+                    
+                    // Guardar dados do vínculo
+                    dadosVinculoDiarias = resultVinculo;
+                    idDemandaParaDiarias = idAd;
+                    
+                    // Event listener no botão
+                    setTimeout(() => {
+                        const btnSolicitar = document.getElementById('btnSolicitarDiariaEdicao');
+                        if (btnSolicitar) {
+                            btnSolicitar.addEventListener('click', async function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                
+                                // Guardar IDITEM da diária para envio do email
+                                document.getElementById('email_iditem').value = resultDiaria.iditem;
+                                
+                                // Abrir modal de email
+                                await abrirModalEmailDiarias(demanda);
+                            });
+                        }
+                    }, 100);
+                    
+                } else {
+                    // ===== NÃO TEM DIÁRIA SALVA - CRIAR E MOSTRAR BOTÃO =====
+                    // Calcular diárias
+                    const diarias = calcularDiarias(demanda.dt_inicio, demanda.dt_fim);
+                    
+                    // Salvar registro de diária
+                    try {
+                        const resSalvar = await fetch('/api/salvar_diaria_terceirizado', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                id_ad: idAd,
+                                id_fornecedor: resultVinculo.id_fornecedor,
+                                id_motorista: demanda.id_motorista,
+                                qt_diarias: diarias.total_diarias,
+                                vl_diaria: resultVinculo.vl_diaria,
+                                vl_total: diarias.total_diarias * resultVinculo.vl_diaria
+                            })
+                        });
+                        
+                        const resultSalvar = await resSalvar.json();
+                        
+                        if (resultSalvar.success) {
+                            divStatus.innerHTML = `
+                                <button type="button" class="btn btn-primary" id="btnSolicitarDiariaEdicao" style="background: #17a2b8; border-color: #17a2b8;">
+                                    ✈️ Solicitar Diária
+                                </button>
+                            `;
+                            
+                            dadosVinculoDiarias = resultVinculo;
+                            idDemandaParaDiarias = idAd;
+                            
+                            setTimeout(() => {
+                                const btnSolicitar = document.getElementById('btnSolicitarDiariaEdicao');
+                                if (btnSolicitar) {
+                                    btnSolicitar.addEventListener('click', async function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        
+                                        document.getElementById('email_iditem').value = resultSalvar.iditem;
+                                        await abrirModalEmailDiarias(demanda);
+                                    });
+                                }
+                            }, 100);
+                        }
+                        
+                    } catch (errorSalvar) {
+                        console.error('Erro ao salvar diária na edição:', errorSalvar);
+                    }
+                }
+                
+                // Inserir antes dos botões de ação
+                const btnCancelar = modalFooter.querySelector('.btn-secondary');
+                if (btnCancelar) {
+                    modalFooter.insertBefore(divStatus, btnCancelar);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao verificar botão de diária:', error);
+            }
+        }       
+        
+        
         // ========== FUNÇÃO: Mostrar Modal de Confirmação Personalizado ==========
         function mostrarModalConfirmacaoLocacao(callback) {
             callbackConfirmacaoLocacao = callback;
@@ -5436,6 +5575,7 @@
                 }
                 
                 await verificarBotaoLocacaoEdicao(idAd);
+                await verificarBotaoDiariaEdicao(idAd);
                 
                 document.getElementById('modal').style.display = 'block';
 
@@ -5558,7 +5698,7 @@
                 vinculosPendentes.diarias = false; // Marcar como processado
                 
                 mostrarConfirmacao(
-                    `📧 O motorista <strong>${dadosVinculoDiarias.nome_motorista}</strong> é terceirizado e necessita de solicitação de diárias.<br><br>Deseja enviar e-mail para a empresa solicitando pagamento das diárias?`,
+                    `📧 O motorista <strong>${dadosVinculoDiarias.nome_motorista}</strong> é terceirizado.<br><br>O registro de diária já foi salvo automaticamente.<br><br>Deseja enviar e-mail para a empresa solicitando pagamento das diárias?`,
                     async function(respostaEmail) {
                         if (respostaEmail) {
                             // Abrir modal de email de diárias
@@ -5730,11 +5870,40 @@
                     // ===== VERIFICAR TODOS OS VÍNCULOS =====
                     let temDiarias = false;
                     let temLocacao = false;
-                    
+
                     // 1. Verificar Diárias de Motorista Terceirizado
                     if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
-                        temDiarias = true;
-                        idDemandaParaDiarias = demandaIdVinculos;
+                        // ===== NOVO: SALVAR REGISTRO DE DIÁRIA ANTES DE PERGUNTAR =====
+                        try {
+                            const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
+                            
+                            const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    id_ad: demandaIdVinculos,
+                                    id_fornecedor: dadosVinculoDiarias.id_fornecedor,
+                                    id_motorista: dados.id_motorista,
+                                    qt_diarias: diarias.total_diarias,
+                                    vl_diaria: dadosVinculoDiarias.vl_diaria,
+                                    vl_total: diarias.total_diarias * dadosVinculoDiarias.vl_diaria
+                                })
+                            });
+                            
+                            const resultSalvarDiaria = await resSalvarDiaria.json();
+                            
+                            if (resultSalvarDiaria.success) {
+                                temDiarias = true;
+                                idDemandaParaDiarias = demandaIdVinculos;
+                                // Guardar IDITEM para uso posterior no email
+                                document.getElementById('email_iditem').value = resultSalvarDiaria.iditem;
+                            } else {
+                                console.error('Erro ao salvar diária:', resultSalvarDiaria.erro);
+                            }
+                            
+                        } catch (errorDiaria) {
+                            console.error('Erro ao salvar diária:', errorDiaria);
+                        }
                     }
                     
                     // 2. Verificar Locação de Veículo
@@ -5904,10 +6073,20 @@
                                                 throw new Error(errorData.erro || 'Erro ao excluir locação vinculada');
                                             }
                                             
+                                            // ===== NOVO: EXCLUIR DIÁRIA SE EXISTIR =====
+                                            try {
+                                                await fetch(`/api/excluir_diaria_terceirizado/${idAd}`, {
+                                                    method: 'DELETE'
+                                                });
+                                            } catch (errorDiaria) {
+                                                console.log('Nenhuma diária para excluir ou erro:', errorDiaria);
+                                            }
+
+                                            // Excluir demanda
                                             const res = await fetch(`/api/agenda/demanda/${idAd}`, {
                                                 method: 'DELETE'
                                             });
-                                            
+
                                             const result = await res.json();
                                             
                                             esconderSpinner();
