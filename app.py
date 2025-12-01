@@ -4978,7 +4978,7 @@ def atualizar_demanda(id_ad):
         data = request.get_json()
         cursor = mysql.connection.cursor()
 
-		# Obter ID do usuário da sessão
+        # Obter ID do usuário da sessão
         usuario = session.get('usuario_login')
         
         # Converter horário para formato TIME ou NULL
@@ -5016,49 +5016,48 @@ def atualizar_demanda(id_ad):
             id_ad
         ))
 
-		# ===== NOVO: VERIFICAR SE PRECISA EXCLUIR DIÁRIA =====
-		# Se demanda tinha diária mas agora não tem mais vínculo, excluir
-		cursor.execute("""
-		    SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
-		""", (id_ad,))
-		
-		diaria_existente = cursor.fetchone()
-		
-		if diaria_existente:
-		    # Verificar se ainda tem vínculo válido
-		    id_tipo_demanda_novo = data.get('id_tipodemanda')
-		    id_motorista_novo = data.get('id_motorista')
-		    
-		    precisa_excluir = False
-		    
-		    # Se mudou tipo de demanda e não é mais viagem (ID=2)
-		    if id_tipo_demanda_novo != 2:
-		        precisa_excluir = True
-		    
-		    # Se mudou motorista, verificar se novo motorista é terceirizado
-		    if id_motorista_novo and int(id_motorista_novo) > 0:
-		        cursor.execute("""
-		            SELECT m.ID_MOTORISTA
-		            FROM TJ_MOTORISTA m
-		            INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
-		            WHERE m.ID_MOTORISTA = %s
-		              AND m.TIPO_CADASTRO = 'Tercerizado'
-		              AND m.ATIVO = 'S'
-		              AND f.VL_DIARIA IS NOT NULL
-		              AND f.VL_DIARIA > 0
-		        """, (id_motorista_novo,))
-		        
-		        if not cursor.fetchone():
-		            precisa_excluir = True
-		    else:
-		        precisa_excluir = True
-		    
-		    if precisa_excluir:
-		        cursor.execute("""
-		            DELETE FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
-		        """, (id_ad,))
-				
-		
+        # ===== NOVO: VERIFICAR SE PRECISA EXCLUIR DIÁRIA =====
+        # Se demanda tinha diária mas agora não tem mais vínculo, excluir
+        cursor.execute("""
+            SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
+        """, (id_ad,))
+        
+        diaria_existente = cursor.fetchone()
+        
+        if diaria_existente:
+            # Verificar se ainda tem vínculo válido
+            id_tipo_demanda_novo = data.get('id_tipodemanda')
+            id_motorista_novo = data.get('id_motorista')
+            
+            precisa_excluir = False
+            
+            # Se mudou tipo de demanda e não é mais viagem (ID=2)
+            if id_tipo_demanda_novo != 2:
+                precisa_excluir = True
+            
+            # Se mudou motorista, verificar se novo motorista é terceirizado
+            if id_motorista_novo and int(id_motorista_novo) > 0:
+                cursor.execute("""
+                    SELECT m.ID_MOTORISTA
+                    FROM TJ_MOTORISTA m
+                    INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
+                    WHERE m.ID_MOTORISTA = %s
+                      AND m.TIPO_CADASTRO = 'Tercerizado'
+                      AND m.ATIVO = 'S'
+                      AND f.VL_DIARIA IS NOT NULL
+                      AND f.VL_DIARIA > 0
+                """, (id_motorista_novo,))
+                
+                if not cursor.fetchone():
+                    precisa_excluir = True
+            else:
+                precisa_excluir = True
+            
+            if precisa_excluir:
+                cursor.execute("""
+                    DELETE FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
+                """, (id_ad,))
+        
         mysql.connection.commit()
         cursor.close()
         
@@ -5069,6 +5068,7 @@ def atualizar_demanda(id_ad):
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+		
 		
 # API: Excluir demanda
 @app.route('/api/agenda/demanda/<int:id_ad>', methods=['DELETE'])
