@@ -2178,7 +2178,7 @@ def verificar_vinculo_diarias():
         
         cursor = mysql.connection.cursor()
         
-        # Verificar se motorista é terceirizado e tem fornecedor com email
+        # Verificar se motorista é terceirizado e tem fornecedor com email + VL_DIARIA
         cursor.execute("""
             SELECT 
                 m.ID_MOTORISTA,
@@ -2186,7 +2186,8 @@ def verificar_vinculo_diarias():
                 m.TIPO_CADASTRO,
                 m.ID_FORNECEDOR,
                 f.EMAIL,
-                f.NM_FORNECEDOR
+                f.NM_FORNECEDOR,
+                f.VL_DIARIA
             FROM TJ_MOTORISTA m
             INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
             WHERE m.ID_MOTORISTA = %s
@@ -2195,6 +2196,8 @@ def verificar_vinculo_diarias():
               AND m.ID_FORNECEDOR IS NOT NULL
               AND f.EMAIL IS NOT NULL
               AND f.EMAIL != ''
+              AND f.VL_DIARIA IS NOT NULL
+              AND f.VL_DIARIA > 0
         """, (id_motorista,))
         
         resultado = cursor.fetchone()
@@ -2207,7 +2210,8 @@ def verificar_vinculo_diarias():
                 'tipo_cadastro': resultado[2],
                 'id_fornecedor': resultado[3],
                 'email_fornecedor': resultado[4],
-                'nome_fornecedor': resultado[5]
+                'nome_fornecedor': resultado[5],
+                'vl_diaria': float(resultado[6])
             })
         
         return jsonify({'tem_vinculo': False})
@@ -2268,6 +2272,154 @@ def obter_usuario_logado():
         'nome': session.get('usuario_nome', 'Administrador'),
         'login': session.get('usuario_login', '')
     })
+
+
+@app.route('/api/salvar_diaria_terceirizado', methods=['POST'])
+@login_required
+def salvar_diaria_terceirizado():
+    """
+    Salva ou atualiza registro de diária de motorista terceirizado
+    """
+    cursor = None
+    try:
+        data = request.get_json()
+        
+        id_ad = data.get('id_ad')
+        id_fornecedor = data.get('id_fornecedor')
+        id_motorista = data.get('id_motorista')
+        qt_diarias = data.get('qt_diarias')
+        vl_diaria = data.get('vl_diaria')
+        vl_total = data.get('vl_total')
+        
+        if not all([id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total]):
+            return jsonify({'erro': 'Dados incompletos'}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Verificar se já existe registro para esse ID_AD
+        cursor.execute("""
+            SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
+        """, (id_ad,))
+        
+        registro_existente = cursor.fetchone()
+        
+        if registro_existente:
+            # ATUALIZAR registro existente
+            cursor.execute("""
+                UPDATE DIARIAS_TERCEIRIZADOS
+                SET ID_FORNECEDOR = %s,
+                    ID_MOTORISTA = %s,
+                    QT_DIARIAS = %s,
+                    VL_DIARIA = %s,
+                    VL_TOTAL = %s
+                WHERE ID_AD = %s
+            """, (id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total, id_ad))
+            
+            iditem = registro_existente[0]
+        else:
+            # INSERIR novo registro
+            cursor.execute("""
+                INSERT INTO DIARIAS_TERCEIRIZADOS
+                (ID_AD, ID_FORNECEDOR, ID_MOTORISTA, QT_DIARIAS, VL_DIARIA, VL_TOTAL, FL_EMAIL)
+                VALUES (%s, %s, %s, %s, %s, %s, 'N')
+            """, (id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total))
+            
+            iditem = cursor.lastrowid
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            'success': True,
+            'iditem': iditem,
+            'mensagem': 'Diária salva com sucesso'
+        })
+        
+    except Exception as e:
+        if cursor:
+            mysql.connection.rollback()
+        app.logger.error(f"Erro ao salvar diária: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+@app.route('/api/excluir_diaria_terceirizado/<int:id_ad>', methods=['DELETE'])
+@login_required
+def excluir_diaria_terceirizado(id_ad):
+    """
+    Exclui registro de diária quando demanda muda ou é excluída
+    """
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # Excluir registro de diária
+        cursor.execute("""
+            DELETE FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
+        """, (id_ad,))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            'success': True,
+            'mensagem': 'Diária excluída com sucesso'
+        })
+        
+    except Exception as e:
+        if cursor:
+            mysql.connection.rollback()
+        app.logger.error(f"Erro ao excluir diária: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+@app.route('/api/verificar_diaria_solicitada', methods=['GET'])
+@login_required
+def verificar_diaria_solicitada():
+    """
+    Verifica se já existe registro de diária e se email já foi enviado
+    """
+    cursor = None
+    try:
+        id_ad = request.args.get('id_ad')
+        
+        if not id_ad:
+            return jsonify({'tem_diaria': False}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                IDITEM,
+                FL_EMAIL,
+                QT_DIARIAS,
+                VL_DIARIA,
+                VL_TOTAL
+            FROM DIARIAS_TERCEIRIZADOS
+            WHERE ID_AD = %s
+        """, (id_ad,))
+        
+        resultado = cursor.fetchone()
+        
+        if resultado:
+            return jsonify({
+                'tem_diaria': True,
+                'iditem': resultado[0],
+                'email_enviado': resultado[1] == 'S',
+                'qt_diarias': float(resultado[2]),
+                'vl_diaria': float(resultado[3]),
+                'vl_total': float(resultado[4])
+            })
+        
+        return jsonify({'tem_diaria': False})
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao verificar diária solicitada: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 #####....#####.....
     
@@ -5461,36 +5613,63 @@ def enviar_email_fornecedor():
         tz_manaus = timezone('America/Manaus')
         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
-        # Inserir registro de email
-        cursor.execute("""
-            INSERT INTO EMAIL_OUTRAS_LOCACOES 
-            (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (
-            id_demanda, 
-            id_item_fornecedor or 0,  # ID_ITEM (pode ser 0 para diárias)
-            email_destinatario, 
-            assunto, 
-            corpo_texto, 
-            data_hora_atual
-        ))
-        
-        id_email = cursor.lastrowid
-        
-        # Atualizar SOLICITADO na demanda (para ambos os tipos)
-        cursor.execute("""
-            UPDATE ATENDIMENTO_DEMANDAS 
-            SET SOLICITADO = 'S' 
-            WHERE ID_AD = %s
-        """, (id_demanda,))
-        
-        # Se for locação de veículo, atualizar FL_EMAIL
-        if tipo_email == 'locacao' and id_item_fornecedor:
+        # ===== MODIFICAÇÃO: VERIFICAR TIPO DE EMAIL =====
+        if tipo_email == 'diarias':
+            # Inserir em EMAIL_DIARIAS
             cursor.execute("""
-                UPDATE TJ_CONTROLE_LOCACAO_ITENS 
-                SET FL_EMAIL = 'S' 
-                WHERE ID_ITEM = %s
-            """, (id_item_fornecedor,))
+                INSERT INTO EMAIL_DIARIAS 
+                (IDITEM, ID_AD, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                id_item_fornecedor or 0,
+                id_demanda, 
+                email_destinatario, 
+                assunto, 
+                corpo_texto, 
+                data_hora_atual
+            ))
+            
+            id_email = cursor.lastrowid
+            
+            # Atualizar FL_EMAIL na DIARIAS_TERCEIRIZADOS
+            if id_item_fornecedor and int(id_item_fornecedor) > 0:
+                cursor.execute("""
+                    UPDATE DIARIAS_TERCEIRIZADOS 
+                    SET FL_EMAIL = 'S' 
+                    WHERE IDITEM = %s
+                """, (id_item_fornecedor,))
+        
+        else:
+            # Inserir em EMAIL_OUTRAS_LOCACOES (lógica original para locação)
+            cursor.execute("""
+                INSERT INTO EMAIL_OUTRAS_LOCACOES 
+                (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                id_demanda, 
+                id_item_fornecedor or 0,
+                email_destinatario, 
+                assunto, 
+                corpo_texto, 
+                data_hora_atual
+            ))
+            
+            id_email = cursor.lastrowid
+            
+            # Atualizar SOLICITADO na demanda (apenas para locação)
+            cursor.execute("""
+                UPDATE ATENDIMENTO_DEMANDAS 
+                SET SOLICITADO = 'S' 
+                WHERE ID_AD = %s
+            """, (id_demanda,))
+            
+            # Atualizar FL_EMAIL na locação
+            if id_item_fornecedor:
+                cursor.execute("""
+                    UPDATE TJ_CONTROLE_LOCACAO_ITENS 
+                    SET FL_EMAIL = 'S' 
+                    WHERE ID_ITEM = %s
+                """, (id_item_fornecedor,))
         
         mysql.connection.commit()
         
