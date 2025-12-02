@@ -5590,15 +5590,15 @@ def enviar_email_fornecedor():
         assunto = request.form.get('assunto')
         corpo_html = request.form.get('corpo_html')
         id_demanda = request.form.get('id_demanda')
-        id_item_fornecedor = request.form.get('id_item_fornecedor')  # ID_ITEM da TJ_CONTROLE_LOCACAO_ITENS
-        tipo_email = request.form.get('tipo_email', 'locacao')  # NOVO: 'locacao' ou 'diarias'
-		
-		# ===== LOG DE DEBUG =====
-		app.logger.info(f"=== ENVIO DE EMAIL ===")
-		app.logger.info(f"Tipo: {tipo_email}")
-		app.logger.info(f"ID_AD: {id_demanda}")
-		app.logger.info(f"ID_ITEM Recebido: {id_item_fornecedor}")
-		app.logger.info(f"Destinatário: {email_destinatario}")
+        id_item_fornecedor = request.form.get('id_item_fornecedor')
+        tipo_email = request.form.get('tipo_email', 'locacao')
+        
+        # ===== LOG DE DEBUG =====
+        app.logger.info(f"=== ENVIO DE EMAIL ===")
+        app.logger.info(f"Tipo: {tipo_email}")
+        app.logger.info(f"ID_AD: {id_demanda}")
+        app.logger.info(f"ID_ITEM Recebido: {id_item_fornecedor}")
+        app.logger.info(f"Destinatário: {email_destinatario}")
         
         if not all([email_destinatario, assunto, corpo_html, id_demanda]):
             return jsonify({'erro': 'Dados incompletos'}), 400
@@ -5664,37 +5664,37 @@ def enviar_email_fornecedor():
         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
         # ===== MODIFICAÇÃO: VERIFICAR TIPO DE EMAIL =====
-		if tipo_email == 'diarias':
-		    # CORREÇÃO: Converter id_item_fornecedor para int
-		    iditem_diaria = int(id_item_fornecedor) if id_item_fornecedor and id_item_fornecedor != '0' else 0
-		    
-		    # Inserir em EMAIL_DIARIAS
-		    cursor.execute("""
-		        INSERT INTO EMAIL_DIARIAS 
-		        (IDITEM, ID_AD, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
-		        VALUES (%s, %s, %s, %s, %s, %s)
-		    """, (
-		        iditem_diaria,  # CORREÇÃO: Usar variável convertida
-		        id_demanda, 
-		        email_destinatario, 
-		        assunto, 
-		        corpo_texto, 
-		        data_hora_atual
-		    ))
-		    
-		    id_email = cursor.lastrowid
-		    
-		    # CORREÇÃO: Atualizar FL_EMAIL na DIARIAS_TERCEIRIZADOS
-		    if iditem_diaria > 0:
-		        cursor.execute("""
-		            UPDATE DIARIAS_TERCEIRIZADOS 
-		            SET FL_EMAIL = 'S' 
-		            WHERE IDITEM = %s
-		        """, (iditem_diaria,))
-		        
-		        # VERIFICAR se realmente atualizou
-		        if cursor.rowcount == 0:
-		            app.logger.warning(f"Nenhuma linha atualizada para IDITEM={iditem_diaria} em DIARIAS_TERCEIRIZADOS")
+        if tipo_email == 'diarias':
+            # CORREÇÃO: Converter id_item_fornecedor para int
+            iditem_diaria = int(id_item_fornecedor) if id_item_fornecedor and id_item_fornecedor != '0' else 0
+            
+            # Inserir em EMAIL_DIARIAS
+            cursor.execute("""
+                INSERT INTO EMAIL_DIARIAS 
+                (IDITEM, ID_AD, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                iditem_diaria,
+                id_demanda, 
+                email_destinatario, 
+                assunto, 
+                corpo_texto, 
+                data_hora_atual
+            ))
+            
+            id_email = cursor.lastrowid
+            
+            # CORREÇÃO: Atualizar FL_EMAIL na DIARIAS_TERCEIRIZADOS
+            if iditem_diaria > 0:
+                cursor.execute("""
+                    UPDATE DIARIAS_TERCEIRIZADOS 
+                    SET FL_EMAIL = 'S' 
+                    WHERE IDITEM = %s
+                """, (iditem_diaria,))
+                
+                # VERIFICAR se realmente atualizou
+                if cursor.rowcount == 0:
+                    app.logger.warning(f"Nenhuma linha atualizada para IDITEM={iditem_diaria} em DIARIAS_TERCEIRIZADOS")
         
         else:
             # Inserir em EMAIL_OUTRAS_LOCACOES (lógica original para locação)
@@ -5729,12 +5729,12 @@ def enviar_email_fornecedor():
                 """, (id_item_fornecedor,))
         
         mysql.connection.commit()
-		
-		# ===== LOG DE SUCESSO =====
-		app.logger.info(f"Email registrado - ID_EMAIL: {id_email}")
-		if tipo_email == 'diarias':
-		    app.logger.info(f"Diária atualizada - IDITEM: {iditem_diaria}, Linhas afetadas: {cursor.rowcount}")
-
+        
+        # ===== LOG DE SUCESSO =====
+        app.logger.info(f"Email registrado - ID_EMAIL: {id_email}")
+        if tipo_email == 'diarias':
+            app.logger.info(f"Diária atualizada - IDITEM: {iditem_diaria}, Linhas afetadas: {cursor.rowcount}")
+        
         return jsonify({
             'success': True,
             'id_email': id_email,
@@ -5749,7 +5749,7 @@ def enviar_email_fornecedor():
     finally:
         if cursor:
             cursor.close()
-
+			
 ###...casdastro do tipo de demanda.###
 
 @app.route('/api/tipo-demanda', methods=['GET'])
