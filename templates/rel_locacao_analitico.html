@@ -92,59 +92,6 @@
             font-size: 8px;
             padding: 3px 4px;
         }
-
-        /* Ajuste de largura das colunas */
-        col:nth-child(1) { width: 40px; }
-        col:nth-child(2) { width: 70px; }
-        col:nth-child(3) { width: 100px; }
-        col:nth-child(4) { width: auto; }
-        col:nth-child(5) { width: auto; }
-        col:nth-child(6) { width: 45px; }
-        col:nth-child(7) { width: 80px; }
-        col:nth-child(8) { width: 75px; }
-        col:nth-child(9) { width: 80px; }
-        col:nth-child(10) { width: 60px; }
-        
-        /* Ajuste de largura das colunas - USANDO APENAS PORCENTAGENS */
-        th:nth-child(1), td:nth-child(1) { /* Item */
-            width: 4%;
-        }
-        
-        th:nth-child(2), td:nth-child(2) { /* Mês/Ano */
-            width: 7%;
-        }
-        
-        th:nth-child(3), td:nth-child(3) { /* Período */
-            width: 10%;
-        }
-        
-        th:nth-child(4), td:nth-child(4) { /* Veículo */
-            width: 25%;
-        }
-        
-        th:nth-child(5), td:nth-child(5) { /* Motorista */
-            width: 23%;
-        }
-        
-        th:nth-child(6), td:nth-child(6) { /* Qtde */
-            width: 4%;
-        }
-        
-        th:nth-child(7), td:nth-child(7) { /* Valor Diária */
-            width: 9%;
-        }
-        
-        th:nth-child(8), td:nth-child(8) { /* Valor Dif. */
-            width: 8%;
-        }
-        
-        th:nth-child(9), td:nth-child(9) { /* Valor Total */
-            width: 9%;
-        }
-        
-        th:nth-child(10), td:nth-child(10) { /* Km Rodado */
-            width: 6%;
-        }
         
         .text-center {
             text-align: center;
@@ -209,16 +156,16 @@
     
     <table>
         <colgroup>
-            <col>
-            <col>
-            <col>
-            <col>
-            <col>
-            <col>
-            <col>
-            <col>
-            <col>
-            <col>
+            <col style="width: 4%;">      <!-- Item -->
+            <col style="width: 7%;">      <!-- Mês/Ano -->
+            <col style="width: 10%;">     <!-- Período -->
+            <col style="width: 25%;">     <!-- Veículo -->
+            <col style="width: 23%;">     <!-- Motorista -->
+            <col style="width: 4%;">      <!-- Qtde -->
+            <col style="width: 9%;">      <!-- Valor Diária -->
+            <col style="width: 8%;">      <!-- Valor Dif. -->
+            <col style="width: 9%;">      <!-- Valor Total -->
+            <col style="width: 6%;">      <!-- Km Rodado -->
         </colgroup>
         <thead>
             <tr>
