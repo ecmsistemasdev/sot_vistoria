@@ -2055,7 +2055,21 @@
                 // Preencher campos do modal
                 document.getElementById('email_id_demanda').value = idDemandaParaDiarias || '';
                 document.getElementById('email_destinatario').value = dadosVinculoDiarias.email_fornecedor;
-                document.getElementById('email_iditem').value = ''; // Será preenchido após salvar diária
+
+                // ===== BUSCAR IDITEM DA DIÁRIA EXISTENTE =====
+                try {
+                    const resVerificarDiaria = await fetch(`/api/verificar_diaria_solicitada?id_ad=${idDemandaParaDiarias}`);
+                    const resultDiaria = await resVerificarDiaria.json();
+                    
+                    if (resultDiaria.tem_diaria) {
+                        document.getElementById('email_iditem').value = resultDiaria.iditem;
+                    } else {
+                        document.getElementById('email_iditem').value = '0';
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar IDITEM da diária:', error);
+                    document.getElementById('email_iditem').value = '0';
+                }
                 
                 // Assunto
                 const assunto = `TJRO - Viagem motorista ${nomeMotorista} ${periodoAssunto}`;
@@ -2982,10 +2996,15 @@
                                 e.preventDefault();
                                 e.stopPropagation();
                                 
-                                // Guardar IDITEM da diária para envio do email
-                                document.getElementById('email_iditem').value = resultDiaria.iditem;
+                                // CORREÇÃO: Preencher IDITEM corretamente
+                                if (resultDiaria.tem_diaria) {
+                                    document.getElementById('email_iditem').value = resultDiaria.iditem;
+                                } else if (resultSalvar && resultSalvar.iditem) {
+                                    document.getElementById('email_iditem').value = resultSalvar.iditem;
+                                } else {
+                                    document.getElementById('email_iditem').value = '0';
+                                }
                                 
-                                // Abrir modal de email
                                 await abrirModalEmailDiarias(demanda);
                             });
                         }
@@ -5870,10 +5889,11 @@
                     // ===== VERIFICAR TODOS OS VÍNCULOS =====
                     let temDiarias = false;
                     let temLocacao = false;
-
+                    let idItemDiariaSalvo = null; // NOVO: Armazenar ID_ITEM da diária
+                    
                     // 1. Verificar Diárias de Motorista Terceirizado
                     if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
-                        // ===== NOVO: SALVAR REGISTRO DE DIÁRIA ANTES DE PERGUNTAR =====
+                        // ===== SALVAR REGISTRO DE DIÁRIA ANTES DE PERGUNTAR =====
                         try {
                             const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
                             
@@ -5895,8 +5915,10 @@
                             if (resultSalvarDiaria.success) {
                                 temDiarias = true;
                                 idDemandaParaDiarias = demandaIdVinculos;
-                                // Guardar IDITEM para uso posterior no email
-                                document.getElementById('email_iditem').value = resultSalvarDiaria.iditem;
+                                idItemDiariaSalvo = resultSalvarDiaria.iditem; // ARMAZENAR ID_ITEM
+                                
+                                // IMPORTANTE: Guardar no campo oculto do modal de email
+                                document.getElementById('email_iditem').value = idItemDiariaSalvo;
                             } else {
                                 console.error('Erro ao salvar diária:', resultSalvarDiaria.erro);
                             }
