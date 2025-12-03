@@ -2034,26 +2034,9 @@
             }
         }
 
-        // ========== FUNÃ‡ÃƒO: Abrir Modal de Email para DiÃ¡rias ==========
+        // ========== FUNÇÃO: Abrir Modal de Email para Diárias ==========
         async function abrirModalEmailDiarias(dadosDemanda) {
             try {
-                // **CORREÃ‡ÃƒO CRÃTICA: Buscar IDITEM ANTES de abrir o modal**
-                let idItemDiaria = 0;
-                
-                try {
-                    const resVerificarDiaria = await fetch(`/api/verificar_diaria_solicitada?id_ad=${idDemandaParaDiarias}`);
-                    const resultDiaria = await resVerificarDiaria.json();
-                    
-                    if (resultDiaria.tem_diaria && resultDiaria.iditem) {
-                        idItemDiaria = resultDiaria.iditem;
-                        console.log(`✓ IDITEM encontrado: ${idItemDiaria}`);
-                    } else {
-                        console.warn('⚠ Nenhum IDITEM encontrado para ID_AD:', idDemandaParaDiarias);
-                    }
-                } catch (error) {
-                    console.error('Erro ao buscar IDITEM da diária:', error);
-                }
-                
                 // Calcular diárias
                 const diarias = calcularDiarias(dadosDemanda.dt_inicio, dadosDemanda.dt_fim);
                 
@@ -2069,28 +2052,39 @@
                 // Buscar nome do motorista
                 let nomeMotorista = dadosVinculoDiarias.nome_motorista || 'Motorista';
                 
-                // **PREENCHER CAMPOS DO MODAL**
+                // Preencher campos do modal
                 document.getElementById('email_id_demanda').value = idDemandaParaDiarias || '';
                 document.getElementById('email_destinatario').value = dadosVinculoDiarias.email_fornecedor;
-                
-                // **PREENCHER IDITEM COM O VALOR CORRETO**
-                document.getElementById('email_iditem').value = idItemDiaria;
-                console.log(`✓ Campo email_iditem preenchido com: ${idItemDiaria}`);
+
+                // ===== BUSCAR IDITEM DA DIÁRIA EXISTENTE =====
+                try {
+                    const resVerificarDiaria = await fetch(`/api/verificar_diaria_solicitada?id_ad=${idDemandaParaDiarias}`);
+                    const resultDiaria = await resVerificarDiaria.json();
+                    
+                    if (resultDiaria.tem_diaria) {
+                        document.getElementById('email_iditem').value = resultDiaria.iditem;
+                    } else {
+                        document.getElementById('email_iditem').value = '0';
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar IDITEM da diária:', error);
+                    document.getElementById('email_iditem').value = '0';
+                }
                 
                 // Assunto
                 const assunto = `TJRO - Viagem motorista ${nomeMotorista} ${periodoAssunto}`;
                 document.getElementById('email_assunto').value = assunto;
                 
-                // **MONTAR TEXTO DAS DIÃRIAS**
+                // ===== MODIFICAÇÃO: MONTAR TEXTO DAS DIÁRIAS COM NOVA LÓGICA =====
                 let textoDiarias = '';
                 
                 if (diarias.com_pernoite > 0) {
                     const quantidadeExtenso = converterNumeroExtenso(diarias.com_pernoite);
                     const numeroFormatado = diarias.com_pernoite.toString().padStart(2, '0');
-                    textoDiarias += `- ${quantidadeExtenso} (${numeroFormatado}) diária${diarias.com_pernoite > 1 ? 's' : ''} (COM PERNOITE); e<br>`;
+                    textoDiarias += `- ${quantidadeExtenso} (${numeroFormatado}) diária${diarias.com_pernoite > 1 ? 's' : ''} <strong>INTEIRA${diarias.com_pernoite > 1 ? 'S' : ''}</strong> (COM PERNOITE); e<br>`;
                 }
                 
-                textoDiarias += `- Uma (01) diária (SEM PERNOITE).`;
+                textoDiarias += `- Uma (01) <strong>MEIA DIÁRIA</strong> (SEM PERNOITE).`;
                 
                 // Corpo do email
                 const corpoHtml = `
@@ -2942,12 +2936,12 @@
                 const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
                 if (!demanda) return;
                 
-                // Verificar se Ã© tipo viagem (ID=2) e tem motorista
+                // Verificar se é tipo viagem (ID=2) e tem motorista
                 if (demanda.id_tipodemanda !== 2 || !demanda.id_motorista || parseInt(demanda.id_motorista) <= 0) {
                     return;
                 }
                 
-                // Verificar se tem vÃ­nculo de diÃ¡rias
+                // Verificar se tem vínculo de diárias
                 const urlVinculo = `/api/verificar_vinculo_diarias?id_motorista=${demanda.id_motorista}`;
                 const resVinculo = await fetch(urlVinculo);
                 const resultVinculo = await resVinculo.json();
@@ -2956,7 +2950,7 @@
                     return;
                 }
                 
-                // Verificar se jÃ¡ tem registro de diÃ¡ria salvo
+                // Verificar se já tem registro de diária salvo
                 const urlDiaria = `/api/verificar_diaria_solicitada?id_ad=${idAd}`;
                 const resDiaria = await fetch(urlDiaria);
                 const resultDiaria = await resDiaria.json();
@@ -2975,7 +2969,7 @@
                 divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
                 
                 if (resultDiaria.tem_diaria && resultDiaria.email_enviado) {
-                    // ===== JÃ TEM DIÃRIA E EMAIL ENVIADO =====
+                    // ===== JÁ TEM DIÁRIA E EMAIL ENVIADO =====
                     divStatus.innerHTML = `
                         <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
                             ✅ Diária solicitada
@@ -2983,18 +2977,18 @@
                     `;
                     
                 } else if (resultDiaria.tem_diaria && !resultDiaria.email_enviado) {
-                    // ===== TEM DIÃRIA MAS EMAIL NÃƒO ENVIADO =====
+                    // ===== TEM DIÁRIA MAS EMAIL NÃO ENVIADO =====
                     divStatus.innerHTML = `
                         <button type="button" class="btn btn-primary" id="btnSolicitarDiariaEdicao" style="background: #17a2b8; border-color: #17a2b8;">
                             ✈️ Solicitar Diária
                         </button>
                     `;
                     
-                    // Guardar dados do vÃ­nculo E O IDITEM
+                    // Guardar dados do vínculo
                     dadosVinculoDiarias = resultVinculo;
                     idDemandaParaDiarias = idAd;
                     
-                    // Event listener no botÃ£o
+                    // Event listener no botão
                     setTimeout(() => {
                         const btnSolicitar = document.getElementById('btnSolicitarDiariaEdicao');
                         if (btnSolicitar) {
@@ -3002,8 +2996,14 @@
                                 e.preventDefault();
                                 e.stopPropagation();
                                 
-                                // **CORREÃ‡ÃƒO CRÃTICA: Preencher IDITEM ANTES de abrir modal**
-                                document.getElementById('email_iditem').value = resultDiaria.iditem;
+                                // CORREÇÃO: Preencher IDITEM corretamente
+                                if (resultDiaria.tem_diaria) {
+                                    document.getElementById('email_iditem').value = resultDiaria.iditem;
+                                } else if (resultSalvar && resultSalvar.iditem) {
+                                    document.getElementById('email_iditem').value = resultSalvar.iditem;
+                                } else {
+                                    document.getElementById('email_iditem').value = '0';
+                                }
                                 
                                 await abrirModalEmailDiarias(demanda);
                             });
@@ -3011,11 +3011,11 @@
                     }, 100);
                     
                 } else {
-                    // ===== NÃƒO TEM DIÃRIA SALVA - CRIAR E MOSTRAR BOTÃƒO =====
-                    // Calcular diÃ¡rias
+                    // ===== NÃO TEM DIÁRIA SALVA - CRIAR E MOSTRAR BOTÃO =====
+                    // Calcular diárias
                     const diarias = calcularDiarias(demanda.dt_inicio, demanda.dt_fim);
                     
-                    // Salvar registro de diÃ¡ria
+                    // Salvar registro de diária
                     try {
                         const resSalvar = await fetch('/api/salvar_diaria_terceirizado', {
                             method: 'POST',
@@ -3035,7 +3035,7 @@
                         if (resultSalvar.success) {
                             divStatus.innerHTML = `
                                 <button type="button" class="btn btn-primary" id="btnSolicitarDiariaEdicao" style="background: #17a2b8; border-color: #17a2b8;">
-                                    ✅ Diária solicitada
+                                    ✈️ Solicitar Diária
                                 </button>
                             `;
                             
@@ -3049,9 +3049,7 @@
                                         e.preventDefault();
                                         e.stopPropagation();
                                         
-                                        // **CORREÃ‡ÃƒO CRÃTICA: Preencher IDITEM ANTES de abrir modal**
                                         document.getElementById('email_iditem').value = resultSalvar.iditem;
-                                        
                                         await abrirModalEmailDiarias(demanda);
                                     });
                                 }
@@ -3063,7 +3061,7 @@
                     }
                 }
                 
-                // Inserir antes dos botÃµes de aÃ§Ã£o
+                // Inserir antes dos botões de ação
                 const btnCancelar = modalFooter.querySelector('.btn-secondary');
                 if (btnCancelar) {
                     modalFooter.insertBefore(divStatus, btnCancelar);
@@ -3531,7 +3529,7 @@
             
             // Se o email foi enviado com sucesso, fechar diretamente
             if (emailEnviado) {
-                // Limpar variÃ¡veis (ambos os tipos)
+                // Limpar variáveis (ambos os tipos)
                 idItemLocacaoFornecedor = null;
                 dadosVinculoFornecedor = null;
                 idDemandaParaEmailFornecedor = null;
@@ -3539,21 +3537,15 @@
                 dadosVinculoDiarias = null;
                 temVinculoDiariasAtivo = false;
                 
-                // Fechar modal de email
+                // Fechar modal
                 modal.style.display = 'none';
                 
-                // **NOVO: Fechar TAMBÃM o modal de demanda se estiver aberto**
-                const modalDemanda = document.getElementById('modal');
-                if (modalDemanda && modalDemanda.style.display === 'block') {
-                    fecharModal();
-                }
-                
-                // ====== VERIFICAR SE ESTÃ NO FLUXO DE VÃNCULOS ======
+                // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
                 if (fluxoVinculosAtivo) {
-                    // Continuar processando prÃ³ximo vÃ­nculo
+                    // Continuar processando próximo vínculo
                     await processarVinculosSequencial();
                 } else {
-                    // Fluxo normal - recarregar seÃ§Ãµes
+                    // Fluxo normal - recarregar seções
                     await carregarSemanas();
                     await carregarAgenda();
                     inicializarDestaqueLinha();
@@ -5494,7 +5486,7 @@
                 contextoAbertura = null;
                 document.getElementById('idAd').value = demanda.id;
                 document.getElementById('btnExcluir').style.display = 'inline-block';
-
+                
                 // Definir se lista está expandida
                 listaVeiculosExpandida = demanda.todos_veiculos === 'S';
                 
@@ -5581,7 +5573,7 @@
                 // Configurar checkbox expandir veículos
                 document.getElementById('expandirVeiculos').checked = listaVeiculosExpandida;
                 
-                
+                // Se tipo veículo é 1, carregar lista apropriada
                 if (demanda.id_tipoveiculo === 1) {
                     if (listaVeiculosExpandida) {
                         await toggleExpandirVeiculos();
@@ -5589,30 +5581,23 @@
                         await atualizarVeiculosDisponiveis();
                     }
                     
-                    // Selecionar veÃ­culo apÃ³s carregar lista
-                    setTimeout(async () => {
+                    // Selecionar veículo após carregar lista
+                    setTimeout(() => {
                         document.getElementById('idVeiculo').value = demanda.id_veiculo || '';
-                        
-                        // **AGUARDAR VERIFICAÃ‡Ã•ES DE VÃNCULOS ANTES DE ESCONDER SPINNER**
-                        await verificarBotaoLocacaoEdicao(idAd);
-                        await verificarBotaoDiariaEdicao(idAd);
-                        
-                        // **SÃ" ABRIR MODAL E ESCONDER SPINNER APÃS TUDO CARREGAR**
-                        document.getElementById('modal').style.display = 'block';
+                        // Esconder spinner após tudo carregar
                         esconderSpinner();
                     }, 200);
                 } else {
                     document.getElementById('idVeiculo').value = demanda.id_veiculo || '';
-                    
-                    // **AGUARDAR VERIFICAÃ‡Ã•ES DE VÃNCULOS ANTES DE ESCONDER SPINNER**
-                    await verificarBotaoLocacaoEdicao(idAd);
-                    await verificarBotaoDiariaEdicao(idAd);
-                    
-                    // **SÃ" ABRIR MODAL E ESCONDER SPINNER APÃS TUDO CARREGAR**
-                    document.getElementById('modal').style.display = 'block';
+                    // Esconder spinner
                     esconderSpinner();
-                }         
+                }
                 
+                await verificarBotaoLocacaoEdicao(idAd);
+                await verificarBotaoDiariaEdicao(idAd);
+                
+                document.getElementById('modal').style.display = 'block';
+
             } catch (error) {
                 console.error('Erro ao abrir modal de edição:', error);
                 esconderSpinner();
@@ -5625,22 +5610,13 @@
             document.getElementById('modal').style.display = 'none';
             veiculoSelecionadoOriginal = null;
             
-            // ====== LIMPAR ÃREA DE LOCAÃ‡ÃƒO ======
+            // ====== ADICIONAR ESTAS LINHAS ======
+            // Limpar área de status/botão de locação
             const elementoLocacao = document.getElementById('areaLocacaoStatus');
             if (elementoLocacao) {
                 elementoLocacao.remove();
             }
-            
-            // ====== **NOVO**: LIMPAR ÃREA DE DIÃRIA ======
-            const elementoDiaria = document.getElementById('areaDiariaStatus');
-            if (elementoDiaria) {
-                elementoDiaria.remove();
-            }
-            
-            // ====== **NOVO**: LIMPAR VARIÃVEIS GLOBAIS DE DIÃRIA ======
-            dadosVinculoDiarias = null;
-            idDemandaParaDiarias = null;
-            temVinculoDiariasAtivo = false;
+            // ====== FIM DAS LINHAS ADICIONADAS ======
         }
         
         function preencherSelectMotoristas(tipo = 'segeop') {
@@ -5936,17 +5912,13 @@
                             
                             const resultSalvarDiaria = await resSalvarDiaria.json();
                             
-                            if (resultSalvarDiaria.success && resultSalvarDiaria.iditem) {
+                            if (resultSalvarDiaria.success) {
                                 temDiarias = true;
                                 idDemandaParaDiarias = demandaIdVinculos;
+                                idItemDiariaSalvo = resultSalvarDiaria.iditem; // ARMAZENAR ID_ITEM
                                 
-                                // **CORREÇÃO CRÍTICA: Armazenar IDITEM globalmente**
-                                const idItemDiariaSalvo = resultSalvarDiaria.iditem;
-                                
-                                // **PREENCHER NO CAMPO OCULTO IMEDIATAMENTE**
+                                // IMPORTANTE: Guardar no campo oculto do modal de email
                                 document.getElementById('email_iditem').value = idItemDiariaSalvo;
-                                
-                                console.log(`✓ Diária salva - IDITEM: ${idItemDiariaSalvo}`);
                             } else {
                                 console.error('Erro ao salvar diária:', resultSalvarDiaria.erro);
                             }
