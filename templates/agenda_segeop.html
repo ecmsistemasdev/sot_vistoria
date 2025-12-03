@@ -2496,7 +2496,7 @@
                     }
                 });
             }
-
+            /*
             const selectTipoDemanda = document.getElementById('idTipoDemanda');
             if (selectTipoDemanda) {
                 selectTipoDemanda.addEventListener('change', async function() {
@@ -2513,6 +2513,7 @@
                     await verificarVinculoDiarias(idTipoDemanda, this.value);
                 });
             }
+            */
 
         });
         
@@ -5905,62 +5906,112 @@
                     // ===== VERIFICAR TODOS OS VÍNCULOS =====
                     let temDiarias = false;
                     let temLocacao = false;
-                    let idItemDiariaSalvo = null; // NOVO: Armazenar ID_ITEM da diária
-                    
+                    let idItemDiariaSalvo = null;
+
                     // 1. Verificar Diárias de Motorista Terceirizado
-                    if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
-                        // ===== SALVAR REGISTRO DE DIÁRIA ANTES DE PERGUNTAR =====
-                        try {
-                            const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
+                    // IMPORTANTE: Verificar ANTES de processar se as variáveis globais foram setadas
+                    const idTipoDemandaSalvo = parseInt(dados.id_tipodemanda);
+                    const idMotoristaSalvo = dados.id_motorista;
+
+                    console.log('=== DEBUG VERIFICAÇÃO DIÁRIAS ===');
+                    console.log('ID_TIPO_DEMANDA:', idTipoDemandaSalvo);
+                    console.log('ID_MOTORISTA:', idMotoristaSalvo);
+                    console.log('temVinculoDiariasAtivo:', temVinculoDiariasAtivo);
+                    console.log('dadosVinculoDiarias:', dadosVinculoDiarias);
+
+                    // Verificar se é tipo Viagem (ID=2) e tem motorista válido
+                    if (idTipoDemandaSalvo === 2 && idMotoristaSalvo && parseInt(idMotoristaSalvo) > 0) {
+                        // Se ainda não verificou o vínculo, verificar agora
+                        if (!temVinculoDiariasAtivo) {
+                            try {
+                                const urlVerificarDiarias = `/api/verificar_vinculo_diarias?id_motorista=${idMotoristaSalvo}`;
+                                const resVerificarDiarias = await fetch(urlVerificarDiarias);
+                                const resultadoDiarias = await resVerificarDiarias.json();
+                                
+                                console.log('Resultado verificação diárias:', resultadoDiarias);
+                                
+                                if (resultadoDiarias.tem_vinculo) {
+                                    temVinculoDiariasAtivo = true;
+                                    dadosVinculoDiarias = resultadoDiarias;
+                                    console.log('✅ Vínculo de diárias encontrado!');
+                                }
+                            } catch (error) {
+                                console.error('Erro ao verificar vínculo de diárias:', error);
+                            }
+                        }
+                        
+                        // Agora processar se tem vínculo ativo
+                        if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
+                            console.log('➡️ Processando salvamento de diária...');
                             
-                            const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
+                            // ===== SALVAR REGISTRO DE DIÁRIA ANTES DE PERGUNTAR =====
+                            try {
+                                const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
+                                
+                                console.log('Diárias calculadas:', diarias);
+                                
+                                const dadosSalvarDiaria = {
                                     id_ad: demandaIdVinculos,
                                     id_fornecedor: dadosVinculoDiarias.id_fornecedor,
-                                    id_motorista: dados.id_motorista,
+                                    id_motorista: idMotoristaSalvo,
                                     qt_diarias: diarias.total_diarias,
                                     vl_diaria: dadosVinculoDiarias.vl_diaria,
                                     vl_total: diarias.total_diarias * dadosVinculoDiarias.vl_diaria
-                                })
-                            });
-                            
-                            const resultSalvarDiaria = await resSalvarDiaria.json();
-                            
-                            if (resultSalvarDiaria.success) {
-                                temDiarias = true;
-                                idDemandaParaDiarias = demandaIdVinculos;
-                                idItemDiariaSalvo = resultSalvarDiaria.iditem; // ARMAZENAR ID_ITEM
+                                };
                                 
-                                // IMPORTANTE: Guardar no campo oculto do modal de email
-                                document.getElementById('email_iditem').value = idItemDiariaSalvo;
-                            } else {
-                                console.error('Erro ao salvar diária:', resultSalvarDiaria.erro);
+                                console.log('Dados para salvar diária:', dadosSalvarDiaria);
+                                
+                                const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(dadosSalvarDiaria)
+                                });
+                                
+                                const resultSalvarDiaria = await resSalvarDiaria.json();
+                                
+                                console.log('Resultado salvamento diária:', resultSalvarDiaria);
+                                
+                                if (resultSalvarDiaria.success) {
+                                    temDiarias = true;
+                                    idDemandaParaDiarias = demandaIdVinculos;
+                                    idItemDiariaSalvo = resultSalvarDiaria.iditem;
+                                    
+                                    // IMPORTANTE: Guardar no campo oculto do modal de email
+                                    document.getElementById('email_iditem').value = idItemDiariaSalvo;
+                                    
+                                    console.log('✅ Diária salva com sucesso! IDITEM:', idItemDiariaSalvo);
+                                } else {
+                                    console.error('❌ Erro ao salvar diária:', resultSalvarDiaria.erro);
+                                }
+                                
+                            } catch (errorDiaria) {
+                                console.error('❌ Erro ao salvar diária:', errorDiaria);
                             }
-                            
-                        } catch (errorDiaria) {
-                            console.error('Erro ao salvar diária:', errorDiaria);
+                        } else {
+                            console.log('ℹ️ Não tem vínculo de diárias ativo');
                         }
                     }
-                    
+
                     // 2. Verificar Locação de Veículo
-                    if (dados.id_tipoveiculo && dados.id_motorista && parseInt(dados.id_motorista) > 0) {
+                    if (dados.id_tipoveiculo && idMotoristaSalvo && parseInt(idMotoristaSalvo) > 0) {
                         try {
-                            const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista}`;
+                            const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${idMotoristaSalvo}`;
                             const resVerificarLocacao = await fetch(urlVerificarLocacao);
                             const resultadoLocacao = await resVerificarLocacao.json();
+                            
+                            console.log('Resultado verificação locação:', resultadoLocacao);
                             
                             if (resultadoLocacao.tem_vinculo) {
                                 temLocacao = true;
                                 dadosVinculoLocacao = resultadoLocacao;
                                 idDemandaParaLocacao = demandaIdVinculos;
+                                console.log('✅ Vínculo de locação encontrado!');
                             }
                         } catch (error) {
                             console.error('Erro ao verificar locação:', error);
                         }
                     }
-                    
+
                     // 3. Verificar Fornecedor (se não tem locação)
                     if (!temLocacao && dados.id_tipoveiculo) {
                         try {
@@ -6029,7 +6080,11 @@
                             console.error('Erro ao verificar fornecedor:', errorFornecedor);
                         }
                     }
-                    
+
+                    console.log('=== RESUMO DOS VÍNCULOS ===');
+                    console.log('temDiarias:', temDiarias);
+                    console.log('temLocacao:', temLocacao);
+
                     // ===== PROCESSAR VÍNCULOS EM SEQUÊNCIA =====
                     if (temDiarias || temLocacao) {
                         fluxoVinculosAtivo = true;
@@ -6038,9 +6093,12 @@
                             locacao: temLocacao
                         };
                         
+                        console.log('➡️ Iniciando fluxo de vínculos...');
+                        
                         // Iniciar processamento sequencial
                         await processarVinculosSequencial();
                     } else {
+                        console.log('ℹ️ Sem vínculos - recarregando agenda');
                         // Sem vínculos - apenas recarregar
                         await carregarSemanas();
                         await carregarAgenda();
