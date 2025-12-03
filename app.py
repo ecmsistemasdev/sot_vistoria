@@ -2291,12 +2291,18 @@ def salvar_diaria_terceirizado():
         vl_diaria = data.get('vl_diaria')
         vl_total = data.get('vl_total')
         
-        # **LOG DE ENTRADA**
-        app.logger.info(f"=== SALVAR DIÁRIA ===")
-        app.logger.info(f"ID_AD: {id_ad}, ID_FORNECEDOR: {id_fornecedor}, ID_MOTORISTA: {id_motorista}")
+        # ===== LOG DE DEBUG =====
+        app.logger.info(f"=== SALVAR DIÁRIA TERCEIRIZADO ===")
+        app.logger.info(f"ID_AD: {id_ad}")
+        app.logger.info(f"ID_FORNECEDOR: {id_fornecedor}")
+        app.logger.info(f"ID_MOTORISTA: {id_motorista}")
+        app.logger.info(f"QT_DIARIAS: {qt_diarias}")
+        app.logger.info(f"VL_DIARIA: {vl_diaria}")
+        app.logger.info(f"VL_TOTAL: {vl_total}")
         
         if not all([id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total]):
-            return jsonify({'erro': 'Dados incompletos'}), 400
+            app.logger.error("Dados incompletos")
+            return jsonify({'erro': 'Dados incompletos', 'success': False}), 400
         
         cursor = mysql.connection.cursor()
         
@@ -2309,7 +2315,7 @@ def salvar_diaria_terceirizado():
         
         if registro_existente:
             # ATUALIZAR registro existente
-            iditem = registro_existente[0]
+            app.logger.info(f"Atualizando registro existente - IDITEM: {registro_existente[0]}")
             
             cursor.execute("""
                 UPDATE DIARIAS_TERCEIRIZADOS
@@ -2321,9 +2327,11 @@ def salvar_diaria_terceirizado():
                 WHERE ID_AD = %s
             """, (id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total, id_ad))
             
-            app.logger.info(f"✓ Diária ATUALIZADA - IDITEM: {iditem}")
+            iditem = registro_existente[0]
         else:
             # INSERIR novo registro
+            app.logger.info("Inserindo novo registro")
+            
             cursor.execute("""
                 INSERT INTO DIARIAS_TERCEIRIZADOS
                 (ID_AD, ID_FORNECEDOR, ID_MOTORISTA, QT_DIARIAS, VL_DIARIA, VL_TOTAL, FL_EMAIL)
@@ -2331,14 +2339,11 @@ def salvar_diaria_terceirizado():
             """, (id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total))
             
             iditem = cursor.lastrowid
-            app.logger.info(f"✓ Diária INSERIDA - IDITEM: {iditem}")
+            app.logger.info(f"Novo registro inserido - IDITEM: {iditem}")
         
         mysql.connection.commit()
         
-        # **VALIDAR SE IDITEM FOI GERADO**
-        if not iditem or iditem <= 0:
-            app.logger.error(f"❌ ERRO: IDITEM inválido gerado: {iditem}")
-            return jsonify({'erro': 'Falha ao gerar IDITEM'}), 500
+        app.logger.info(f"✅ Diária salva com sucesso - IDITEM: {iditem}")
         
         return jsonify({
             'success': True,
@@ -2349,12 +2354,14 @@ def salvar_diaria_terceirizado():
     except Exception as e:
         if cursor:
             mysql.connection.rollback()
-        app.logger.error(f"Erro ao salvar diária: {str(e)}")
-        return jsonify({'erro': str(e)}), 500
+        app.logger.error(f"❌ Erro ao salvar diária: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'erro': str(e), 'success': False}), 500
     finally:
         if cursor:
             cursor.close()
-
+			
 @app.route('/api/excluir_diaria_terceirizado/<int:id_ad>', methods=['DELETE'])
 @login_required
 def excluir_diaria_terceirizado(id_ad):
