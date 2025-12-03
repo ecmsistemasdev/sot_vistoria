@@ -2291,6 +2291,10 @@ def salvar_diaria_terceirizado():
         vl_diaria = data.get('vl_diaria')
         vl_total = data.get('vl_total')
         
+        # **LOG DE ENTRADA**
+        app.logger.info(f"=== SALVAR DIÁRIA ===")
+        app.logger.info(f"ID_AD: {id_ad}, ID_FORNECEDOR: {id_fornecedor}, ID_MOTORISTA: {id_motorista}")
+        
         if not all([id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total]):
             return jsonify({'erro': 'Dados incompletos'}), 400
         
@@ -2305,6 +2309,8 @@ def salvar_diaria_terceirizado():
         
         if registro_existente:
             # ATUALIZAR registro existente
+            iditem = registro_existente[0]
+            
             cursor.execute("""
                 UPDATE DIARIAS_TERCEIRIZADOS
                 SET ID_FORNECEDOR = %s,
@@ -2315,7 +2321,7 @@ def salvar_diaria_terceirizado():
                 WHERE ID_AD = %s
             """, (id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total, id_ad))
             
-            iditem = registro_existente[0]
+            app.logger.info(f"✓ Diária ATUALIZADA - IDITEM: {iditem}")
         else:
             # INSERIR novo registro
             cursor.execute("""
@@ -2325,8 +2331,14 @@ def salvar_diaria_terceirizado():
             """, (id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total))
             
             iditem = cursor.lastrowid
+            app.logger.info(f"✓ Diária INSERIDA - IDITEM: {iditem}")
         
         mysql.connection.commit()
+        
+        # **VALIDAR SE IDITEM FOI GERADO**
+        if not iditem or iditem <= 0:
+            app.logger.error(f"❌ ERRO: IDITEM inválido gerado: {iditem}")
+            return jsonify({'erro': 'Falha ao gerar IDITEM'}), 500
         
         return jsonify({
             'success': True,
@@ -5663,10 +5675,30 @@ def enviar_email_fornecedor():
         tz_manaus = timezone('America/Manaus')
         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
-        # ===== MODIFICAÇÃO: VERIFICAR TIPO DE EMAIL =====
+        # ===== PROCESSAR CONFORME TIPO DE EMAIL =====
         if tipo_email == 'diarias':
-            # CORREÇÃO: Converter id_item_fornecedor para int
-            iditem_diaria = int(id_item_fornecedor) if id_item_fornecedor and id_item_fornecedor != '0' else 0
+            # ========== EMAIL DE DIÁRIAS ==========
+            
+            # **CORREÇÃO: Converter e validar IDITEM**
+            try:
+                iditem_diaria = int(id_item_fornecedor) if id_item_fornecedor and str(id_item_fornecedor).strip() not in ['0', ''] else 0
+            except (ValueError, TypeError):
+                iditem_diaria = 0
+            
+            # **LOG DETALHADO**
+            app.logger.info(f"=== PROCESSANDO EMAIL DE DIÁRIAS ===")
+            app.logger.info(f"IDITEM Recebido (raw): {id_item_fornecedor}")
+            app.logger.info(f"IDITEM Convertido: {iditem_diaria}")
+            app.logger.info(f"ID_AD: {id_demanda}")
+            
+            # **VALIDAÇÃO CRÍTICA**
+            if iditem_diaria <= 0:
+                app.logger.error(f"ERRO: IDITEM inválido ou zerado - Valor recebido: {id_item_fornecedor}")
+                mysql.connection.rollback()
+                return jsonify({
+                    'erro': 'IDITEM inválido. Não é possível enviar email sem um registro de diária válido.',
+                    'iditem_recebido': id_item_fornecedor
+                }), 400
             
             # Inserir em EMAIL_DIARIAS
             cursor.execute("""
@@ -5683,21 +5715,33 @@ def enviar_email_fornecedor():
             ))
             
             id_email = cursor.lastrowid
+            app.logger.info(f"Email registrado - ID_EMAIL: {id_email}")
             
-            # CORREÇÃO: Atualizar FL_EMAIL na DIARIAS_TERCEIRIZADOS
-            if iditem_diaria > 0:
-                cursor.execute("""
-                    UPDATE DIARIAS_TERCEIRIZADOS 
-                    SET FL_EMAIL = 'S' 
-                    WHERE IDITEM = %s
-                """, (iditem_diaria,))
-                
-                # VERIFICAR se realmente atualizou
-                if cursor.rowcount == 0:
-                    app.logger.warning(f"Nenhuma linha atualizada para IDITEM={iditem_diaria} em DIARIAS_TERCEIRIZADOS")
+            # **ATUALIZAR FL_EMAIL**
+            cursor.execute("""
+                UPDATE DIARIAS_TERCEIRIZADOS 
+                SET FL_EMAIL = 'S' 
+                WHERE IDITEM = %s
+            """, (iditem_diaria,))
+            
+            linhas_afetadas = cursor.rowcount
+            
+            app.logger.info(f"Update DIARIAS_TERCEIRIZADOS - Linhas afetadas: {linhas_afetadas}")
+            
+            if linhas_afetadas == 0:
+                app.logger.warning(f"⚠ AVISO: Nenhuma linha atualizada para IDITEM={iditem_diaria}")
+                # Verificar se o registro existe
+                cursor.execute("SELECT IDITEM, FL_EMAIL FROM DIARIAS_TERCEIRIZADOS WHERE IDITEM = %s", (iditem_diaria,))
+                registro = cursor.fetchone()
+                if registro:
+                    app.logger.warning(f"Registro encontrado: IDITEM={registro[0]}, FL_EMAIL={registro[1]}")
+                else:
+                    app.logger.error(f"❌ REGISTRO NÃO EXISTE: IDITEM={iditem_diaria}")
         
         else:
-            # Inserir em EMAIL_OUTRAS_LOCACOES (lógica original para locação)
+            # ========== EMAIL DE LOCAÇÃO ==========
+            
+            # Inserir em EMAIL_OUTRAS_LOCACOES
             cursor.execute("""
                 INSERT INTO EMAIL_OUTRAS_LOCACOES 
                 (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
@@ -5712,8 +5756,9 @@ def enviar_email_fornecedor():
             ))
             
             id_email = cursor.lastrowid
+            app.logger.info(f"Email de locação registrado - ID_EMAIL: {id_email}")
             
-            # Atualizar SOLICITADO na demanda (apenas para locação)
+            # Atualizar SOLICITADO na demanda
             cursor.execute("""
                 UPDATE ATENDIMENTO_DEMANDAS 
                 SET SOLICITADO = 'S' 
@@ -5727,13 +5772,14 @@ def enviar_email_fornecedor():
                     SET FL_EMAIL = 'S' 
                     WHERE ID_ITEM = %s
                 """, (id_item_fornecedor,))
+                
+                app.logger.info(f"Locação atualizada - ID_ITEM: {id_item_fornecedor}")
         
+        # Commit das transações
         mysql.connection.commit()
         
         # ===== LOG DE SUCESSO =====
-        app.logger.info(f"Email registrado - ID_EMAIL: {id_email}")
-        if tipo_email == 'diarias':
-            app.logger.info(f"Diária atualizada - IDITEM: {iditem_diaria}, Linhas afetadas: {cursor.rowcount}")
+        app.logger.info(f"✓ Email enviado com sucesso - ID_EMAIL: {id_email}")
         
         return jsonify({
             'success': True,
