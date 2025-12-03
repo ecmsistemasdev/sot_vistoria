@@ -2077,32 +2077,59 @@
                 const assunto = `TJRO - Viagem motorista ${nomeMotorista} ${periodoAssunto}`;
                 document.getElementById('email_assunto').value = assunto;
                 
-                // ===== MODIFICAÇÃO: MONTAR TEXTO DAS DIÁRIAS COM NOVA LÓGICA =====
-                let textoDiarias = '';
+                // ===== FORMATAR PERÍODO PARA EXIBIÇÃO =====
+                let periodoExibicao;
+                if (dadosDemanda.dt_inicio === dadosDemanda.dt_fim) {
+                    // Apenas uma data
+                    periodoExibicao = dataInicioFormatada;
+                } else {
+                    // Período
+                    periodoExibicao = `${dataInicioFormatada} a ${dataFimFormatada}`;
+                }
+                
+                // ===== MONTAR TEXTO DAS DIÁRIAS LINHA POR LINHA =====
+                let textosDiarias = [];
                 
                 if (diarias.com_pernoite > 0) {
                     const quantidadeExtenso = converterNumeroExtenso(diarias.com_pernoite);
                     const numeroFormatado = diarias.com_pernoite.toString().padStart(2, '0');
-                    textoDiarias += `- ${quantidadeExtenso} (${numeroFormatado}) diária${diarias.com_pernoite > 1 ? 's' : ''} (COM PERNOITE); e<br>`;
+                    const plural = diarias.com_pernoite > 1 ? 's' : '';
+                    textosDiarias.push(`${quantidadeExtenso} (${numeroFormatado}) diária${plural} (COM PERNOITE)`);
                 }
                 
-                textoDiarias += `- Uma (01) diária (SEM PERNOITE).`;
+                textosDiarias.push('Uma (01) diária (SEM PERNOITE)');
                 
-                // Corpo do email
+                // Juntar com <br>
+                const diariasConcatenadas = textosDiarias.join('<br>');
+                
+                // ===== CORPO DO EMAIL =====
                 const corpoHtml = `
-        <p>Ref. aos autos ${dadosDemanda.nu_sei || '[NÃO INFORMADO]'}</p>
-
-        <p>&nbsp;</p>
-
         <p>Prezados,</p>
 
         <p>&nbsp;</p>
 
-        <p>Informamos à Vossa Senhoria que o funcionário <strong>${nomeMotorista}</strong> foi designado para deslocamento ao <strong>${dadosDemanda.destino || '[DESTINO NÃO INFORMADO]'}</strong>, no período de ${dataInicioFormatada} a ${dataFimFormatada} com saída dia ${dataInicioFormatada} e retorno no dia ${dataFimFormatada}, necessitando de pagamento de:</p>
+        <p>Informamos à Vossa Senhoria que o funcionário <strong>${nomeMotorista}</strong> foi designado para deslocamento conforme informações abaixo:</p>
 
         <p>&nbsp;</p>
 
-        ${textoDiarias}
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0;">
+            ${dadosDemanda.nu_sei ? `<tr>
+                <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Processo:</td>
+                <td> ${dadosDemanda.nu_sei}</td>
+            </tr>` : ''}
+            <tr>
+                <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Período:</td>
+                <td> ${periodoExibicao}</td>
+            </tr>
+            <tr>
+                <td style="background: #f0f0f0; font-weight: bold;">Diárias:</td>
+                <td> ${diariasConcatenadas}</td>
+            </tr>
+            ${dadosDemanda.destino ? `<tr>
+                <td style="background: #f0f0f0; font-weight: bold;">Destino:</td>
+                <td> ${dadosDemanda.destino}</td>
+            </tr>` : ''}
+        </table>
 
         <p>&nbsp;</p>
 
@@ -5595,19 +5622,23 @@
                     // Selecionar veículo após carregar lista
                     setTimeout(() => {
                         document.getElementById('idVeiculo').value = demanda.id_veiculo || '';
-                        // Esconder spinner após tudo carregar
-                        esconderSpinner();
                     }, 200);
                 } else {
                     document.getElementById('idVeiculo').value = demanda.id_veiculo || '';
-                    // Esconder spinner
-                    esconderSpinner();
                 }
-                
+
+                // ===== ALTERAÇÃO: Verificar botões ANTES de abrir o modal =====
                 await verificarBotaoLocacaoEdicao(idAd);
                 await verificarBotaoDiariaEdicao(idAd);
-                
+
+                // ===== ALTERAÇÃO: Abrir modal ANTES de esconder spinner =====
                 document.getElementById('modal').style.display = 'block';
+
+                // ===== ALTERAÇÃO: Esconder spinner apenas DEPOIS de tudo pronto =====
+                // Pequeno delay para garantir que o DOM foi atualizado
+                setTimeout(() => {
+                    esconderSpinner();
+                }, 100);
 
             } catch (error) {
                 console.error('Erro ao abrir modal de edição:', error);
@@ -5738,7 +5769,7 @@
                 vinculosPendentes.diarias = false; // Marcar como processado
                 
                 mostrarConfirmacao(
-                    `📧 O motorista <strong>${dadosVinculoDiarias.nome_motorista}</strong> é terceirizado.<br><br>O registro de diária já foi salvo automaticamente.<br><br>Deseja enviar e-mail para a empresa solicitando pagamento das diárias?`,
+                    `📧 O motorista <strong>${dadosVinculoDiarias.nome_motorista}</strong> é terceirizado.<br><br>Deseja enviar e-mail para a empresa solicitando pagamento das diárias?`,
                     async function(respostaEmail) {
                         if (respostaEmail) {
                             // Abrir modal de email de diárias
