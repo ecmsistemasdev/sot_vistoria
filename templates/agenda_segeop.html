@@ -2063,10 +2063,10 @@
                     
                     if (resultDiaria.tem_diaria) {
                         document.getElementById('email_iditem').value = resultDiaria.iditem;
-                        console.log('IDITEM preenchido:', resultDiaria.iditem); // LOG para debug
+                        console.log('IDITEM preenchido:', resultDiaria.iditem);
                     } else {
                         document.getElementById('email_iditem').value = '0';
-                        console.warn('Nenhuma diária encontrada para ID_AD:', idDemandaParaDiarias); // LOG para debug
+                        console.warn('Nenhuma diária encontrada para ID_AD:', idDemandaParaDiarias);
                     }
                 } catch (error) {
                     console.error('Erro ao buscar IDITEM da diária:', error);
@@ -3016,8 +3016,11 @@
                 } else {
                     // ===== NÃO TEM DIÁRIA SALVA - CRIAR E MOSTRAR BOTÃO =====
                     // Calcular diárias
-                    const diarias = calcularDiarias(demanda.dt_inicio, demanda.dt_fim);
+                    //const diarias = calcularDiarias(demanda.dt_inicio, demanda.dt_fim);
                     
+                    app.logger.warning('Diária não encontrada para demanda que deveria ter vínculo');
+
+                    /*
                     // Salvar registro de diária
                     try {
                         const resSalvar = await fetch('/api/salvar_diaria_terceirizado', {
@@ -3062,6 +3065,7 @@
                     } catch (errorSalvar) {
                         console.error('Erro ao salvar diária na edição:', errorSalvar);
                     }
+                    */
                 }
                 
                 // Inserir antes dos botões de ação
@@ -6009,6 +6013,52 @@
                             }
                         } catch (error) {
                             console.error('Erro ao verificar locação:', error);
+                        }
+                    }
+
+                    // ===== ADICIONAR ESTE BLOCO APÓS A VERIFICAÇÃO DE LOCAÇÃO =====
+
+                    // 2. Verificar Diárias de Motorista Terceirizado
+                    if (dados.id_tipodemanda == 2 && dados.id_motorista && parseInt(dados.id_motorista) > 0) {
+                        try {
+                            const urlVerificarDiarias = `/api/verificar_vinculo_diarias?id_motorista=${dados.id_motorista}`;
+                            const resVerificarDiarias = await fetch(urlVerificarDiarias);
+                            const resultadoDiarias = await resVerificarDiarias.json();
+                            
+                            if (resultadoDiarias.tem_vinculo) {
+                                // ===== SALVAR REGISTRO DE DIÁRIA IMEDIATAMENTE =====
+                                const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
+                                
+                                const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        id_ad: demandaIdVinculos,
+                                        id_fornecedor: resultadoDiarias.id_fornecedor,
+                                        id_motorista: dados.id_motorista,
+                                        qt_diarias: diarias.total_diarias,
+                                        vl_diaria: resultadoDiarias.vl_diaria,
+                                        vl_total: diarias.total_diarias * resultadoDiarias.vl_diaria
+                                    })
+                                });
+                                
+                                const resultSalvarDiaria = await resSalvarDiaria.json();
+                                
+                                if (resultSalvarDiaria.success) {
+                                    temDiarias = true;
+                                    dadosVinculoDiarias = resultadoDiarias;
+                                    idDemandaParaDiarias = demandaIdVinculos;
+                                    
+                                    // Armazenar IDITEM no campo oculto do modal de email
+                                    document.getElementById('email_iditem').value = resultSalvarDiaria.iditem;
+                                    
+                                    app.logger.info(`✅ Diária salva automaticamente - IDITEM: ${resultSalvarDiaria.iditem}`);
+                                } else {
+                                    console.error('Erro ao salvar diária:', resultSalvarDiaria.erro);
+                                }
+                            }
+                        } catch (errorDiaria) {
+                            console.error('Erro ao verificar/salvar diária:', errorDiaria);
                         }
                     }
 
