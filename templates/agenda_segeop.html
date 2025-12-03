@@ -2063,8 +2063,10 @@
                     
                     if (resultDiaria.tem_diaria) {
                         document.getElementById('email_iditem').value = resultDiaria.iditem;
+                        console.log('IDITEM preenchido:', resultDiaria.iditem); // LOG para debug
                     } else {
                         document.getElementById('email_iditem').value = '0';
+                        console.warn('Nenhuma diária encontrada para ID_AD:', idDemandaParaDiarias); // LOG para debug
                     }
                 } catch (error) {
                     console.error('Erro ao buscar IDITEM da diária:', error);
@@ -2081,10 +2083,10 @@
                 if (diarias.com_pernoite > 0) {
                     const quantidadeExtenso = converterNumeroExtenso(diarias.com_pernoite);
                     const numeroFormatado = diarias.com_pernoite.toString().padStart(2, '0');
-                    textoDiarias += `- ${quantidadeExtenso} (${numeroFormatado}) diária${diarias.com_pernoite > 1 ? 's' : ''} <strong>INTEIRA${diarias.com_pernoite > 1 ? 'S' : ''}</strong> (COM PERNOITE); e<br>`;
+                    textoDiarias += `- ${quantidadeExtenso} (${numeroFormatado}) diária${diarias.com_pernoite > 1 ? 's' : ''} (COM PERNOITE); e<br>`;
                 }
                 
-                textoDiarias += `- Uma (01) <strong>MEIA DIÁRIA</strong> (SEM PERNOITE).`;
+                textoDiarias += `- Uma (01) diária (SEM PERNOITE).`;
                 
                 // Corpo do email
                 const corpoHtml = `
@@ -3537,8 +3539,12 @@
                 dadosVinculoDiarias = null;
                 temVinculoDiariasAtivo = false;
                 
-                // Fechar modal
+                // Fechar modal de email
                 modal.style.display = 'none';
+                
+                // ====== NOVO: FECHAR TAMBÉM O MODAL DE DEMANDA =====
+                fecharModal();
+                // ====== FIM =====
                 
                 // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
                 if (fluxoVinculosAtivo) {
@@ -3585,7 +3591,7 @@
                             dadosVinculoFornecedor = null;
                             idDemandaParaEmailFornecedor = null;
                             
-                            // Fechar modal
+                            // Fechar modal de email
                             modal.style.display = 'none';
                             
                             // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
@@ -5610,13 +5616,23 @@
             document.getElementById('modal').style.display = 'none';
             veiculoSelecionadoOriginal = null;
             
-            // ====== ADICIONAR ESTAS LINHAS ======
-            // Limpar área de status/botão de locação
+            // ====== EXISTENTE: Limpar área de locação ======
             const elementoLocacao = document.getElementById('areaLocacaoStatus');
             if (elementoLocacao) {
                 elementoLocacao.remove();
             }
-            // ====== FIM DAS LINHAS ADICIONADAS ======
+            
+            // ====== NOVO: LIMPAR ÁREA DE DIÁRIA ======
+            const elementoDiaria = document.getElementById('areaDiariaStatus');
+            if (elementoDiaria) {
+                elementoDiaria.remove();
+            }
+            
+            // ====== NOVO: LIMPAR VARIÁVEIS DE DIÁRIA ======
+            dadosVinculoDiarias = null;
+            idDemandaParaDiarias = null;
+            temVinculoDiariasAtivo = false;
+            // ====== FIM =====
         }
         
         function preencherSelectMotoristas(tipo = 'segeop') {
