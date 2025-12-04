@@ -6779,11 +6779,11 @@
             
             switch(tipo) {
                 case 'motoristas':
-                    titulo = '🚲 SEGEOP - MOTORISTAS';
+                    titulo = '👲 SEGEOP - MOTORISTAS';
                     htmlSecao = renderizarSecaoMotoristasCompacta(dias);
                     break;
                 case 'outros-motoristas':
-                    titulo = '🚲 OUTROS MOTORISTAS';
+                    titulo = '👲 OUTROS MOTORISTAS';
                     htmlSecao = renderizarSecaoOutrosMotoristas(dias);
                     htmlSecao = extrairTabelaParaVisualizacao(htmlSecao);
                     break;
@@ -6923,7 +6923,7 @@
 
         // Renderização compacta para visualização
         function renderizarSecaoMotoristasCompacta(dias) {
-            let html = '<div class="section-title-compacto">🚲 SEGEOP - MOTORISTAS</div>';
+            let html = '<div class="section-title-compacto">👲 SEGEOP - MOTORISTAS</div>';
             html += '<table class="agenda-table"><thead><tr>';
             html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
             dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
