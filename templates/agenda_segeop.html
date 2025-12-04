@@ -6839,11 +6839,43 @@
             try {
                 mostrarSpinner();
                 
-                const canvas = await html2canvas(conteudo, {
+                // NOVO: Encontrar a tabela dentro do conteúdo
+                const tabela = conteudo.querySelector('table');
+                const tituloSecao = conteudo.querySelector('.section-title-compacto');
+                
+                if (!tabela) {
+                    esconderSpinner();
+                    mostrarAlerta('Nenhuma tabela encontrada para capturar!', '⚠️ Aviso', '#ffc107');
+                    return;
+                }
+                
+                // NOVO: Criar container temporário apenas com título e tabela
+                const containerTemp = document.createElement('div');
+                containerTemp.style.cssText = 'background: white; padding: 20px; display: inline-block;';
+                
+                if (tituloSecao) {
+                    const tituloClone = tituloSecao.cloneNode(true);
+                    containerTemp.appendChild(tituloClone);
+                }
+                
+                const tabelaClone = tabela.cloneNode(true);
+                containerTemp.appendChild(tabelaClone);
+                
+                // Adicionar temporariamente ao DOM (invisível)
+                containerTemp.style.position = 'absolute';
+                containerTemp.style.left = '-9999px';
+                document.body.appendChild(containerTemp);
+                
+                const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
                     scale: 2, // Melhor qualidade
-                    logging: false
+                    logging: false,
+                    width: containerTemp.scrollWidth,
+                    height: containerTemp.scrollHeight
                 });
+                
+                // Remover container temporário
+                document.body.removeChild(containerTemp);
                 
                 canvas.toBlob(async (blob) => {
                     try {
