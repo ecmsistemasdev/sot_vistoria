@@ -1965,7 +1965,7 @@
     </div>
 
     <!-- Modal de Alerta Padrão (OK) -->
-    <div id="modalAlerta" class="modal" style="z-index: 10002;">
+    <div id="modalAlerta" class="modal" style="z-index: 10004;">
         <div class="modal-content" style="max-width: 450px; animation: zoomIn 0.3s;">
             <div class="modal-header" style="background: #1a73e8;">
                 <h2 id="modalAlertaTitulo" style="font-size: 18px; margin: 0;">ℹ️ Informação</h2>
@@ -1980,7 +1980,7 @@
     </div>
 
     <!-- Modal de Confirmação Padrão (Sim/Não) -->
-    <div id="modalConfirmacao" class="modal" style="z-index: 10002;">
+    <div id="modalConfirmacao" class="modal" style="z-index: 10004;">
         <div class="modal-content" style="max-width: 450px; animation: slideDown 0.3s;">
             <div class="modal-header" style="background: #ffc107; color: #000;">
                 <h2 id="modalConfirmacaoTitulo" style="font-size: 18px; margin: 0;">⚠️ Confirmação</h2>
@@ -3929,6 +3929,10 @@
             // ===== VERIFICAR SE DEVE EXCLUIR REGISTRO DE LOCAÇÃO (APENAS PARA LOCAÇÃO) =====
             if (idItemLocacaoFornecedor) {
                 // Perguntar se quer realmente cancelar
+
+                const modal = document.getElementById('modalEmailFornecedor');
+                modal.style.display = 'none';
+                
                 mostrarConfirmacao(
                     'Ao fechar sem enviar o e-mail, o registro de locação será excluído.<br><br>Deseja realmente cancelar?',
                     async function(confirmarCancelamento) {
@@ -3959,7 +3963,7 @@
                             idDemandaParaEmailFornecedor = null;
                             
                             // ===== CORREÇÃO: FECHAR O MODAL AQUI =====
-                            modal.style.display = 'none';
+                            // modal.style.display = 'none';
                             
                             // Verificar se está no fluxo de vínculos
                             if (fluxoVinculosAtivo) {
