@@ -1323,7 +1323,7 @@ def api_processos_locacao():
         SELECT cl.ID_CL, cl.ANO_EXERCICIO, f.NM_FORNECEDOR, 
                cl.NU_SEI, cl.NU_CONTRATO, f.EMAIL, 
                cl.ID_TIPO_LOCACAO, tl.DE_TIPO_LOCACAO
-        FROM TJ_CONTROLE_LOCACAO cl
+        FROM CONTROLE_LOCACAO cl
         INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR
         INNER JOIN TJ_TIPO_LOCACAO tl ON tl.ID_TIPO_LOCACAO = cl.ID_TIPO_LOCACAO
         WHERE cl.ATIVO = 'S'
@@ -1368,19 +1368,19 @@ def api_empenhos(id_cl):
             (IFNULL(st.VL_TOTAL, 0) - IFNULL(sl.VL_LIQUIDADO, 0)) AS VL_ALIQUIDAR,
             ((e.VL_EMPENHO - IFNULL(sl.VL_LIQUIDADO, 0)) - (IFNULL(st.VL_TOTAL, 0) - IFNULL(sl.VL_LIQUIDADO, 0))) AS VL_SALDO_DISPONIVEL
         FROM
-            TJ_CONTROLE_LOCACAO_EMPENHOS e
+            CONTROLE_LOCACAO_EMPENHOS e
         LEFT JOIN (
             SELECT
                 i.ID_EMPENHO,
                 SUM(i.VL_TOTALITEM) AS VL_TOTAL
-            FROM TJ_CONTROLE_LOCACAO_ITENS i
+            FROM CONTROLE_LOCACAO_ITENS i
             GROUP BY i.ID_EMPENHO
         ) st ON e.ID_EMPENHO = st.ID_EMPENHO
         LEFT JOIN (
             SELECT
                 i.ID_EMPENHO,
                 SUM(i.VL_TOTALITEM) AS VL_LIQUIDADO
-            FROM TJ_CONTROLE_LOCACAO_ITENS i
+            FROM CONTROLE_LOCACAO_ITENS i
             JOIN (
                 SELECT
                     ID_EMPENHO,
@@ -1391,7 +1391,7 @@ def api_empenhos(id_cl):
                         DATE_FORMAT(DATA_FIM, '%%Y-%%m') AS Mes,
                         COUNT(*) AS TotalRegistros,
                         SUM(CASE WHEN FL_STATUS='F' THEN 1 ELSE 0 END) AS QtdFechados
-                    FROM TJ_CONTROLE_LOCACAO_ITENS
+                    FROM CONTROLE_LOCACAO_ITENS
                     WHERE DATE_FORMAT(DATA_FIM, '%%Y-%%m') < DATE_FORMAT(CURDATE(), '%%Y-%%m')
                     GROUP BY ID_EMPENHO, Mes
                     HAVING TotalRegistros=QtdFechados
@@ -1438,7 +1438,7 @@ def api_sintetico_mensal(id_cl):
             SUM(i.VL_DIFERENCA) AS HORA_EXTRA, 
             SUM(i.VL_TOTALITEM) AS TOTAL,
             SUM(i.KM_RODADO) AS TOTAL_KM
-        FROM TJ_CONTROLE_LOCACAO_ITENS i
+        FROM CONTROLE_LOCACAO_ITENS i
         WHERE i.ID_CL = %s
         GROUP BY i.ID_MES, i.ID_EXERCICIO
         ORDER BY i.ID_MES DESC
@@ -1471,19 +1471,19 @@ def api_saldo_diarias(id_cl):
         query = """
         SELECT V.DE_VEICULO, V.VL_DIARIA_KM, V.QT_DK,  
             (SELECT IFNULL(SUM(QT_DIARIA_KM),0)
-                FROM TJ_CONTROLE_LOCACAO_ITENS
+                FROM CONTROLE_LOCACAO_ITENS
                 WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC) AS QT_UTILIZADO,
             IFNULL(V.QT_DK - ( SELECT IFNULL(SUM(QT_DIARIA_KM),0)
-                        FROM TJ_CONTROLE_LOCACAO_ITENS
+                        FROM CONTROLE_LOCACAO_ITENS
                         WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC),0) AS QT_SALDO,
             IFNULL((V.VL_DIARIA_KM * V.QT_DK),0) AS VALOR_TOTAL,
             IFNULL((SELECT CAST(SUM(VL_TOTALITEM) AS DECIMAL(10,2))
-                        FROM TJ_CONTROLE_LOCACAO_ITENS
+                        FROM CONTROLE_LOCACAO_ITENS
                     WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC
                         AND ID_CL = V.ID_CL),0) AS VL_UTILIZADO,
             IFNULL((V.VL_DIARIA_KM * V.QT_DK) -
                     IFNULL((SELECT SUM(VL_TOTALITEM)
-                        FROM TJ_CONTROLE_LOCACAO_ITENS
+                        FROM CONTROLE_LOCACAO_ITENS
                     WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC
                         AND ID_CL = V.ID_CL),0),0) AS VL_SALDO
         FROM TJ_VEICULO_LOCACAO V
@@ -1522,7 +1522,7 @@ def api_dados_pls(id_cl):
         COUNT(i.ID_ITEM) AS QTD, 
         SUM(i.VL_TOTALITEM) AS VLTOTAL, i.COMBUSTIVEL,
 	SUM(i.KM_RODADO) AS KM 
-        FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MES m
+        FROM CONTROLE_LOCACAO_ITENS i, TJ_MES m
         WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s
         GROUP BY i.ID_EXERCICIO, i.ID_MES, i.COMBUSTIVEL
         ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC
@@ -1565,11 +1565,11 @@ def api_locacoes_transito(id_cl):
            THEN CONCAT('*',i.NC_CONDUTOR,'*')
            ELSE m.NM_MOTORISTA END AS MOTORISTA, 
            i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
-        FROM TJ_CONTROLE_LOCACAO_ITENS i
+        FROM CONTROLE_LOCACAO_ITENS i
         LEFT JOIN CAD_MOTORISTA m
         ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
         TJ_VEICULO_LOCACAO v, TJ_MES x,
-        TJ_CONTROLE_LOCACAO_EMPENHOS e
+        CONTROLE_LOCACAO_EMPENHOS e
         WHERE e.ID_EMPENHO = i.ID_EMPENHO
         AND x.ID_MES = i.ID_MES
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC
@@ -1630,7 +1630,7 @@ def api_meses_locacoes(id_cl):
         cursor = mysql.connection.cursor()
         query = """
         SELECT DISTINCT CONCAT(m.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO 
-        FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MES m 
+        FROM CONTROLE_LOCACAO_ITENS i, TJ_MES m 
         WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s AND i.FL_STATUS = 'F'
         ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC
         """
@@ -1665,9 +1665,9 @@ def api_locacoes_finalizadas(id_cl):
         i.OBJETIVO, i.SETOR_SOLICITANTE, i.ID_MOTORISTA, 
         CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE m.NM_MOTORISTA END AS MOTORISTA, 
         i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV 
-        FROM TJ_CONTROLE_LOCACAO_ITENS i 
+        FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
+        TJ_VEICULO_LOCACAO v, TJ_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1734,9 +1734,9 @@ def get_rel_locacao_analitico(id_cl):
         ELSE CONCAT(i.DT_INICIAL,' - ',i.DT_FINAL) END AS PERIODO,
         CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, m.NM_MOTORISTA,
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
-        FROM TJ_CONTROLE_LOCACAO_ITENS i 
+        FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
+        TJ_VEICULO_LOCACAO v, TJ_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1797,9 +1797,9 @@ def rel_locacao_analitico_page():
         ELSE CONCAT(i.DT_INICIAL,' - ',i.DT_FINAL) END AS PERIODO,
         CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, m.NM_MOTORISTA,
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
-        FROM TJ_CONTROLE_LOCACAO_ITENS i 
+        FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
+        TJ_VEICULO_LOCACAO v, TJ_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1821,7 +1821,7 @@ def rel_locacao_analitico_page():
         # Buscar informações do processo
         cursor.execute("""
             SELECT cl.NU_SEI, cl.NU_CONTRATO, f.NM_FORNECEDOR 
-            FROM TJ_CONTROLE_LOCACAO cl
+            FROM CONTROLE_LOCACAO cl
             JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR
             WHERE cl.ID_CL = %s
         """, (id_cl,))
@@ -1967,7 +1967,7 @@ def api_empenhos_loc():
         cursor = mysql.connection.cursor()
         query = """
         SELECT ID_EMPENHO, NU_EMPENHO
-        FROM TJ_CONTROLE_LOCACAO_EMPENHOS
+        FROM CONTROLE_LOCACAO_EMPENHOS
         WHERE ATIVO = 'S'
         AND ID_CL = %s
         """
@@ -1991,7 +1991,7 @@ def api_empenhos_loc():
 # Rota para obter o próximo ID_ITEM
 def obter_proximo_id_item():
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT MAX(ID_ITEM) FROM TJ_CONTROLE_LOCACAO_ITENS")
+    cursor.execute("SELECT MAX(ID_ITEM) FROM CONTROLE_LOCACAO_ITENS")
     resultado = cursor.fetchone()
     cursor.close()
     
@@ -2041,7 +2041,7 @@ def verificar_vinculo_locacao():
         # SQL 2: Buscar empenhos ativos
         sql_empenhos = """
             SELECT ID_EMPENHO, NU_EMPENHO 
-            FROM TJ_CONTROLE_LOCACAO_EMPENHOS
+            FROM CONTROLE_LOCACAO_EMPENHOS
             WHERE ATIVO = 'S' AND ID_CL = 3
             ORDER BY NU_EMPENHO
         """
@@ -2129,7 +2129,7 @@ def verificar_vinculo_fornecedor():
             INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
             LEFT JOIN TJ_FORNECEDOR_ITEM fi ON fi.ID_FORNECEDOR = tv.ID_FORNECEDOR 
                                              AND fi.ID_TIPOVEICULO = tv.ID_TIPOVEICULO
-            LEFT JOIN TJ_CONTROLE_LOCACAO cl ON cl.ID_FORNECEDOR = tv.ID_FORNECEDOR 
+            LEFT JOIN CONTROLE_LOCACAO cl ON cl.ID_FORNECEDOR = tv.ID_FORNECEDOR 
             WHERE cl.ATIVO = 'S'
               AND tv.ID_TIPOVEICULO = %s 
               AND tv.ID_FORNECEDOR IS NOT NULL
@@ -2244,7 +2244,7 @@ def verificar_locacao_existente():
         # Verificar se existe locação no período
         sql = """
             SELECT COUNT(*) as total
-            FROM TJ_CONTROLE_LOCACAO_ITENS
+            FROM CONTROLE_LOCACAO_ITENS
             WHERE ID_MOTORISTA = %s
             AND DT_INICIAL <= %s
             AND DT_FINAL >= %s
@@ -2490,7 +2490,7 @@ def nova_locacao():
         motorista_info = cursor.fetchone()
         
         # Buscar o email do fornecedor
-        cursor.execute("SELECT EMAIL FROM TJ_FORNECEDOR f INNER JOIN TJ_CONTROLE_LOCACAO cl ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR WHERE cl.ID_CL = %s", (id_cl,))
+        cursor.execute("SELECT EMAIL FROM TJ_FORNECEDOR f INNER JOIN CONTROLE_LOCACAO cl ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR WHERE cl.ID_CL = %s", (id_cl,))
         fornecedor_info = cursor.fetchone()
         email_fornecedor = fornecedor_info['EMAIL'] if fornecedor_info and fornecedor_info['EMAIL'] else None
         
@@ -2521,9 +2521,9 @@ def nova_locacao():
                 mysql.connection.commit()
                 file_pdf = file_content
         
-        # Inserir na tabela TJ_CONTROLE_LOCACAO_ITENS
+        # Inserir na tabela CONTROLE_LOCACAO_ITENS
         cursor.execute("""
-            INSERT INTO TJ_CONTROLE_LOCACAO_ITENS (
+            INSERT INTO CONTROLE_LOCACAO_ITENS (
                 ID_ITEM, ID_CL, ID_EXERCICIO, ID_EMPENHO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, 
                 ID_VEICULO_LOC, DS_VEICULO_MOD, ID_MOTORISTA, DATA_INICIO, DATA_FIM, HORA_INICIO, 
                 QT_DIARIA_KM, VL_DK, VL_SUBTOTAL, VL_TOTALITEM, NU_SEI, FL_EMAIL, 
@@ -2804,13 +2804,13 @@ Seção de Gestão Operacional do Transporte
         
         # Inserir na tabela de emails usando a string formatada de emails
         cursor.execute(
-            "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
+            "INSERT INTO CONTROLE_LOCACAO_EMAIL (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
             (id_item, id_cl, emails_string, assunto, corpo_texto, data_hora_atual)
         )
         
         # Atualizar flag de email na tabela de locações
         cursor.execute(
-            "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
+            "UPDATE CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
             (id_item,)
         )
         
@@ -2873,19 +2873,19 @@ Seção de Gestão Operacional do Transporte
 #         data_hora_atual = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         
 #         # Obter ID_CL com base no ID_ITEM
-#         cursor.execute("SELECT ID_CL FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
+#         cursor.execute("SELECT ID_CL FROM CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (id_item,))
 #         resultado = cursor.fetchone()
 #         id_cl = resultado['ID_CL'] if resultado else None
 #         if id_cl:
 #             # Inserir na tabela de emails (para o email da locadora)
 #             cursor.execute(
-#                 "INSERT INTO TJ_EMAIL_LOCACAO (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
+#                 "INSERT INTO CONTROLE_LOCACAO_EMAIL (ID_ITEM, ID_CL, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) VALUES (%s, %s, %s, %s, %s, %s)",
 #                 (id_item, id_cl, "Carmem@rovemalocadora.com.br, atendimentopvh@rovemalocadora.com.br, atendimento02@rovemalocadora.com.br", assunto, corpo, data_hora_atual)
 #             )
             
 #             # Atualizar flag de email na tabela de locações
 #             cursor.execute(
-#                 "UPDATE TJ_CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
+#                 "UPDATE CONTROLE_LOCACAO_ITENS SET FL_EMAIL = 'S' WHERE ID_ITEM = %s",
 #                 (id_item,)
 #             )
             
@@ -2964,7 +2964,7 @@ def excluir_locacao(iditem):
     try:
         # Verificar se o item existe antes de excluir
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute("SELECT ID_ITEM FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (iditem,))
+        cursor.execute("SELECT ID_ITEM FROM CONTROLE_LOCACAO_ITENS WHERE ID_ITEM = %s", (iditem,))
         item = cursor.fetchone()
         
         if not item:
@@ -2975,13 +2975,13 @@ def excluir_locacao(iditem):
         
         # Exclui os emails relacionados
         cursor.execute("""
-            DELETE FROM TJ_EMAIL_LOCACAO
+            DELETE FROM CONTROLE_LOCACAO_EMAIL
             WHERE ID_ITEM = %s
         """, (iditem,))
         
         # Exclui a locação
         cursor.execute("""
-            DELETE FROM TJ_CONTROLE_LOCACAO_ITENS
+            DELETE FROM CONTROLE_LOCACAO_ITENS
             WHERE ID_ITEM = %s
         """, (iditem,))
         
@@ -3014,7 +3014,7 @@ def locacao_item(iditem):
             i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, i.VL_DK, 
             i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, i.DATA_INICIO, i.DATA_FIM, 
             i.HORA_INICIO, i.HORA_FIM, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.OBS
-            FROM TJ_CONTROLE_LOCACAO_ITENS i, CAD_MOTORISTA m
+            FROM CONTROLE_LOCACAO_ITENS i, CAD_MOTORISTA m
             WHERE m.ID_MOTORISTA = i.ID_MOTORISTA
             AND i.ID_ITEM = %s
         """, (iditem,))
@@ -3119,7 +3119,7 @@ def busca_modelos_veiculos():
         cursor = mysql.connection.cursor()
         cursor.execute("""
             SELECT DISTINCT DS_VEICULO_MOD 
-            FROM TJ_CONTROLE_LOCACAO_ITENS
+            FROM CONTROLE_LOCACAO_ITENS
             WHERE DS_VEICULO_MOD LIKE %s
             LIMIT 10
         """, (f'%{termo}%',))
@@ -3140,7 +3140,7 @@ def busca_combustivel():
             
         cursor = mysql.connection.cursor()
         cursor.execute("""
-            SELECT DISTINCT COMBUSTIVEL FROM TJ_CONTROLE_LOCACAO_ITENS
+            SELECT DISTINCT COMBUSTIVEL FROM CONTROLE_LOCACAO_ITENS
             WHERE DS_VEICULO_MOD = %s
         """, (termo,))
                 
@@ -3183,7 +3183,7 @@ def salvar_devolucao(iditem):
         
         cursor = mysql.connection.cursor()
         cursor.execute("""
-            UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
+            UPDATE CONTROLE_LOCACAO_ITENS SET
             OBJETIVO = %s,
             SETOR_SOLICITANTE = %s,
             ID_VEICULO_LOC = %s,
@@ -3267,7 +3267,7 @@ def editar_locacao(iditem):
         
         cursor = mysql.connection.cursor()
         cursor.execute("""
-            UPDATE TJ_CONTROLE_LOCACAO_ITENS SET
+            UPDATE CONTROLE_LOCACAO_ITENS SET
             OBJETIVO = %s,
             SETOR_SOLICITANTE = %s,
             ID_VEICULO_LOC = %s,
@@ -3330,8 +3330,8 @@ def locacao_visualiza(iditem):
             v.DE_VEICULO, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.DATA_INICIO, i.DATA_FIM, 
             i.HORA_INICIO, i.HORA_FIM, i.QT_DIARIA_KM, i.VL_DK, 
             i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO, i.OBS, i.OBS_DEV
-            FROM TJ_CONTROLE_LOCACAO_ITENS i, CAD_MOTORISTA m, 
-            TJ_CONTROLE_LOCACAO_EMPENHOS e, TJ_VEICULO_LOCACAO v
+            FROM CONTROLE_LOCACAO_ITENS i, CAD_MOTORISTA m, 
+            CONTROLE_LOCACAO_EMPENHOS e, TJ_VEICULO_LOCACAO v
             WHERE v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
             AND e.ID_EMPENHO = i.ID_EMPENHO 
             AND m.ID_MOTORISTA = i.ID_MOTORISTA
@@ -4025,7 +4025,7 @@ def lista_veiculos():
             query = """
             SELECT v.*, c.DS_CAT_VEICULO 
             FROM TJ_VEICULO v
-            LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+            LEFT JOIN CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
             WHERE v.NU_PLACA LIKE %s OR v.DS_MODELO LIKE %s OR v.MARCA LIKE %s
             ORDER BY v.ID_VEICULO DESC
             """
@@ -4035,7 +4035,7 @@ def lista_veiculos():
             query = """
             SELECT v.*, c.DS_CAT_VEICULO 
             FROM TJ_VEICULO v
-            LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+            LEFT JOIN CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
             ORDER BY v.ID_VEICULO DESC
             """
             cursor.execute(query)
@@ -4064,7 +4064,7 @@ def obter_veiculo(id):
         query = """
         SELECT v.*, c.DS_CAT_VEICULO 
         FROM TJ_VEICULO v
-        LEFT JOIN TJ_CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
+        LEFT JOIN CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
         WHERE v.ID_VEICULO = %s
         """
         cursor.execute(query, (id,))
@@ -4241,7 +4241,7 @@ def listar_categorias():
     try:
         cursor = mysql.connection.cursor()
         
-        cursor.execute("SELECT * FROM TJ_CATEGORIA_VEICULO ORDER BY DS_CAT_VEICULO")
+        cursor.execute("SELECT * FROM CATEGORIA_VEICULO ORDER BY DS_CAT_VEICULO")
         
         categorias = []
         columns = [column[0] for column in cursor.description]
@@ -4432,7 +4432,7 @@ def fluxo_pesquisar():
 
 def criar_registro_locacao_fornecedor(id_demanda):
     """
-    Cria registro na TJ_CONTROLE_LOCACAO_ITENS para locações com fornecedor
+    Cria registro na CONTROLE_LOCACAO_ITENS para locações com fornecedor
     Retorna o ID_ITEM criado ou None em caso de erro
     """
     cursor = None
@@ -4446,7 +4446,7 @@ def criar_registro_locacao_fornecedor(id_demanda):
                 COALESCE(cl.ID_CL, 0) AS ID_CL
             FROM ATENDIMENTO_DEMANDAS ad
             JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ad.ID_TIPOVEICULO
-            LEFT JOIN TJ_CONTROLE_LOCACAO cl ON cl.ID_FORNECEDOR = tv.ID_FORNECEDOR
+            LEFT JOIN CONTROLE_LOCACAO cl ON cl.ID_FORNECEDOR = tv.ID_FORNECEDOR
             WHERE ID_AD = %s
         """, (id_demanda,))
         
@@ -4496,7 +4496,7 @@ def criar_registro_locacao_fornecedor(id_demanda):
 
         # Inserir registro
         cursor.execute("""
-            INSERT INTO TJ_CONTROLE_LOCACAO_ITENS 
+            INSERT INTO CONTROLE_LOCACAO_ITENS 
             (ID_ITEM, ID_CL, ID_EXERCICIO, SETOR_SOLICITANTE, OBJETIVO, ID_MES, ID_VEICULO_LOC, DT_INICIAL, 
             HR_INICIAL, DT_FINAL, NU_SEI, FL_EMAIL, FL_STATUS, USUARIO, DATA_INICIO, DATA_FIM, ID_AD)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'N', 'P', %s, %s, %s, %s)
@@ -5098,7 +5098,7 @@ def excluir_demanda(id_ad):
         
         # Primeiro deleta as tabelas dependentes (com FK)
         cursor.execute("DELETE FROM EMAIL_OUTRAS_LOCACOES WHERE ID_AD = %s", (id_ad,))
-        cursor.execute("DELETE FROM TJ_CONTROLE_LOCACAO_ITENS WHERE ID_AD = %s", (id_ad,))
+        cursor.execute("DELETE FROM CONTROLE_LOCACAO_ITENS WHERE ID_AD = %s", (id_ad,))
         
         # Por último deleta a tabela principal
         cursor.execute("DELETE FROM ATENDIMENTO_DEMANDAS WHERE ID_AD = %s", (id_ad,))
@@ -5223,7 +5223,7 @@ def buscar_locacoes():
         
         cursor.execute("""
             SELECT ID_ITEM, ID_MOTORISTA, DS_VEICULO_MOD, DATA_INICIO, DATA_FIM, FL_STATUS
-            FROM TJ_CONTROLE_LOCACAO_ITENS
+            FROM CONTROLE_LOCACAO_ITENS
             WHERE DATA_INICIO <= %s AND DATA_FIM >= %s
             ORDER BY DATA_INICIO
         """, (fim, inicio))
@@ -5566,7 +5566,7 @@ def agenda_busca_setor():
 @login_required
 def criar_locacao_fornecedor():
     """
-    Cria registro na TJ_CONTROLE_LOCACAO_ITENS para locação com fornecedor
+    Cria registro na CONTROLE_LOCACAO_ITENS para locação com fornecedor
     """
     try:
         data = request.get_json()
@@ -5761,7 +5761,7 @@ def enviar_email_fornecedor():
             # Atualizar FL_EMAIL na locação
             if id_item_fornecedor:
                 cursor.execute("""
-                    UPDATE TJ_CONTROLE_LOCACAO_ITENS 
+                    UPDATE CONTROLE_LOCACAO_ITENS 
                     SET FL_EMAIL = 'S' 
                     WHERE ID_ITEM = %s
                 """, (id_item_fornecedor,))
