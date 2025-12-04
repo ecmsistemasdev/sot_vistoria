@@ -71,7 +71,7 @@ def autenticar():
     cur = mysql.connection.cursor()
     cur.execute("""
         SELECT ID_USUARIO, NM_USUARIO, NIVEL_ACESSO 
-        FROM TJ_USUARIO 
+        FROM CAD_USUARIO 
         WHERE US_LOGIN = %s 
         AND SENHA = %s 
         AND FL_STATUS = 'A'
@@ -896,7 +896,7 @@ def pagina_motoristas():
 def listar_setores():
     try:
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT SIGLA_SETOR FROM TJ_SETORES ORDER BY SIGLA_SETOR")
+        cursor.execute("SELECT SIGLA_SETOR FROM CAD_SETORES ORDER BY SIGLA_SETOR")
         setores = [{'sigla': row[0]} for row in cursor.fetchall()]
         cursor.close()
         return jsonify(setores)
@@ -1027,7 +1027,7 @@ def motorista_listar_fornecedores():
         cursor = mysql.connection.cursor()
         query = """
         SELECT ID_FORNECEDOR, NM_FORNECEDOR 
-        FROM TJ_FORNECEDOR
+        FROM CAD_FORNECEDOR
         ORDER BY NM_FORNECEDOR
         """
         cursor.execute(query)
@@ -1294,7 +1294,7 @@ def api_tipos_locacao():
         cursor = mysql.connection.cursor()
         query = """
         SELECT ID_TIPO_LOCACAO, DE_TIPO_LOCACAO
-        FROM TJ_TIPO_LOCACAO
+        FROM TIPO_LOCACAO
         WHERE ATIVO = 'S'
         ORDER BY ID_TIPO_LOCACAO
         """
@@ -1324,8 +1324,8 @@ def api_processos_locacao():
                cl.NU_SEI, cl.NU_CONTRATO, f.EMAIL, 
                cl.ID_TIPO_LOCACAO, tl.DE_TIPO_LOCACAO
         FROM CONTROLE_LOCACAO cl
-        INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR
-        INNER JOIN TJ_TIPO_LOCACAO tl ON tl.ID_TIPO_LOCACAO = cl.ID_TIPO_LOCACAO
+        INNER JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR
+        INNER JOIN TIPO_LOCACAO tl ON tl.ID_TIPO_LOCACAO = cl.ID_TIPO_LOCACAO
         WHERE cl.ATIVO = 'S'
           AND tl.ATIVO = 'S'
         ORDER BY cl.ID_CL DESC
@@ -1433,7 +1433,7 @@ def api_sintetico_mensal(id_cl):
         query = """
         SELECT 
             i.ID_MES, 
-            CONCAT((SELECT DE_MES FROM TJ_MES WHERE ID_MES = i.ID_MES),'/',i.ID_EXERCICIO) AS MESANO,
+            CONCAT((SELECT DE_MES FROM CAD_MES WHERE ID_MES = i.ID_MES),'/',i.ID_EXERCICIO) AS MESANO,
             SUM(i.VL_SUBTOTAL) AS SUBTOTAL, 
             SUM(i.VL_DIFERENCA) AS HORA_EXTRA, 
             SUM(i.VL_TOTALITEM) AS TOTAL,
@@ -1522,7 +1522,7 @@ def api_dados_pls(id_cl):
         COUNT(i.ID_ITEM) AS QTD, 
         SUM(i.VL_TOTALITEM) AS VLTOTAL, i.COMBUSTIVEL,
 	SUM(i.KM_RODADO) AS KM 
-        FROM CONTROLE_LOCACAO_ITENS i, TJ_MES m
+        FROM CONTROLE_LOCACAO_ITENS i, CAD_MES m
         WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s
         GROUP BY i.ID_EXERCICIO, i.ID_MES, i.COMBUSTIVEL
         ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC
@@ -1568,7 +1568,7 @@ def api_locacoes_transito(id_cl):
         FROM CONTROLE_LOCACAO_ITENS i
         LEFT JOIN CAD_MOTORISTA m
         ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x,
+        TJ_VEICULO_LOCACAO v, CAD_MES x,
         CONTROLE_LOCACAO_EMPENHOS e
         WHERE e.ID_EMPENHO = i.ID_EMPENHO
         AND x.ID_MES = i.ID_MES
@@ -1630,7 +1630,7 @@ def api_meses_locacoes(id_cl):
         cursor = mysql.connection.cursor()
         query = """
         SELECT DISTINCT CONCAT(m.DE_MES,'/',i.ID_EXERCICIO) AS MES_ANO 
-        FROM CONTROLE_LOCACAO_ITENS i, TJ_MES m 
+        FROM CONTROLE_LOCACAO_ITENS i, CAD_MES m 
         WHERE m.ID_MES = i.ID_MES AND i.ID_CL = %s AND i.FL_STATUS = 'F'
         ORDER BY i.ID_EXERCICIO DESC, i.ID_MES DESC
         """
@@ -1667,7 +1667,7 @@ def api_locacoes_finalizadas(id_cl):
         i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV 
         FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x, CONTROLE_LOCACAO_EMPENHOS e 
+        TJ_VEICULO_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1736,7 +1736,7 @@ def get_rel_locacao_analitico(id_cl):
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
         FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x, CONTROLE_LOCACAO_EMPENHOS e 
+        TJ_VEICULO_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1799,7 +1799,7 @@ def rel_locacao_analitico_page():
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
         FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, TJ_MES x, CONTROLE_LOCACAO_EMPENHOS e 
+        TJ_VEICULO_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1822,7 +1822,7 @@ def rel_locacao_analitico_page():
         cursor.execute("""
             SELECT cl.NU_SEI, cl.NU_CONTRATO, f.NM_FORNECEDOR 
             FROM CONTROLE_LOCACAO cl
-            JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR
+            JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR
             WHERE cl.ID_CL = %s
         """, (id_cl,))
         processo_info = cursor.fetchone()
@@ -1898,7 +1898,7 @@ def listar_veiculos():
 def listar_setores_loc():
     try:
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT SIGLA_SETOR FROM TJ_SETORES ORDER BY SIGLA_SETOR")
+        cursor.execute("SELECT SIGLA_SETOR FROM CAD_SETORES ORDER BY SIGLA_SETOR")
                
         items = cursor.fetchall()
         setores = []
@@ -2126,8 +2126,8 @@ def verificar_vinculo_fornecedor():
                 fi.DESCRICAO,
                 cl.ID_CL
             FROM TIPO_VEICULO tv
-            INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
-            LEFT JOIN TJ_FORNECEDOR_ITEM fi ON fi.ID_FORNECEDOR = tv.ID_FORNECEDOR 
+            INNER JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = tv.ID_FORNECEDOR
+            LEFT JOIN CAD_FORNECEDOR_ITEM fi ON fi.ID_FORNECEDOR = tv.ID_FORNECEDOR 
                                              AND fi.ID_TIPOVEICULO = tv.ID_TIPOVEICULO
             LEFT JOIN CONTROLE_LOCACAO cl ON cl.ID_FORNECEDOR = tv.ID_FORNECEDOR 
             WHERE cl.ATIVO = 'S'
@@ -2189,7 +2189,7 @@ def verificar_vinculo_diarias():
                 f.NM_FORNECEDOR,
                 f.VL_DIARIA
             FROM CAD_MOTORISTA m
-            INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
+            INNER JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
             WHERE m.ID_MOTORISTA = %s
               AND m.TIPO_CADASTRO = 'Terceirizado'
               AND m.ATIVO = 'S'
@@ -2490,7 +2490,7 @@ def nova_locacao():
         motorista_info = cursor.fetchone()
         
         # Buscar o email do fornecedor
-        cursor.execute("SELECT EMAIL FROM TJ_FORNECEDOR f INNER JOIN CONTROLE_LOCACAO cl ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR WHERE cl.ID_CL = %s", (id_cl,))
+        cursor.execute("SELECT EMAIL FROM CAD_FORNECEDOR f INNER JOIN CONTROLE_LOCACAO cl ON f.ID_FORNECEDOR = cl.ID_FORNECEDOR WHERE cl.ID_CL = %s", (id_cl,))
         fornecedor_info = cursor.fetchone()
         email_fornecedor = fornecedor_info['EMAIL'] if fornecedor_info and fornecedor_info['EMAIL'] else None
         
@@ -3438,7 +3438,7 @@ def fluxo_veiculos():
 #         cursor = mysql.connection.cursor()
 #         cursor.execute("""
 #         SELECT DISTINCT SETOR_SOLICITANTE 
-#         FROM TJ_FLUXO_VEICULOS
+#         FROM FLUXO_VEICULOS
 #         ORDER BY SETOR_SOLICITANTE
 #         """)
                
@@ -3466,7 +3466,7 @@ def fluxo_busca_setor():
         cursor = mysql.connection.cursor()
         cursor.execute("""
             SELECT DISTINCT SETOR_SOLICITANTE 
-            FROM TJ_FLUXO_VEICULOS
+            FROM FLUXO_VEICULOS
             WHERE SETOR_SOLICITANTE LIKE %s
             ORDER BY SETOR_SOLICITANTE
         """, (f'%{termo}%',))
@@ -3490,7 +3490,7 @@ def fluxo_busca_destino():
         cursor = mysql.connection.cursor()
         cursor.execute("""
             SELECT DISTINCT DESTINO 
-            FROM TJ_FLUXO_VEICULOS
+            FROM FLUXO_VEICULOS
             WHERE DESTINO LIKE %s
             ORDER BY DESTINO
         """, (f'%{termo}%',))
@@ -3510,7 +3510,7 @@ def fluxo_busca_destino():
 #         cursor = mysql.connection.cursor()
 #         cursor.execute("""
 #         SELECT DISTINCT DESTINO 
-#         FROM TJ_FLUXO_VEICULOS
+#         FROM FLUXO_VEICULOS
 #         ORDER BY DESTINO
 #         """)
                
@@ -3565,7 +3565,7 @@ def fluxo_lista_veiculos():
         SELECT v.ID_VEICULO, CONCAT(v.DS_MODELO,' - ',v.NU_PLACA) AS VEICULO 
         FROM TJ_VEICULO v 
         WHERE v.ID_VEICULO NOT IN 
-            (SELECT ID_VEICULO FROM TJ_FLUXO_VEICULOS
+            (SELECT ID_VEICULO FROM FLUXO_VEICULOS
 			 WHERE FL_STATUS = 'S') 
         AND v.FL_ATENDIMENTO = 'S'
         ORDER BY v.DS_MODELO 
@@ -3599,7 +3599,7 @@ def fluxo_veiculo_saida_sem_retorno():
                 CASE WHEN f.ID_MOTORISTA=0 THEN 
                 CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
-            FROM TJ_FLUXO_VEICULOS f
+            FROM FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m 
@@ -3661,7 +3661,7 @@ def fluxo_veiculo_retorno_dia():
                 CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, 
                 CONCAT(f.DT_RETORNO,' ',f.HR_RETORNO) AS RETORNO, f.OBS_RETORNO
-            FROM TJ_FLUXO_VEICULOS f
+            FROM FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m 
@@ -3721,7 +3721,7 @@ def fluxo_veiculo_saida_retorno_pendente():
                 CASE WHEN f.ID_MOTORISTA=0 THEN 
                 CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
-            FROM TJ_FLUXO_VEICULOS f
+            FROM FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m 
@@ -3781,7 +3781,7 @@ def fluxo_saida_item(idfluxo):
                 CONCAT(v.NU_PLACA,' - ',v.DS_MODELO) AS VEICULO,  
                 CASE WHEN f.ID_MOTORISTA=0 THEN 
                 CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA
-            FROM TJ_FLUXO_VEICULOS f
+            FROM FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m 
@@ -3863,7 +3863,7 @@ def fluxo_saida_item(idfluxo):
 # Rota para obter o próximo ID_ITEM
 def obter_proximo_id_fluxo():
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT MAX(ID_FLUXO) FROM TJ_FLUXO_VEICULOS")
+    cursor.execute("SELECT MAX(ID_FLUXO) FROM FLUXO_VEICULOS")
     resultado = cursor.fetchone()
     cursor.close()
     
@@ -3898,9 +3898,9 @@ def fluxo_nova_saida():
         # Obter ID do usuário da sessão
         usuario = session.get('usuario_login')
         cursor = mysql.connection.cursor() 
-        # Inserir na tabela TJ_FLUXO_VEICULOS
+        # Inserir na tabela FLUXO_VEICULOS
         cursor.execute("""
-            INSERT INTO TJ_FLUXO_VEICULOS (
+            INSERT INTO FLUXO_VEICULOS (
                 ID_FLUXO, ID_VEICULO, DT_SAIDA, HR_SAIDA, SETOR_SOLICITANTE, DESTINO, 
                 ID_MOTORISTA, NC_CONDUTOR, OBS, FL_STATUS, USUARIO_SAIDA, DATA_SAIDA, HORA_SAIDA
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -3944,9 +3944,9 @@ def fluxo_lanca_retorno(idfluxo):
         # Obter ID do usuário da sessão
         usuario = session.get('usuario_login')
         cursor = mysql.connection.cursor() 
-        # Inserir na tabela TJ_FLUXO_VEICULOS
+        # Inserir na tabela FLUXO_VEICULOS
         cursor.execute("""
-            UPDATE TJ_FLUXO_VEICULOS SET
+            UPDATE FLUXO_VEICULOS SET
                 DT_RETORNO = %s,
                 HR_RETORNO = %s,
                 DATA_RETORNO = %s,
@@ -4269,7 +4269,7 @@ def fluxo_lista_veiculos_pesquisa():
             SELECT DISTINCT v.ID_VEICULO, 
                    CONCAT(v.DS_MODELO, ' - ', v.NU_PLACA) AS VEICULO
             FROM TJ_VEICULO v
-            INNER JOIN TJ_FLUXO_VEICULOS f ON v.ID_VEICULO = f.ID_VEICULO
+            INNER JOIN FLUXO_VEICULOS f ON v.ID_VEICULO = f.ID_VEICULO
             WHERE v.ATIVO = 'S'
             ORDER BY v.DS_MODELO, v.NU_PLACA
         """)
@@ -4295,7 +4295,7 @@ def fluxo_lista_motoristas_pesquisa():
         cursor.execute("""
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA
             FROM CAD_MOTORISTA m
-            INNER JOIN TJ_FLUXO_VEICULOS f ON m.ID_MOTORISTA = f.ID_MOTORISTA
+            INNER JOIN FLUXO_VEICULOS f ON m.ID_MOTORISTA = f.ID_MOTORISTA
             WHERE m.ATIVO = 'S' AND f.ID_MOTORISTA > 0
             ORDER BY m.NM_MOTORISTA
         """)
@@ -4356,7 +4356,7 @@ def fluxo_pesquisar():
                        CASE WHEN f.OBS_RETORNO IS NOT NULL AND f.OBS_RETORNO != '' THEN f.OBS_RETORNO END,
                        ''
                    ) AS OBS
-            FROM TJ_FLUXO_VEICULOS f
+            FROM FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m ON f.ID_MOTORISTA = m.ID_MOTORISTA AND f.ID_MOTORISTA > 0
         """
@@ -5059,7 +5059,7 @@ def atualizar_demanda(id_ad):
                 cursor.execute("""
                     SELECT m.ID_MOTORISTA
                     FROM CAD_MOTORISTA m
-                    INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
+                    INNER JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
                     WHERE m.ID_MOTORISTA = %s
                       AND m.TIPO_CADASTRO = 'Terceirizado'
                       AND m.ATIVO = 'S'
@@ -5546,7 +5546,7 @@ def agenda_busca_setor():
         cursor = mysql.connection.cursor()
         cursor.execute("""
             SELECT SIGLA_SETOR 
-            FROM TJ_SETORES
+            FROM CAD_SETORES
             WHERE SIGLA_SETOR <> '*EXTERNO'
               AND SIGLA_SETOR LIKE %s
             ORDER BY SIGLA_SETOR
