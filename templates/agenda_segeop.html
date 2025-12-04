@@ -3135,35 +3135,12 @@
             }
         }
 
-        // ========== FUNÇÃO CORRETA: verificarBotaoLocacaoEdicao ==========
+        // ========== FUNÇÃO: Verificar Botão Locação OU Fornecedor na Edição ==========
         async function verificarBotaoLocacaoEdicao(idAd) {
             try {
                 const demanda = dadosAgenda.demandas.find(d => d.id === idAd);
                 if (!demanda) return;
                 
-                // Verificar condições básicas
-                if (!demanda.id_tipoveiculo || !demanda.id_motorista || parseInt(demanda.id_motorista) <= 0) {
-                    return; // Não mostra nada
-                }
-                
-                // Verificar se tem vínculo
-                const urlVinculo = `/api/verificar_vinculo_locacao?id_tipoveiculo=${demanda.id_tipoveiculo}&id_motorista=${demanda.id_motorista}`;
-                const resVinculo = await fetch(urlVinculo);
-                const resultVinculo = await resVinculo.json();
-                
-                if (!resultVinculo.tem_vinculo) {
-                    return; // Não tem vínculo, não mostra nada
-                }
-                
-                // ========== VERIFICAR SE JÁ TEM LOCAÇÃO (MESMA LÓGICA DA SEÇÃO VEÍCULOS ALOCADOS) ==========
-                // Verificar se existe locação ativa para este motorista neste período
-                const temLocacao = locacoesAtivas.some(loc => 
-                    loc.id_motorista === demanda.id_motorista &&
-                    loc.data_inicio <= demanda.dt_fim &&
-                    loc.data_fim >= demanda.dt_inicio
-                );
-                
-                // Criar elemento para status/botão
                 const modalFooter = document.querySelector('#modal .modal-footer');
                 
                 // Remover elementos anteriores se existirem
@@ -3172,49 +3149,144 @@
                     elementoExistente.remove();
                 }
                 
-                // Criar novo elemento
-                const divStatus = document.createElement('div');
-                divStatus.id = 'areaLocacaoStatus';
-                divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
+                let divStatus = null;
                 
-                if (temLocacao) {
-                    // ========== JÁ TEM LOCAÇÃO - APENAS MOSTRAR TEXTO ==========
-                    divStatus.innerHTML = `
-                        <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
-                            ✓ Locação solicitada
-                        </div>
-                    `;
+                // ========== 1º: VERIFICAR LOCAÇÃO (Motorista + Tipo Veículo) ==========
+                if (demanda.id_tipoveiculo && demanda.id_motorista && parseInt(demanda.id_motorista) > 0) {
+                    const urlVinculo = `/api/verificar_vinculo_locacao?id_tipoveiculo=${demanda.id_tipoveiculo}&id_motorista=${demanda.id_motorista}`;
+                    const resVinculo = await fetch(urlVinculo);
+                    const resultVinculo = await resVinculo.json();
                     
-                } else {
-                    // ========== NÃO TEM LOCAÇÃO - MOSTRAR BOTÃO PARA SOLICITAR ==========
-                    divStatus.innerHTML = `
-                        <button type="button" class="btn btn-primary" id="btnSolicitarLocacaoEdicao" style="background: #28a745; border-color: #28a745;">
-                            🚗 Solicitar Locação
-                        </button>
-                    `;
-                    
-                    // Guardar dados do vínculo para uso posterior
-                    dadosVinculoLocacao = resultVinculo;
-                    
-                    // Adicionar event listener ao botão
-                    setTimeout(() => {
-                        const btnSolicitar = document.getElementById('btnSolicitarLocacaoEdicao');
-                        if (btnSolicitar) {
-                            btnSolicitar.addEventListener('click', async function(e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                
-                                // Abrir formulário de locação
-                                await abrirFormularioLocacao(demanda);
-                            });
+                    if (resultVinculo.tem_vinculo) {
+                        // Tem vínculo de locação - verificar se já foi solicitada
+                        const temLocacao = locacoesAtivas.some(loc => 
+                            loc.id_motorista === demanda.id_motorista &&
+                            loc.data_inicio <= demanda.dt_fim &&
+                            loc.data_fim >= demanda.dt_inicio
+                        );
+                        
+                        divStatus = document.createElement('div');
+                        divStatus.id = 'areaLocacaoStatus';
+                        divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
+                        
+                        if (temLocacao) {
+                            // ✅ Já tem locação
+                            divStatus.innerHTML = `
+                                <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
+                                    ✓ Locação solicitada
+                                </div>
+                            `;
+                        } else {
+                            // ⚠️ Não tem locação - mostrar botão
+                            divStatus.innerHTML = `
+                                <button type="button" class="btn btn-primary" id="btnSolicitarLocacaoEdicao" style="background: #28a745; border-color: #28a745;">
+                                    🚗 Solicitar Locação
+                                </button>
+                            `;
+                            
+                            dadosVinculoLocacao = resultVinculo;
+                            
+                            setTimeout(() => {
+                                const btnSolicitar = document.getElementById('btnSolicitarLocacaoEdicao');
+                                if (btnSolicitar) {
+                                    btnSolicitar.addEventListener('click', async function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        await abrirFormularioLocacao(demanda);
+                                    });
+                                }
+                            }, 100);
                         }
-                    }, 100);
+                        
+                        const btnCancelar = modalFooter.querySelector('.btn-secondary');
+                        if (btnCancelar) {
+                            modalFooter.insertBefore(divStatus, btnCancelar);
+                        }
+                        
+                        return; // ✅ Já processou locação, não precisa verificar fornecedor
+                    }
                 }
                 
-                // Inserir antes dos botões de ação
-                const btnCancelar = modalFooter.querySelector('.btn-secondary');
-                if (btnCancelar) {
-                    modalFooter.insertBefore(divStatus, btnCancelar);
+                // ========== 2º: VERIFICAR FORNECEDOR (se não tem locação) ==========
+                if (demanda.id_tipoveiculo) {
+                    const urlFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${demanda.id_tipoveiculo}`;
+                    const resFornecedor = await fetch(urlFornecedor);
+                    const resultFornecedor = await resFornecedor.json();
+                    
+                    if (resultFornecedor.tem_vinculo) {
+                        // Tem vínculo com fornecedor - verificar se e-mail foi enviado
+                        const urlEmailEnviado = `/api/verificar_email_fornecedor_enviado?id_ad=${idAd}`;
+                        const resEmailEnviado = await fetch(urlEmailEnviado);
+                        const resultEmail = await resEmailEnviado.json();
+                        
+                        divStatus = document.createElement('div');
+                        divStatus.id = 'areaLocacaoStatus';
+                        divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
+                        
+                        if (resultEmail.email_enviado) {
+                            // ✅ E-mail já foi enviado
+                            divStatus.innerHTML = `
+                                <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
+                                    ✓ Locação solicitada
+                                </div>
+                            `;
+                        } else {
+                            // ⚠️ E-mail ainda não foi enviado - mostrar botão
+                            divStatus.innerHTML = `
+                                <button type="button" class="btn btn-primary" id="btnSolicitarLocacaoFornecedor" style="background: #28a745; border-color: #28a745;">
+                                    📧 Solicitar Locação
+                                </button>
+                            `;
+                            
+                            dadosVinculoFornecedor = resultFornecedor;
+                            idDemandaParaEmailFornecedor = idAd;
+                            
+                            setTimeout(() => {
+                                const btnSolicitar = document.getElementById('btnSolicitarLocacaoFornecedor');
+                                if (btnSolicitar) {
+                                    btnSolicitar.addEventListener('click', async function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        
+                                        // Criar registro de locação e abrir modal de e-mail
+                                        mostrarSpinner();
+                                        
+                                        try {
+                                            const resLocacao = await fetch('/api/criar_locacao_fornecedor', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ id_demanda: idAd })
+                                            });
+                                            
+                                            const resultLocacao = await resLocacao.json();
+                                            
+                                            esconderSpinner();
+                                            
+                                            if (resultLocacao.success && resultLocacao.id_item) {
+                                                idItemLocacaoFornecedor = resultLocacao.id_item;
+                                                await abrirModalEmailFornecedor(demanda);
+                                            } else {
+                                                mostrarAlerta(
+                                                    'Erro ao criar registro de locação.<br><br>Erro: ' + (resultLocacao.erro || 'Desconhecido'),
+                                                    '⚠️ Erro',
+                                                    '#dc3545'
+                                                );
+                                            }
+                                        } catch (error) {
+                                            esconderSpinner();
+                                            console.error('Erro ao criar locação:', error);
+                                            mostrarAlerta('Erro ao criar registro de locação.', '❌ Erro', '#dc3545');
+                                        }
+                                    });
+                                }
+                            }, 100);
+                        }
+                        
+                        const btnCancelar = modalFooter.querySelector('.btn-secondary');
+                        if (btnCancelar) {
+                            modalFooter.insertBefore(divStatus, btnCancelar);
+                        }
+                    }
                 }
                 
             } catch (error) {
@@ -4350,6 +4422,14 @@
             labelSolicitante.innerHTML = 'Solicitante';
             labelDestino.innerHTML = 'Destino';
             labelMotorista.innerHTML = 'Motorista <span class="required">*</span>';
+
+            if (!config.destino_auto_preencher) {
+                // Só limpa se não estiver em modo de edição (se não tiver idAd)
+                const idAd = document.getElementById('idAd').value;
+                if (!idAd) {
+                    destino.value = '';
+                }
+            }            
             
             // ========== APLICAR CONFIGURAÇÕES DO BANCO ==========
             
@@ -4579,6 +4659,22 @@
             }, 100);
         }
         
+        // ========== NOVA FUNÇÃO: Encontrar semana de uma data ==========
+        function encontrarSemanaDaData(data) {
+            const dataObj = new Date(data + 'T00:00:00');
+            
+            for (let i = 0; i < semanas.length; i++) {
+                const inicio = new Date(semanas[i].inicio + 'T00:00:00');
+                const fim = new Date(semanas[i].fim + 'T00:00:00');
+                
+                if (dataObj >= inicio && dataObj <= fim) {
+                    return i;
+                }
+            }
+            
+            return -1; // Não encontrou
+        }
+
         async function mudarSemana(index) {
             semanaAtual = index;
             renderizarAbas();
@@ -6202,6 +6298,16 @@
                     
                     // Fechar modal principal
                     fecharModal();
+
+                    await carregarSemanas(); // Recarregar lista de semanas (pode ter semanas novas)
+                    
+                    // Encontrar índice da semana da data inicial da demanda
+                    const indiceSemana = encontrarSemanaDaData(dados.dt_inicio);
+                    
+                    if (indiceSemana !== -1) {
+                        semanaAtual = indiceSemana;
+                        renderizarAbas(); // Atualizar as abas visualmente
+                    }
 
                     mostrarSpinnerVinculos();
                     
