@@ -1112,6 +1112,19 @@
             box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
         }
 
+        /* Botão Solicitar Diária na edição */
+        #btnSolicitarDiariaEdicao {
+            font-size: 14px;
+            padding: 8px 16px;
+            transition: all 0.3s;
+        }
+
+        #btnSolicitarDiariaEdicao:hover {
+            background: #138496 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+        }
+
         /* Status de locação solicitada */
         #areaLocacaoStatus {
             animation: fadeIn 0.3s;
@@ -6313,7 +6326,7 @@
                                                 await carregarLocacoes();
                                                 await carregarAgenda();
                                                 
-                                                mostrarAlerta('Demanda e locação vinculada excluídas com sucesso!', '✅ Sucesso', '#28a745');
+                                                // mostrarAlerta('Demanda e locação vinculada excluídas com sucesso!', '✅ Sucesso', '#28a745');
                                             } else {
                                                 mostrarAlerta('Erro ao excluir demanda: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                                             }
@@ -6345,7 +6358,7 @@
                             await carregarLocacoes();
                             await carregarAgenda();
                             
-                            mostrarAlerta('Demanda excluída com sucesso!', '✅ Sucesso', '#28a745');
+                            // mostrarAlerta('Demanda excluída com sucesso!', '✅ Sucesso', '#28a745');
                         } else {
                             mostrarAlerta('Erro ao excluir: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                         }
