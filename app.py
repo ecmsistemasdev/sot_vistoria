@@ -6060,6 +6060,46 @@ def pagina_tipo_demanda():
     return render_template('tipo_demanda.html')
 
 
+@app.route('/api/verificar_email_fornecedor_enviado')
+def verificar_email_fornecedor_enviado():
+    id_ad = request.args.get('id_ad', type=int)
+    
+    if not id_ad:
+        return jsonify({'erro': 'ID_AD não informado'}), 400
+    
+    try:
+        cursor = oracle_conn.cursor()
+        
+        # Verificar se existe registro na tabela EMAIL_OUTRAS_LOCACOES
+        cursor.execute("""
+            SELECT ID_EMAIL, DATA_HORA
+            FROM EMAIL_OUTRAS_LOCACOES
+            WHERE ID_AD = :id_ad
+            ORDER BY ID_EMAIL DESC
+        """, {'id_ad': id_ad})
+        
+        resultado = cursor.fetchone()
+        cursor.close()
+        
+        if resultado:
+            id_email, data_hora = resultado
+            return jsonify({
+                'email_enviado': True,
+                'id_email': id_email,
+                'data_hora': data_hora
+            })
+        else:
+            return jsonify({
+                'email_enviado': False,
+                'id_email': None,
+                'data_hora': None
+            })
+        
+    except Exception as e:
+        app.logger.error(f'Erro ao verificar e-mail de fornecedor: {e}')
+        return jsonify({'erro': str(e)}), 500
+
+
 #######################################
 
 if __name__ == '__main__':
