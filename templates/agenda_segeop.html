@@ -6851,7 +6851,16 @@
                 
                 // NOVO: Criar container temporário apenas com título e tabela
                 const containerTemp = document.createElement('div');
-                containerTemp.style.cssText = 'background: white; padding: 20px; display: inline-block;';
+                
+                // CORREÇÃO: Manter a largura do modal original
+                const larguraModal = conteudo.offsetWidth;
+                
+                containerTemp.style.cssText = `
+                    background: white; 
+                    padding: 20px; 
+                    width: ${larguraModal}px;
+                    box-sizing: border-box;
+                `;
                 
                 if (tituloSecao) {
                     const tituloClone = tituloSecao.cloneNode(true);
@@ -6864,14 +6873,18 @@
                 // Adicionar temporariamente ao DOM (invisível)
                 containerTemp.style.position = 'absolute';
                 containerTemp.style.left = '-9999px';
+                containerTemp.style.top = '0';
                 document.body.appendChild(containerTemp);
+                
+                // Aguardar renderização
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
                 const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
                     scale: 2, // Melhor qualidade
                     logging: false,
-                    width: containerTemp.scrollWidth,
-                    height: containerTemp.scrollHeight
+                    width: containerTemp.offsetWidth,
+                    height: containerTemp.offsetHeight
                 });
                 
                 // Remover container temporário
