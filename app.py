@@ -121,7 +121,7 @@ def nova_vistoria():
     cur = mysql.connection.cursor()
     cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM CAD_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
-    cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
+    cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM CAD_VEICULOS WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
     cur.close()
     
@@ -133,7 +133,7 @@ def nova_vistoria2():
     cur = mysql.connection.cursor()
     cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM CAD_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
-    cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
+    cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM CAD_VEICULOS WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
     cur.close()
     
@@ -154,7 +154,7 @@ def confirma_vistoria(id):
                v.ASS_USUARIO, v.ASS_MOTORISTA, v.OBS, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
         FROM VISTORIAS v
         JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+        JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.TIPO = 'INICIAL' AND v.IDVISTORIA = %s
     """, (id,))
     vistoria = cur.fetchone()
@@ -185,7 +185,7 @@ def nova_vistoria_devolucao(vistoria_saida_id):
 	ve.NU_PLACA, v.COMBUSTIVEL, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
         FROM VISTORIAS v
         JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+        JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.IDVISTORIA = %s AND v.TIPO = 'SAIDA'
     """, (vistoria_saida_id,))
     vistoria_saida = cur.fetchone()
@@ -577,7 +577,7 @@ def listar_vistorias():
         v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+        JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.STATUS = 'EM_TRANSITO' AND v.TIPO = 'SAIDA'
         ORDER BY v.DATA DESC
     """)
@@ -589,7 +589,7 @@ def listar_vistorias():
         v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
         JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+        JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.TIPO IN ('INICIAL', 'CONFIRMACAO')
         ORDER BY v.DATA DESC
     """)
@@ -602,7 +602,7 @@ def listar_vistorias():
         (SELECT IDVISTORIA FROM VISTORIAS WHERE VISTORIA_SAIDA_ID = v.IDVISTORIA) AS ID_DEVOLUCAO
         FROM VISTORIAS v
         JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+        JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.TIPO = 'SAIDA' 
         AND v.STATUS = 'FINALIZADA'
         ORDER BY v.DATA DESC
@@ -629,7 +629,7 @@ def ver_vistoria(id):
 		   v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
             FROM VISTORIAS v
             JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-            JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+            JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
             WHERE v.IDVISTORIA = %s
         """, (id,))
         vistoria = cur.fetchone()
@@ -649,7 +649,7 @@ def ver_vistoria(id):
                            v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
                     FROM VISTORIAS v
                     JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-                    JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+                    JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
                     WHERE v.IDVISTORIA = %s
                 """, (vistoria[8],))
                 vistoria_saida = cur.fetchone()
@@ -668,7 +668,7 @@ def ver_vistoria(id):
                            v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
                     FROM VISTORIAS v
                     JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-                    JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+                    JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
                     WHERE v.VISTORIA_SAIDA_ID = %s
                 """, (id,))
                 vistoria_devolucao = cur.fetchone()
@@ -724,7 +724,7 @@ def vistoria_finaliza(id):
                v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
         FROM VISTORIAS v
         JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
-        JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
+        JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.IDVISTORIA = %s
     """, (id,))
     vistoria = cur.fetchone()
@@ -1486,7 +1486,7 @@ def api_saldo_diarias(id_cl):
                         FROM CONTROLE_LOCACAO_ITENS
                     WHERE ID_VEICULO_LOC = V.ID_VEICULO_LOC
                         AND ID_CL = V.ID_CL),0),0) AS VL_SALDO
-        FROM TJ_VEICULO_LOCACAO V
+        FROM CAD_VEICULOS_LOCACAO V
         WHERE ID_CL = %s
         """
         cursor.execute(query, (id_cl,))
@@ -1568,7 +1568,7 @@ def api_locacoes_transito(id_cl):
         FROM CONTROLE_LOCACAO_ITENS i
         LEFT JOIN CAD_MOTORISTA m
         ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, CAD_MES x,
+        CAD_VEICULOS_LOCACAO v, CAD_MES x,
         CONTROLE_LOCACAO_EMPENHOS e
         WHERE e.ID_EMPENHO = i.ID_EMPENHO
         AND x.ID_MES = i.ID_MES
@@ -1667,7 +1667,7 @@ def api_locacoes_finalizadas(id_cl):
         i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV 
         FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
+        CAD_VEICULOS_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1736,7 +1736,7 @@ def get_rel_locacao_analitico(id_cl):
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
         FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
+        CAD_VEICULOS_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1799,7 +1799,7 @@ def rel_locacao_analitico_page():
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
         FROM CONTROLE_LOCACAO_ITENS i 
         LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
-        TJ_VEICULO_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
+        CAD_VEICULOS_LOCACAO v, CAD_MES x, CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
         AND v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
@@ -1878,7 +1878,7 @@ def listar_veiculos():
             return jsonify({'erro': 'ID_CL não fornecido'}), 400
             
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT ID_VEICULO_LOC, DE_VEICULO, VL_DIARIA_KM FROM TJ_VEICULO_LOCACAO WHERE ID_CL = %s", (id_cl,))
+        cursor.execute("SELECT ID_VEICULO_LOC, DE_VEICULO, VL_DIARIA_KM FROM CAD_VEICULOS_LOCACAO WHERE ID_CL = %s", (id_cl,))
         
         veiculos = []
         for row in cursor.fetchall():
@@ -2023,7 +2023,7 @@ def verificar_vinculo_locacao():
         # SQL 1: Buscar vínculo de locação
         sql_vinculo = """
             SELECT ID_VEICULO_LOC, VL_DIARIA_KM, DE_VEICULO 
-            FROM TJ_VEICULO_LOCACAO
+            FROM CAD_VEICULOS_LOCACAO
             WHERE ID_TIPOVEICULO = %s
         """
         cursor.execute(sql_vinculo, (id_tipoveiculo,))
@@ -2091,7 +2091,7 @@ def verificar_vinculo_locacao():
 @login_required
 def verificar_vinculo_fornecedor():
     """
-    Verifica se o tipo de veículo tem vínculo com fornecedor (sem TJ_VEICULO_LOCACAO)
+    Verifica se o tipo de veículo tem vínculo com fornecedor (sem CAD_VEICULOS_LOCACAO)
     Busca item do fornecedor baseado no ID_TIPOVEICULO
     """
     cursor = None
@@ -2103,10 +2103,10 @@ def verificar_vinculo_fornecedor():
         
         cursor = mysql.connection.cursor()
         
-        # Verificar se tem vínculo com TJ_VEICULO_LOCACAO (se tiver, não entra na nova regra)
+        # Verificar se tem vínculo com CAD_VEICULOS_LOCACAO (se tiver, não entra na nova regra)
         cursor.execute("""
             SELECT COUNT(*) 
-            FROM TJ_VEICULO_LOCACAO 
+            FROM CAD_VEICULOS_LOCACAO 
             WHERE ID_TIPOVEICULO = %s
         """, (id_tipoveiculo,))
         
@@ -2538,7 +2538,7 @@ def nova_locacao():
         mysql.connection.commit()
         
         # Obter informações do veículo
-        cursor.execute("SELECT DE_VEICULO FROM TJ_VEICULO_LOCACAO WHERE ID_VEICULO_LOC = %s", (id_veiculo_loc,))
+        cursor.execute("SELECT DE_VEICULO FROM CAD_VEICULOS_LOCACAO WHERE ID_VEICULO_LOC = %s", (id_veiculo_loc,))
         veiculo_info = cursor.fetchone()
         de_veiculo = veiculo_info['DE_VEICULO']
         
@@ -3331,7 +3331,7 @@ def locacao_visualiza(iditem):
             i.HORA_INICIO, i.HORA_FIM, i.QT_DIARIA_KM, i.VL_DK, 
             i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO, i.OBS, i.OBS_DEV
             FROM CONTROLE_LOCACAO_ITENS i, CAD_MOTORISTA m, 
-            CONTROLE_LOCACAO_EMPENHOS e, TJ_VEICULO_LOCACAO v
+            CONTROLE_LOCACAO_EMPENHOS e, CAD_VEICULOS_LOCACAO v
             WHERE v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
             AND e.ID_EMPENHO = i.ID_EMPENHO 
             AND m.ID_MOTORISTA = i.ID_MOTORISTA
@@ -3557,13 +3557,13 @@ def fluxo_lista_motorista():
 def fluxo_lista_veiculos():
     try:
         # SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO 
-        # FROM TJ_VEICULO WHERE FL_ATENDIMENTO = 'S'
+        # FROM CAD_VEICULOS WHERE FL_ATENDIMENTO = 'S'
         # ORDER BY DS_MODELO
   
         cursor = mysql.connection.cursor()
         cursor.execute("""
         SELECT v.ID_VEICULO, CONCAT(v.DS_MODELO,' - ',v.NU_PLACA) AS VEICULO 
-        FROM TJ_VEICULO v 
+        FROM CAD_VEICULOS v 
         WHERE v.ID_VEICULO NOT IN 
             (SELECT ID_VEICULO FROM FLUXO_VEICULOS
 			 WHERE FL_STATUS = 'S') 
@@ -3600,7 +3600,7 @@ def fluxo_veiculo_saida_sem_retorno():
                 CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
             FROM FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v 
+            INNER JOIN CAD_VEICULOS v 
                 ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m 
                 ON f.ID_MOTORISTA = m.ID_MOTORISTA
@@ -3662,7 +3662,7 @@ def fluxo_veiculo_retorno_dia():
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, 
                 CONCAT(f.DT_RETORNO,' ',f.HR_RETORNO) AS RETORNO, f.OBS_RETORNO
             FROM FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v 
+            INNER JOIN CAD_VEICULOS v 
                 ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m 
                 ON f.ID_MOTORISTA = m.ID_MOTORISTA
@@ -3722,7 +3722,7 @@ def fluxo_veiculo_saida_retorno_pendente():
                 CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA, 
                 CONCAT(f.DT_SAIDA,' ',f.HR_SAIDA) AS SAIDA, f.OBS
             FROM FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v 
+            INNER JOIN CAD_VEICULOS v 
                 ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m 
                 ON f.ID_MOTORISTA = m.ID_MOTORISTA
@@ -3782,7 +3782,7 @@ def fluxo_saida_item(idfluxo):
                 CASE WHEN f.ID_MOTORISTA=0 THEN 
                 CONCAT('*',f.NC_CONDUTOR) ELSE COALESCE(m.NM_MOTORISTA, '')  END AS MOTORISTA
             FROM FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v 
+            INNER JOIN CAD_VEICULOS v 
                 ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m 
                 ON f.ID_MOTORISTA = m.ID_MOTORISTA
@@ -4024,7 +4024,7 @@ def lista_veiculos():
             # Busca pelo modelo ou placa
             query = """
             SELECT v.*, c.DS_CAT_VEICULO 
-            FROM TJ_VEICULO v
+            FROM CAD_VEICULOS v
             LEFT JOIN CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
             WHERE v.NU_PLACA LIKE %s OR v.DS_MODELO LIKE %s OR v.MARCA LIKE %s
             ORDER BY v.ID_VEICULO DESC
@@ -4034,7 +4034,7 @@ def lista_veiculos():
             # Busca todos
             query = """
             SELECT v.*, c.DS_CAT_VEICULO 
-            FROM TJ_VEICULO v
+            FROM CAD_VEICULOS v
             LEFT JOIN CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
             ORDER BY v.ID_VEICULO DESC
             """
@@ -4063,7 +4063,7 @@ def obter_veiculo(id):
         
         query = """
         SELECT v.*, c.DS_CAT_VEICULO 
-        FROM TJ_VEICULO v
+        FROM CAD_VEICULOS v
         LEFT JOIN CATEGORIA_VEICULO c ON v.ID_CATEGORIA = c.ID_CAT_VEICULO
         WHERE v.ID_VEICULO = %s
         """
@@ -4092,7 +4092,7 @@ def cadastrar_veiculo():
         cursor = mysql.connection.cursor()
         
         # Get last ID and increment
-        cursor.execute("SELECT COALESCE(MAX(ID_VEICULO), 0) + 1 FROM TJ_VEICULO")
+        cursor.execute("SELECT COALESCE(MAX(ID_VEICULO), 0) + 1 FROM CAD_VEICULOS")
         novo_id = cursor.fetchone()[0]
         
         # Form data - CORRIGIDO: usar request.json consistentemente
@@ -4130,7 +4130,7 @@ def cadastrar_veiculo():
 
         # Insert query
         query = """
-        INSERT INTO TJ_VEICULO (
+        INSERT INTO CAD_VEICULOS (
             ID_VEICULO, NU_PLACA, ID_CATEGORIA, MARCA, DS_MODELO, 
             ANO_FABMOD, ORIGEM_VEICULO, PROPRIEDADE, COMBUSTIVEL, 
             OBS, ATIVO, FL_ATENDIMENTO, USUARIO, DT_TRANSACAO, DT_INICIO, DT_FIM
@@ -4197,7 +4197,7 @@ def atualizar_veiculo():
 
         # Update query
         query = """
-        UPDATE TJ_VEICULO SET
+        UPDATE CAD_VEICULOS SET
             NU_PLACA = %s,
             ID_CATEGORIA = %s,
             MARCA = %s,
@@ -4268,7 +4268,7 @@ def fluxo_lista_veiculos_pesquisa():
         cursor.execute("""
             SELECT DISTINCT v.ID_VEICULO, 
                    CONCAT(v.DS_MODELO, ' - ', v.NU_PLACA) AS VEICULO
-            FROM TJ_VEICULO v
+            FROM CAD_VEICULOS v
             INNER JOIN FLUXO_VEICULOS f ON v.ID_VEICULO = f.ID_VEICULO
             WHERE v.ATIVO = 'S'
             ORDER BY v.DS_MODELO, v.NU_PLACA
@@ -4357,7 +4357,7 @@ def fluxo_pesquisar():
                        ''
                    ) AS OBS
             FROM FLUXO_VEICULOS f
-            INNER JOIN TJ_VEICULO v ON v.ID_VEICULO = f.ID_VEICULO
+            INNER JOIN CAD_VEICULOS v ON v.ID_VEICULO = f.ID_VEICULO
             LEFT JOIN CAD_MOTORISTA m ON f.ID_MOTORISTA = m.ID_MOTORISTA AND f.ID_MOTORISTA > 0
         """
         
@@ -4444,7 +4444,7 @@ def criar_registro_locacao_fornecedor(id_demanda):
             SELECT ad.DT_INICIO, ad.DT_FIM, ad.SETOR, ad.DESTINO, ad.NU_SEI, 
                 ad.ID_TIPOVEICULO, ad.HORARIO, 
                 COALESCE(cl.ID_CL, 0) AS ID_CL
-            FROM ATENDIMENTO_DEMANDAS ad
+            FROM AGENDA_DEMANDAS ad
             JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ad.ID_TIPOVEICULO
             LEFT JOIN CONTROLE_LOCACAO cl ON cl.ID_FORNECEDOR = tv.ID_FORNECEDOR
             WHERE ID_AD = %s
@@ -4553,7 +4553,7 @@ def listar_semanas():
             SELECT DISTINCT 
                 DATE(DT_INICIO) as data_inicio,
                 DATE(DT_FIM) as data_fim
-            FROM ATENDIMENTO_DEMANDAS
+            FROM AGENDA_DEMANDAS
             WHERE DT_INICIO IS NOT NULL AND DT_FIM IS NOT NULL
             ORDER BY DT_INICIO
         """)
@@ -4660,7 +4660,7 @@ def buscar_dados_agenda():
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
                    m.NU_TELEFONE, m.TIPO_CADASTRO
             FROM CAD_MOTORISTA m
-            INNER JOIN ATENDIMENTO_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
+            INNER JOIN AGENDA_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado')
               AND m.ATIVO = 'S'
               AND ae.DT_INICIO <= %s 
@@ -4671,7 +4671,7 @@ def buscar_dados_agenda():
                    '' AS CAD_MOTORISTA, 
                    '' AS NU_TELEFONE, 
                    'Não Cadastrado' as TIPO_CADASTRO
-            FROM ATENDIMENTO_DEMANDAS
+            FROM AGENDA_DEMANDAS
             WHERE DT_INICIO <= %s 
               AND DT_FIM >= %s
               AND ID_MOTORISTA = 0
@@ -4704,7 +4704,7 @@ def buscar_dados_agenda():
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
                    ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
                    ae.TODOS_VEICULOS, ae.NC_MOTORISTA
-            FROM ATENDIMENTO_DEMANDAS ae
+            FROM AGENDA_DEMANDAS ae
             LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
             LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
@@ -4769,7 +4769,7 @@ def buscar_dados_agenda():
         # 3. Lista de Veículos PADRÃO (COM VALIDAÇÃO DE PERÍODO)
         cursor.execute("""
             SELECT ID_VEICULO, DS_MODELO, NU_PLACA
-            FROM TJ_VEICULO 
+            FROM CAD_VEICULOS 
             WHERE FL_ATENDIMENTO = 'S' 
               AND ATIVO = 'S'
               AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
@@ -4788,8 +4788,8 @@ def buscar_dados_agenda():
         # 4. Veículos EXTRAS (COM VALIDAÇÃO DE PERÍODO)
         cursor.execute("""
             SELECT DISTINCT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-            FROM TJ_VEICULO v
-            INNER JOIN ATENDIMENTO_DEMANDAS ad ON ad.ID_VEICULO = v.ID_VEICULO
+            FROM CAD_VEICULOS v
+            INNER JOIN AGENDA_DEMANDAS ad ON ad.ID_VEICULO = v.ID_VEICULO
             WHERE v.FL_ATENDIMENTO = 'N' 
               AND v.ATIVO = 'S'
               AND ad.DT_INICIO <= %s 
@@ -4854,7 +4854,7 @@ def buscar_veiculos_disponiveis():
             if id_demanda_atual:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                    FROM TJ_VEICULO v
+                    FROM CAD_VEICULOS v
                     WHERE v.FL_ATENDIMENTO = 'S' 
                       AND v.ATIVO = 'S'
                       AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
@@ -4864,7 +4864,7 @@ def buscar_veiculos_disponiveis():
             else:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                    FROM TJ_VEICULO v
+                    FROM CAD_VEICULOS v
                     WHERE v.FL_ATENDIMENTO = 'S' 
                       AND v.ATIVO = 'S'
                       AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
@@ -4876,14 +4876,14 @@ def buscar_veiculos_disponiveis():
             if id_demanda_atual:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                    FROM TJ_VEICULO v
+                    FROM CAD_VEICULOS v
                     WHERE v.FL_ATENDIMENTO = 'S' 
                       AND v.ATIVO = 'S'
                       AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
                       AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                       AND NOT EXISTS (
                           SELECT 1
-                          FROM ATENDIMENTO_DEMANDAS ad
+                          FROM AGENDA_DEMANDAS ad
                           WHERE ad.ID_VEICULO = v.ID_VEICULO
                             AND ad.ID_TIPOVEICULO = 1
                             AND ad.ID_AD != %s
@@ -4896,14 +4896,14 @@ def buscar_veiculos_disponiveis():
             else:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                    FROM TJ_VEICULO v
+                    FROM CAD_VEICULOS v
                     WHERE v.FL_ATENDIMENTO = 'S' 
                       AND v.ATIVO = 'S'
                       AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
                       AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                       AND NOT EXISTS (
                           SELECT 1
-                          FROM ATENDIMENTO_DEMANDAS ad
+                          FROM AGENDA_DEMANDAS ad
                           WHERE ad.ID_VEICULO = v.ID_VEICULO
                             AND ad.ID_TIPOVEICULO = 1
                             AND ad.DT_INICIO <= %s 
@@ -4953,7 +4953,7 @@ def criar_demanda():
             horario_value = None
         
         cursor.execute("""
-            INSERT INTO ATENDIMENTO_DEMANDAS 
+            INSERT INTO AGENDA_DEMANDAS 
             (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
              DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
              OBS, SOLICITADO, HORARIO, TODOS_VEICULOS, NC_MOTORISTA, DT_LANCAMENTO, USUARIO)
@@ -5008,7 +5008,7 @@ def atualizar_demanda(id_ad):
             horario_value = None
         
         cursor.execute("""
-            UPDATE ATENDIMENTO_DEMANDAS 
+            UPDATE AGENDA_DEMANDAS 
             SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
                 ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
                 SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
@@ -5101,7 +5101,7 @@ def excluir_demanda(id_ad):
         cursor.execute("DELETE FROM CONTROLE_LOCACAO_ITENS WHERE ID_AD = %s", (id_ad,))
         
         # Por último deleta a tabela principal
-        cursor.execute("DELETE FROM ATENDIMENTO_DEMANDAS WHERE ID_AD = %s", (id_ad,))
+        cursor.execute("DELETE FROM AGENDA_DEMANDAS WHERE ID_AD = %s", (id_ad,))
         
         mysql.connection.commit()
         cursor.close()
@@ -5421,7 +5421,7 @@ def verificar_horario_veiculo():
         if id_demanda_atual:
             cursor.execute("""
                 SELECT COUNT(*) as total
-                FROM ATENDIMENTO_DEMANDAS
+                FROM AGENDA_DEMANDAS
                 WHERE ID_VEICULO = %s
                   AND ID_AD != %s
                   AND DT_INICIO <= %s
@@ -5432,7 +5432,7 @@ def verificar_horario_veiculo():
         else:
             cursor.execute("""
                 SELECT COUNT(*) as total
-                FROM ATENDIMENTO_DEMANDAS
+                FROM AGENDA_DEMANDAS
                 WHERE ID_VEICULO = %s
                   AND DT_INICIO <= %s
                   AND DT_FIM >= %s
@@ -5469,7 +5469,7 @@ def buscar_veiculos_todos():
         if tem_horario:
             cursor.execute("""
                 SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                FROM TJ_VEICULO v
+                FROM CAD_VEICULOS v
                 WHERE v.ATIVO = 'S'
                   AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
                   AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
@@ -5480,13 +5480,13 @@ def buscar_veiculos_todos():
             if id_demanda_atual:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                    FROM TJ_VEICULO v
+                    FROM CAD_VEICULOS v
                     WHERE v.ATIVO = 'S'
                       AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
                       AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                       AND NOT EXISTS (
                           SELECT 1
-                          FROM ATENDIMENTO_DEMANDAS ad
+                          FROM AGENDA_DEMANDAS ad
                           WHERE ad.ID_VEICULO = v.ID_VEICULO
                             AND ad.ID_TIPOVEICULO = 1
                             AND ad.ID_AD != %s
@@ -5499,13 +5499,13 @@ def buscar_veiculos_todos():
             else:
                 cursor.execute("""
                     SELECT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
-                    FROM TJ_VEICULO v
+                    FROM CAD_VEICULOS v
                     WHERE v.ATIVO = 'S'
                       AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
                       AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
                       AND NOT EXISTS (
                           SELECT 1
-                          FROM ATENDIMENTO_DEMANDAS ad
+                          FROM AGENDA_DEMANDAS ad
                           WHERE ad.ID_VEICULO = v.ID_VEICULO
                             AND ad.ID_TIPOVEICULO = 1
                             AND ad.DT_INICIO <= %s 
@@ -5753,7 +5753,7 @@ def enviar_email_fornecedor():
             
             # Atualizar SOLICITADO na demanda
             cursor.execute("""
-                UPDATE ATENDIMENTO_DEMANDAS 
+                UPDATE AGENDA_DEMANDAS 
                 SET SOLICITADO = 'S' 
                 WHERE ID_AD = %s
             """, (id_demanda,))
