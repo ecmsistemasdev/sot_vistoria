@@ -2023,6 +2023,7 @@
         <div class="modal-content" style="max-width: 1040px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <h2 style="font-size: 18px; margin: 0;">📧 Solicitação de Locação por E-mail</h2>
+                <!-- ===== GARANTIR QUE O X CHAMA A FUNÇÃO CORRETA ===== -->
                 <span class="close" onclick="fecharModalEmailFornecedor()">&times;</span>
             </div>
             <div class="modal-body" style="padding: 20px;">
@@ -3911,16 +3912,13 @@
                 // Fechar modal de email
                 modal.style.display = 'none';
                 
-                // ====== NOVO: FECHAR TAMBÉM O MODAL DE DEMANDA =====
+                // Fechar também o modal de demanda
                 fecharModal();
-                // ====== FIM =====
                 
-                // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+                // Verificar se está no fluxo de vínculos
                 if (fluxoVinculosAtivo) {
-                    // Continuar processando próximo vínculo
                     await processarVinculosSequencial();
                 } else {
-                    // Fluxo normal - recarregar seções
                     await carregarSemanas();
                     await carregarAgenda();
                     inicializarDestaqueLinha();
@@ -3960,21 +3958,19 @@
                             dadosVinculoFornecedor = null;
                             idDemandaParaEmailFornecedor = null;
                             
-                            // Fechar modal de email
+                            // ===== CORREÇÃO: FECHAR O MODAL AQUI =====
                             modal.style.display = 'none';
                             
-                            // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+                            // Verificar se está no fluxo de vínculos
                             if (fluxoVinculosAtivo) {
-                                // Continuar processando próximo vínculo
                                 await processarVinculosSequencial();
                             } else {
-                                // Fluxo normal - recarregar seções
                                 await carregarSemanas();
                                 await carregarAgenda();
                                 inicializarDestaqueLinha();
                             }
                         }
-                        // Se não confirmar, não faz nada (modal continua aberto)
+                        // ===== IMPORTANTE: Se não confirmar, NÃO fecha o modal (usuário volta para o formulário) =====
                     },
                     '⚠️ Cancelar Solicitação'
                 );
@@ -3989,12 +3985,10 @@
                 dadosVinculoDiarias = null;
                 temVinculoDiariasAtivo = false;
                 
-                // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+                // Verificar se está no fluxo de vínculos
                 if (fluxoVinculosAtivo) {
-                    // Continuar processando próximo vínculo
                     await processarVinculosSequencial();
                 } else {
-                    // Fluxo normal - recarregar seções
                     await carregarSemanas();
                     await carregarAgenda();
                     inicializarDestaqueLinha();
