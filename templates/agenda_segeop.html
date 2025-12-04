@@ -3912,13 +3912,16 @@
                 // Fechar modal de email
                 modal.style.display = 'none';
                 
-                // Fechar também o modal de demanda
+                // ====== FECHAR TAMBÉM O MODAL DE DEMANDA =====
                 fecharModal();
+                // ====== FIM =====
                 
-                // Verificar se está no fluxo de vínculos
+                // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
                 if (fluxoVinculosAtivo) {
+                    // Continuar processando próximo vínculo
                     await processarVinculosSequencial();
                 } else {
+                    // Fluxo normal - recarregar
                     await carregarSemanas();
                     await carregarAgenda();
                     inicializarDestaqueLinha();
@@ -3926,77 +3929,40 @@
                 return;
             }
             
-            // ===== VERIFICAR SE DEVE EXCLUIR REGISTRO DE LOCAÇÃO (APENAS PARA LOCAÇÃO) =====
+            // ===== EXCLUIR REGISTRO DE LOCAÇÃO (APENAS PARA LOCAÇÃO) - SEM CONFIRMAÇÃO =====
             if (idItemLocacaoFornecedor) {
-                // Perguntar se quer realmente cancelar
-
-                const modal = document.getElementById('modalEmailFornecedor');
-                modal.style.display = 'none';
-                
-                mostrarConfirmacao(
-                    'Ao fechar sem enviar o e-mail, o registro de locação será excluído.<br><br>Deseja realmente cancelar?',
-                    async function(confirmarCancelamento) {
-                        if (confirmarCancelamento) {
-                            // Excluir registro de locação
-                            mostrarSpinner();
-                            
-                            try {
-                                const resExcluir = await fetch(`/api/excluir_locacao/${idItemLocacaoFornecedor}`, {
-                                    method: 'DELETE'
-                                });
-                                
-                                esconderSpinner();
-                                
-                                if (resExcluir.ok) {
-                                    console.log(`Registro de locação ID_ITEM ${idItemLocacaoFornecedor} excluído`);
-                                } else {
-                                    console.error('Erro ao excluir registro de locação');
-                                }
-                            } catch (error) {
-                                esconderSpinner();
-                                console.error('Erro ao excluir registro:', error);
-                            }
-                            
-                            // Limpar variáveis
-                            idItemLocacaoFornecedor = null;
-                            dadosVinculoFornecedor = null;
-                            idDemandaParaEmailFornecedor = null;
-                            
-                            // ===== CORREÇÃO: FECHAR O MODAL AQUI =====
-                            // modal.style.display = 'none';
-                            
-                            // Verificar se está no fluxo de vínculos
-                            if (fluxoVinculosAtivo) {
-                                await processarVinculosSequencial();
-                            } else {
-                                await carregarSemanas();
-                                await carregarAgenda();
-                                inicializarDestaqueLinha();
-                            }
-                        }
-                        // ===== IMPORTANTE: Se não confirmar, NÃO fecha o modal (usuário volta para o formulário) =====
-                    },
-                    '⚠️ Cancelar Solicitação'
-                );
-            } else {
-                // Não tem ID_ITEM (pode ser diárias), fechar normalmente
-                modal.style.display = 'none';
-                
-                // Limpar todas as variáveis
-                dadosVinculoFornecedor = null;
-                idDemandaParaEmailFornecedor = null;
-                idDemandaParaDiarias = null;
-                dadosVinculoDiarias = null;
-                temVinculoDiariasAtivo = false;
-                
-                // Verificar se está no fluxo de vínculos
-                if (fluxoVinculosAtivo) {
-                    await processarVinculosSequencial();
-                } else {
-                    await carregarSemanas();
-                    await carregarAgenda();
-                    inicializarDestaqueLinha();
+                // Excluir registro de locação silenciosamente
+                try {
+                    await fetch(`/api/excluir_locacao/${idItemLocacaoFornecedor}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    console.log(`Registro de locação ID_ITEM ${idItemLocacaoFornecedor} excluído automaticamente`);
+                } catch (error) {
+                    console.error('Erro ao excluir registro de locação:', error);
                 }
+            }
+            
+            // Limpar variáveis
+            idItemLocacaoFornecedor = null;
+            dadosVinculoFornecedor = null;
+            idDemandaParaEmailFornecedor = null;
+            idDemandaParaDiarias = null;
+            dadosVinculoDiarias = null;
+            temVinculoDiariasAtivo = false;
+            
+            // Fechar modal de email
+            modal.style.display = 'none';
+            
+            // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
+            if (fluxoVinculosAtivo) {
+                // Continuar processando próximo vínculo
+                await processarVinculosSequencial();
+            } else {
+                // Fluxo normal - recarregar seções
+                await carregarSemanas();
+                await carregarAgenda();
+                inicializarDestaqueLinha();
             }
         }
 
