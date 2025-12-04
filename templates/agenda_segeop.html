@@ -3930,9 +3930,6 @@
             
             // ===== VERIFICAR SE DEVE EXCLUIR REGISTRO DE LOCAÇÃO (APENAS PARA LOCAÇÃO) =====
             if (idItemLocacaoFornecedor) {
-                // **CORREÇÃO**: Fechar o modal de email ANTES de mostrar confirmação
-                modal.style.display = 'none';
-                
                 // Perguntar se quer realmente cancelar
                 mostrarConfirmacao(
                     'Ao fechar sem enviar o e-mail, o registro de locação será excluído.<br><br>Deseja realmente cancelar?',
@@ -3963,6 +3960,9 @@
                             dadosVinculoFornecedor = null;
                             idDemandaParaEmailFornecedor = null;
                             
+                            // Fechar modal de email
+                            modal.style.display = 'none';
+                            
                             // ====== VERIFICAR SE ESTÁ NO FLUXO DE VÍNCULOS ======
                             if (fluxoVinculosAtivo) {
                                 // Continuar processando próximo vínculo
@@ -3973,10 +3973,8 @@
                                 await carregarAgenda();
                                 inicializarDestaqueLinha();
                             }
-                        } else {
-                            // **NOVO**: Se não confirmar, REABRIR o modal de email
-                            modal.style.display = 'block';
                         }
+                        // Se não confirmar, não faz nada (modal continua aberto)
                     },
                     '⚠️ Cancelar Solicitação'
                 );
