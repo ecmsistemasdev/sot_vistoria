@@ -119,7 +119,7 @@ def logout():
 def nova_vistoria():
     # Busca motoristas e veículos do banco de dados
     cur = mysql.connection.cursor()
-    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
+    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM CAD_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
     cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
@@ -131,7 +131,7 @@ def nova_vistoria():
 def nova_vistoria2():
     # Busca motoristas e veículos do banco de dados
     cur = mysql.connection.cursor()
-    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM TJ_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
+    cur.execute("SELECT ID_MOTORISTA, NM_MOTORISTA FROM CAD_MOTORISTA WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA")
     motoristas = cur.fetchall()
     cur.execute("SELECT ID_VEICULO, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO FROM TJ_VEICULO WHERE ATIVO = 'S' AND FL_ATENDIMENTO = 'S' ORDER BY DS_MODELO, NU_PLACA")
     veiculos = cur.fetchall()
@@ -153,7 +153,7 @@ def confirma_vistoria(id):
                v.COMBUSTIVEL, v.HODOMETRO, ve.DS_MODELO, v.VISTORIA_SAIDA_ID,  
                v.ASS_USUARIO, v.ASS_MOTORISTA, v.OBS, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
         FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+        JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.TIPO = 'INICIAL' AND v.IDVISTORIA = %s
     """, (id,))
@@ -184,7 +184,7 @@ def nova_vistoria_devolucao(vistoria_saida_id):
         SELECT v.IDVISTORIA, v.IDMOTORISTA, v.IDVEICULO, m.NM_MOTORISTA, 
 	ve.NU_PLACA, v.COMBUSTIVEL, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
         FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+        JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.IDVISTORIA = %s AND v.TIPO = 'SAIDA'
     """, (vistoria_saida_id,))
@@ -576,7 +576,7 @@ def listar_vistorias():
         CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
         v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+        JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.STATUS = 'EM_TRANSITO' AND v.TIPO = 'SAIDA'
         ORDER BY v.DATA DESC
@@ -588,7 +588,7 @@ def listar_vistorias():
         CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO,
         v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+        JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.TIPO IN ('INICIAL', 'CONFIRMACAO')
         ORDER BY v.DATA DESC
@@ -601,7 +601,7 @@ def listar_vistorias():
         v.DATA, v.TIPO, v.STATUS, v.OBS, 
         (SELECT IDVISTORIA FROM VISTORIAS WHERE VISTORIA_SAIDA_ID = v.IDVISTORIA) AS ID_DEVOLUCAO
         FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+        JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.TIPO = 'SAIDA' 
         AND v.STATUS = 'FINALIZADA'
@@ -628,7 +628,7 @@ def ver_vistoria(id):
                    v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO, v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, 
 		   v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
             FROM VISTORIAS v
-            JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+            JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
             WHERE v.IDVISTORIA = %s
         """, (id,))
@@ -648,7 +648,7 @@ def ver_vistoria(id):
                            v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                            v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
                     FROM VISTORIAS v
-                    JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+                    JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
                     JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
                     WHERE v.IDVISTORIA = %s
                 """, (vistoria[8],))
@@ -667,7 +667,7 @@ def ver_vistoria(id):
                            v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                            v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
                     FROM VISTORIAS v
-                    JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+                    JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
                     JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
                     WHERE v.VISTORIA_SAIDA_ID = %s
                 """, (id,))
@@ -723,7 +723,7 @@ def vistoria_finaliza(id):
                v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS
         FROM VISTORIAS v
-        JOIN TJ_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+        JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
         JOIN TJ_VEICULO ve ON v.IDVEICULO = ve.ID_VEICULO
         WHERE v.IDVISTORIA = %s
     """, (id,))
@@ -922,7 +922,7 @@ def listar_motoristas():
                 FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
                 DATE_FORMAT(DT_INICIO, '%%d/%%m/%%Y') AS DT_INICIO,
                 DATE_FORMAT(DT_FIM, '%%d/%%m/%%Y') AS DT_FIM
-            FROM TJ_MOTORISTA 
+            FROM CAD_MOTORISTA 
             WHERE ID_MOTORISTA > 0
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
             ORDER BY NM_MOTORISTA
@@ -939,7 +939,7 @@ def listar_motoristas():
                 FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
                 DATE_FORMAT(DT_INICIO, '%%d/%%m/%%Y') AS DT_INICIO,
                 DATE_FORMAT(DT_FIM, '%%d/%%m/%%Y') AS DT_FIM
-            FROM TJ_MOTORISTA
+            FROM CAD_MOTORISTA
             WHERE ID_MOTORISTA > 0
             ORDER BY NM_MOTORISTA
             """
@@ -972,7 +972,7 @@ def detalhe_motorista(id_motorista):
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
             NU_TELEFONE, OBS_MOTORISTA, ATIVO, NOME_ARQUIVO, EMAIL,
             DT_INICIO, DT_FIM, ID_FORNECEDOR
-        FROM TJ_MOTORISTA 
+        FROM CAD_MOTORISTA 
         WHERE ID_MOTORISTA = %s
         """
         cursor.execute(query, (id_motorista,))
@@ -1052,7 +1052,7 @@ def cadastrar_motorista():
         cursor = mysql.connection.cursor()
         
         # Get last ID and increment
-        cursor.execute("SELECT COALESCE(MAX(ID_MOTORISTA), 0) + 1 FROM TJ_MOTORISTA")
+        cursor.execute("SELECT COALESCE(MAX(ID_MOTORISTA), 0) + 1 FROM CAD_MOTORISTA")
         novo_id = cursor.fetchone()[0]
         
         # Form data
@@ -1103,7 +1103,7 @@ def cadastrar_motorista():
         
         # Insert query
         query = """
-        INSERT INTO TJ_MOTORISTA (
+        INSERT INTO CAD_MOTORISTA (
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR, CAT_CNH, 
             DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, 
             DT_TRANSACAO, FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL, DT_INICIO, DT_FIM, ID_FORNECEDOR
@@ -1194,7 +1194,7 @@ def atualizar_motorista():
         if file_pdf:
             # Update with file
             query = """
-            UPDATE TJ_MOTORISTA 
+            UPDATE CAD_MOTORISTA 
             SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
@@ -1214,7 +1214,7 @@ def atualizar_motorista():
         else:
             # Update without changing file
             query = """
-            UPDATE TJ_MOTORISTA 
+            UPDATE CAD_MOTORISTA 
             SET CAD_MOTORISTA = %s, NM_MOTORISTA = %s, TIPO_CADASTRO = %s, 
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
@@ -1244,7 +1244,7 @@ def atualizar_motorista():
 def download_cnh(id_motorista):
     try:
         cursor = mysql.connection.cursor()
-        query = "SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s"
+        query = "SELECT FILE_PDF, NOME_ARQUIVO FROM CAD_MOTORISTA WHERE ID_MOTORISTA = %s"
         cursor.execute(query, (id_motorista,))
         result = cursor.fetchone()
         cursor.close()
@@ -1266,7 +1266,7 @@ def download_cnh(id_motorista):
 def visualizar_cnh(id_motorista):
     try:
         cursor = mysql.connection.cursor()
-        query = "SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s"
+        query = "SELECT FILE_PDF, NOME_ARQUIVO FROM CAD_MOTORISTA WHERE ID_MOTORISTA = %s"
         cursor.execute(query, (id_motorista,))
         result = cursor.fetchone()
         cursor.close()
@@ -1566,7 +1566,7 @@ def api_locacoes_transito(id_cl):
            ELSE m.NM_MOTORISTA END AS MOTORISTA, 
            i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV
         FROM TJ_CONTROLE_LOCACAO_ITENS i
-        LEFT JOIN TJ_MOTORISTA m
+        LEFT JOIN CAD_MOTORISTA m
         ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
         TJ_VEICULO_LOCACAO v, TJ_MES x,
         TJ_CONTROLE_LOCACAO_EMPENHOS e
@@ -1666,7 +1666,7 @@ def api_locacoes_finalizadas(id_cl):
         CASE WHEN i.ID_MOTORISTA=0 THEN CONCAT('*',i.NC_CONDUTOR,'*') ELSE m.NM_MOTORISTA END AS MOTORISTA, 
         i.FL_EMAIL, i.KM_RODADO, i.COMBUSTIVEL, i.OBS, i.OBS_DEV 
         FROM TJ_CONTROLE_LOCACAO_ITENS i 
-        LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+        LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
         TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
@@ -1735,7 +1735,7 @@ def get_rel_locacao_analitico(id_cl):
         CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, m.NM_MOTORISTA,
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
         FROM TJ_CONTROLE_LOCACAO_ITENS i 
-        LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+        LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
         TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
@@ -1798,7 +1798,7 @@ def rel_locacao_analitico_page():
         CONCAT(v.DE_REDUZ,' / ',i.DS_VEICULO_MOD) AS VEICULO, m.NM_MOTORISTA,
         i.QT_DIARIA_KM, i.VL_DK, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO
         FROM TJ_CONTROLE_LOCACAO_ITENS i 
-        LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
+        LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = i.ID_MOTORISTA, 
         TJ_VEICULO_LOCACAO v, TJ_MES x, TJ_CONTROLE_LOCACAO_EMPENHOS e 
         WHERE e.ID_EMPENHO = i.ID_EMPENHO 
         AND x.ID_MES = i.ID_MES 
@@ -1924,7 +1924,7 @@ def listar_motoristas_loc():
         print("Executando consulta SQL")
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, NU_TELEFONE, 
-            FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
+            FILE_PDF, NOME_ARQUIVO FROM CAD_MOTORISTA
             WHERE ID_MOTORISTA <> 0 AND ATIVO = 'S' ORDER BY NM_MOTORISTA
         """)
         
@@ -2059,7 +2059,7 @@ def verificar_vinculo_locacao():
         # Verificar CNH do motorista
         sql_cnh = """
             SELECT FILE_PDF 
-            FROM TJ_MOTORISTA 
+            FROM CAD_MOTORISTA 
             WHERE ID_MOTORISTA = %s
         """
         cursor.execute(sql_cnh, (id_motorista,))
@@ -2188,7 +2188,7 @@ def verificar_vinculo_diarias():
                 f.EMAIL,
                 f.NM_FORNECEDOR,
                 f.VL_DIARIA
-            FROM TJ_MOTORISTA m
+            FROM CAD_MOTORISTA m
             INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
             WHERE m.ID_MOTORISTA = %s
               AND m.TIPO_CADASTRO = 'Terceirizado'
@@ -2486,7 +2486,7 @@ def nova_locacao():
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
         # Verificar se o motorista tem CNH cadastrada
-        cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO, EMAIL FROM TJ_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
+        cursor.execute("SELECT FILE_PDF, NM_MOTORISTA, NU_TELEFONE, NOME_ARQUIVO, EMAIL FROM CAD_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
         motorista_info = cursor.fetchone()
         
         # Buscar o email do fornecedor
@@ -2515,7 +2515,7 @@ def nova_locacao():
                 
                 # Atualizar o motorista com o arquivo da CNH
                 cursor.execute(
-                    "UPDATE TJ_MOTORISTA SET FILE_PDF = %s, NOME_ARQUIVO = %s WHERE ID_MOTORISTA = %s",
+                    "UPDATE CAD_MOTORISTA SET FILE_PDF = %s, NOME_ARQUIVO = %s WHERE ID_MOTORISTA = %s",
                     (file_content, nome_arquivo_cnh, id_motorista)
                 )
                 mysql.connection.commit()
@@ -2937,7 +2937,7 @@ def download_cnh_loc(id_motorista):
     try:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # IMPORTANTE: Use dictionary=True aqui também
         cursor.execute("""
-            SELECT FILE_PDF, NOME_ARQUIVO FROM TJ_MOTORISTA
+            SELECT FILE_PDF, NOME_ARQUIVO FROM CAD_MOTORISTA
             WHERE ID_MOTORISTA = %s
         """, (id_motorista,))
         
@@ -3014,7 +3014,7 @@ def locacao_item(iditem):
             i.ID_VEICULO_LOC, i.ID_MOTORISTA, m.NM_MOTORISTA, i.QT_DIARIA_KM, i.VL_DK, 
             i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.NU_SEI, i.DATA_INICIO, i.DATA_FIM, 
             i.HORA_INICIO, i.HORA_FIM, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.OBS
-            FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m
+            FROM TJ_CONTROLE_LOCACAO_ITENS i, CAD_MOTORISTA m
             WHERE m.ID_MOTORISTA = i.ID_MOTORISTA
             AND i.ID_ITEM = %s
         """, (iditem,))
@@ -3330,7 +3330,7 @@ def locacao_visualiza(iditem):
             v.DE_VEICULO, i.DS_VEICULO_MOD, i.COMBUSTIVEL, i.DATA_INICIO, i.DATA_FIM, 
             i.HORA_INICIO, i.HORA_FIM, i.QT_DIARIA_KM, i.VL_DK, 
             i.VL_SUBTOTAL, i.VL_DIFERENCA, i.VL_TOTALITEM, i.KM_RODADO, i.OBS, i.OBS_DEV
-            FROM TJ_CONTROLE_LOCACAO_ITENS i, TJ_MOTORISTA m, 
+            FROM TJ_CONTROLE_LOCACAO_ITENS i, CAD_MOTORISTA m, 
             TJ_CONTROLE_LOCACAO_EMPENHOS e, TJ_VEICULO_LOCACAO v
             WHERE v.ID_VEICULO_LOC = i.ID_VEICULO_LOC 
             AND e.ID_EMPENHO = i.ID_EMPENHO 
@@ -3534,7 +3534,7 @@ def fluxo_lista_motorista():
         cursor = mysql.connection.cursor()
         cursor.execute("""
         SELECT ID_MOTORISTA, NM_MOTORISTA 
-        FROM TJ_MOTORISTA WHERE ATIVO = 'S' AND ID_MOTORISTA <> 0
+        FROM CAD_MOTORISTA WHERE ATIVO = 'S' AND ID_MOTORISTA <> 0
         ORDER BY NM_MOTORISTA
         """)
                
@@ -3602,7 +3602,7 @@ def fluxo_veiculo_saida_sem_retorno():
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m 
+            LEFT JOIN CAD_MOTORISTA m 
                 ON f.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE f.DATA_RETORNO IS NULL
             AND f.DATA_SAIDA = CURDATE()
@@ -3664,7 +3664,7 @@ def fluxo_veiculo_retorno_dia():
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m 
+            LEFT JOIN CAD_MOTORISTA m 
                 ON f.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE f.DATA_RETORNO IS NOT NULL
             AND f.DATA_RETORNO = CURDATE()
@@ -3724,7 +3724,7 @@ def fluxo_veiculo_saida_retorno_pendente():
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m 
+            LEFT JOIN CAD_MOTORISTA m 
                 ON f.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE f.DATA_RETORNO IS NULL
             AND f.DATA_SAIDA <> CURDATE()
@@ -3784,7 +3784,7 @@ def fluxo_saida_item(idfluxo):
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v 
                 ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m 
+            LEFT JOIN CAD_MOTORISTA m 
                 ON f.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE f.ID_FLUXO = %s
         """, (idfluxo,))
@@ -3985,7 +3985,7 @@ def busca_motorista():
         if nome:
             query = """
             SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
-            FROM TJ_MOTORISTA 
+            FROM CAD_MOTORISTA 
             WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
             ORDER BY NM_MOTORISTA
@@ -3994,7 +3994,7 @@ def busca_motorista():
         else:
             query = """
             SELECT ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, SIGLA_SETOR
-            FROM TJ_MOTORISTA
+            FROM CAD_MOTORISTA
             WHERE ID_MOTORISTA > 0 AND ATIVO = 'S'
             ORDER BY NM_MOTORISTA
             """
@@ -4294,7 +4294,7 @@ def fluxo_lista_motoristas_pesquisa():
         cursor = mysql.connection.cursor()
         cursor.execute("""
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA
-            FROM TJ_MOTORISTA m
+            FROM CAD_MOTORISTA m
             INNER JOIN TJ_FLUXO_VEICULOS f ON m.ID_MOTORISTA = f.ID_MOTORISTA
             WHERE m.ATIVO = 'S' AND f.ID_MOTORISTA > 0
             ORDER BY m.NM_MOTORISTA
@@ -4358,7 +4358,7 @@ def fluxo_pesquisar():
                    ) AS OBS
             FROM TJ_FLUXO_VEICULOS f
             INNER JOIN TJ_VEICULO v ON v.ID_VEICULO = f.ID_VEICULO
-            LEFT JOIN TJ_MOTORISTA m ON f.ID_MOTORISTA = m.ID_MOTORISTA AND f.ID_MOTORISTA > 0
+            LEFT JOIN CAD_MOTORISTA m ON f.ID_MOTORISTA = m.ID_MOTORISTA AND f.ID_MOTORISTA > 0
         """
         
         # Construir condições WHERE
@@ -4623,7 +4623,7 @@ def buscar_dados_agenda():
         # 1. Lista de Motoristas SEGEOP
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
-            FROM TJ_MOTORISTA
+            FROM CAD_MOTORISTA
             WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado')
               AND ATIVO = 'S'
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
@@ -4641,7 +4641,7 @@ def buscar_dados_agenda():
         # 1.1 TODOS os Motoristas Ativos (para select na edição/outros)
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
-            FROM TJ_MOTORISTA
+            FROM CAD_MOTORISTA
             WHERE ATIVO = 'S'
             ORDER BY NM_MOTORISTA
         """)
@@ -4659,7 +4659,7 @@ def buscar_dados_agenda():
         query_outros = """
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
                    m.NU_TELEFONE, m.TIPO_CADASTRO
-            FROM TJ_MOTORISTA m
+            FROM CAD_MOTORISTA m
             INNER JOIN ATENDIMENTO_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado')
               AND m.ATIVO = 'S'
@@ -4705,7 +4705,7 @@ def buscar_dados_agenda():
                    ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
                    ae.TODOS_VEICULOS, ae.NC_MOTORISTA
             FROM ATENDIMENTO_DEMANDAS ae
-            LEFT JOIN TJ_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
             LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
             WHERE ae.DT_INICIO <= %s AND ae.DT_FIM >= %s
@@ -5058,7 +5058,7 @@ def atualizar_demanda(id_ad):
             if id_motorista_novo and int(id_motorista_novo) > 0:
                 cursor.execute("""
                     SELECT m.ID_MOTORISTA
-                    FROM TJ_MOTORISTA m
+                    FROM CAD_MOTORISTA m
                     INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
                     WHERE m.ID_MOTORISTA = %s
                       AND m.TIPO_CADASTRO = 'Terceirizado'
