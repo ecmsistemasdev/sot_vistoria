@@ -1304,7 +1304,210 @@
             background: rgba(255, 0, 0, 0.1) !important;
         }
 
+        /* ========== MODAL DE VISUALIZAÇÃO COMPACTA ========== */
+        #modalVisualizacao {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        #modalVisualizacao .modal-content {
+            background: white;
+            margin: 20px auto;
+            width: 98%;
+            max-width: 1400px;
+            height: calc(100vh - 40px);
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #modalVisualizacao .modal-header {
+            background: #1a73e8;
+            color: white;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        #modalVisualizacao .modal-header h2 {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        #modalVisualizacao .modal-body {
+            flex: 1;
+            overflow: auto;
+            padding: 0;
+            background: white;
+        }
+
+        /* ========== TABELA COMPACTA ESTILO EXCEL ========== */
+        .view-compacta {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .view-compacta .section-title-compacto {
+            background: #34495e;
+            color: white;
+            padding: 6px 10px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            margin: 0;
+            border: none;
+        }
+
+        .view-compacta .agenda-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            table-layout: fixed;
+        }
+
+        .view-compacta .agenda-table th {
+            background: #e8e8e8;
+            padding: 4px 2px;
+            text-align: center;
+            border: 1px solid #bbb;
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .view-compacta .agenda-table td {
+            border: 1px solid #bbb;
+            padding: 2px 3px;
+            vertical-align: top;
+            font-size: 9px;
+            line-height: 1.2;
+            min-height: 18px;
+        }
+
+        .view-compacta .col-numero {
+            width: 28px;
+            background: #f5f5f5;
+            font-weight: 600;
+            text-align: center;
+            padding: 2px 1px;
+        }
+
+        .view-compacta .col-nome {
+            width: 140px;
+            background: #f5f5f5;
+            font-weight: 600;
+            word-wrap: break-word;
+            white-space: normal;
+            padding: 2px 4px;
+        }
+
+        .view-compacta .col-dia {
+            width: calc((100% - 168px) / 7);
+        }
+
+        .view-compacta .cell-content,
+        .view-compacta .cell-content-veiculos {
+            font-size: 9px;
+            line-height: 1.3;
+            min-height: 16px;
+        }
+
+        .view-compacta .cell-content div,
+        .view-compacta .cell-content-veiculos div {
+            margin-bottom: 1px;
+        }
+
+        .view-compacta .cell-divider {
+            border-top: 1px dashed #999;
+            margin: 2px 0;
+            padding-top: 2px;
+        }
+
+        .view-compacta .demanda-horario {
+            font-size: 8px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .view-compacta .informar-veiculo {
+            color: #dc3545;
+            font-style: italic;
+            font-size: 8px;
+        }
+
+        .view-compacta .empty-cell {
+            background: #fafafa;
+            min-height: 18px;
+        }
+
+        .view-compacta .empty-cell.weekend-empty {
+            background: #e8e8e8;
+        }
+
+        .view-compacta .cell-feriado {
+            background: #fdfcb2 !important;
+            font-weight: bold;
+            font-size: 8px;
+            text-align: center;
+            padding: 2px;
+        }
+
+        .view-compacta .veiculo-extra {
+            background: #fffacd !important;
+        }
+
+        .view-compacta .col-nome.veiculo-extra {
+            background: #fffacd !important;
+            font-style: italic;
+        }
+
+        .view-compacta .col-numero.veiculo-extra {
+            background: #fffacd !important;
+        }
+
+        /* Botões do modal */
+        .modal-view-footer {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .btn-copiar-imagem {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .btn-copiar-imagem:hover {
+            background: #218838;
+        }
+
     </style>
+
+    <!-- Biblioteca para copiar como imagem (OPCIONAL) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 </head>
 <body>
     <div class="container">
@@ -1892,6 +2095,24 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal de Visualização Compacta -->
+    <div id="modalVisualizacao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tituloVisualizacao">Visualização</h2>
+                <span class="close" onclick="fecharModalVisualizacao()">&times;</span>
+            </div>
+            <div class="modal-body" id="conteudoVisualizacao">
+                <!-- Conteúdo será inserido aqui -->
+            </div>
+            <div class="modal-view-footer">
+                <button class="btn btn-secondary" onclick="fecharModalVisualizacao()">Fechar</button>
+                <button class="btn-copiar-imagem" onclick="copiarComoImagem()">📋 Copiar como Imagem</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         let semanas = [];
@@ -6556,215 +6777,225 @@
             
             switch(tipo) {
                 case 'motoristas':
-                    titulo = '👲 SEGEOP - MOTORISTAS';
-                    htmlSecao = renderizarSecaoMotoristasCompleta(dias, titulo);
+                    titulo = '🚲 SEGEOP - MOTORISTAS';
+                    htmlSecao = renderizarSecaoMotoristasCompacta(dias);
                     break;
                 case 'outros-motoristas':
-                    titulo = '👲 OUTROS MOTORISTAS';
+                    titulo = '🚲 OUTROS MOTORISTAS';
                     htmlSecao = renderizarSecaoOutrosMotoristas(dias);
-                    // Extrair apenas a tabela (remover div externa)
-                    const tempDiv1 = document.createElement('div');
-                    tempDiv1.innerHTML = htmlSecao;
-                    const tabela1 = tempDiv1.querySelector('table');
-                    htmlSecao = `<div class="agenda-section">
-                        <div class="section-title">${titulo}</div>
-                        ${tabela1.outerHTML}
-                    </div>`;
+                    htmlSecao = extrairTabelaParaVisualizacao(htmlSecao);
                     break;
                 case 'veiculos':
                     titulo = '🚙 SEGEOP - VEÍCULOS OFICIAIS';
                     htmlSecao = renderizarSecaoVeiculos(dias);
-                    // Extrair apenas a tabela
-                    const tempDiv2 = document.createElement('div');
-                    tempDiv2.innerHTML = htmlSecao;
-                    const tabela2 = tempDiv2.querySelector('table');
-                    htmlSecao = `<div class="agenda-section">
-                        <div class="section-title">${titulo}</div>
-                        ${tabela2.outerHTML}
-                    </div>`;
+                    htmlSecao = extrairTabelaParaVisualizacao(htmlSecao);
                     break;
                 case 'veiculos-alocados':
                     titulo = '🚌 SEGEOP - VEÍCULOS ALOCADOS';
                     htmlSecao = renderizarSecaoVeiculosAlocados(dias);
-                    // Extrair apenas a tabela
-                    const tempDiv3 = document.createElement('div');
-                    tempDiv3.innerHTML = htmlSecao;
-                    const tabela3 = tempDiv3.querySelector('table');
-                    htmlSecao = `<div class="agenda-section">
-                        <div class="section-title">${titulo}</div>
-                        ${tabela3.outerHTML}
-                    </div>`;
+                    htmlSecao = extrairTabelaParaVisualizacao(htmlSecao);
                     break;
             }
             
-            // Criar nova janela
-            const novaJanela = window.open('', '_blank');
-            novaJanela.document.write(`
-                <!DOCTYPE html>
-                <html lang="pt-BR">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>${titulo} - ${semana.label}</title>
-                    <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; }
+            // Inserir no modal
+            document.getElementById('tituloVisualizacao').textContent = `${titulo} - ${semana.label}`;
+            document.getElementById('conteudoVisualizacao').innerHTML = `<div class="view-compacta">${htmlSecao}</div>`;
+            document.getElementById('modalVisualizacao').style.display = 'block';
+        }
+
+        function extrairTabelaParaVisualizacao(htmlSecao) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlSecao;
+            const tabela = tempDiv.querySelector('table');
+            const titulo = tempDiv.querySelector('.section-header span')?.textContent || '';
+            
+            return `
+                <div class="section-title-compacto">${titulo}</div>
+                ${tabela ? tabela.outerHTML : ''}
+            `;
+        }
+
+        function fecharModalVisualizacao() {
+            document.getElementById('modalVisualizacao').style.display = 'none';
+        }
+
+        // Função para copiar como imagem (usando html2canvas se disponível)
+        async function copiarComoImagem() {
+            const conteudo = document.getElementById('conteudoVisualizacao');
+            
+            // Verificar se html2canvas está disponível
+            if (typeof html2canvas === 'undefined') {
+                mostrarAlerta(
+                    'Para usar este recurso, é necessário incluir a biblioteca html2canvas.<br><br>' +
+                    'Por enquanto, você pode usar a tecla Print Screen para capturar a tela.',
+                    'ℹ️ Informação',
+                    '#1a73e8'
+                );
+                return;
+            }
+            
+            try {
+                mostrarSpinner();
+                
+                const canvas = await html2canvas(conteudo, {
+                    backgroundColor: '#ffffff',
+                    scale: 2, // Melhor qualidade
+                    logging: false
+                });
+                
+                canvas.toBlob(async (blob) => {
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
                         
-                        body {
-                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                            background: white;
+                        esconderSpinner();
+                        mostrarAlerta(
+                            '✅ Imagem copiada para a área de transferência!<br><br>' +
+                            'Cole (Ctrl+V) no WhatsApp Web ou em qualquer aplicativo.',
+                            '✅ Sucesso',
+                            '#28a745'
+                        );
+                    } catch (err) {
+                        esconderSpinner();
+                        console.error('Erro ao copiar:', err);
+                        mostrarAlerta(
+                            'Erro ao copiar imagem. Use Print Screen manualmente.',
+                            '⚠️ Erro',
+                            '#ffc107'
+                        );
+                    }
+                });
+                
+            } catch (error) {
+                esconderSpinner();
+                console.error('Erro ao gerar imagem:', error);
+                mostrarAlerta('Erro ao gerar imagem!', '❌ Erro', '#dc3545');
+            }
+        }
+
+        // Renderização compacta para visualização
+        function renderizarSecaoMotoristasCompacta(dias) {
+            let html = '<div class="section-title-compacto">🚲 SEGEOP - MOTORISTAS</div>';
+            html += '<table class="agenda-table"><thead><tr>';
+            html += '<th class="col-numero">N.</th><th class="col-nome">Nome</th>';
+            dias.forEach(d => html += `<th class="col-dia">${d.diaNome}<br>${d.diaNum}/${d.mes}</th>`);
+            html += '</tr></thead><tbody>';
+            
+            motoristas.forEach((m, motoristaGlobalIndex) => {
+                const demandasPorDia = dias.map(dia => {
+                    return dadosAgenda.demandas.filter(d => 
+                        d.id_motorista === m.id && 
+                        d.dt_inicio <= dia.data && 
+                        d.dt_fim >= dia.data
+                    );
+                });
+                
+                const maxDemandasPorDia = Math.max(...demandasPorDia.map(d => d.length), 1);
+                const celulasRenderizadas = Array(maxDemandasPorDia).fill(0).map(() => Array(dias.length).fill(false));
+                
+                for (let linhaIndex = 0; linhaIndex < maxDemandasPorDia; linhaIndex++) {
+                    html += `<tr>`;
+                    
+                    if (linhaIndex === 0) {
+                        if (maxDemandasPorDia > 1) {
+                            html += `<td class="col-numero" rowspan="${maxDemandasPorDia}">${motoristaGlobalIndex + 1}</td>`;
+                            html += `<td class="col-nome" rowspan="${maxDemandasPorDia}">${m.nome}</td>`;
+                        } else {
+                            html += `<td class="col-numero">${motoristaGlobalIndex + 1}</td>`;
+                            html += `<td class="col-nome">${m.nome}</td>`;
                         }
+                    }
+                    
+                    for (let diaIndex = 0; diaIndex < dias.length; diaIndex++) {
+                        if (celulasRenderizadas[linhaIndex][diaIndex]) continue;
                         
-                        .print-view {
-                            padding: 10px;
-                            background: white;
-                            min-height: 100vh;
+                        const dia = dias[diaIndex];
+                        const feriado = isFeriado(dia.data);
+                        const isWeekend = dia.diaIndex === 0 || dia.diaIndex === 6;
+                        const demandasDia = demandasPorDia[diaIndex];
+                        const demanda = demandasDia[linhaIndex];
+                        
+                        if (demanda) {
+                            let rowspanCount = 1;
+                            for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                if (!demandasDia[proxLinha]) {
+                                    rowspanCount++;
+                                    celulasRenderizadas[proxLinha][diaIndex] = true;
+                                } else break;
+                            }
+                            
+                            // USAR CLASSES DINÂMICAS (mesmas da seção principal)
+                            const corClass = `tipo-${demanda.id_tipodemanda}`;
+                            const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
+                            html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>`;
+                            html += '<div class="cell-content">';
+                            
+                            const tipoConfig = tiposDemandaConfig[demanda.id_tipodemanda];
+                            const bloqueiaSetorSolicitante = tipoConfig && tipoConfig.bloquear_setor && tipoConfig.bloquear_solicitante;
+                            const isCedencia = tipoConfig && tipoConfig.setor_obrigatorio && !tipoConfig.bloquear_setor;
+                            
+                            if (bloqueiaSetorSolicitante) {
+                                html += `<div><strong>${demanda.de_tipodemanda || tipoConfig.descricao}</strong></div>`;
+                                if (demanda.destino) {
+                                    html += `<div>${demanda.destino}</div>`;
+                                }
+                            }
+                            else if (isCedencia) {
+                                html += `<div><strong>${demanda.de_tipodemanda || tipoConfig.descricao}</strong></div>`;
+                                if (demanda.setor) {
+                                    html += `<div><strong>${demanda.setor}</strong></div>`;
+                                }
+                                if (demanda.nu_sei) {
+                                    html += `<div>${demanda.nu_sei}</div>`;
+                                }
+                            }
+                            else if (demanda.horario) {
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
+                                html += `<div>${demanda.nu_sei || ''}</div>`;
+                            }
+                            else {
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.destino || ''}</strong></div>`;
+                                html += `<div>${demanda.nu_sei || ''}</div>`;
+                            }
+                            
+                            const deveMostrarAvisoVeiculo = !demanda.id_tipoveiculo && 
+                                                            tipoConfig && 
+                                                            !tipoConfig.bloquear_tipo_veiculo && 
+                                                            !tipoConfig.bloquear_veiculo;
+                            
+                            if (deveMostrarAvisoVeiculo) {
+                                html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
+                            }
+                            
+                            html += '</div></td>';
+                            celulasRenderizadas[linhaIndex][diaIndex] = true;
+                        } else {
+                            let rowspanCount = 1;
+                            for (let proxLinha = linhaIndex + 1; proxLinha < maxDemandasPorDia; proxLinha++) {
+                                if (!demandasDia[proxLinha]) {
+                                    rowspanCount++;
+                                    celulasRenderizadas[proxLinha][diaIndex] = true;
+                                } else break;
+                            }
+                            
+                            if (feriado) {
+                                html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
+                            } else {
+                                const weekendClass = isWeekend ? 'weekend-empty' : '';
+                                html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
+                            }
+                            celulasRenderizadas[linhaIndex][diaIndex] = true;
                         }
-                        
-                        .agenda-section {
-                            margin: 0;
-                            height: auto;
-                        }
-                        
-                        .section-title {
-                            background: #34495e;
-                            color: white;
-                            padding: 12px 15px;
-                            font-size: 18px;
-                            text-align: center;
-                            font-weight: bold;
-                        }
-                        
-                        .agenda-table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            border: 1px solid #ddd;
-                            table-layout: fixed;
-                            font-size: 11px;
-                        }
-                        
-                        .agenda-table th {
-                            background: #ecf0f1;
-                            padding: 10px;
-                            text-align: center;
-                            border: 1px solid #ddd;
-                            font-size: 12px;
-                            font-weight: 600;
-                        }
-                        
-                        .agenda-table td {
-                            border: 1px solid #bbb;
-                            padding: 4px;
-                            vertical-align: middle;
-                            font-size: 10px;
-                        }
-                        
-                        .col-numero {
-                            width: 35px;
-                            background: #f8f9fa;
-                            font-weight: 600;
-                            text-align: center;
-                        }
-                        
-                        .col-nome {
-                            width: 180px;
-                            background: #f8f9fa;
-                            font-weight: 600;
-                            word-wrap: break-word;
-                            white-space: normal;
-                        }
-                        
-                        .col-dia {
-                            width: calc((100% - 215px) / 7);
-                        }
-                        
-                        .cell-content,
-                        .cell-content-veiculos {
-                            line-height: 1.3;
-                            min-height: 30px;
-                            font-size: 10px;
-                        }
-                        
-                        .cell-divider {
-                            border-top: 1px dashed #999;
-                            margin: 5px 0;
-                            padding-top: 5px;
-                        }
-                        
-                        .demanda-horario {
-                            font-size: 9px;
-                            color: #666;
-                            font-style: italic;
-                        }
-                        
-                        .informar-veiculo {
-                            color: #dc3545;
-                            font-style: italic;
-                            font-size: 9px;
-                        }
-                        
-                        .tipo-1 { background: linear-gradient(to bottom, #5fa1df, #8dbde8); }
-                        .tipo-2 { background: linear-gradient(to bottom, #79f183, #9ff7a7); }
-                        .tipo-3, .tipo-4, .tipo-5 { background: linear-gradient(to bottom, #f8c295, #fad4b3); }
-                        .tipo-6, .tipo-7, .tipo-8 { background: linear-gradient(to bottom, #f3f183, #f7f5a7); font-weight: bold; }
-                        .tipo-9 { background: linear-gradient(to bottom, #ff5d5d, #fca5a5) !important; font-weight: bold; }
-                        .tipo-10 { background: linear-gradient(to bottom, hsl(320, 1%, 61%), hsl(330, 7%, 84%)) !important; font-weight: bold; }
-                        .tipo-11 { background: linear-gradient(to bottom, #ffb3d9, #ffd9ec); }
-                        .tipo-locacao { background: linear-gradient(to bottom, #c7a3e7, #d9bef0) !important; }
-                        .tipo-solicitado { background: linear-gradient(to bottom, #c7a3e7, #d9bef0) !important; }
-                        
-                        .empty-cell { background: #fafafa; }
-                        .empty-cell.weekend-empty { background: #e0e0e0; }
-                        
-                        .cell-feriado {
-                            background: #fdfcb2 !important;
-                            font-weight: bold;
-                            font-size: 10px;
-                            text-align: center;
-                        }
-                        
-                        .cell-feriado-com-demanda {
-                            position: relative;
-                        }
-                        
-                        .cell-feriado-com-demanda::before {
-                            content: '';
-                            position: absolute;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background: repeating-linear-gradient(
-                                45deg,
-                                transparent,
-                                transparent 10px,
-                                rgba(243, 241, 131, 0.3) 10px,
-                                rgba(243, 241, 131, 0.3) 20px
-                            );
-                            pointer-events: none;
-                        }
-                        
-                        .veiculo-extra {
-                            background: #fffacd !important;
-                        }
-                        
-                        .col-nome.veiculo-extra {
-                            background: #fffacd !important;
-                            font-style: italic;
-                        }
-                        
-                        .col-numero.veiculo-extra {
-                            background: #fffacd !important;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="print-view">
-                        ${htmlSecao}
-                    </div>
-                </body>
-                </html>
-            `);
-            novaJanela.document.close();
+                    }
+                    html += '</tr>';
+                }
+            });
+            
+            html += '</tbody></table>';
+            return html;
         }
 
         //renderizarSecaoMotoristasCompleta() - COMPLETA (Para Visualização)**
