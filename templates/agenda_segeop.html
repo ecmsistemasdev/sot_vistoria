@@ -6005,12 +6005,12 @@
             if (tipo === 'segeop') {
                 // Motoristas SEGEOP (padrão atual)
                 motoristasFiltrados = motoristas.filter(m => 
-                    m.tipo === 'Motorista Atendimento' || m.tipo === 'Tercerizado'
+                    m.tipo === 'Motorista Atendimento' || m.tipo === 'Terceirizado'
                 );
             } else if (tipo === 'outros') {
                 // Outros motoristas ativos, exceto SEGEOP
                 motoristasFiltrados = dadosAgenda.todos_motoristas.filter(m => 
-                    m.tipo !== 'Motorista Atendimento' && m.tipo !== 'Tercerizado'
+                    m.tipo !== 'Motorista Atendimento' && m.tipo !== 'Terceirizado'
                 );
             } else if (tipo === 'todos') {
                 // Todos os motoristas ativos
