@@ -6068,16 +6068,16 @@ def verificar_email_fornecedor_enviado():
         return jsonify({'erro': 'ID_AD não informado'}), 400
     
     try:
-        cursor = oracle_conn.cursor()
+        cursor = mysql.connection.cursor()
         
         # Verificar se existe registro na tabela EMAIL_OUTRAS_LOCACOES
         cursor.execute("""
             SELECT ID_EMAIL, DATA_HORA
             FROM EMAIL_OUTRAS_LOCACOES
-            WHERE ID_AD = :id_ad
+            WHERE ID_AD = %s
             ORDER BY ID_EMAIL DESC
-        """, {'id_ad': id_ad})
-        
+            LIMIT 1
+        """, (id_ad,))
         resultado = cursor.fetchone()
         cursor.close()
         
@@ -6090,9 +6090,7 @@ def verificar_email_fornecedor_enviado():
             })
         else:
             return jsonify({
-                'email_enviado': False,
-                'id_email': None,
-                'data_hora': None
+                'email_enviado': False
             })
         
     except Exception as e:
