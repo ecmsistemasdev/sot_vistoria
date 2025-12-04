@@ -150,7 +150,7 @@
                                     <option value="2">Motorista Desembargador</option>
                                     <option value="3">Motorista Atendimento</option>
                                     <option value="4">Cadastro de Condutores</option>
-                                    <option value="5">Tercerizado</option>
+                                    <option value="5">Terceirizado</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
@@ -299,7 +299,7 @@
             // Controlar exibição do select de fornecedor baseado no tipo de cadastro
             $('#tipoCadastro').on('change', function() {
                 const tipoSelecionado = $(this).val();
-                if (tipoSelecionado === '5') { // 5 = Tercerizado
+                if (tipoSelecionado === '5') { // 5 = Terceirizado
                     $('#secaoFornecedor').show();
                     $('#idFornecedor').prop('required', true);
                 } else {
@@ -315,7 +315,7 @@
                 2: 'Motorista Desembargador',
                 3: 'Motorista Atendimento',
                 4: 'Cadastro de Condutores',
-                5: 'Tercerizado'
+                5: 'Terceirizado'
             };
 
             // Carregar setores
@@ -511,7 +511,7 @@
                         $('#tipoCadastro').val(motorista.tipo_cadastro);
                         
                         // Controlar exibição do fornecedor baseado no tipo
-                        if (motorista.tipo_cadastro == 5) { // Tercerizado
+                        if (motorista.tipo_cadastro == 5) { // Terceirizado
                             $('#secaoFornecedor').show();
                             $('#idFornecedor').prop('required', true);
                             $('#idFornecedor').val(motorista.id_fornecedor || '');
@@ -525,7 +525,7 @@
                         $('#siglasSetor').val(motorista.sigla_setor);
 
                         // Controlar exibição do fornecedor baseado no tipo
-                        if (motorista.tipo_cadastro == 5) { // Tercerizado
+                        if (motorista.tipo_cadastro == 5) { // Terceirizado
                             $('#secaoFornecedor').show();
                             $('#idFornecedor').prop('required', true);
                             $('#idFornecedor').val(motorista.id_fornecedor || '');
@@ -720,6 +720,7 @@
     </script>
 </body>
 </html>
+
 
 
 
