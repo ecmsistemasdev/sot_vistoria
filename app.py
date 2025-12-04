@@ -1046,7 +1046,7 @@ def cadastrar_motorista():
         2: 'Motorista Desembargador',
         3: 'Motorista Atendimento',
         4: 'Cadastro de Condutores',
-        5: 'Tercerizado'    
+        5: 'Terceirizado'    
     }
     try:
         cursor = mysql.connection.cursor()
@@ -1135,7 +1135,7 @@ def atualizar_motorista():
         2: 'Motorista Desembargador',
         3: 'Motorista Atendimento',
         4: 'Cadastro de Condutores',
-        5: 'Tercerizado'
+        5: 'Terceirizado'
     }
     try:
         cursor = mysql.connection.cursor()
@@ -2191,7 +2191,7 @@ def verificar_vinculo_diarias():
             FROM TJ_MOTORISTA m
             INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
             WHERE m.ID_MOTORISTA = %s
-              AND m.TIPO_CADASTRO = 'Tercerizado'
+              AND m.TIPO_CADASTRO = 'Terceirizado'
               AND m.ATIVO = 'S'
               AND m.ID_FORNECEDOR IS NOT NULL
               AND f.EMAIL IS NOT NULL
@@ -4624,7 +4624,7 @@ def buscar_dados_agenda():
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM TJ_MOTORISTA
-            WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Tercerizado')
+            WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado')
               AND ATIVO = 'S'
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
         """)
@@ -4661,7 +4661,7 @@ def buscar_dados_agenda():
                    m.NU_TELEFONE, m.TIPO_CADASTRO
             FROM TJ_MOTORISTA m
             INNER JOIN ATENDIMENTO_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
-            WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Tercerizado')
+            WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado')
               AND m.ATIVO = 'S'
               AND ae.DT_INICIO <= %s 
               AND ae.DT_FIM >= %s
@@ -5061,7 +5061,7 @@ def atualizar_demanda(id_ad):
                     FROM TJ_MOTORISTA m
                     INNER JOIN TJ_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
                     WHERE m.ID_MOTORISTA = %s
-                      AND m.TIPO_CADASTRO = 'Tercerizado'
+                      AND m.TIPO_CADASTRO = 'Terceirizado'
                       AND m.ATIVO = 'S'
                       AND f.VL_DIARIA IS NOT NULL
                       AND f.VL_DIARIA > 0
