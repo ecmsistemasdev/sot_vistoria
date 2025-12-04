@@ -3146,115 +3146,75 @@
                     return; // Não mostra nada
                 }
                 
-                // ========== 1. VERIFICAR VÍNCULO DE LOCAÇÃO (PRIORITÁRIO) ==========
+                // Verificar se tem vínculo
                 const urlVinculo = `/api/verificar_vinculo_locacao?id_tipoveiculo=${demanda.id_tipoveiculo}&id_motorista=${demanda.id_motorista}`;
                 const resVinculo = await fetch(urlVinculo);
                 const resultVinculo = await resVinculo.json();
                 
-                if (resultVinculo.tem_vinculo) {
-                    // Tem vínculo de locação - verificar se já foi solicitada
-                    const temLocacao = locacoesAtivas.some(loc => 
-                        loc.id_motorista === demanda.id_motorista &&
-                        loc.data_inicio <= demanda.dt_fim &&
-                        loc.data_fim >= demanda.dt_inicio
-                    );
-                    
-                    const modalFooter = document.querySelector('#modal .modal-footer');
-                    const elementoExistente = document.getElementById('areaLocacaoStatus');
-                    if (elementoExistente) {
-                        elementoExistente.remove();
-                    }
-                    
-                    const divStatus = document.createElement('div');
-                    divStatus.id = 'areaLocacaoStatus';
-                    divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
-                    
-                    if (temLocacao) {
-                        divStatus.innerHTML = `
-                            <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
-                                ✓ Locação solicitada
-                            </div>
-                        `;
-                    } else {
-                        divStatus.innerHTML = `
-                            <button type="button" class="btn btn-primary" id="btnSolicitarLocacaoEdicao" style="background: #28a745; border-color: #28a745;">
-                                🚗 Solicitar Locação
-                            </button>
-                        `;
-                        
-                        dadosVinculoLocacao = resultVinculo;
-                        
-                        setTimeout(() => {
-                            const btnSolicitar = document.getElementById('btnSolicitarLocacaoEdicao');
-                            if (btnSolicitar) {
-                                btnSolicitar.addEventListener('click', async function(e) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    await abrirFormularioLocacao(demanda);
-                                });
-                            }
-                        }, 100);
-                    }
-                    
-                    const btnCancelar = modalFooter.querySelector('.btn-secondary');
-                    if (btnCancelar) {
-                        modalFooter.insertBefore(divStatus, btnCancelar);
-                    }
-                    
-                    return; // JÁ TRATOU - NÃO VERIFICA FORNECEDOR
+                if (!resultVinculo.tem_vinculo) {
+                    return; // Não tem vínculo, não mostra nada
                 }
                 
-                // ========== 2. VERIFICAR VÍNCULO DE FORNECEDOR (SE NÃO TEM LOCAÇÃO) ==========
-                const urlFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${demanda.id_tipoveiculo}`;
-                const resFornecedor = await fetch(urlFornecedor);
-                const resultFornecedor = await resFornecedor.json();
-
-                if (resultFornecedor.tem_vinculo && resultFornecedor.tipo === 'fornecedor') {
-                    // Tem vínculo de fornecedor - verificar se e-mail foi enviado
-                    try {
-                        const resVerificarEmail = await fetch(`/api/verificar_email_fornecedor_enviado?id_ad=${idAd}`);
-                        const resultEmail = await resVerificarEmail.json();
-                        
-                        const modalFooter = document.querySelector('#modal .modal-footer');
-                        const elementoExistente = document.getElementById('areaLocacaoStatus');
-                        if (elementoExistente) {
-                            elementoExistente.remove();
+                // ========== VERIFICAR SE JÁ TEM LOCAÇÃO (MESMA LÓGICA DA SEÇÃO VEÍCULOS ALOCADOS) ==========
+                // Verificar se existe locação ativa para este motorista neste período
+                const temLocacao = locacoesAtivas.some(loc => 
+                    loc.id_motorista === demanda.id_motorista &&
+                    loc.data_inicio <= demanda.dt_fim &&
+                    loc.data_fim >= demanda.dt_inicio
+                );
+                
+                // Criar elemento para status/botão
+                const modalFooter = document.querySelector('#modal .modal-footer');
+                
+                // Remover elementos anteriores se existirem
+                const elementoExistente = document.getElementById('areaLocacaoStatus');
+                if (elementoExistente) {
+                    elementoExistente.remove();
+                }
+                
+                // Criar novo elemento
+                const divStatus = document.createElement('div');
+                divStatus.id = 'areaLocacaoStatus';
+                divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
+                
+                if (temLocacao) {
+                    // ========== JÁ TEM LOCAÇÃO - APENAS MOSTRAR TEXTO ==========
+                    divStatus.innerHTML = `
+                        <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
+                            ✓ Locação solicitada
+                        </div>
+                    `;
+                    
+                } else {
+                    // ========== NÃO TEM LOCAÇÃO - MOSTRAR BOTÃO PARA SOLICITAR ==========
+                    divStatus.innerHTML = `
+                        <button type="button" class="btn btn-primary" id="btnSolicitarLocacaoEdicao" style="background: #28a745; border-color: #28a745;">
+                            🚗 Solicitar Locação
+                        </button>
+                    `;
+                    
+                    // Guardar dados do vínculo para uso posterior
+                    dadosVinculoLocacao = resultVinculo;
+                    
+                    // Adicionar event listener ao botão
+                    setTimeout(() => {
+                        const btnSolicitar = document.getElementById('btnSolicitarLocacaoEdicao');
+                        if (btnSolicitar) {
+                            btnSolicitar.addEventListener('click', async function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                
+                                // Abrir formulário de locação
+                                await abrirFormularioLocacao(demanda);
+                            });
                         }
-                        
-                        const divStatus = document.createElement('div');
-                        divStatus.id = 'areaLocacaoStatus';
-                        divStatus.style.cssText = 'flex: 1; display: flex; align-items: center; gap: 10px;';
-                        
-                        if (resultEmail.email_enviado) {
-                            // E-mail já enviado - mostrar status com data/hora se disponível
-                            let textoStatus = '✅ E-mail de locação enviado';
-                            if (resultEmail.data_hora) {
-                                const dataFormatada = new Date(resultEmail.data_hora).toLocaleString('pt-BR');
-                                textoStatus += `<br><small style="font-size: 11px; font-weight: normal;">em ${dataFormatada}</small>`;
-                            }
-                            
-                            divStatus.innerHTML = `
-                                <div style="background: #d4edda; color: #155724; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; border: 1px solid #c3e6cb;">
-                                    ${textoStatus}
-                                </div>
-                            `;
-                        } else {
-                            // E-mail NÃO enviado - mostrar botão
-                            divStatus.innerHTML = `
-                                <button type="button" class="btn btn-primary" id="btnSolicitarEmailFornecedorEdicao" style="background: #6f42c1; border-color: #6f42c1;">
-                                    📧 Solicitar Locação (E-mail)
-                                </button>
-                            `;
-                        }
-                        
-                        const btnCancelar = modalFooter.querySelector('.btn-secondary');
-                        if (btnCancelar) {
-                            modalFooter.insertBefore(divStatus, btnCancelar);
-                        }
-                        
-                    } catch (errorEmail) {
-                        console.error('Erro ao verificar e-mail de fornecedor:', errorEmail);
-                    }
+                    }, 100);
+                }
+                
+                // Inserir antes dos botões de ação
+                const btnCancelar = modalFooter.querySelector('.btn-secondary');
+                if (btnCancelar) {
+                    modalFooter.insertBefore(divStatus, btnCancelar);
                 }
                 
             } catch (error) {
@@ -4349,12 +4309,6 @@
                 return;
             }
             
-            // Limpar destino antes de aplicar novas regras
-            const destino = document.getElementById('destino');
-            if (!config.destino_auto_preencher) {
-                destino.value = '';
-            }
-
             // Elementos do formulário
             const motorista = document.getElementById('idMotorista');
             const tipoVeiculo = document.getElementById('idTipoVeiculo');
@@ -6243,29 +6197,6 @@
                         return;
                     }
                     
-                    // Recarregar semanas para atualizar guias
-                    await carregarSemanas();
-
-                    // Verificar se a demanda foi criada em período fora da semana atual
-                    const dtInicioDemanda = new Date(dados.dt_inicio + 'T00:00:00');
-                    let semanaEncontrada = -1;
-
-                    for (let i = 0; i < semanas.length; i++) {
-                        const inicio = new Date(semanas[i].inicio + 'T00:00:00');
-                        const fim = new Date(semanas[i].fim + 'T00:00:00');
-                        
-                        if (dtInicioDemanda >= inicio && dtInicioDemanda <= fim) {
-                            semanaEncontrada = i;
-                            break;
-                        }
-                    }
-
-                    // Se encontrou a semana da demanda, mudar para ela
-                    if (semanaEncontrada !== -1 && semanaEncontrada !== semanaAtual) {
-                        semanaAtual = semanaEncontrada;
-                        renderizarAbas(); // Atualizar guias com a nova semana ativa
-                    }
-
                     demandaIdVinculos = resultSalvar.id;
                     dadosDemandaParaVinculos = dados;
                     
