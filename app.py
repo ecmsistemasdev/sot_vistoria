@@ -5176,6 +5176,7 @@ def buscar_tipos_demanda_completo():
                 BLOQUEAR_SETOR,
                 BLOQUEAR_SOLICITANTE,
                 BLOQUEAR_DESTINO,
+                EXIBIR_DESTINO_VEICULO,
                 ORDEM_EXIBICAO,
                 ATIVO
             FROM TIPO_DEMANDA
@@ -5204,8 +5205,9 @@ def buscar_tipos_demanda_completo():
                 'bloquear_setor': r[15] == 'S',
                 'bloquear_solicitante': r[16] == 'S',
                 'bloquear_destino': r[17] == 'S',
-                'ordem_exibicao': r[18] or 999,
-                'ativo': r[19] == 'S'
+                'exibir_destino_veiculo': r[18] == 'S',
+                'ordem_exibicao': r[19] or 999,
+                'ativo': r[20] == 'S'
             })
         
         return jsonify(tipos)
