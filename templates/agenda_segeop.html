@@ -6891,86 +6891,7 @@
             document.getElementById('modalVisualizacao').style.display = 'none';
         }
 
-
         // Função para copiar como imagem (usando html2canvas se disponível)
-        async function copiarComoImagem() {
-            const conteudo = document.getElementById('conteudoVisualizacao');
-            
-            // Verificar se html2canvas está disponível
-            if (typeof html2canvas === 'undefined') {
-                mostrarAlerta(
-                    'Para usar este recurso, é necessário incluir a biblioteca html2canvas.<br><br>' +
-                    'Por enquanto, você pode usar a tecla Print Screen para capturar a tela.',
-                    'ℹ️ Informação',
-                    '#1a73e8'
-                );
-                return;
-            }
-            
-            try {
-                mostrarSpinner();
-                
-                // ALTERADO: Capturar diretamente o conteúdo visível no modal
-                const modalBody = document.querySelector('#modalVisualizacao .modal-body');
-                
-                if (!modalBody) {
-                    esconderSpinner();
-                    mostrarAlerta('Erro ao localizar conteúdo do modal!', '⚠️ Erro', '#dc3545');
-                    return;
-                }
-                
-                // NOVO: Obter dimensões reais do modal body
-                const larguraReal = modalBody.scrollWidth;
-                const alturaReal = modalBody.scrollHeight;
-                
-                console.log('Dimensões reais:', larguraReal, alturaReal);
-                
-                // NOVO: Capturar diretamente o modal body com suas dimensões reais
-                const canvas = await html2canvas(modalBody, {
-                    backgroundColor: '#ffffff',
-                    scale: 2,
-                    logging: false,
-                    width: larguraReal,
-                    height: alturaReal,
-                    windowWidth: larguraReal,
-                    windowHeight: alturaReal,
-                    scrollX: 0,
-                    scrollY: 0
-                });
-                
-                canvas.toBlob(async (blob) => {
-                    try {
-                        await navigator.clipboard.write([
-                            new ClipboardItem({ 'image/png': blob })
-                        ]);
-                        
-                        esconderSpinner();
-                        mostrarAlerta(
-                            '✅ Imagem copiada para a área de transferência!',
-                            '✅ Sucesso',
-                            '#28a745'
-                        );
-                    } catch (err) {
-                        esconderSpinner();
-                        console.error('Erro ao copiar:', err);
-                        mostrarAlerta(
-                            'Erro ao copiar imagem. Use Print Screen manualmente.',
-                            '⚠️ Erro',
-                            '#ffc107'
-                        );
-                    }
-                });
-                
-            } catch (error) {
-                esconderSpinner();
-                console.error('Erro ao gerar imagem:', error);
-                mostrarAlerta('Erro ao gerar imagem!', '❌ Erro', '#dc3545');
-            }
-        }
-
-
-        // Função para copiar como imagem (usando html2canvas se disponível)
-        /*
         async function copiarComoImagem() {
             const conteudo = document.getElementById('conteudoVisualizacao');
             
@@ -7069,7 +6990,6 @@
                 mostrarAlerta('Erro ao gerar imagem!', '❌ Erro', '#dc3545');
             }
         }
-        */
 
         // Renderização compacta para visualização
         function renderizarSecaoMotoristasCompacta(dias) {
