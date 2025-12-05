@@ -8,6 +8,24 @@
     <link rel="stylesheet" href="/static/css/motoristas.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .disabled {
+            opacity: 0.6;
+            cursor: not-allowed !important;
+        }
+        
+        .veiculo-inativo {
+            opacity: 0.6;
+            background-color: #f8f9fa;
+        }
+        
+        /* Estilo para modo leitura */
+        .modo-leitura-ativo .btn-success,
+        .modo-leitura-ativo .btnEditar {
+            pointer-events: none;
+        }
+    </style>
+    <script src="/static/js/controle_acesso.js"></script>
 </head>
 <body>
     <!-- Menu de navegação fixo -->
@@ -253,7 +271,44 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
     <script>
+        
         $(document).ready(function() {
+
+            // ============= CONTROLE DE ACESSO =============
+            const nivelAcesso = '{{ nivel_acesso }}';
+            const acessoLeitura = nivelAcesso === 'L';
+            
+            console.log('Nível de acesso:', nivelAcesso);
+            
+            if (acessoLeitura) {
+                aplicarModoLeitura();
+            }
+            
+            function aplicarModoLeitura() {
+                // Desabilitar botões de ação
+                $('#btnNovoRegistro, #btnNovoRegistroFooter').prop('disabled', true)
+                    .addClass('disabled')
+                    .attr('title', 'Você não tem permissão para criar novos registros');
+                
+                // Desabilitar botões de editar na tabela
+                $(document).on('click', '.btnEditar', function(e) {
+                    e.preventDefault();
+                    if (acessoLeitura) {
+                        alert('Você possui apenas permissão de leitura. Não é possível editar registros.');
+                        return false;
+                    }
+                });
+                
+                // Desabilitar botão salvar
+                $('#btnSalvarVeiculo').prop('disabled', true)
+                    .addClass('disabled');
+                
+                // Adicionar badge de modo leitura no título
+                $('.header-section h2').append(' <span class="badge bg-warning text-dark ms-2">Modo Leitura</span>');
+            }
+            // ============= FIM CONTROLE DE ACESSO =============
+
+
             // Função para obter data atual no formato YYYY-MM-DD
             function obterDataAtual() {
                 const hoje = new Date();
@@ -413,6 +468,13 @@
             // Editar veículo
             $(document).on('click', '.btnEditar', function(e) {
                 e.preventDefault();
+                
+                // Verificar se está em modo leitura
+                if (acessoLeitura) {
+                    alert('Você possui apenas permissão de leitura. Não é possível editar registros.');
+                    return false;
+                }
+                
                 const idVeiculo = $(this).data('id');
                 
                 fetch(`/api/obter_veiculo/${idVeiculo}`)
