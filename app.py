@@ -137,7 +137,7 @@ def autenticar():
 # Rota para a página de cadastro de usuários
 @app.route('/cadastro_usuarios')
 @login_required
-#@verificar_permissao('/cadastro_usuarios', 'E')
+@verificar_permissao('/cadastro_usuarios', 'E')
 def cadastro_usuarios():
     return render_template('cadastro_usuarios.html')
 
@@ -1550,7 +1550,7 @@ def visualizar_cnh(id_motorista):
 
 @app.route('/controle_locacoes')
 @login_required
-#@verificar_permissao('/controle_locacoes', 'E')
+@verificar_permissao('/controle_locacoes', 'E')
 def controle_locacoes():
     return render_template('controle_locacoes.html')
 
