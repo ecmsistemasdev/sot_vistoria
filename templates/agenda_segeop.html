@@ -5436,6 +5436,7 @@
                             
                             const bloqueiaSetorSolicitante = tipoConfig && tipoConfig.bloquear_setor && tipoConfig.bloquear_solicitante;
                             const isCedencia = tipoConfig && tipoConfig.setor_obrigatorio && !tipoConfig.bloquear_setor;
+                            const exibeDestinoVeiculo = tipoConfig && tipoConfig.exibir_destino_veiculo;  // ⭐ NOVO
                             
                             if (bloqueiaSetorSolicitante) {
                                 html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}</div>`;
@@ -5458,15 +5459,25 @@
                             }
                             else if (demanda.horario) {
                                 html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                                // ⭐ NOVO: Exibir destino se configurado
+                                if (exibeDestinoVeiculo && demanda.destino) {
+                                    html += `<div style="font-size: 10px; color: #666;">${demanda.destino}</div>`;
+                                }
                                 if (demanda.nu_sei) {
                                     html += `<div>${demanda.nu_sei}</div>`;
                                 }
-                                if (demanda.destino) {
+                                if (demanda.destino && !exibeDestinoVeiculo) { // Só exibe com horário se não foi exibido antes
                                     html += `<div>${demanda.destino} <span class="demanda-horario">(${demanda.horario})</span></div>`;
+                                } else if (demanda.horario) {
+                                    html += `<div><span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 }
                             }
                             else {
                                 html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                                // ⭐ NOVO: Exibir destino se configurado
+                                if (exibeDestinoVeiculo && demanda.destino) {
+                                    html += `<div style="font-size: 10px; color: #666;">${demanda.destino}</div>`;
+                                }
                                 if (demanda.nu_sei) {
                                     html += `<div>${demanda.nu_sei}</div>`;
                                 }
@@ -5474,7 +5485,6 @@
                             
                             html += '</div></td>';
                             celulasRenderizadas[linhaIndex][diaIndex] = true;
-                            
                         } else {
                             let rowspanCount = 1;
                             
