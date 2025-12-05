@@ -4768,13 +4768,16 @@ def buscar_dados_agenda():
 
         # 3. Lista de Veículos PADRÃO (COM VALIDAÇÃO DE PERÍODO)
         cursor.execute("""
-            SELECT ID_VEICULO, DS_MODELO, NU_PLACA
-            FROM CAD_VEICULOS 
-            WHERE FL_ATENDIMENTO = 'S' 
-              AND ATIVO = 'S'
-              AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-              AND (DT_FIM IS NULL OR DT_FIM >= %s)
-            ORDER BY ORIGEM_VEICULO DESC, DS_MODELO
+			SELECT v.ID_VEICULO, 
+            CASE WHEN ORIGEM_VEICULO='Propria' then v.DS_MODELO
+            ELSE CONCAT(v.DS_MODELO,' (',v.PROPRIEDADE,')') END AS DS_MODELO, v.NU_PLACA
+            FROM CAD_VEICULOS v, CATEGORIA_VEICULO cv 
+            WHERE v.FL_ATENDIMENTO = 'S' 
+              AND v.ATIVO = 'S'
+              AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
+              AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
+              AND cv.ID_CAT_VEICULO = v.ID_CATEGORIA
+            ORDER BY v.ORIGEM_VEICULO DESC, cv.ORDEM_CAT, v.DS_MODELO
         """, (fim, inicio))
         veiculos = []
         for r in cursor.fetchall():
@@ -4784,6 +4787,24 @@ def buscar_dados_agenda():
                 'modelo': r[1], 
                 'placa': r[2]
             })
+
+        # cursor.execute("""
+        #     SELECT ID_VEICULO, DS_MODELO, NU_PLACA
+        #     FROM CAD_VEICULOS 
+        #     WHERE FL_ATENDIMENTO = 'S' 
+        #       AND ATIVO = 'S'
+        #       AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
+        #       AND (DT_FIM IS NULL OR DT_FIM >= %s)
+        #     ORDER BY ORIGEM_VEICULO DESC, DS_MODELO
+        # """, (fim, inicio))
+        # veiculos = []
+        # for r in cursor.fetchall():
+        #     veiculos.append({
+        #         'id': r[0], 
+        #         'veiculo': f"{r[1]} - {r[2]}", 
+        #         'modelo': r[1], 
+        #         'placa': r[2]
+        #     })
 
         # 4. Veículos EXTRAS (COM VALIDAÇÃO DE PERÍODO)
         cursor.execute("""
