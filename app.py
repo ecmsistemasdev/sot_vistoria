@@ -279,6 +279,108 @@ def logout():
     return redirect(url_for('login'))
 
 
+# Rota para listar todas as páginas
+@app.route('/api/paginas', methods=['GET'])
+@login_required
+def listar_paginas():
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT ID_PAGINA, NM_PAGINA, DS_PAGINA, URL_PAGINA, FL_STATUS
+        FROM CAD_PAGINA 
+        WHERE FL_STATUS = 'A'
+        ORDER BY NM_PAGINA
+    """)
+    
+    paginas = []
+    for row in cur.fetchall():
+        paginas.append({
+            'id': row[0],
+            'nome': row[1],
+            'descricao': row[2],
+            'url': row[3],
+            'status': row[4]
+        })
+    
+    cur.close()
+    return jsonify(paginas)
+
+# Rota para buscar permissões de um grupo específico
+@app.route('/api/permissoes/grupo/<int:grupo_id>', methods=['GET'])
+@login_required
+def buscar_permissoes_grupo(grupo_id):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT p.ID_PAGINA, pg.NM_PAGINA, 
+               COALESCE(p.NIVEL_ACESSO, 'N') as NIVEL_ACESSO
+        FROM CAD_PAGINA pg
+        LEFT JOIN CAD_PERMISSAO p ON pg.ID_PAGINA = p.ID_PAGINA AND p.ID_GRUPO = %s
+        WHERE pg.FL_STATUS = 'A'
+        ORDER BY pg.NM_PAGINA
+    """, (grupo_id,))
+    
+    permissoes = []
+    for row in cur.fetchall():
+        permissoes.append({
+            'id_pagina': row[0],
+            'nome_pagina': row[1],
+            'nivel_acesso': row[2]
+        })
+    
+    cur.close()
+    return jsonify(permissoes)
+
+# Rota para atualizar permissões de um grupo
+@app.route('/api/permissoes/grupo/<int:grupo_id>', methods=['PUT'])
+@login_required
+def atualizar_permissoes_grupo(grupo_id):
+    dados = request.json
+    permissoes = dados.get('permissoes', [])
+    
+    if not permissoes:
+        return jsonify({'erro': 'Nenhuma permissão informada'}), 400
+    
+    cur = mysql.connection.cursor()
+    
+    try:
+        # Para cada permissão, verifica se existe e atualiza ou insere
+        for perm in permissoes:
+            id_pagina = perm['id_pagina']
+            nivel_acesso = perm['nivel_acesso']
+            
+            # Verifica se a permissão já existe
+            cur.execute("""
+                SELECT ID_PERMISSAO 
+                FROM CAD_PERMISSAO 
+                WHERE ID_GRUPO = %s AND ID_PAGINA = %s
+            """, (grupo_id, id_pagina))
+            
+            existe = cur.fetchone()
+            
+            if existe:
+                # Atualiza
+                cur.execute("""
+                    UPDATE CAD_PERMISSAO 
+                    SET NIVEL_ACESSO = %s
+                    WHERE ID_GRUPO = %s AND ID_PAGINA = %s
+                """, (nivel_acesso, grupo_id, id_pagina))
+            else:
+                # Insere
+                cur.execute("""
+                    INSERT INTO CAD_PERMISSAO (ID_GRUPO, ID_PAGINA, NIVEL_ACESSO)
+                    VALUES (%s, %s, %s)
+                """, (grupo_id, id_pagina, nivel_acesso))
+        
+        mysql.connection.commit()
+        cur.close()
+        
+        return jsonify({'sucesso': True})
+    
+    except Exception as e:
+        mysql.connection.rollback()
+        cur.close()
+        return jsonify({'erro': str(e)}), 500
+
+
 @app.route('/nova_vistoria')
 def nova_vistoria():
     # Busca motoristas e veículos do banco de dados
