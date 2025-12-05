@@ -1448,6 +1448,7 @@ def visualizar_cnh(id_motorista):
 
 @app.route('/controle_locacoes')
 @login_required
+@verificar_permissao('/controle_locacoes', 'E')
 def controle_locacoes():
     return render_template('controle_locacoes.html')
 
