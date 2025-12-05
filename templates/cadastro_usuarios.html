@@ -253,13 +253,102 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
+        .modal-large .modal-content {
+            max-width: 700px;
+        }
+
+        .grupo-tabs {
+            display: flex;
+            gap: 5px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .grupo-tab {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .grupo-tab:hover {
+            color: #3498db;
+        }
+
+        .grupo-tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+
+        .permissoes-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .permissao-item {
+            display: grid;
+            grid-template-columns: 1fr 80px 80px 80px;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            align-items: center;
+            background: #fff;
+        }
+
+        .permissao-item:hover {
+            background: #f8f9fa;
+        }
+
+        .permissao-nome {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .radio-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .radio-group input[type="radio"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        .radio-label {
+            font-size: 11px;
+            color: #777;
+            text-align: center;
+            display: block;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>Cadastro de Usuários</h1>
-            <button class="btn btn-primary" onclick="abrirModal()">+ Novo Usuário</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="abrirModalPermissoes()">⚙️ Gerenciar Permissões</button>
+                <button class="btn btn-primary" onclick="abrirModal()">+ Novo Usuário</button>
+            </div>
         </div>
 
         <div id="alertContainer"></div>
@@ -288,7 +377,7 @@
         </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal de Usuários -->
     <div id="modalUsuario" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -336,8 +425,36 @@
         </div>
     </div>
 
+    <!-- Modal de Permissões -->
+    <div id="modalPermissoes" class="modal modal-large">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gerenciar Permissões por Grupo</h2>
+            </div>
+            <div class="modal-body">
+                <!-- Abas dos Grupos -->
+                <div class="grupo-tabs" id="grupoTabs">
+                    <!-- Tabs serão inseridas dinamicamente -->
+                </div>
+
+                <!-- Grid de Permissões -->
+                <div class="permissoes-grid" id="permissoesGrid">
+                    <!-- Permissões serão inseridas dinamicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharModalPermissoes()">Cancelar</button>
+                <button class="btn btn-success" onclick="salvarPermissoes()">Salvar Permissões</button>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         let grupos = [];
+        let grupoAtualPermissoes = null;
+        let paginas = [];
+        let permissoesAtuais = [];        
 
         // Carrega dados ao carregar a página
         document.addEventListener('DOMContentLoaded', function() {
@@ -532,11 +649,174 @@
             }
         }
 
+        async function abrirModalPermissoes() {
+            try {
+                // Carrega grupos se ainda não foram carregados
+                if (grupos.length === 0) {
+                    await carregarGrupos();
+                }
+
+                // Carrega as páginas
+                const responsePaginas = await fetch('/api/paginas');
+                paginas = await responsePaginas.json();
+
+                // Renderiza as abas dos grupos
+                renderizarGrupoTabs();
+
+                // Seleciona o primeiro grupo por padrão
+                if (grupos.length > 0) {
+                    await selecionarGrupoPermissoes(grupos[0].id);
+                }
+
+                document.getElementById('modalPermissoes').classList.add('show');
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar dados de permissões', 'danger');
+            }
+        }
+
+        function fecharModalPermissoes() {
+            document.getElementById('modalPermissoes').classList.remove('show');
+            grupoAtualPermissoes = null;
+        }
+
+        function renderizarGrupoTabs() {
+            const container = document.getElementById('grupoTabs');
+            container.innerHTML = '';
+
+            grupos.forEach(grupo => {
+                const tab = document.createElement('button');
+                tab.className = 'grupo-tab';
+                tab.textContent = grupo.nome;
+                tab.onclick = () => selecionarGrupoPermissoes(grupo.id);
+                tab.dataset.grupoId = grupo.id;
+                container.appendChild(tab);
+            });
+        }
+
+        async function selecionarGrupoPermissoes(grupoId) {
+            try {
+                grupoAtualPermissoes = grupoId;
+
+                // Atualiza visual das abas
+                document.querySelectorAll('.grupo-tab').forEach(tab => {
+                    if (parseInt(tab.dataset.grupoId) === grupoId) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                });
+
+                // Carrega permissões do grupo
+                const response = await fetch(`/api/permissoes/grupo/${grupoId}`);
+                permissoesAtuais = await response.json();
+
+                renderizarPermissoes();
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar permissões do grupo', 'danger');
+            }
+        }
+
+        function renderizarPermissoes() {
+            const container = document.getElementById('permissoesGrid');
+            container.innerHTML = '';
+
+            permissoesAtuais.forEach(permissao => {
+                const item = document.createElement('div');
+                item.className = 'permissao-item';
+                
+                item.innerHTML = `
+                    <div class="permissao-nome">${permissao.nome_pagina}</div>
+                    
+                    <div class="radio-group">
+                        <label style="width: 100%;">
+                            <span class="radio-label">Edição</span>
+                            <input type="radio" 
+                                name="permissao_${permissao.id_pagina}" 
+                                value="E"
+                                ${permissao.nivel_acesso === 'E' ? 'checked' : ''}
+                                onchange="atualizarPermissaoLocal(${permissao.id_pagina}, 'E')">
+                        </label>
+                    </div>
+                    
+                    <div class="radio-group">
+                        <label style="width: 100%;">
+                            <span class="radio-label">Leitura</span>
+                            <input type="radio" 
+                                name="permissao_${permissao.id_pagina}" 
+                                value="L"
+                                ${permissao.nivel_acesso === 'L' ? 'checked' : ''}
+                                onchange="atualizarPermissaoLocal(${permissao.id_pagina}, 'L')">
+                        </label>
+                    </div>
+                    
+                    <div class="radio-group">
+                        <label style="width: 100%;">
+                            <span class="radio-label">Sem Acesso</span>
+                            <input type="radio" 
+                                name="permissao_${permissao.id_pagina}" 
+                                value="N"
+                                ${permissao.nivel_acesso === 'N' ? 'checked' : ''}
+                                onchange="atualizarPermissaoLocal(${permissao.id_pagina}, 'N')">
+                        </label>
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        function atualizarPermissaoLocal(idPagina, nivelAcesso) {
+            const permissao = permissoesAtuais.find(p => p.id_pagina === idPagina);
+            if (permissao) {
+                permissao.nivel_acesso = nivelAcesso;
+            }
+        }
+
+        async function salvarPermissoes() {
+            if (!grupoAtualPermissoes) {
+                mostrarAlerta('Nenhum grupo selecionado', 'danger');
+                return;
+            }
+
+            try {
+                const permissoes = permissoesAtuais.map(p => ({
+                    id_pagina: p.id_pagina,
+                    nivel_acesso: p.nivel_acesso
+                }));
+
+                const response = await fetch(`/api/permissoes/grupo/${grupoAtualPermissoes}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ permissoes })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarAlerta('Permissões salvas com sucesso!', 'success');
+                    fecharModalPermissoes();
+                } else {
+                    mostrarAlerta(result.erro || 'Erro ao salvar permissões', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao salvar permissões', 'danger');
+            }
+        }
+
+
         // Fecha modal ao clicar fora
         window.onclick = function(event) {
-            const modal = document.getElementById('modalUsuario');
-            if (event.target === modal) {
+            const modalUsuario = document.getElementById('modalUsuario');
+            const modalPermissoes = document.getElementById('modalPermissoes');
+            
+            if (event.target === modalUsuario) {
                 fecharModal();
+            }
+            
+            if (event.target === modalPermissoes) {
+                fecharModalPermissoes();
             }
         }
     </script>
