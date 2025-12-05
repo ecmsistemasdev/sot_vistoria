@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Usuários</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 4px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            margin: 0 2px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .btn-icon:hover {
+            color: #000;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Cadastro de Usuários</h1>
+            <button class="btn btn-primary" onclick="abrirModal()">+ Novo Usuário</button>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Login</th>
+                                <th>Nome</th>
+                                <th>Grupo</th>
+                                <th>Status</th>
+                                <th style="width: 100px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaUsuarios">
+                            <tr>
+                                <td colspan="5" style="text-align: center;">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modalUsuario" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Novo Usuário</h2>
+            </div>
+            <div class="modal-body">
+                <form id="formUsuario">
+                    <input type="hidden" id="usuarioId">
+                    
+                    <div class="form-group">
+                        <label>Login *</label>
+                        <input type="text" class="form-control" id="login" maxlength="7" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome Completo *</label>
+                        <input type="text" class="form-control" id="nome" maxlength="150" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Grupo *</label>
+                        <select class="form-control" id="grupo" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Senha <span id="senhaOpcional" style="display:none;">(deixe em branco para manter)</span></label>
+                        <input type="password" class="form-control" id="senha">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select class="form-control" id="status" required>
+                            <option value="A">Ativo</option>
+                            <option value="I">Inativo</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+                <button class="btn btn-success" onclick="salvarUsuario()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let grupos = [];
+
+        // Carrega dados ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarGrupos();
+            carregarUsuarios();
+        });
+
+        function mostrarAlerta(mensagem, tipo) {
+            const container = document.getElementById('alertContainer');
+            const alerta = document.createElement('div');
+            alerta.className = `alert alert-${tipo}`;
+            alerta.textContent = mensagem;
+            container.appendChild(alerta);
+
+            setTimeout(() => {
+                alerta.remove();
+            }, 3000);
+        }
+
+        async function carregarGrupos() {
+            try {
+                const response = await fetch('/api/grupos');
+                grupos = await response.json();
+                
+                const select = document.getElementById('grupo');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                
+                grupos.forEach(grupo => {
+                    const option = document.createElement('option');
+                    option.value = grupo.id;
+                    option.textContent = grupo.nome;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar grupos', 'danger');
+            }
+        }
+
+        async function carregarUsuarios() {
+            try {
+                const response = await fetch('/api/usuarios');
+                const usuarios = await response.json();
+                
+                const tbody = document.getElementById('tabelaUsuarios');
+                tbody.innerHTML = '';
+
+                if (usuarios.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Nenhum usuário cadastrado</td></tr>';
+                    return;
+                }
+
+                usuarios.forEach(usuario => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${usuario.login}</td>
+                        <td>${usuario.nome}</td>
+                        <td>${usuario.grupo || 'Sem grupo'}</td>
+                        <td>
+                            <span class="badge badge-${usuario.status === 'A' ? 'success' : 'danger'}">
+                                ${usuario.status === 'A' ? 'Ativo' : 'Inativo'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-icon" onclick="editarUsuario(${usuario.id})" title="Editar">✏️</button>
+                            <button class="btn-icon" onclick="deletarUsuario(${usuario.id})" title="Excluir">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar usuários', 'danger');
+            }
+        }
+
+        function abrirModal() {
+            document.getElementById('modalTitulo').textContent = 'Novo Usuário';
+            document.getElementById('formUsuario').reset();
+            document.getElementById('usuarioId').value = '';
+            document.getElementById('login').disabled = false;
+            document.getElementById('senhaOpcional').style.display = 'none';
+            document.getElementById('senha').required = true;
+            document.getElementById('modalUsuario').classList.add('show');
+        }
+
+        function fecharModal() {
+            document.getElementById('modalUsuario').classList.remove('show');
+        }
+
+        async function editarUsuario(id) {
+            try {
+                const response = await fetch('/api/usuarios');
+                const usuarios = await response.json();
+                const usuario = usuarios.find(u => u.id === id);
+
+                if (!usuario) return;
+
+                document.getElementById('modalTitulo').textContent = 'Editar Usuário';
+                document.getElementById('usuarioId').value = usuario.id;
+                document.getElementById('login').value = usuario.login;
+                document.getElementById('login').disabled = true;
+                document.getElementById('nome').value = usuario.nome;
+                document.getElementById('status').value = usuario.status;
+                document.getElementById('senhaOpcional').style.display = 'inline';
+                document.getElementById('senha').required = false;
+                document.getElementById('senha').value = '';
+
+                // Busca o ID do grupo pelo nome
+                const grupo = grupos.find(g => g.nome === usuario.grupo);
+                if (grupo) {
+                    document.getElementById('grupo').value = grupo.id;
+                }
+
+                document.getElementById('modalUsuario').classList.add('show');
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar dados do usuário', 'danger');
+            }
+        }
+
+        async function salvarUsuario() {
+            const id = document.getElementById('usuarioId').value;
+            const login = document.getElementById('login').value;
+            const nome = document.getElementById('nome').value;
+            const grupo_id = document.getElementById('grupo').value;
+            const senha = document.getElementById('senha').value;
+            const status = document.getElementById('status').value;
+
+            if (!login || !nome || !grupo_id) {
+                mostrarAlerta('Preencha todos os campos obrigatórios', 'danger');
+                return;
+            }
+
+            if (!id && !senha) {
+                mostrarAlerta('A senha é obrigatória para novos usuários', 'danger');
+                return;
+            }
+
+            const dados = { nome, grupo_id, status };
+            
+            if (!id) {
+                dados.login = login;
+                dados.senha = senha;
+            } else if (senha) {
+                dados.senha = senha;
+            }
+
+            try {
+                const url = id ? `/api/usuarios/${id}` : '/api/usuarios';
+                const method = id ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dados)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarAlerta('Usuário salvo com sucesso!', 'success');
+                    fecharModal();
+                    carregarUsuarios();
+                } else {
+                    mostrarAlerta(result.erro || 'Erro ao salvar usuário', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao salvar usuário', 'danger');
+            }
+        }
+
+        async function deletarUsuario(id) {
+            if (!confirm('Deseja realmente excluir este usuário?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/usuarios/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarAlerta('Usuário excluído com sucesso!', 'success');
+                    carregarUsuarios();
+                } else {
+                    mostrarAlerta(result.erro || 'Erro ao excluir usuário', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao excluir usuário', 'danger');
+            }
+        }
+
+        // Fecha modal ao clicar fora
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalUsuario');
+            if (event.target === modal) {
+                fecharModal();
+            }
+        }
+    </script>
+</body>
+</html>
