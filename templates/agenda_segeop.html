@@ -6892,16 +6892,16 @@
         }
 
 
-        // FunÃ§Ã£o para copiar como imagem (usando html2canvas se disponÃ­vel)
+        // Função para copiar como imagem (usando html2canvas se disponível)
         async function copiarComoImagem() {
             const conteudo = document.getElementById('conteudoVisualizacao');
             
-            // Verificar se html2canvas estÃ¡ disponÃ­vel
+            // Verificar se html2canvas está disponível
             if (typeof html2canvas === 'undefined') {
                 mostrarAlerta(
-                    'Para usar este recurso, Ã© necessÃ¡rio incluir a biblioteca html2canvas.<br><br>' +
-                    'Por enquanto, vocÃª pode usar a tecla Print Screen para capturar a tela.',
-                    'â„¹ï¸ InformaÃ§Ã£o',
+                    'Para usar este recurso, é necessário incluir a biblioteca html2canvas.<br><br>' +
+                    'Por enquanto, você pode usar a tecla Print Screen para capturar a tela.',
+                    'ℹ️ Informação',
                     '#1a73e8'
                 );
                 return;
@@ -6910,59 +6910,33 @@
             try {
                 mostrarSpinner();
                 
-                // Encontrar a tabela dentro do conteÃºdo
-                const tabela = conteudo.querySelector('table');
-                const tituloSecao = conteudo.querySelector('.section-title-compacto');
+                // ALTERADO: Capturar diretamente o conteúdo visível no modal
+                const modalBody = document.querySelector('#modalVisualizacao .modal-body');
                 
-                if (!tabela) {
+                if (!modalBody) {
                     esconderSpinner();
-                    mostrarAlerta('Nenhuma tabela encontrada para capturar!', 'âš ï¸ Aviso', '#ffc107');
+                    mostrarAlerta('Erro ao localizar conteúdo do modal!', '⚠️ Erro', '#dc3545');
                     return;
                 }
                 
-                // ALTERADO: Obter largura real do modal
-                const modalContent = document.querySelector('#modalVisualizacao .modal-content');
-                const larguraReal = modalContent ? modalContent.offsetWidth : conteudo.offsetWidth;
+                // NOVO: Obter dimensões reais do modal body
+                const larguraReal = modalBody.scrollWidth;
+                const alturaReal = modalBody.scrollHeight;
                 
-                // Criar container temporÃ¡rio
-                const containerTemp = document.createElement('div');
+                console.log('Dimensões reais:', larguraReal, alturaReal);
                 
-                // ALTERADO: Usar largura real do modal
-                containerTemp.style.cssText = `
-                    background: white; 
-                    padding: 20px;
-                    width: ${larguraReal}px;
-                    box-sizing: border-box;
-                `;
-                
-                if (tituloSecao) {
-                    const tituloClone = tituloSecao.cloneNode(true);
-                    containerTemp.appendChild(tituloClone);
-                }
-                
-                const tabelaClone = tabela.cloneNode(true);
-                containerTemp.appendChild(tabelaClone);
-                
-                // Adicionar temporariamente ao DOM (invisÃ­vel)
-                containerTemp.style.position = 'absolute';
-                containerTemp.style.left = '-9999px';
-                containerTemp.style.top = '0';
-                document.body.appendChild(containerTemp);
-                
-                // Aguardar renderizaÃ§Ã£o
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                // ALTERADO: Capturar com largura real
-                const canvas = await html2canvas(containerTemp, {
+                // NOVO: Capturar diretamente o modal body com suas dimensões reais
+                const canvas = await html2canvas(modalBody, {
                     backgroundColor: '#ffffff',
                     scale: 2,
                     logging: false,
                     width: larguraReal,
-                    height: containerTemp.offsetHeight
+                    height: alturaReal,
+                    windowWidth: larguraReal,
+                    windowHeight: alturaReal,
+                    scrollX: 0,
+                    scrollY: 0
                 });
-                
-                // Remover container temporÃ¡rio
-                document.body.removeChild(containerTemp);
                 
                 canvas.toBlob(async (blob) => {
                     try {
@@ -6972,8 +6946,8 @@
                         
                         esconderSpinner();
                         mostrarAlerta(
-                            'âœ… Imagem copiada para a Ã¡rea de transferÃªncia!',
-                            'âœ… Sucesso',
+                            '✅ Imagem copiada para a área de transferência!',
+                            '✅ Sucesso',
                             '#28a745'
                         );
                     } catch (err) {
@@ -6981,7 +6955,7 @@
                         console.error('Erro ao copiar:', err);
                         mostrarAlerta(
                             'Erro ao copiar imagem. Use Print Screen manualmente.',
-                            'âš ï¸ Erro',
+                            '⚠️ Erro',
                             '#ffc107'
                         );
                     }
@@ -6990,7 +6964,7 @@
             } catch (error) {
                 esconderSpinner();
                 console.error('Erro ao gerar imagem:', error);
-                mostrarAlerta('Erro ao gerar imagem!', 'âŒ Erro', '#dc3545');
+                mostrarAlerta('Erro ao gerar imagem!', '❌ Erro', '#dc3545');
             }
         }
 
