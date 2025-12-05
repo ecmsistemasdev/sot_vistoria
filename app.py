@@ -51,8 +51,8 @@ def verificar_permissao(url_pagina, nivel_minimo='L'):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'usuario_id' not in session:
-                return jsonify({'erro': 'Não autenticado'}), 401
-            
+                return redirect(url_for('login'))
+                     
             cur = mysql.connection.cursor()
             cur.execute("""
                 SELECT p.NIVEL_ACESSO
@@ -61,20 +61,21 @@ def verificar_permissao(url_pagina, nivel_minimo='L'):
                 INNER JOIN CAD_PAGINA pg ON p.ID_PAGINA = pg.ID_PAGINA
                 WHERE u.ID_USUARIO = %s AND pg.URL_PAGINA = %s
             """, (session['usuario_id'], url_pagina))
-            
+                     
             permissao = cur.fetchone()
             cur.close()
-            
+                     
+            # Sem permissão ou acesso negado - redireciona para página de erro
             if not permissao or permissao[0] == 'N':
-                return jsonify({'erro': 'Acesso negado'}), 403
-            
-            # Se requer edição e tem apenas leitura
+                return render_template('acesso_negado.html', 
+                                     mensagem='Você não tem permissão para acessar esta página.')
+                     
+            # Se requer edição e tem apenas leitura - permite acesso mas em modo leitura
             if nivel_minimo == 'E' and permissao[0] == 'L':
-                return jsonify({'erro': 'Permissão insuficiente'}), 403
-            
-            # Armazena o nível de acesso na session para usar no template
-            session['nivel_acesso_atual'] = permissao[0]
-            
+                session['nivel_acesso_atual'] = 'L'
+            else:
+                session['nivel_acesso_atual'] = permissao[0]
+                     
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -4276,8 +4277,11 @@ def busca_motorista():
         
 @app.route('/veiculos_frota')
 @login_required
+@verificar_permissao('/veiculos_frota', 'E')
 def veiculos_frota():
-    return render_template('veiculos_frota.html')
+    # Passa o nível de acesso para o template
+    nivel_acesso = session.get('nivel_acesso_atual', 'L')
+    return render_template('veiculos_frota.html', nivel_acesso=nivel_acesso)
 	
 @app.route('/api/veiculos', methods=['GET'])
 @login_required
