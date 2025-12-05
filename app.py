@@ -35,6 +35,7 @@ mysql = MySQL(app)
 
 # Configuração para segurança
 app.secret_key = os.getenv('SECRET_KEY')
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -42,6 +43,42 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+# Decorator para verificar permissão de acesso
+def verificar_permissao(url_pagina, nivel_minimo='L'):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'usuario_id' not in session:
+                return jsonify({'erro': 'Não autenticado'}), 401
+            
+            cur = mysql.connection.cursor()
+            cur.execute("""
+                SELECT p.NIVEL_ACESSO
+                FROM CAD_USUARIO u
+                INNER JOIN CAD_PERMISSAO p ON u.ID_GRUPO = p.ID_GRUPO
+                INNER JOIN CAD_PAGINA pg ON p.ID_PAGINA = pg.ID_PAGINA
+                WHERE u.ID_USUARIO = %s AND pg.URL_PAGINA = %s
+            """, (session['usuario_id'], url_pagina))
+            
+            permissao = cur.fetchone()
+            cur.close()
+            
+            if not permissao or permissao[0] == 'N':
+                return jsonify({'erro': 'Acesso negado'}), 403
+            
+            # Se requer edição e tem apenas leitura
+            if nivel_minimo == 'E' and permissao[0] == 'L':
+                return jsonify({'erro': 'Permissão insuficiente'}), 403
+            
+            # Armazena o nível de acesso na session para usar no template
+            session['nivel_acesso_atual'] = permissao[0]
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 
 @app.route('/')
 @login_required
@@ -64,47 +101,174 @@ def autenticar():
     login = request.form['login']
     senha = request.form['senha']
     
-    # Criptografa a senha para comparação
     senha_criptografada = criptografar(senha)
     
-    # Busca o usuário no banco de dados
     cur = mysql.connection.cursor()
     cur.execute("""
-        SELECT ID_USUARIO, NM_USUARIO, NIVEL_ACESSO 
-        FROM CAD_USUARIO 
-        WHERE US_LOGIN = %s 
-        AND SENHA = %s 
-        AND FL_STATUS = 'A'
+        SELECT u.ID_USUARIO, u.NM_USUARIO, u.ID_GRUPO, g.NM_GRUPO
+        FROM CAD_USUARIO u
+        LEFT JOIN CAD_GRUPO g ON u.ID_GRUPO = g.ID_GRUPO
+        WHERE u.US_LOGIN = %s 
+        AND u.SENHA = %s 
+        AND u.FL_STATUS = 'A'
     """, (login, senha_criptografada))
     
     usuario = cur.fetchone()
     cur.close()
     
     if usuario:
-        # Usuário encontrado e senha correta
         session['usuario_logado'] = True
         session['usuario_id'] = usuario[0]
         session['usuario_login'] = login
         session['usuario_nome'] = usuario[1]
-        session['nivel_acesso'] = usuario[2]
+        session['usuario_grupo_id'] = usuario[2]
+        session['usuario_grupo_nome'] = usuario[3]
         
-        # Retorna dados para salvar no localStorage via JavaScript
         return jsonify({
             'sucesso': True,
             'usuario_id': usuario[0],
             'usuario_login': login,
             'usuario_nome': usuario[1],
-            'nivel_acesso': usuario[2]
+            'usuario_grupo': usuario[3]
         })
     else:
-        # Usuário não encontrado ou credenciais inválidas
-        flash('Credenciais inválidas. Tente novamente.', 'danger')
         return jsonify({'sucesso': False, 'mensagem': 'Credenciais inválidas'})
 
-#@app.route('/logout')
-#def logout():
-#    session.clear()
-#    return redirect(url_for('login'))
+# Rota para a página de cadastro de usuários
+@app.route('/cadastro_usuarios')
+@login_required
+@verificar_permissao('/cadastro_usuarios', 'E')
+def cadastro_usuarios():
+    return render_template('cadastro_usuarios.html')
+
+# Rota para listar usuários
+@app.route('/api/usuarios', methods=['GET'])
+@login_required
+def listar_usuarios():
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT u.ID_USUARIO, u.US_LOGIN, u.NM_USUARIO, 
+               g.NM_GRUPO, u.FL_STATUS
+        FROM CAD_USUARIO u
+        LEFT JOIN CAD_GRUPO g ON u.ID_GRUPO = g.ID_GRUPO
+        ORDER BY u.NM_USUARIO
+    """)
+    
+    usuarios = []
+    for row in cur.fetchall():
+        usuarios.append({
+            'id': row[0],
+            'login': row[1],
+            'nome': row[2],
+            'grupo': row[3],
+            'status': row[4]
+        })
+    
+    cur.close()
+    return jsonify(usuarios)
+
+# Rota para listar grupos
+@app.route('/api/grupos', methods=['GET'])
+@login_required
+def listar_grupos():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT ID_GRUPO, NM_GRUPO FROM CAD_GRUPO WHERE FL_STATUS = 'A' ORDER BY NM_GRUPO")
+    
+    grupos = []
+    for row in cur.fetchall():
+        grupos.append({
+            'id': row[0],
+            'nome': row[1]
+        })
+    
+    cur.close()
+    return jsonify(grupos)
+
+# Rota para criar usuário
+@app.route('/api/usuarios', methods=['POST'])
+@login_required
+def criar_usuario():
+    dados = request.json
+    
+    login = dados.get('login')
+    nome = dados.get('nome')
+    grupo_id = dados.get('grupo_id')
+    senha = dados.get('senha')
+    status = dados.get('status', 'A')
+    
+    if not all([login, nome, grupo_id, senha]):
+        return jsonify({'erro': 'Dados incompletos'}), 400
+    
+    senha_criptografada = criptografar(senha)
+    
+    cur = mysql.connection.cursor()
+    
+    # Verifica se o login já existe
+    cur.execute("SELECT ID_USUARIO FROM CAD_USUARIO WHERE US_LOGIN = %s", (login,))
+    if cur.fetchone():
+        cur.close()
+        return jsonify({'erro': 'Login já existe'}), 400
+    
+    cur.execute("""
+        INSERT INTO CAD_USUARIO (US_LOGIN, NM_USUARIO, ID_GRUPO, SENHA, FL_STATUS)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (login, nome, grupo_id, senha_criptografada, status))
+    
+    mysql.connection.commit()
+    usuario_id = cur.lastrowid
+    cur.close()
+    
+    return jsonify({'sucesso': True, 'id': usuario_id}), 201
+
+# Rota para atualizar usuário
+@app.route('/api/usuarios/<int:id>', methods=['PUT'])
+@login_required
+def atualizar_usuario(id):
+    dados = request.json
+    
+    nome = dados.get('nome')
+    grupo_id = dados.get('grupo_id')
+    senha = dados.get('senha')
+    status = dados.get('status')
+    
+    if not all([nome, grupo_id, status]):
+        return jsonify({'erro': 'Dados incompletos'}), 400
+    
+    cur = mysql.connection.cursor()
+    
+    if senha:
+        senha_criptografada = criptografar(senha)
+        cur.execute("""
+            UPDATE CAD_USUARIO 
+            SET NM_USUARIO = %s, ID_GRUPO = %s, SENHA = %s, FL_STATUS = %s
+            WHERE ID_USUARIO = %s
+        """, (nome, grupo_id, senha_criptografada, status, id))
+    else:
+        cur.execute("""
+            UPDATE CAD_USUARIO 
+            SET NM_USUARIO = %s, ID_GRUPO = %s, FL_STATUS = %s
+            WHERE ID_USUARIO = %s
+        """, (nome, grupo_id, status, id))
+    
+    mysql.connection.commit()
+    cur.close()
+    
+    return jsonify({'sucesso': True})
+
+# Rota para deletar usuário
+@app.route('/api/usuarios/<int:id>', methods=['DELETE'])
+@login_required
+def deletar_usuario(id):
+    # Não permite deletar o próprio usuário
+    if id == session.get('usuario_id'):
+        return jsonify({'erro': 'Não é possível deletar o próprio usuário'}), 400
+    
+    cur = mysql.connection.cursor()
+    cur.execute("DELETE FROM CAD_USUARIO WHERE ID_USUARIO = %s", (id,))
+    mysql.connection.commit()
+    cur.close()
+    
+    return jsonify({'sucesso': True})
 
 @app.route('/logout')
 def logout():
