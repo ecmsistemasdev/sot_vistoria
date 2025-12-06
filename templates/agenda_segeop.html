@@ -7050,67 +7050,127 @@
                 
                 const tabelaClone = tabela.cloneNode(true);
                 
-                // ===== FORÇAR table-layout: auto para permitir expansão =====
-                tabelaClone.style.tableLayout = 'auto';
-                tabelaClone.style.width = 'auto';
+                // ===== REMOVER TODOS OS ESTILOS INLINE DA TABELA =====
+                tabelaClone.removeAttribute('style');
                 
-                // ===== COPIAR LARGURAS APENAS DAS COLUNAS N. e NOME =====
-                const colunasOriginais = tabela.querySelectorAll('thead th');
-                const colunasClonadas = tabelaClone.querySelectorAll('thead th');
+                // ===== APLICAR ESTILOS DIRETAMENTE VIA ATRIBUTO STYLE =====
+                tabelaClone.setAttribute('style', `
+                    width: 100% !important;
+                    border-collapse: collapse !important;
+                    border: 1px solid #bbb !important;
+                    table-layout: auto !important;
+                    font-size: 11px !important;
+                `);
                 
-                colunasOriginais.forEach((colOriginal, index) => {
-                    if (colunasClonadas[index]) {
-                        // Apenas fixar largura das duas primeiras colunas (N. e Nome)
-                        if (index === 0 || index === 1) {
-                            const larguraColuna = colOriginal.offsetWidth;
-                            colunasClonadas[index].style.width = `${larguraColuna}px`;
-                            colunasClonadas[index].style.minWidth = `${larguraColuna}px`;
-                            colunasClonadas[index].style.maxWidth = `${larguraColuna}px`;
-                        } else {
-                            // Colunas dos dias: permitir expansão automática
-                            colunasClonadas[index].style.width = 'auto';
-                            colunasClonadas[index].style.minWidth = '0';
-                            colunasClonadas[index].style.maxWidth = 'none';
-                        }
-                    }
-                });
-                
-                // ===== APLICAR LARGURAS FIXAS APENAS ÀS CÉLULAS N. e NOME =====
-                const linhasOriginais = tabela.querySelectorAll('tbody tr');
-                const linhasClonadas = tabelaClone.querySelectorAll('tbody tr');
-                
-                linhasOriginais.forEach((linhaOriginal, indexLinha) => {
-                    const celulasOriginais = linhaOriginal.querySelectorAll('td');
-                    const celulasClonadas = linhasClonadas[indexLinha]?.querySelectorAll('td');
+                // ===== FIXAR APENAS COLUNAS N. e NOME NO CABEÇALHO =====
+                const thsClonados = tabelaClone.querySelectorAll('thead th');
+                thsClonados.forEach((th, index) => {
+                    th.removeAttribute('style');
+                    th.removeAttribute('class');
                     
-                    if (celulasClonadas) {
-                        celulasOriginais.forEach((celulaOriginal, indexCelula) => {
-                            if (celulasClonadas[indexCelula]) {
-                                // Apenas fixar largura das duas primeiras colunas (N. e Nome)
-                                if (indexCelula === 0 || indexCelula === 1) {
-                                    const larguraCelula = celulaOriginal.offsetWidth;
-                                    celulasClonadas[indexCelula].style.width = `${larguraCelula}px`;
-                                    celulasClonadas[indexCelula].style.minWidth = `${larguraCelula}px`;
-                                    celulasClonadas[indexCelula].style.maxWidth = `${larguraCelula}px`;
-                                } else {
-                                    // Colunas dos dias: permitir expansão automática
-                                    celulasClonadas[indexCelula].style.width = 'auto';
-                                    celulasClonadas[indexCelula].style.minWidth = '0';
-                                    celulasClonadas[indexCelula].style.maxWidth = 'none';
-                                }
-                            }
-                        });
+                    if (index === 0) {
+                        // Coluna N.
+                        th.setAttribute('style', `
+                            background: #e8e8e8 !important;
+                            padding: 4px 2px !important;
+                            text-align: center !important;
+                            border: 1px solid #bbb !important;
+                            font-size: 10px !important;
+                            font-weight: 600 !important;
+                            line-height: 1.2 !important;
+                            width: 28px !important;
+                            min-width: 28px !important;
+                            max-width: 28px !important;
+                        `);
+                    } else if (index === 1) {
+                        // Coluna Nome
+                        th.setAttribute('style', `
+                            background: #e8e8e8 !important;
+                            padding: 4px 2px !important;
+                            text-align: center !important;
+                            border: 1px solid #bbb !important;
+                            font-size: 10px !important;
+                            font-weight: 600 !important;
+                            line-height: 1.2 !important;
+                            width: 140px !important;
+                            min-width: 140px !important;
+                            max-width: 140px !important;
+                        `);
+                    } else {
+                        // Colunas dos dias - SEM limite de largura
+                        th.setAttribute('style', `
+                            background: #e8e8e8 !important;
+                            padding: 4px 8px !important;
+                            text-align: center !important;
+                            border: 1px solid #bbb !important;
+                            font-size: 10px !important;
+                            font-weight: 600 !important;
+                            line-height: 1.2 !important;
+                            white-space: normal !important;
+                            word-wrap: break-word !important;
+                        `);
                     }
                 });
                 
-                // ===== FORÇAR BORDAS DE 1PX SÓLIDAS =====
-                tabelaClone.style.border = '1px solid #bbb';
-                tabelaClone.style.borderCollapse = 'collapse';
-                
-                // Aplicar bordas de 1px em TODAS as células (th e td)
-                tabelaClone.querySelectorAll('th, td').forEach(cell => {
-                    cell.style.border = '1px solid #bbb';
-                    cell.style.borderWidth = '1px';
+                // ===== APLICAR ESTILOS EM TODAS AS CÉLULAS DO TBODY =====
+                const tdsClonados = tabelaClone.querySelectorAll('tbody td');
+                tdsClonados.forEach((td) => {
+                    td.removeAttribute('style');
+                    const classes = td.className;
+                    
+                    // Verificar se é coluna N. ou Nome
+                    if (classes.includes('col-numero')) {
+                        td.setAttribute('style', `
+                            background: #f5f5f5 !important;
+                            border: 1px solid #bbb !important;
+                            padding: 2px 1px !important;
+                            vertical-align: top !important;
+                            font-size: 9px !important;
+                            line-height: 1.2 !important;
+                            min-height: 18px !important;
+                            font-weight: 600 !important;
+                            text-align: center !important;
+                            width: 28px !important;
+                            min-width: 28px !important;
+                            max-width: 28px !important;
+                        `);
+                    } else if (classes.includes('col-nome')) {
+                        td.setAttribute('style', `
+                            background: #f5f5f5 !important;
+                            border: 1px solid #bbb !important;
+                            padding: 2px 4px !important;
+                            vertical-align: top !important;
+                            font-size: 9px !important;
+                            line-height: 1.2 !important;
+                            min-height: 18px !important;
+                            font-weight: 600 !important;
+                            word-wrap: break-word !important;
+                            white-space: normal !important;
+                            width: 140px !important;
+                            min-width: 140px !important;
+                            max-width: 140px !important;
+                        `);
+                    } else {
+                        // Células dos dias - SEM limite de largura
+                        let bgColor = '#ffffff';
+                        if (classes.includes('empty-cell')) {
+                            bgColor = classes.includes('weekend-empty') ? '#e8e8e8' : '#fafafa';
+                        } else if (classes.includes('cell-feriado')) {
+                            bgColor = '#fdfcb2';
+                        }
+                        
+                        td.setAttribute('style', `
+                            background: ${bgColor} !important;
+                            border: 1px solid #bbb !important;
+                            padding: 2px 8px !important;
+                            vertical-align: top !important;
+                            font-size: 9px !important;
+                            line-height: 1.3 !important;
+                            min-height: 18px !important;
+                            white-space: normal !important;
+                            word-wrap: break-word !important;
+                        `);
+                    }
                 });
                 
                 containerTemp.appendChild(tabelaClone);
@@ -7119,15 +7179,16 @@
                 document.body.appendChild(containerTemp);
                 
                 // Aguardar renderização completa
-                await new Promise(resolve => setTimeout(resolve, 300));
+                await new Promise(resolve => setTimeout(resolve, 500));
                 
-                // ===== Capturar com largura automática (será maior) =====
+                // ===== Capturar com html2canvas =====
                 const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
                     scale: 2,
                     logging: false,
                     useCORS: true,
-                    allowTaint: true
+                    allowTaint: true,
+                    imageTimeout: 0
                 });
                 
                 // Remover container temporário
