@@ -6902,6 +6902,7 @@
         }
 
         // Função para copiar como imagem (usando html2canvas se disponível)
+        /*
         async function copiarComoImagem() {
             const conteudo = document.getElementById('conteudoVisualizacao');
             
@@ -7000,7 +7001,159 @@
                 mostrarAlerta('Erro ao gerar imagem!', '❌ Erro', '#dc3545');
             }
         }
+        */
 
+        // Função para copiar como imagem (usando html2canvas se disponível)
+        async function copiarComoImagem() {
+            const conteudo = document.getElementById('conteudoVisualizacao');
+            
+            // Verificar se html2canvas está disponível
+            if (typeof html2canvas === 'undefined') {
+                mostrarAlerta(
+                    'Para usar este recurso, é necessário incluir a biblioteca html2canvas.<br><br>' +
+                    'Por enquanto, você pode usar a tecla Print Screen para capturar a tela.',
+                    'ℹ️ Informação',
+                    '#1a73e8'
+                );
+                return;
+            }
+            
+            try {
+                mostrarSpinner();
+                
+                // Encontrar a tabela dentro do conteúdo
+                const tabela = conteudo.querySelector('table');
+                const tituloSecao = conteudo.querySelector('.section-title-compacto');
+                
+                if (!tabela) {
+                    esconderSpinner();
+                    mostrarAlerta('Nenhuma tabela encontrada para capturar!', '⚠️ Aviso', '#ffc107');
+                    return;
+                }
+                
+                // ===== NOVO: CALCULAR LARGURA REAL DA TABELA =====
+                const larguraRealTabela = tabela.offsetWidth;
+                
+                // Criar container temporário
+                const containerTemp = document.createElement('div');
+                
+                // ===== ALTERADO: Usar a largura REAL da tabela =====
+                containerTemp.style.cssText = `
+                    background: white; 
+                    padding: 10px; 
+                    width: ${larguraRealTabela}px;
+                    box-sizing: border-box;
+                    position: absolute;
+                    left: -9999px;
+                    top: 0;
+                `;
+                
+                if (tituloSecao) {
+                    const tituloClone = tituloSecao.cloneNode(true);
+                    containerTemp.appendChild(tituloClone);
+                }
+                
+                const tabelaClone = tabela.cloneNode(true);
+                
+                // ===== NOVO: FORÇAR LARGURA FIXA NA TABELA CLONADA =====
+                tabelaClone.style.width = `${larguraRealTabela}px`;
+                tabelaClone.style.tableLayout = 'fixed';
+                
+                // ===== NOVO: COPIAR LARGURAS EXATAS DAS COLUNAS =====
+                const colunasOriginais = tabela.querySelectorAll('thead th');
+                const colunasClonadas = tabelaClone.querySelectorAll('thead th');
+                
+                colunasOriginais.forEach((colOriginal, index) => {
+                    if (colunasClonadas[index]) {
+                        const larguraColuna = colOriginal.offsetWidth;
+                        colunasClonadas[index].style.width = `${larguraColuna}px`;
+                        colunasClonadas[index].style.minWidth = `${larguraColuna}px`;
+                        colunasClonadas[index].style.maxWidth = `${larguraColuna}px`;
+                    }
+                });
+                
+                // ===== NOVO: APLICAR LARGURAS ÀS CÉLULAS DO TBODY =====
+                const linhasOriginais = tabela.querySelectorAll('tbody tr');
+                const linhasClonadas = tabelaClone.querySelectorAll('tbody tr');
+                
+                linhasOriginais.forEach((linhaOriginal, indexLinha) => {
+                    const celulasOriginais = linhaOriginal.querySelectorAll('td');
+                    const celulasClonadas = linhasClonadas[indexLinha]?.querySelectorAll('td');
+                    
+                    if (celulasClonadas) {
+                        celulasOriginais.forEach((celulaOriginal, indexCelula) => {
+                            if (celulasClonadas[indexCelula]) {
+                                const larguraCelula = celulaOriginal.offsetWidth;
+                                celulasClonadas[indexCelula].style.width = `${larguraCelula}px`;
+                                celulasClonadas[indexCelula].style.minWidth = `${larguraCelula}px`;
+                                celulasClonadas[indexCelula].style.maxWidth = `${larguraCelula}px`;
+                            }
+                        });
+                    }
+                });
+                
+                // ===== NOVO: FORÇAR BORDAS DE 1PX =====
+                tabelaClone.style.border = '1px solid #bbb';
+                tabelaClone.style.borderCollapse = 'collapse';
+                
+                // Aplicar bordas de 1px em TODAS as células
+                tabelaClone.querySelectorAll('th, td').forEach(cell => {
+                    cell.style.border = '1px solid #bbb';
+                });
+                
+                containerTemp.appendChild(tabelaClone);
+                
+                // Adicionar ao DOM (invisível)
+                document.body.appendChild(containerTemp);
+                
+                // Aguardar renderização
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // ===== ALTERADO: Usar largura real do container =====
+                const canvas = await html2canvas(containerTemp, {
+                    backgroundColor: '#ffffff',
+                    scale: 2, // Melhor qualidade
+                    logging: false,
+                    width: containerTemp.offsetWidth,
+                    height: containerTemp.offsetHeight,
+                    windowWidth: containerTemp.offsetWidth,
+                    windowHeight: containerTemp.offsetHeight
+                });
+                
+                // Remover container temporário
+                document.body.removeChild(containerTemp);
+                
+                canvas.toBlob(async (blob) => {
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
+                        
+                        esconderSpinner();
+                        mostrarAlerta(
+                            '✅ Imagem copiada para a área de transferência!',
+                            '✅ Sucesso',
+                            '#28a745'
+                        );
+                    } catch (err) {
+                        esconderSpinner();
+                        console.error('Erro ao copiar:', err);
+                        mostrarAlerta(
+                            'Erro ao copiar imagem. Use Print Screen manualmente.',
+                            '⚠️ Erro',
+                            '#ffc107'
+                        );
+                    }
+                });
+                
+            } catch (error) {
+                esconderSpinner();
+                console.error('Erro ao gerar imagem:', error);
+                mostrarAlerta('Erro ao gerar imagem!', '❌ Erro', '#dc3545');
+            }
+        }
+
+        
         // Renderização compacta para visualização
         function renderizarSecaoMotoristasCompacta(dias) {
             let html = '<div class="section-title-compacto">👲 SEGEOP - MOTORISTAS</div>';
