@@ -7031,17 +7031,12 @@
                     return;
                 }
                 
-                // ===== NOVO: CALCULAR LARGURA REAL DA TABELA =====
-                const larguraRealTabela = tabela.offsetWidth;
-                
                 // Criar container temporário
                 const containerTemp = document.createElement('div');
                 
-                // ===== ALTERADO: Usar a largura REAL da tabela =====
                 containerTemp.style.cssText = `
                     background: white; 
                     padding: 10px; 
-                    width: ${larguraRealTabela}px;
                     box-sizing: border-box;
                     position: absolute;
                     left: -9999px;
@@ -7055,24 +7050,32 @@
                 
                 const tabelaClone = tabela.cloneNode(true);
                 
-                // ===== NOVO: FORÇAR LARGURA FIXA NA TABELA CLONADA =====
-                tabelaClone.style.width = `${larguraRealTabela}px`;
-                tabelaClone.style.tableLayout = 'fixed';
+                // ===== FORÇAR table-layout: auto para permitir expansão =====
+                tabelaClone.style.tableLayout = 'auto';
+                tabelaClone.style.width = 'auto';
                 
-                // ===== NOVO: COPIAR LARGURAS EXATAS DAS COLUNAS =====
+                // ===== COPIAR LARGURAS APENAS DAS COLUNAS N. e NOME =====
                 const colunasOriginais = tabela.querySelectorAll('thead th');
                 const colunasClonadas = tabelaClone.querySelectorAll('thead th');
                 
                 colunasOriginais.forEach((colOriginal, index) => {
                     if (colunasClonadas[index]) {
-                        const larguraColuna = colOriginal.offsetWidth;
-                        colunasClonadas[index].style.width = `${larguraColuna}px`;
-                        colunasClonadas[index].style.minWidth = `${larguraColuna}px`;
-                        colunasClonadas[index].style.maxWidth = `${larguraColuna}px`;
+                        // Apenas fixar largura das duas primeiras colunas (N. e Nome)
+                        if (index === 0 || index === 1) {
+                            const larguraColuna = colOriginal.offsetWidth;
+                            colunasClonadas[index].style.width = `${larguraColuna}px`;
+                            colunasClonadas[index].style.minWidth = `${larguraColuna}px`;
+                            colunasClonadas[index].style.maxWidth = `${larguraColuna}px`;
+                        } else {
+                            // Colunas dos dias: permitir expansão automática
+                            colunasClonadas[index].style.width = 'auto';
+                            colunasClonadas[index].style.minWidth = '0';
+                            colunasClonadas[index].style.maxWidth = 'none';
+                        }
                     }
                 });
                 
-                // ===== NOVO: APLICAR LARGURAS ÀS CÉLULAS DO TBODY =====
+                // ===== APLICAR LARGURAS FIXAS APENAS ÀS CÉLULAS N. e NOME =====
                 const linhasOriginais = tabela.querySelectorAll('tbody tr');
                 const linhasClonadas = tabelaClone.querySelectorAll('tbody tr');
                 
@@ -7083,22 +7086,31 @@
                     if (celulasClonadas) {
                         celulasOriginais.forEach((celulaOriginal, indexCelula) => {
                             if (celulasClonadas[indexCelula]) {
-                                const larguraCelula = celulaOriginal.offsetWidth;
-                                celulasClonadas[indexCelula].style.width = `${larguraCelula}px`;
-                                celulasClonadas[indexCelula].style.minWidth = `${larguraCelula}px`;
-                                celulasClonadas[indexCelula].style.maxWidth = `${larguraCelula}px`;
+                                // Apenas fixar largura das duas primeiras colunas (N. e Nome)
+                                if (indexCelula === 0 || indexCelula === 1) {
+                                    const larguraCelula = celulaOriginal.offsetWidth;
+                                    celulasClonadas[indexCelula].style.width = `${larguraCelula}px`;
+                                    celulasClonadas[indexCelula].style.minWidth = `${larguraCelula}px`;
+                                    celulasClonadas[indexCelula].style.maxWidth = `${larguraCelula}px`;
+                                } else {
+                                    // Colunas dos dias: permitir expansão automática
+                                    celulasClonadas[indexCelula].style.width = 'auto';
+                                    celulasClonadas[indexCelula].style.minWidth = '0';
+                                    celulasClonadas[indexCelula].style.maxWidth = 'none';
+                                }
                             }
                         });
                     }
                 });
                 
-                // ===== NOVO: FORÇAR BORDAS DE 1PX =====
+                // ===== FORÇAR BORDAS DE 1PX SÓLIDAS =====
                 tabelaClone.style.border = '1px solid #bbb';
                 tabelaClone.style.borderCollapse = 'collapse';
                 
-                // Aplicar bordas de 1px em TODAS as células
+                // Aplicar bordas de 1px em TODAS as células (th e td)
                 tabelaClone.querySelectorAll('th, td').forEach(cell => {
                     cell.style.border = '1px solid #bbb';
+                    cell.style.borderWidth = '1px';
                 });
                 
                 containerTemp.appendChild(tabelaClone);
@@ -7106,18 +7118,16 @@
                 // Adicionar ao DOM (invisível)
                 document.body.appendChild(containerTemp);
                 
-                // Aguardar renderização
-                await new Promise(resolve => setTimeout(resolve, 200));
+                // Aguardar renderização completa
+                await new Promise(resolve => setTimeout(resolve, 300));
                 
-                // ===== ALTERADO: Usar largura real do container =====
+                // ===== Capturar com largura automática (será maior) =====
                 const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
-                    scale: 2, // Melhor qualidade
+                    scale: 2,
                     logging: false,
-                    width: containerTemp.offsetWidth,
-                    height: containerTemp.offsetHeight,
-                    windowWidth: containerTemp.offsetWidth,
-                    windowHeight: containerTemp.offsetHeight
+                    useCORS: true,
+                    allowTaint: true
                 });
                 
                 // Remover container temporário
