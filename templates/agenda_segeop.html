@@ -7050,126 +7050,109 @@
                 
                 const tabelaClone = tabela.cloneNode(true);
                 
-                // ===== REMOVER TODOS OS ESTILOS INLINE DA TABELA =====
-                tabelaClone.removeAttribute('style');
-                
-                // ===== APLICAR ESTILOS DIRETAMENTE VIA ATRIBUTO STYLE =====
-                tabelaClone.setAttribute('style', `
-                    width: 100% !important;
-                    border-collapse: collapse !important;
-                    border: 1px solid #bbb !important;
-                    table-layout: auto !important;
-                    font-size: 11px !important;
-                `);
+                // ===== APLICAR ESTILOS NA TABELA =====
+                tabelaClone.style.cssText = `
+                    width: 100%;
+                    border-collapse: collapse;
+                    border: 1px solid #bbb;
+                    border-width: 1px;
+                    table-layout: auto;
+                    font-size: 11px;
+                `;
                 
                 // ===== FIXAR APENAS COLUNAS N. e NOME NO CABEÇALHO =====
                 const thsClonados = tabelaClone.querySelectorAll('thead th');
                 thsClonados.forEach((th, index) => {
-                    th.removeAttribute('style');
-                    th.removeAttribute('class');
+                    const styleBase = `
+                        background: #e8e8e8;
+                        padding: 4px 2px;
+                        text-align: center;
+                        border: 1px solid #bbb;
+                        border-width: 1px;
+                        font-size: 10px;
+                        font-weight: 600;
+                        line-height: 1.2;
+                    `;
                     
                     if (index === 0) {
                         // Coluna N.
-                        th.setAttribute('style', `
-                            background: #e8e8e8 !important;
-                            padding: 4px 2px !important;
-                            text-align: center !important;
-                            border: 1px solid #bbb !important;
-                            font-size: 10px !important;
-                            font-weight: 600 !important;
-                            line-height: 1.2 !important;
-                            width: 28px !important;
-                            min-width: 28px !important;
-                            max-width: 28px !important;
-                        `);
+                        th.style.cssText = styleBase + `
+                            width: 28px;
+                            min-width: 28px;
+                            max-width: 28px;
+                        `;
                     } else if (index === 1) {
                         // Coluna Nome
-                        th.setAttribute('style', `
-                            background: #e8e8e8 !important;
-                            padding: 4px 2px !important;
-                            text-align: center !important;
-                            border: 1px solid #bbb !important;
-                            font-size: 10px !important;
-                            font-weight: 600 !important;
-                            line-height: 1.2 !important;
-                            width: 140px !important;
-                            min-width: 140px !important;
-                            max-width: 140px !important;
-                        `);
+                        th.style.cssText = styleBase + `
+                            width: 140px;
+                            min-width: 140px;
+                            max-width: 140px;
+                        `;
                     } else {
                         // Colunas dos dias - SEM limite de largura
-                        th.setAttribute('style', `
-                            background: #e8e8e8 !important;
-                            padding: 4px 8px !important;
-                            text-align: center !important;
-                            border: 1px solid #bbb !important;
-                            font-size: 10px !important;
-                            font-weight: 600 !important;
-                            line-height: 1.2 !important;
-                            white-space: normal !important;
-                            word-wrap: break-word !important;
-                        `);
+                        th.style.cssText = styleBase + `
+                            padding: 4px 8px;
+                            white-space: normal;
+                            word-wrap: break-word;
+                        `;
                     }
                 });
                 
-                // ===== APLICAR ESTILOS EM TODAS AS CÉLULAS DO TBODY =====
+                // ===== APLICAR ESTILOS EM TODAS AS CÉLULAS DO TBODY MANTENDO CORES =====
                 const tdsClonados = tabelaClone.querySelectorAll('tbody td');
                 tdsClonados.forEach((td) => {
-                    td.removeAttribute('style');
                     const classes = td.className;
+                    const computedStyle = window.getComputedStyle(td);
+                    const bgColor = computedStyle.backgroundColor;
                     
                     // Verificar se é coluna N. ou Nome
                     if (classes.includes('col-numero')) {
-                        td.setAttribute('style', `
-                            background: #f5f5f5 !important;
-                            border: 1px solid #bbb !important;
-                            padding: 2px 1px !important;
-                            vertical-align: top !important;
-                            font-size: 9px !important;
-                            line-height: 1.2 !important;
-                            min-height: 18px !important;
-                            font-weight: 600 !important;
-                            text-align: center !important;
-                            width: 28px !important;
-                            min-width: 28px !important;
-                            max-width: 28px !important;
-                        `);
+                        td.style.cssText = `
+                            background: ${bgColor};
+                            border: 1px solid #bbb;
+                            border-width: 1px;
+                            padding: 2px 1px;
+                            vertical-align: top;
+                            font-size: 9px;
+                            line-height: 1.2;
+                            min-height: 18px;
+                            font-weight: 600;
+                            text-align: center;
+                            width: 28px;
+                            min-width: 28px;
+                            max-width: 28px;
+                        `;
                     } else if (classes.includes('col-nome')) {
-                        td.setAttribute('style', `
-                            background: #f5f5f5 !important;
-                            border: 1px solid #bbb !important;
-                            padding: 2px 4px !important;
-                            vertical-align: top !important;
-                            font-size: 9px !important;
-                            line-height: 1.2 !important;
-                            min-height: 18px !important;
-                            font-weight: 600 !important;
-                            word-wrap: break-word !important;
-                            white-space: normal !important;
-                            width: 140px !important;
-                            min-width: 140px !important;
-                            max-width: 140px !important;
-                        `);
+                        td.style.cssText = `
+                            background: ${bgColor};
+                            border: 1px solid #bbb;
+                            border-width: 1px;
+                            padding: 2px 4px;
+                            vertical-align: top;
+                            font-size: 9px;
+                            line-height: 1.2;
+                            min-height: 18px;
+                            font-weight: 600;
+                            word-wrap: break-word;
+                            white-space: normal;
+                            width: 140px;
+                            min-width: 140px;
+                            max-width: 140px;
+                        `;
                     } else {
-                        // Células dos dias - SEM limite de largura
-                        let bgColor = '#ffffff';
-                        if (classes.includes('empty-cell')) {
-                            bgColor = classes.includes('weekend-empty') ? '#e8e8e8' : '#fafafa';
-                        } else if (classes.includes('cell-feriado')) {
-                            bgColor = '#fdfcb2';
-                        }
-                        
-                        td.setAttribute('style', `
-                            background: ${bgColor} !important;
-                            border: 1px solid #bbb !important;
-                            padding: 2px 8px !important;
-                            vertical-align: top !important;
-                            font-size: 9px !important;
-                            line-height: 1.3 !important;
-                            min-height: 18px !important;
-                            white-space: normal !important;
-                            word-wrap: break-word !important;
-                        `);
+                        // Células dos dias - MANTER cor original e SEM limite de largura
+                        td.style.cssText = `
+                            background: ${bgColor};
+                            border: 1px solid #bbb;
+                            border-width: 1px;
+                            padding: 2px 8px;
+                            vertical-align: top;
+                            font-size: 9px;
+                            line-height: 1.3;
+                            min-height: 18px;
+                            white-space: normal;
+                            word-wrap: break-word;
+                        `;
                     }
                 });
                 
@@ -7184,7 +7167,7 @@
                 // ===== Capturar com html2canvas =====
                 const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
-                    scale: 2,
+                    scale: 3, // AUMENTADO para melhor qualidade de borda
                     logging: false,
                     useCORS: true,
                     allowTaint: true,
