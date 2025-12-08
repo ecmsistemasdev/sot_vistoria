@@ -196,8 +196,15 @@
             background: linear-gradient(to bottom, #c7a3e7, #d9bef0) !important;
         }
 
+        /*
         .agenda-table td:hover {
             background: #f8f9fa !important;
+        }
+        */
+
+        /* SUBSTITUIR a regra existente */
+        .agenda-table td:hover {
+            filter: brightness(1.1) !important; /* Clareia 10% mantendo a cor */
         }
 
         .col-numero {
@@ -7050,17 +7057,16 @@
                 
                 const tabelaClone = tabela.cloneNode(true);
                 
-                // ===== APLICAR ESTILOS NA TABELA =====
+                // ===== APLICAR ESTILOS NA TABELA =====  // border-width: 1px;
                 tabelaClone.style.cssText = `
                     width: 100%;
                     border-collapse: collapse;
                     border: 1px solid #bbb;
-                    border-width: 1px;
                     table-layout: auto;
                     font-size: 11px;
                 `;
                 
-                // ===== FIXAR APENAS COLUNAS N. e NOME NO CABEÇALHO =====
+                // ===== FIXAR APENAS COLUNAS N. e NOME NO CABEÇALHO ===== //border-width: 1px;
                 const thsClonados = tabelaClone.querySelectorAll('thead th');
                 thsClonados.forEach((th, index) => {
                     const styleBase = `
@@ -7068,7 +7074,6 @@
                         padding: 4px 2px;
                         text-align: center;
                         border: 1px solid #bbb;
-                        border-width: 1px;
                         font-size: 10px;
                         font-weight: 600;
                         line-height: 1.2;
@@ -7167,7 +7172,7 @@
                 // ===== Capturar com html2canvas =====
                 const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
-                    scale: 3, // AUMENTADO para melhor qualidade de borda
+                    scale: 1, // AUMENTADO para melhor qualidade de borda
                     logging: false,
                     useCORS: true,
                     allowTaint: true,
