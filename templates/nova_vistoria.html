@@ -448,12 +448,32 @@
                     <input type="hidden" name="id_motorista" value="{{ motorista_id }}">
                     <input type="text" class="form-control" value="{{ motorista_nome }}" readonly>
                     {% else %}
+                    
+                    <!-- Checkbox para motorista não cadastrado -->
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="motorista_nao_cadastrado" name="motorista_nao_cadastrado" value="true">
+                        <label class="form-check-label" for="motorista_nao_cadastrado">
+                            Motorista Não Cadastrado
+                        </label>
+                    </div>
+                    
+                    <!-- Select de motoristas cadastrados -->
                     <select class="form-select" id="id_motorista" name="id_motorista" required>
                         <option value="">Selecione um motorista</option>
                         {% for motorista in motoristas %}
                         <option value="{{ motorista[0] }}">{{ motorista[1] }}</option>
                         {% endfor %}
                     </select>
+                    
+                    <!-- Input para nome do motorista não cadastrado (inicialmente oculto) -->
+                    <input type="text" 
+                           class="form-control mt-2" 
+                           id="nc_motorista" 
+                           name="nc_motorista" 
+                           placeholder="Digite o nome do motorista"
+                           style="display: none;"
+                           maxlength="100">
+                    
                     {% endif %}
                 </div>
                 
@@ -888,6 +908,7 @@
             configurarObservacoes();
             configurarCamposDataSeI();
             configurarFormulario();
+            configurarMotoristaNC();
 
             // Adicionar event listener para touchstart em todo o documento
             document.addEventListener('touchstart', function(e) {
@@ -1128,6 +1149,38 @@
             }
         }
 
+        // Configurar comportamento do checkbox de motorista não cadastrado
+        function configurarMotoristaNC() {
+            const checkbox = document.getElementById('motorista_nao_cadastrado');
+            const selectMotorista = document.getElementById('id_motorista');
+            const inputNC = document.getElementById('nc_motorista');
+            
+            if (checkbox && selectMotorista && inputNC) {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Desabilitar select e torná-lo não obrigatório
+                        selectMotorista.disabled = true;
+                        selectMotorista.required = false;
+                        selectMotorista.value = '';
+                        
+                        // Mostrar e tornar obrigatório o input de nome
+                        inputNC.style.display = 'block';
+                        inputNC.required = true;
+                        inputNC.focus();
+                    } else {
+                        // Habilitar select e torná-lo obrigatório
+                        selectMotorista.disabled = false;
+                        selectMotorista.required = true;
+                        
+                        // Ocultar e tornar não obrigatório o input de nome
+                        inputNC.style.display = 'none';
+                        inputNC.required = false;
+                        inputNC.value = '';
+                    }
+                });
+            }
+        }        
+
         // Capturar assinaturas para envio
         function capturarAssinaturas() {
             // Usar os valores já salvos nos inputs
@@ -1301,7 +1354,7 @@
             salvarEstadoAssinaturas();
             
             // Validações antes de enviar
-            if (!validarAssinaturas() || !validarFotos()) {
+            if (!validarMotorista() || !validarAssinaturas() || !validarFotos()) {  // ← ADICIONAR validarMotorista()
                 return;
             }
             
@@ -1314,11 +1367,41 @@
             if (!validarCamposDataSeI()) {
                 return;
             }
-
+        
             // Processar fotos com seus desenhos
             processarFotosParaEnvio(formData);
         }
 
+        // Função para validar motorista
+        function validarMotorista() {
+            const checkbox = document.getElementById('motorista_nao_cadastrado');
+            const selectMotorista = document.getElementById('id_motorista');
+            const inputNC = document.getElementById('nc_motorista');
+            
+            // Se não existirem os elementos (caso de DEVOLUCAO), retorna true
+            if (!checkbox || !selectMotorista || !inputNC) {
+                return true;
+            }
+            
+            if (checkbox.checked) {
+                // Validar input de nome
+                if (!inputNC.value || inputNC.value.trim() === '') {
+                    alert('Por favor, informe o nome do motorista não cadastrado.');
+                    inputNC.focus();
+                    return false;
+                }
+            } else {
+                // Validar select
+                if (!selectMotorista.value || selectMotorista.value === '') {
+                    alert('Por favor, selecione um motorista.');
+                    selectMotorista.focus();
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
         // Função corrigida de validação dos campos Data e SEI
         function validarCamposDataSeI() {
             // Verifica se estamos na página de saída ou devolução
@@ -1807,6 +1890,7 @@
     </script>
 </body>
 </html>
+
 
 
 
