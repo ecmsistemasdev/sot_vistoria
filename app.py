@@ -674,7 +674,7 @@ def salvar_vistoria():
         
         print(f"✅ Checkpoint 5: Pegando outros dados...", file=sys.stderr)
 
-		vistoria_saida_id = request.form.get('vistoria_saida_id')
+        vistoria_saida_id = request.form.get('vistoria_saida_id')
         combustivel = request.form['combustivel']
         hodometro = request.form['hodometro']
         obs = request.form['observacoes']
@@ -683,11 +683,15 @@ def salvar_vistoria():
         data_retorno = request.form.get('dataRetorno', None)
         nu_sei = request.form.get('numSei', '')  # Tornando campo SEI opcional
         
+        print(f"✅ Checkpoint 6: Dados básicos OK", file=sys.stderr)
+        
         # Obter o nome do usuário da sessão
         usuario_nome = session.get('usuario_nome', 'Sistema')
         # Obter as assinaturas
         assinatura_usuario_data = request.form.get('assinatura_usuario')
         assinatura_motorista_data = request.form.get('assinatura_motorista')
+        
+        print(f"✅ Checkpoint 7: Assinaturas obtidas", file=sys.stderr)
         
         # Processar as assinaturas de base64 para binário, se existirem
         assinatura_usuario_bin = None
@@ -701,6 +705,8 @@ def salvar_vistoria():
             assinatura_motorista_data = assinatura_motorista_data.split(',')[1]
             assinatura_motorista_bin = base64.b64decode(assinatura_motorista_data)
         
+        print(f"✅ Checkpoint 8: Assinaturas processadas", file=sys.stderr)
+        
         # Criar uma nova vistoria
         cur = mysql.connection.cursor()
         
@@ -710,9 +716,12 @@ def salvar_vistoria():
         data_e_hora_atual = datetime.now()
         fuso_horario = timezone('America/Manaus')
         data_hora = data_e_hora_atual.astimezone(fuso_horario)
+        
+        print(f"✅ Checkpoint 9: Preparando INSERT...", file=sys.stderr)
     
         if tipo == 'SAIDA':
             # Para vistorias de SAIDA, definir status como EM_TRANSITO
+            print(f"✅ Checkpoint 10: Inserindo SAIDA - ID_MOTORISTA={id_motorista}, NC_MOTORISTA={nc_motorista}", file=sys.stderr)
             cur.execute(
                 """INSERT INTO VISTORIAS 
                    (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, 
@@ -723,6 +732,7 @@ def salvar_vistoria():
             )
         else:  # DEVOLUCAO
             # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
+            print(f"✅ Checkpoint 10: Inserindo DEVOLUCAO - ID_MOTORISTA={id_motorista}, NC_MOTORISTA={nc_motorista}", file=sys.stderr)
             cur.execute(
                 """INSERT INTO VISTORIAS 
                    (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, 
@@ -736,9 +746,13 @@ def salvar_vistoria():
                 "UPDATE VISTORIAS SET STATUS = 'FINALIZADA' WHERE IDVISTORIA = %s",
                 (vistoria_saida_id,)
             )
+        
+        print(f"✅ Checkpoint 11: INSERT executado com sucesso", file=sys.stderr)
             
         # Realizar o commit para garantir que a vistoria foi salva
         mysql.connection.commit()
+        
+        print(f"✅ Checkpoint 12: COMMIT realizado", file=sys.stderr)
         
         # Buscar o ID da vistoria recém-inserida procurando o ID maior que o último ID conhecido
         cur.execute("SELECT IDVISTORIA FROM VISTORIAS WHERE IDVISTORIA > %s ORDER BY IDVISTORIA ASC LIMIT 1", (ultimo_id,))
@@ -748,15 +762,13 @@ def salvar_vistoria():
             raise Exception("Não foi possível recuperar o ID da vistoria criada")
         
         id_vistoria = result[0]
-        print(f"ID da vistoria recuperado: {id_vistoria} (último ID antes da inserção: {ultimo_id})")
+        print(f"✅ Checkpoint 13: ID da vistoria recuperado: {id_vistoria} (último ID: {ultimo_id})", file=sys.stderr)
         
         # Debug: Verificar recebimento das fotos
         fotos = request.files.getlist('fotos[]')
         detalhamentos = request.form.getlist('detalhamentos[]')
         
-        print(f"Tipo de vistoria: {tipo}")
-        print(f"Número de fotos recebidas: {len(fotos)}")
-        print(f"Número de detalhamentos recebidos: {len(detalhamentos)}")
+        print(f"✅ Checkpoint 14: Tipo={tipo}, Fotos={len(fotos)}, Detalhamentos={len(detalhamentos)}", file=sys.stderr)
         
         # Processar todas as fotos de uma vez
         for i, foto in enumerate(fotos):
@@ -768,12 +780,12 @@ def salvar_vistoria():
                     detalhamento = detalhamentos[i] if i < len(detalhamentos) else ""
                     
                     # Inserir explicitamente o conteúdo binário da imagem com o ID da vistoria confirmado
-                    print(f"Inserindo item {i} para vistoria {id_vistoria}")
+                    print(f"  📸 Inserindo foto {i+1}/{len(fotos)} para vistoria {id_vistoria}", file=sys.stderr)
                     
                     # VERIFICAÇÃO EXTRA: Confirmar que a vistoria existe antes de inserir
                     cur.execute("SELECT 1 FROM VISTORIAS WHERE IDVISTORIA = %s", (id_vistoria,))
                     if not cur.fetchone():
-                        print(f"ALERTA: Vistoria com ID {id_vistoria} não encontrada!")
+                        print(f"  ❌ ALERTA: Vistoria com ID {id_vistoria} não encontrada!", file=sys.stderr)
                         continue
                     
                     cur.execute(
@@ -786,17 +798,22 @@ def salvar_vistoria():
                     cur.execute("SELECT IDVISTORIA FROM VISTORIA_ITENS WHERE ID = LAST_INSERT_ID()")
                     item_result = cur.fetchone()
                     if item_result and item_result[0] != id_vistoria:
-                        print(f"ALERTA: Item inserido com IDVISTORIA incorreto: {item_result[0]} != {id_vistoria}")
+                        print(f"  ❌ ALERTA: Item inserido com IDVISTORIA incorreto: {item_result[0]} != {id_vistoria}", file=sys.stderr)
                         
                 except Exception as e:
-                    print(f"Erro ao processar foto {i}: {str(e)}")
+                    print(f"  ❌ Erro ao processar foto {i}: {str(e)}", file=sys.stderr)
         
         cur.close()
+        
+        print(f"✅ Checkpoint 15: Tudo OK! Redirecionando...", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+        
         flash('Vistoria salva com sucesso!', 'success')
         return redirect(url_for('index'))
     
     except Exception as e:
-        print(f"ERRO CRÍTICO: {str(e)}")
+        print(f"❌❌❌ ERRO CRÍTICO: {str(e)}", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
         flash(f'Erro ao salvar vistoria: {str(e)}', 'danger')
         return redirect(url_for('nova_vistoria'))
         
