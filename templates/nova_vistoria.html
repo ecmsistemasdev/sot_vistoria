@@ -448,22 +448,25 @@
                     <input type="hidden" name="id_motorista" value="{{ motorista_id }}">
                     <input type="text" class="form-control" value="{{ motorista_nome }}" readonly>
                     {% else %}
-                    
+
                     <!-- Select de motoristas cadastrados -->
-                    <select class="form-select" id="id_motorista" name="id_motorista" required>
+                    <select class="form-select" id="id_motorista" name="id_motorista">
                         <option value="">Selecione um motorista</option>
                         {% for motorista in motoristas %}
                         <option value="{{ motorista[0] }}">{{ motorista[1] }}</option>
                         {% endfor %}
                     </select>
-
+                    
                     <!-- Checkbox para motorista não cadastrado -->
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="motorista_nao_cadastrado" name="motorista_nao_cadastrado" value="true">
+                        <input class="form-check-input" type="checkbox" id="motorista_nao_cadastrado">
                         <label class="form-check-label" for="motorista_nao_cadastrado">
                             Motorista Não Cadastrado
                         </label>
                     </div>
+                    
+                    <!-- Hidden input para enviar o valor do checkbox -->
+                    <input type="hidden" id="motorista_nao_cadastrado_value" name="motorista_nao_cadastrado" value="false">
                     
                     <!-- Input para nome do motorista não cadastrado (inicialmente oculto) -->
                     <input type="text" 
@@ -1152,29 +1155,32 @@
         // Configurar comportamento do checkbox de motorista não cadastrado
         function configurarMotoristaNC() {
             const checkbox = document.getElementById('motorista_nao_cadastrado');
+            const checkboxValue = document.getElementById('motorista_nao_cadastrado_value');
             const selectMotorista = document.getElementById('id_motorista');
             const inputNC = document.getElementById('nc_motorista');
             
-            if (checkbox && selectMotorista && inputNC) {
+            if (checkbox && selectMotorista && inputNC && checkboxValue) {
                 checkbox.addEventListener('change', function() {
                     if (this.checked) {
-                        // Desabilitar select e torná-lo não obrigatório
-                        selectMotorista.disabled = true;
-                        selectMotorista.required = false;
-                        selectMotorista.value = '';
+                        // Atualizar valor do hidden input
+                        checkboxValue.value = 'true';
                         
-                        // Mostrar e tornar obrigatório o input de nome
+                        // Limpar e desabilitar select
+                        selectMotorista.value = '';
+                        selectMotorista.disabled = true;
+                        
+                        // Mostrar input de nome
                         inputNC.style.display = 'block';
-                        inputNC.required = true;
                         inputNC.focus();
                     } else {
-                        // Habilitar select e torná-lo obrigatório
-                        selectMotorista.disabled = false;
-                        selectMotorista.required = true;
+                        // Atualizar valor do hidden input
+                        checkboxValue.value = 'false';
                         
-                        // Ocultar e tornar não obrigatório o input de nome
+                        // Habilitar select
+                        selectMotorista.disabled = false;
+                        
+                        // Ocultar e limpar input de nome
                         inputNC.style.display = 'none';
-                        inputNC.required = false;
                         inputNC.value = '';
                     }
                 });
@@ -1385,8 +1391,14 @@
             
             if (checkbox.checked) {
                 // Validar input de nome
-                if (!inputNC.value || inputNC.value.trim() === '') {
+                const nome = inputNC.value.trim();
+                if (!nome || nome === '') {
                     alert('Por favor, informe o nome do motorista não cadastrado.');
+                    inputNC.focus();
+                    return false;
+                }
+                if (nome.length < 3) {
+                    alert('O nome do motorista deve ter pelo menos 3 caracteres.');
                     inputNC.focus();
                     return false;
                 }
@@ -1890,6 +1902,7 @@
     </script>
 </body>
 </html>
+
 
 
 
