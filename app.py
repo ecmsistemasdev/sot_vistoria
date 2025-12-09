@@ -619,7 +619,19 @@ def nova_vistoria_devolucao(vistoria_saida_id):
 def salvar_vistoria():
     try:
         # Obter dados do formulário
-        id_motorista = request.form['id_motorista']
+        motorista_nao_cadastrado = request.form.get('motorista_nao_cadastrado') == 'true'
+        
+        # Se motorista não cadastrado, pegar o nome digitado, senão pegar o ID
+        if motorista_nao_cadastrado:
+            id_motorista = None
+            nc_motorista = request.form.get('nc_motorista', '').strip()
+            if not nc_motorista:
+                flash('Por favor, informe o nome do motorista não cadastrado.', 'danger')
+                return redirect(request.referrer)
+        else:
+            id_motorista = request.form['id_motorista']
+            nc_motorista = None
+        
         id_veiculo = request.form['id_veiculo']
         tipo = request.form['tipo']
         vistoria_saida_id = request.form.get('vistoria_saida_id')
@@ -658,27 +670,26 @@ def salvar_vistoria():
         data_e_hora_atual = datetime.now()
         fuso_horario = timezone('America/Manaus')
         data_hora = data_e_hora_atual.astimezone(fuso_horario)
-        #data_pagamento = data_e_hora_manaus.strftime('%d/%m/%Y %H:%M')        
     
         if tipo == 'SAIDA':
             # Para vistorias de SAIDA, definir status como EM_TRANSITO
             cur.execute(
                 """INSERT INTO VISTORIAS 
                    (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, COMBUSTIVEL, HODOMETRO, 
-                   ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, NU_SEI) 
-                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s, %s, %s, %s)""",
+                   ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, NU_SEI, NC_MOTORISTA) 
+                   VALUES (%s, %s, %s, %s, 'EM_TRANSITO', %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (id_motorista, id_veiculo, data_hora, tipo, combustivel, hodometro, 
-                 assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, nu_sei)
+                 assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, nu_sei, nc_motorista)
             )
         else:  # DEVOLUCAO
             # Para vistorias de DEVOLUCAO, definir status como FINALIZADA
             cur.execute(
                 """INSERT INTO VISTORIAS 
                    (IDMOTORISTA, IDVEICULO, DATA, TIPO, STATUS, VISTORIA_SAIDA_ID, COMBUSTIVEL, 
-                   HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, DATA_RETORNO, NU_SEI) 
-                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                   HODOMETRO, ASS_USUARIO, ASS_MOTORISTA, OBS, USUARIO, DATA_SAIDA, DATA_RETORNO, NU_SEI, NC_MOTORISTA) 
+                   VALUES (%s, %s, %s, %s, 'FINALIZADA', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (id_motorista, id_veiculo, data_hora, tipo, vistoria_saida_id, combustivel, hodometro, 
-                 assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, data_retorno, nu_sei)
+                 assinatura_usuario_bin, assinatura_motorista_bin, obs, usuario_nome, data_saida, data_retorno, nu_sei, nc_motorista)
             )
             # Atualizar status da vistoria de saida para finalizada
             cur.execute(
