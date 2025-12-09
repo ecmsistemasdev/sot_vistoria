@@ -449,14 +449,6 @@
                     <input type="text" class="form-control" value="{{ motorista_nome }}" readonly>
                     {% else %}
                     
-                    <!-- Checkbox para motorista não cadastrado -->
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="motorista_nao_cadastrado" name="motorista_nao_cadastrado" value="true">
-                        <label class="form-check-label" for="motorista_nao_cadastrado">
-                            Motorista Não Cadastrado
-                        </label>
-                    </div>
-                    
                     <!-- Select de motoristas cadastrados -->
                     <select class="form-select" id="id_motorista" name="id_motorista" required>
                         <option value="">Selecione um motorista</option>
@@ -464,6 +456,14 @@
                         <option value="{{ motorista[0] }}">{{ motorista[1] }}</option>
                         {% endfor %}
                     </select>
+
+                    <!-- Checkbox para motorista não cadastrado -->
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="motorista_nao_cadastrado" name="motorista_nao_cadastrado" value="true">
+                        <label class="form-check-label" for="motorista_nao_cadastrado">
+                            Motorista Não Cadastrado
+                        </label>
+                    </div>
                     
                     <!-- Input para nome do motorista não cadastrado (inicialmente oculto) -->
                     <input type="text" 
@@ -1890,6 +1890,7 @@
     </script>
 </body>
 </html>
+
 
 
 
