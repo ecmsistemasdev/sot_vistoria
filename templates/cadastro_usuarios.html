@@ -346,6 +346,7 @@
         <div class="header">
             <h1>Cadastro de Usuários</h1>
             <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="abrirModalPaginas()">📄 Gerenciar Páginas</button>
                 <button class="btn btn-secondary" onclick="abrirModalPermissoes()">⚙️ Gerenciar Permissões</button>
                 <button class="btn btn-primary" onclick="abrirModal()">+ Novo Usuário</button>
             </div>
@@ -449,13 +450,91 @@
         </div>
     </div>
 
-
+    <div id="modalPaginas" class="modal modal-large">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gerenciar Páginas</h2>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="abrirFormPagina()">+ Nova Página</button>
+                </div>
+    
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Descrição</th>
+                                <th>URL</th>
+                                <th>Status</th>
+                                <th style="width: 100px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaPaginas">
+                            <tr>
+                                <td colspan="5" style="text-align: center;">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharModalPaginas()">Fechar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Formulário de Página -->
+    <div id="modalFormPagina" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalPaginaTitulo">Nova Página</h2>
+            </div>
+            <div class="modal-body">
+                <form id="formPagina">
+                    <input type="hidden" id="paginaId">
+                    
+                    <div class="form-group">
+                        <label>Nome da Página *</label>
+                        <input type="text" class="form-control" id="nomePagina" maxlength="100" required>
+                    </div>
+    
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <input type="text" class="form-control" id="descricaoPagina" maxlength="200">
+                    </div>
+    
+                    <div class="form-group">
+                        <label>URL *</label>
+                        <input type="text" class="form-control" id="urlPagina" maxlength="200" required 
+                               placeholder="/caminho/pagina.html">
+                    </div>
+    
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select class="form-control" id="statusPagina" required>
+                            <option value="A">Ativo</option>
+                            <option value="I">Inativo</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharFormPagina()">Cancelar</button>
+                <button class="btn btn-success" onclick="salvarPagina()">Salvar</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         let grupos = [];
         let grupoAtualPermissoes = null;
         let paginas = [];
         let permissoesAtuais = [];        
+        let paginasCadastradas = [];
 
+        
         // Carrega dados ao carregar a página
         document.addEventListener('DOMContentLoaded', function() {
             carregarGrupos();
@@ -529,6 +608,146 @@
             }
         }
 
+        async function abrirModalPaginas() {
+            await carregarPaginas();
+            document.getElementById('modalPaginas').classList.add('show');
+        }
+    
+        function fecharModalPaginas() {
+            document.getElementById('modalPaginas').classList.remove('show');
+        }
+    
+        async function carregarPaginas() {
+            try {
+                const response = await fetch('/api/paginas');
+                paginasCadastradas = await response.json();
+                
+                const tbody = document.getElementById('tabelaPaginas');
+                tbody.innerHTML = '';
+    
+                if (paginasCadastradas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Nenhuma página cadastrada</td></tr>';
+                    return;
+                }
+    
+                paginasCadastradas.forEach(pagina => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${pagina.nome}</td>
+                        <td>${pagina.descricao || '-'}</td>
+                        <td>${pagina.url}</td>
+                        <td>
+                            <span class="badge badge-${pagina.status === 'A' ? 'success' : 'danger'}">
+                                ${pagina.status === 'A' ? 'Ativo' : 'Inativo'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-icon" onclick="editarPagina(${pagina.id})" title="Editar">✏️</button>
+                            <button class="btn-icon" onclick="deletarPagina(${pagina.id})" title="Excluir">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar páginas', 'danger');
+            }
+        }
+    
+        function abrirFormPagina() {
+            document.getElementById('modalPaginaTitulo').textContent = 'Nova Página';
+            document.getElementById('formPagina').reset();
+            document.getElementById('paginaId').value = '';
+            document.getElementById('modalFormPagina').classList.add('show');
+        }
+    
+        function fecharFormPagina() {
+            document.getElementById('modalFormPagina').classList.remove('show');
+        }
+    
+        async function editarPagina(id) {
+            try {
+                const response = await fetch(`/api/paginas/${id}`);
+                const pagina = await response.json();
+    
+                if (!pagina) return;
+    
+                document.getElementById('modalPaginaTitulo').textContent = 'Editar Página';
+                document.getElementById('paginaId').value = pagina.id;
+                document.getElementById('nomePagina').value = pagina.nome;
+                document.getElementById('descricaoPagina').value = pagina.descricao || '';
+                document.getElementById('urlPagina').value = pagina.url;
+                document.getElementById('statusPagina').value = pagina.status;
+    
+                document.getElementById('modalFormPagina').classList.add('show');
+            } catch (error) {
+                mostrarAlerta('Erro ao carregar dados da página', 'danger');
+            }
+        }
+    
+        async function salvarPagina() {
+            const id = document.getElementById('paginaId').value;
+            const nome = document.getElementById('nomePagina').value;
+            const descricao = document.getElementById('descricaoPagina').value;
+            const url = document.getElementById('urlPagina').value;
+            const status = document.getElementById('statusPagina').value;
+    
+            if (!nome || !url) {
+                mostrarAlerta('Preencha todos os campos obrigatórios', 'danger');
+                return;
+            }
+    
+            const dados = { nome, descricao, url, status };
+    
+            try {
+                const urlApi = id ? `/api/paginas/${id}` : '/api/paginas';
+                const method = id ? 'PUT' : 'POST';
+    
+                const response = await fetch(urlApi, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dados)
+                });
+    
+                const result = await response.json();
+    
+                if (response.ok) {
+                    mostrarAlerta('Página salva com sucesso!', 'success');
+                    fecharFormPagina();
+                    carregarPaginas();
+                } else {
+                    mostrarAlerta(result.erro || 'Erro ao salvar página', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao salvar página', 'danger');
+            }
+        }
+    
+        async function deletarPagina(id) {
+            if (!confirm('Deseja realmente excluir esta página? Todas as permissões associadas também serão excluídas.')) {
+                return;
+            }
+    
+            try {
+                const response = await fetch(`/api/paginas/${id}`, {
+                    method: 'DELETE'
+                });
+    
+                const result = await response.json();
+    
+                if (response.ok) {
+                    mostrarAlerta('Página excluída com sucesso!', 'success');
+                    carregarPaginas();
+                } else {
+                    mostrarAlerta(result.erro || 'Erro ao excluir página', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao excluir página', 'danger');
+            }
+        }
+
+        
         function abrirModal() {
             document.getElementById('modalTitulo').textContent = 'Novo Usuário';
             document.getElementById('formUsuario').reset();
@@ -810,6 +1029,8 @@
         window.onclick = function(event) {
             const modalUsuario = document.getElementById('modalUsuario');
             const modalPermissoes = document.getElementById('modalPermissoes');
+            const modalPaginas = document.getElementById('modalPaginas');
+            const modalFormPagina = document.getElementById('modalFormPagina');
             
             if (event.target === modalUsuario) {
                 fecharModal();
@@ -818,7 +1039,16 @@
             if (event.target === modalPermissoes) {
                 fecharModalPermissoes();
             }
+    
+            if (event.target === modalPaginas) {
+                fecharModalPaginas();
+            }
+    
+            if (event.target === modalFormPagina) {
+                fecharFormPagina();
+            }
         }
     </script>
 </body>
 </html>
+
