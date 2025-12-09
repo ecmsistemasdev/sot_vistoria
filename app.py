@@ -1042,11 +1042,14 @@ def ver_vistoria(id):
         cur = mysql.connection.cursor()
         # Buscar detalhes da vistoria
         cur.execute("""
-            SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(DS_MODELO,' - ',NU_PLACA) AS VEICULO, 
-                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO, v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, 
-		   v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO, v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI
+            SELECT v.IDVISTORIA, 
+                   COALESCE(m.NM_MOTORISTA, v.NC_MOTORISTA) as MOTORISTA, 
+                   CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+                   v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO, v.VISTORIA_SAIDA_ID, 
+                   v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO, 
+                   v.DATA_SAIDA, v.DATA_RETORNO, v.NU_SEI, v.NC_MOTORISTA
             FROM VISTORIAS v
-            JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+            LEFT JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
             JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
             WHERE v.IDVISTORIA = %s
         """, (id,))
@@ -1058,19 +1061,24 @@ def ver_vistoria(id):
         vistoria_devolucao = None
         vistoria_devolucao_itens = []
         itens = []
+        
         if vistoria:
             # Se for uma vistoria de devolução, buscar também a vistoria de saida
             if vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
                 cur.execute("""
-                    SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+                    SELECT v.IDVISTORIA, 
+                           COALESCE(m.NM_MOTORISTA, v.NC_MOTORISTA) as MOTORISTA, 
+                           CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
                            v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                           v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
+                           v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, 
+                           v.OBS, v.USUARIO, v.NC_MOTORISTA
                     FROM VISTORIAS v
-                    JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+                    LEFT JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
                     JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
                     WHERE v.IDVISTORIA = %s
                 """, (vistoria[8],))
                 vistoria_saida = cur.fetchone()
+                
                 # Buscar fotos da vistoria de saída
                 cur.execute("""
                     SELECT ID, DETALHAMENTO
@@ -1078,18 +1086,23 @@ def ver_vistoria(id):
                     WHERE IDVISTORIA = %s
                 """, (vistoria[8],))
                 vistoria_saida_itens = cur.fetchall() or []
+            
             # Se for uma vistoria de saida, buscar se já existe uma vistoria de devolução
             if vistoria[4] == 'SAIDA':
                 cur.execute("""
-                    SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
+                    SELECT v.IDVISTORIA, 
+                           COALESCE(m.NM_MOTORISTA, v.NC_MOTORISTA) as MOTORISTA, 
+                           CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
                            v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
-                           v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO
+                           v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, 
+                           v.OBS, v.USUARIO, v.NC_MOTORISTA
                     FROM VISTORIAS v
-                    JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
+                    LEFT JOIN CAD_MOTORISTA m ON v.IDMOTORISTA = m.ID_MOTORISTA
                     JOIN CAD_VEICULOS ve ON v.IDVEICULO = ve.ID_VEICULO
                     WHERE v.VISTORIA_SAIDA_ID = %s
                 """, (id,))
                 vistoria_devolucao = cur.fetchone()
+                
                 # Buscar fotos da vistoria de devolução
                 if vistoria_devolucao:
                     cur.execute("""
@@ -1098,6 +1111,7 @@ def ver_vistoria(id):
                         WHERE IDVISTORIA = %s
                     """, (vistoria_devolucao[0],))
                     vistoria_devolucao_itens = cur.fetchall() or []
+            
             # Buscar fotos desta vistoria atual
             cur.execute("""
                 SELECT ID, DETALHAMENTO
@@ -1110,7 +1124,9 @@ def ver_vistoria(id):
             itens = [{'id': item[0], 'detalhamento': item[1]} for item in itens_raw]
             vistoria_saida_itens = [{'id': item[0], 'detalhamento': item[1]} for item in vistoria_saida_itens]
             vistoria_devolucao_itens = [{'id': item[0], 'detalhamento': item[1]} for item in vistoria_devolucao_itens]
+        
         cur.close()
+        
         return render_template(
             'ver_vistoria.html', 
             vistoria=vistoria, 
