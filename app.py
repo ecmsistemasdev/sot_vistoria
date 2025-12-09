@@ -646,7 +646,7 @@ def salvar_vistoria():
         
         # Se motorista não cadastrado, pegar o nome digitado, senão pegar o ID
         if motorista_nao_cadastrado:
-            id_motorista = None
+            id_motorista = 0
             nc_motorista = request.form.get('nc_motorista', '').strip()
             
             print(f"✅ Checkpoint 2: Motorista NC = '{nc_motorista}'", file=sys.stderr)
