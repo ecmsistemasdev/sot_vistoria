@@ -617,46 +617,64 @@ def nova_vistoria_devolucao(vistoria_saida_id):
 
 @app.route('/salvar_vistoria', methods=['POST'])
 def salvar_vistoria():
+    # ============================================
+    # DEBUG CRÍTICO - NÃO REMOVA AINDA
+    # ============================================
+    import sys
+    print("=" * 80, file=sys.stderr)
+    print("🔍 INICIANDO SALVAMENTO DE VISTORIA", file=sys.stderr)
+    print("=" * 80, file=sys.stderr)
+    
+    print("\n📋 FORM DATA:", file=sys.stderr)
+    for key, value in request.form.items():
+        print(f"  {key}: {value}", file=sys.stderr)
+    
+    print("\n📁 FILES:", file=sys.stderr)
+    for key in request.files.keys():
+        files = request.files.getlist(key)
+        print(f"  {key}: {len(files)} arquivo(s)", file=sys.stderr)
+    
+    print("=" * 80, file=sys.stderr)
+    # ============================================
+    
     try:
-        # DEBUG - Ver todos os dados recebidos
-        print("=" * 60)
-        print("FORM DATA RECEBIDO:")
-        for key, value in request.form.items():
-            print(f"  {key}: {value}")
-        print("FILES RECEBIDOS:")
-        for key in request.files.keys():
-            files = request.files.getlist(key)
-            print(f"  {key}: {len(files)} arquivo(s)")
-        print("=" * 60)
-        
         # Obter dados do formulário
         motorista_nao_cadastrado_str = request.form.get('motorista_nao_cadastrado', 'false')
         motorista_nao_cadastrado = motorista_nao_cadastrado_str.lower() == 'true'
         
-        print(f"Motorista não cadastrado (string): '{motorista_nao_cadastrado_str}'")
-        print(f"Motorista não cadastrado (bool): {motorista_nao_cadastrado}")
+        print(f"✅ Checkpoint 1: motorista_nao_cadastrado = {motorista_nao_cadastrado}", file=sys.stderr)
         
         # Se motorista não cadastrado, pegar o nome digitado, senão pegar o ID
         if motorista_nao_cadastrado:
             id_motorista = None
             nc_motorista = request.form.get('nc_motorista', '').strip()
-            print(f"Usando motorista NÃO cadastrado: '{nc_motorista}'")
+            
+            print(f"✅ Checkpoint 2: Motorista NC = '{nc_motorista}'", file=sys.stderr)
             
             if not nc_motorista:
+                print(f"❌ ERRO: Nome do motorista NC vazio!", file=sys.stderr)
                 flash('Por favor, informe o nome do motorista não cadastrado.', 'danger')
                 return redirect(request.referrer)
         else:
             id_motorista = request.form.get('id_motorista')
             nc_motorista = None
-            print(f"Usando motorista cadastrado ID: {id_motorista}")
+            
+            print(f"✅ Checkpoint 3: Motorista cadastrado ID = {id_motorista}", file=sys.stderr)
             
             if not id_motorista:
+                print(f"❌ ERRO: ID do motorista vazio!", file=sys.stderr)
                 flash('Por favor, selecione um motorista.', 'danger')
-                return redirect(request.referrer)        
-
+                return redirect(request.referrer)
+        
+        print(f"✅ Checkpoint 4: Validação de motorista OK", file=sys.stderr)
+        
+        # Continua com o resto do código...
         id_veiculo = request.form['id_veiculo']
         tipo = request.form['tipo']
-        vistoria_saida_id = request.form.get('vistoria_saida_id')
+        
+        print(f"✅ Checkpoint 5: Pegando outros dados...", file=sys.stderr)
+
+		vistoria_saida_id = request.form.get('vistoria_saida_id')
         combustivel = request.form['combustivel']
         hodometro = request.form['hodometro']
         obs = request.form['observacoes']
