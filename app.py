@@ -305,6 +305,146 @@ def listar_paginas():
     cur.close()
     return jsonify(paginas)
 
+@app.route('/api/paginas/<int:id>', methods=['GET'])
+@login_required
+def obter_pagina(id):
+    cur = mysql.connection.cursor()
+    cur.execute("""
+        SELECT ID_PAGINA, NM_PAGINA, DS_PAGINA, URL_PAGINA, FL_STATUS
+        FROM CAD_PAGINA
+        WHERE ID_PAGINA = %s
+    """, (id,))
+    
+    row = cur.fetchone()
+    cur.close()
+    
+    if row:
+        return jsonify({
+            'id': row[0],
+            'nome': row[1],
+            'descricao': row[2],
+            'url': row[3],
+            'status': row[4]
+        })
+    else:
+        return jsonify({'erro': 'Página não encontrada'}), 404
+
+
+@app.route('/api/paginas', methods=['POST'])
+@login_required
+def criar_pagina():
+    dados = request.get_json()
+    
+    nome = dados.get('nome')
+    descricao = dados.get('descricao', '')
+    url = dados.get('url')
+    status = dados.get('status', 'A')
+    
+    if not nome or not url:
+        return jsonify({'erro': 'Nome e URL são obrigatórios'}), 400
+    
+    cur = mysql.connection.cursor()
+    
+    try:
+        # Insere a página
+        cur.execute("""
+            INSERT INTO CAD_PAGINA (NM_PAGINA, DS_PAGINA, URL_PAGINA, FL_STATUS)
+            VALUES (%s, %s, %s, %s)
+        """, (nome, descricao, url, status))
+        
+        id_pagina = cur.lastrowid
+        
+        # Busca todos os grupos
+        cur.execute("SELECT ID_GRUPO FROM CAD_GRUPO WHERE FL_STATUS = 'A'")
+        grupos = cur.fetchall()
+        
+        # Insere permissões para todos os grupos
+        for grupo in grupos:
+            id_grupo = grupo[0]
+            # Administrador (ID_GRUPO=1) recebe 'E', outros recebem 'N'
+            nivel_acesso = 'E' if id_grupo == 1 else 'N'
+            
+            cur.execute("""
+                INSERT INTO CAD_PERMISSAO (ID_GRUPO, ID_PAGINA, NIVEL_ACESSO)
+                VALUES (%s, %s, %s)
+            """, (id_grupo, id_pagina, nivel_acesso))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            'mensagem': 'Página criada com sucesso',
+            'id': id_pagina
+        }), 201
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        cur.close()
+
+
+@app.route('/api/paginas/<int:id>', methods=['PUT'])
+@login_required
+def atualizar_pagina(id):
+    dados = request.get_json()
+    
+    nome = dados.get('nome')
+    descricao = dados.get('descricao', '')
+    url = dados.get('url')
+    status = dados.get('status')
+    
+    if not nome or not url:
+        return jsonify({'erro': 'Nome e URL são obrigatórios'}), 400
+    
+    cur = mysql.connection.cursor()
+    
+    try:
+        cur.execute("""
+            UPDATE CAD_PAGINA
+            SET NM_PAGINA = %s, DS_PAGINA = %s, URL_PAGINA = %s, FL_STATUS = %s
+            WHERE ID_PAGINA = %s
+        """, (nome, descricao, url, status, id))
+        
+        mysql.connection.commit()
+        
+        if cur.rowcount == 0:
+            return jsonify({'erro': 'Página não encontrada'}), 404
+        
+        return jsonify({'mensagem': 'Página atualizada com sucesso'})
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        cur.close()
+
+
+@app.route('/api/paginas/<int:id>', methods=['DELETE'])
+@login_required
+def deletar_pagina(id):
+    cur = mysql.connection.cursor()
+    
+    try:
+        # Deleta as permissões relacionadas
+        cur.execute("DELETE FROM CAD_PERMISSAO WHERE ID_PAGINA = %s", (id,))
+        
+        # Deleta a página
+        cur.execute("DELETE FROM CAD_PAGINA WHERE ID_PAGINA = %s", (id,))
+        
+        mysql.connection.commit()
+        
+        if cur.rowcount == 0:
+            return jsonify({'erro': 'Página não encontrada'}), 404
+        
+        return jsonify({'mensagem': 'Página excluída com sucesso'})
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        cur.close()
+
+
 # Rota para buscar permissões de um grupo específico
 @app.route('/api/permissoes/grupo/<int:grupo_id>', methods=['GET'])
 @login_required
