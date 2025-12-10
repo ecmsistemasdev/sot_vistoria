@@ -1100,7 +1100,9 @@ def ver_vistoria(id):
         # Buscar detalhes da vistoria
         cur.execute("""
             SELECT v.IDVISTORIA, 
-                   COALESCE(m.NM_MOTORISTA, v.NC_MOTORISTA) as MOTORISTA, 
+                   CASE WHEN v.IDMOTORISTA='0'
+                   THEN CONCAT('* ',v.NC_MOTORISTA)
+                   ELSE m.NM_MOTORISTA END as MOTORISTA, 
                    CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
                    v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO, v.VISTORIA_SAIDA_ID, 
                    v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, v.OBS, v.USUARIO, 
@@ -1124,7 +1126,9 @@ def ver_vistoria(id):
             if vistoria[4] == 'DEVOLUCAO' and vistoria[8]:
                 cur.execute("""
                     SELECT v.IDVISTORIA, 
-                           COALESCE(m.NM_MOTORISTA, v.NC_MOTORISTA) as MOTORISTA, 
+                           CASE WHEN v.IDMOTORISTA='0'
+                           THEN CONCAT('* ',v.NC_MOTORISTA)
+                           ELSE m.NM_MOTORISTA END as MOTORISTA,
                            CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
                            v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                            v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, 
@@ -1148,7 +1152,9 @@ def ver_vistoria(id):
             if vistoria[4] == 'SAIDA':
                 cur.execute("""
                     SELECT v.IDVISTORIA, 
-                           COALESCE(m.NM_MOTORISTA, v.NC_MOTORISTA) as MOTORISTA, 
+                           CASE WHEN v.IDMOTORISTA='0'
+                           THEN CONCAT('* ',v.NC_MOTORISTA)
+                           ELSE m.NM_MOTORISTA END as MOTORISTA,
                            CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
                            v.DATA, v.TIPO, v.STATUS, v.COMBUSTIVEL, ve.DS_MODELO,
                            v.VISTORIA_SAIDA_ID, v.ASS_USUARIO, v.ASS_MOTORISTA, v.HODOMETRO, 
