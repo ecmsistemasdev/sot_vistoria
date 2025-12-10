@@ -1047,7 +1047,10 @@ def listar_vistorias():
     
     # Buscar vistorias em trânsito (Saidas não finalizadas)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        SELECT v.IDVISTORIA, 
+        CASE WHEN v.IDMOTORISTA='0'
+        THEN CONCAT('* ',v.NC_MOTORISTA)
+        ELSE m.NM_MOTORISTA END as MOTORISTA, 
         CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
         v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
@@ -1059,7 +1062,10 @@ def listar_vistorias():
     vistorias_em_transito = cur.fetchall()
     # Buscar vistorias em Pendentes
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        SELECT v.IDVISTORIA, 
+        CASE WHEN v.IDMOTORISTA='0'
+        THEN CONCAT('* ',v.NC_MOTORISTA)
+        ELSE m.NM_MOTORISTA END as MOTORISTA,
         CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO,
         v.DATA, v.TIPO, v.STATUS, v.OBS 
         FROM VISTORIAS v
@@ -1071,7 +1077,10 @@ def listar_vistorias():
     vistorias_pendentes = cur.fetchall()
     # Buscar vistorias finalizadas (Saidas com devolução ou devoluções)
     cur.execute("""
-        SELECT v.IDVISTORIA, m.NM_MOTORISTA as MOTORISTA, 
+        SELECT v.IDVISTORIA, 
+        CASE WHEN v.IDMOTORISTA='0'
+        THEN CONCAT('* ',v.NC_MOTORISTA)
+        ELSE m.NM_MOTORISTA END as MOTORISTA,		
         CONCAT(ve.DS_MODELO,' - ',ve.NU_PLACA) AS VEICULO, 
         v.DATA, v.TIPO, v.STATUS, v.OBS, 
         (SELECT IDVISTORIA FROM VISTORIAS WHERE VISTORIA_SAIDA_ID = v.IDVISTORIA) AS ID_DEVOLUCAO
