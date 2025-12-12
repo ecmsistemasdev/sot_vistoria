@@ -4,18 +4,16 @@
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda SEGEOP</title> 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Agenda SEGEOP</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
-            padding: 0;
+            padding: 20px;
             padding-bottom: 70px;
-            padding-top: 56px; /* Espaço para o navbar fixo */
+            padding-top: 70px; /* ADICIONAR ESTA LINHA */
         }
 
         .container {
@@ -24,62 +22,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             overflow: hidden;
-            margin-top: 0;
-        }
-
-        /* Menu de navegação fixo */
-        .fixed-navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-            background-color: #d0e4ff !important;
-            padding: 0.2rem 0; /* Reduzido de 0.3rem */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Sombra mais sutil */
-            margin: 0;
-        }
-
-        .navbar-nav .nav-link {
-            padding: 0.25rem 0.5rem; /* Reduzido */
-            color: #333 !important;
-            font-size: 0.9rem; /* Reduzido */
-        }
-
-        .navbar-nav .nav-link:hover {
-            background-color: rgba(255,255,255,0.3);
-            border-radius: 3px;
-        }
-
-        .nav-item {
-            margin-right: 3px; /* Reduzido de 5px */
-        }
-
-        .dropdown-divider {
-            margin: 0.2rem 0; /* Reduzido */
-        }
-
-        .dropdown-menu {
-            font-size: 0.9rem; /* Reduzido */
-            padding: 0.3rem 0; /* Reduzido */
-        }
-
-        .dropdown-item {
-            padding: 0.3rem 1rem; /* Reduzido */
-        }
-
-        .btn-logout {
-            background-color: #dc3545 !important;
-            color: white !important;
-            border: none;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.875rem;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-
-        .btn-logout:hover {
-            background-color: #c82333 !important;
+            margin-top: 10px; /* ADICIONAR ESTA LINHA */
         }
 
         .header {
@@ -90,7 +33,11 @@
             align-items: center;
             justify-content: space-between;
             gap: 15px;
-            position: relative; /* ALTERADO de fixed para relative */
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 200;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
@@ -1574,64 +1521,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 </head>
-    <!-- Menu de navegação fixo -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-navbar">
-        <div class="container-fluid px-3"> <!-- ALTERADO: container para container-fluid -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <!-- Cadastros -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarCadastros" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Cadastros
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarCadastros">
-                            <li><a class="dropdown-item" href="/motoristas">Motorista</a></li>
-                            <li><a class="dropdown-item" href="/veiculos_frota">Veículo da Frota</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Controles -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarControles" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Controles
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarControles">
-                            <li><a class="dropdown-item" href="/controle_locacoes">Locação de Veículos</a></li>
-                            <li><a class="dropdown-item" href="/fluxo_veiculos">Fluxo de Veículo</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Vistorias -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarVistorias" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Vistorias
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarVistorias">
-                            <li><a class="dropdown-item" href="/nova_vistoria">Nova Vistoria Completa</a></li>
-                            <li><a class="dropdown-item" href="/nova_vistoria2">Nova Vistoria em Duas Etapas</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/vistorias">Lista Vistorias</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Agenda SEGEOP -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">
-                            🏠 Início
-                        </a>
-                    </li>
-                </ul>
-                <!-- Botão Sair -->
-                <div class="ms-auto">
-                    <button class="btn btn-sm btn-logout" id="btnLogout" onclick="fazerLogout()">Sair</button>
-                </div>
-            </div>
-        </div>
-    </nav>
-
+<body>
     <div class="container">
         <div class="header">
             <div class="header-left">
@@ -1645,11 +1535,9 @@
                     <button class="header-btn" onclick="abrirModalFeriados()" title="Gerenciar Feriados">
                         🗓️
                     </button>
-                    <!-- 
                     <button class="header-btn" onclick="voltarPaginaInicial()" title="Retornar à Página Inicial">
                         🏠 Início
-                    </button> 
-                    -->
+                    </button>
                 </div>
         </div>
 
