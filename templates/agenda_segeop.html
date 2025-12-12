@@ -6963,8 +6963,8 @@
                 tabelaClone.style.cssText = `
                     width: 100%;
                     border-collapse: collapse;
-                    border: 0.33px solid #bbb;
-                    border-width: 0.33px;                    
+                    border: 1px solid #bbb;
+                    border-width: 1px;
                     table-layout: auto;
                     font-size: 11px;
                 `;
@@ -6976,8 +6976,8 @@
                         background: #e8e8e8;
                         padding: 4px 2px;
                         text-align: center;
-                        border: 0.33px solid #bbb;
-                        border-width: 0.33px;
+                        border: 1px solid #bbb;
+                        border-width: 1px;
                         font-size: 10px;
                         font-weight: 600;
                         line-height: 1.2;
@@ -7076,7 +7076,7 @@
                 // ===== Capturar com html2canvas =====
                 const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
-                    scale: 2, // AUMENTADO para melhor qualidade de borda
+                    scale: 3, // AUMENTADO para melhor qualidade de borda
                     logging: false,
                     useCORS: true,
                     allowTaint: true,
