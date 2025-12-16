@@ -6068,6 +6068,169 @@ def buscar_veiculos_todos():
         if cursor:
             cursor.close()
 
+# ==================== NOVAS ROTAS PARA VALIDAÇÃO DE CONFLITOS ====================
+
+@app.route('/api/agenda/verificar-conflito-motorista', methods=['GET'])
+@login_required
+def verificar_conflito_motorista():
+    """Verifica se um motorista já possui demandas no período"""
+    cursor = None
+    try:
+        id_motorista = request.args.get('id_motorista')
+        dt_inicio = request.args.get('dt_inicio')
+        dt_fim = request.args.get('dt_fim')
+        id_ad_atual = request.args.get('id_ad', '')
+        
+        # Validações básicas
+        if not id_motorista or not dt_inicio or not dt_fim:
+            return jsonify({'error': 'Parâmetros inválidos'}), 400
+        
+        # Motorista não cadastrado (ID=0) nunca tem conflito
+        if int(id_motorista) == 0:
+            return jsonify({
+                'tem_conflito': False,
+                'demandas_conflitantes': []
+            })
+        
+        cursor = mysql.connection.cursor()
+        
+        # Buscar demandas que conflitam com o período
+        if id_ad_atual:
+            # Modo edição - excluir a demanda atual
+            cursor.execute("""
+                SELECT ae.ID_AD, ae.DT_INICIO, ae.DT_FIM, ae.SETOR, ae.DESTINO, 
+                       td.DE_TIPODEMANDA, ae.NU_SEI
+                FROM AGENDA_DEMANDAS ae
+                LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+                WHERE ae.ID_MOTORISTA = %s
+                  AND ae.ID_AD != %s
+                  AND ae.DT_INICIO <= %s
+                  AND ae.DT_FIM >= %s
+                ORDER BY ae.DT_INICIO
+            """, (id_motorista, id_ad_atual, dt_fim, dt_inicio))
+        else:
+            # Modo criação
+            cursor.execute("""
+                SELECT ae.ID_AD, ae.DT_INICIO, ae.DT_FIM, ae.SETOR, ae.DESTINO, 
+                       td.DE_TIPODEMANDA, ae.NU_SEI
+                FROM AGENDA_DEMANDAS ae
+                LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+                WHERE ae.ID_MOTORISTA = %s
+                  AND ae.DT_INICIO <= %s
+                  AND ae.DT_FIM >= %s
+                ORDER BY ae.DT_INICIO
+            """, (id_motorista, dt_fim, dt_inicio))
+        
+        demandas = []
+        for r in cursor.fetchall():
+            demandas.append({
+                'id_ad': r[0],
+                'dt_inicio': r[1].strftime('%Y-%m-%d'),
+                'dt_fim': r[2].strftime('%Y-%m-%d'),
+                'setor': r[3] or '',
+                'destino': r[4] or '',
+                'tipo_demanda': r[5] or '',
+                'nu_sei': r[6] or ''
+            })
+        
+        return jsonify({
+            'tem_conflito': len(demandas) > 0,
+            'demandas_conflitantes': demandas
+        })
+        
+    except Exception as e:
+        print(f"Erro em verificar_conflito_motorista: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+@app.route('/api/agenda/verificar-conflito-veiculo', methods=['GET'])
+@login_required
+def verificar_conflito_veiculo():
+    """Verifica se um veículo já possui demandas no período (SEM horário)"""
+    cursor = None
+    try:
+        id_veiculo = request.args.get('id_veiculo')
+        dt_inicio = request.args.get('dt_inicio')
+        dt_fim = request.args.get('dt_fim')
+        id_ad_atual = request.args.get('id_ad', '')
+        tem_horario = request.args.get('tem_horario', 'false') == 'true'
+        
+        # Validações básicas
+        if not id_veiculo or not dt_inicio or not dt_fim:
+            return jsonify({'error': 'Parâmetros inválidos'}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Se a demanda tem horário, NÃO verificar conflito de data
+        if tem_horario:
+            return jsonify({
+                'tem_conflito': False,
+                'demandas_conflitantes': []
+            })
+        
+        # Buscar demandas SEM horário que conflitam
+        if id_ad_atual:
+            cursor.execute("""
+                SELECT ae.ID_AD, ae.DT_INICIO, ae.DT_FIM, ae.SETOR, ae.DESTINO,
+                       td.DE_TIPODEMANDA, ae.NU_SEI, m.NM_MOTORISTA
+                FROM AGENDA_DEMANDAS ae
+                LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+                LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+                WHERE ae.ID_VEICULO = %s
+                  AND ae.ID_AD != %s
+                  AND ae.DT_INICIO <= %s
+                  AND ae.DT_FIM >= %s
+                  AND (ae.HORARIO IS NULL OR ae.HORARIO = '00:00:00')
+                ORDER BY ae.DT_INICIO
+            """, (id_veiculo, id_ad_atual, dt_fim, dt_inicio))
+        else:
+            cursor.execute("""
+                SELECT ae.ID_AD, ae.DT_INICIO, ae.DT_FIM, ae.SETOR, ae.DESTINO,
+                       td.DE_TIPODEMANDA, ae.NU_SEI, m.NM_MOTORISTA
+                FROM AGENDA_DEMANDAS ae
+                LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+                LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+                WHERE ae.ID_VEICULO = %s
+                  AND ae.DT_INICIO <= %s
+                  AND ae.DT_FIM >= %s
+                  AND (ae.HORARIO IS NULL OR ae.HORARIO = '00:00:00')
+                ORDER BY ae.DT_INICIO
+            """, (id_veiculo, dt_fim, dt_inicio))
+        
+        demandas = []
+        for r in cursor.fetchall():
+            demandas.append({
+                'id_ad': r[0],
+                'dt_inicio': r[1].strftime('%Y-%m-%d'),
+                'dt_fim': r[2].strftime('%Y-%m-%d'),
+                'setor': r[3] or '',
+                'destino': r[4] or '',
+                'tipo_demanda': r[5] or '',
+                'nu_sei': r[6] or '',
+                'motorista': r[7] or ''
+            })
+        
+        return jsonify({
+            'tem_conflito': len(demandas) > 0,
+            'demandas_conflitantes': demandas
+        })
+        
+    except Exception as e:
+        print(f"Erro em verificar_conflito_veiculo: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+# =============== FIM DAS NOVAS ROTAS PARA VALIDAÇÃO DE CONFLITOS ====================
+
 @app.route('/api/agenda_busca_setor')
 @login_required
 def agenda_busca_setor():
