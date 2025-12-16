@@ -6677,6 +6677,51 @@ def obter_dados_iniciais_orcamento():
         print(f"Erro ao obter dados iniciais: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/orcamento/passagens/<int:id_opa>', methods=['GET'])
+@login_required
+def obter_orcamento_passagem(id_opa):
+    try:
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                ID_OPA, EXERCICIO, UO, UNIDADE, FONTE, ID_PROGRAMA, ID_AO,
+                SUBACAO, OBJETIVO, ELEMENTO_DESPESA, SUBITEM, DESCRICAO,
+                VL_APROVADO, NU_EMPENHO
+            FROM ORCAMENTO_PASSAGENS_AEREAS
+            WHERE ID_OPA = %s AND ATIVO = 'S'
+        """, (id_opa,))
+        
+        row = cursor.fetchone()
+        cursor.close()
+        
+        if row:
+            return jsonify({
+                'success': True,
+                'registro': {
+                    'id_opa': row[0],
+                    'exercicio': row[1],
+                    'uo': row[2],
+                    'unidade': row[3],
+                    'fonte': row[4],
+                    'id_programa': row[5],
+                    'id_ao': row[6],
+                    'subacao': row[7],
+                    'objetivo': row[8],
+                    'elemento_despesa': row[9],
+                    'subitem': row[10],
+                    'descricao': row[11],
+                    'vl_aprovado': float(row[12]) if row[12] else 0,
+                    'nu_empenho': row[13]
+                }
+            })
+        else:
+            return jsonify({'error': 'Registro não encontrado'}), 404
+            
+    except Exception as e:
+        print(f"Erro ao obter registro: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/orcamento/passagens', methods=['POST'])
 @login_required
 def criar_orcamento_passagem():
@@ -6720,6 +6765,59 @@ def criar_orcamento_passagem():
     except Exception as e:
         mysql.connection.rollback()
         print(f"Erro ao criar orçamento: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/orcamento/passagens/<int:id_opa>', methods=['PUT'])
+@login_required
+def atualizar_orcamento_passagem(id_opa):
+    try:
+        data = request.get_json()
+        cursor = mysql.connection.cursor()
+        usuario = session.get('usuario_login')
+        
+        # Validar e limpar dados
+        fonte = ''.join(filter(str.isdigit, data.get('fonte', '')))
+        unidade = data.get('unidade', '').upper()
+        
+        cursor.execute("""
+            UPDATE ORCAMENTO_PASSAGENS_AEREAS 
+            SET EXERCICIO = %s, UO = %s, UNIDADE = %s, FONTE = %s,
+                ID_PROGRAMA = %s, ID_AO = %s, SUBACAO = %s, OBJETIVO = %s,
+                ELEMENTO_DESPESA = %s, SUBITEM = %s, DESCRICAO = %s,
+                VL_APROVADO = %s, NU_EMPENHO = %s, USUARIO = %s, DT_LANCAMENTO = NOW()
+            WHERE ID_OPA = %s AND ATIVO = 'S'
+        """, (
+            data['exercicio'],
+            data['uo'],
+            unidade,
+            fonte,
+            data.get('id_programa'),
+            data.get('id_ao'),
+            data.get('subacao'),
+            data.get('objetivo'),
+            data.get('elemento_despesa', '33.90.33'),
+            data.get('subitem'),
+            data.get('descricao', 'PASSAGENS PARA O PAÍS'),
+            data.get('vl_aprovado'),
+            data.get('nu_empenho'),
+            usuario,
+            id_opa
+        ))
+        
+        mysql.connection.commit()
+        
+        if cursor.rowcount > 0:
+            cursor.close()
+            return jsonify({'success': True, 'message': 'Orçamento atualizado com sucesso!'})
+        else:
+            cursor.close()
+            return jsonify({'error': 'Registro não encontrado'}), 404
+            
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"Erro ao atualizar orçamento: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
