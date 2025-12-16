@@ -1517,7 +1517,7 @@
 
         /* Animação do botão atualizar */
         .header-btn.atualizando {
-            animation: rotate 1s linear infinite;
+            /* animation: rotate 1s linear infinite;  */
             pointer-events: none;
             opacity: 0.6;
         }
@@ -1543,6 +1543,103 @@
             animation: pulseRed 1s ease-in-out 3;
             border: 2px solid #dc3545 !important;
         }
+
+        /* Notificação de Atualização */
+        .update-notification {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            animation: slideDownBounce 0.5s ease-out, pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes slideDownBounce {
+            0% {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            60% {
+                transform: translateX(-50%) translateY(10px);
+                opacity: 1;
+            }
+            80% {
+                transform: translateX(-50%) translateY(-5px);
+            }
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(102, 126, 234, 0.6);
+            }
+        }
+
+        .update-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .update-icon {
+            font-size: 24px;
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .update-text {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn-update-now {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-update-now:hover {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+
+        .btn-dismiss {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .btn-dismiss:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+
+
     </style>
 
     <!-- Biblioteca para copiar como imagem (OPCIONAL) -->
@@ -1570,6 +1667,20 @@
                         🏠 Início
                     </button>
                 </div>
+        </div>
+
+        <!-- Barra de Notificação de Atualização -->
+        <div id="updateNotification" class="update-notification" style="display: none;">
+            <div class="update-content">
+                <span class="update-icon">🔄</span>
+                <span class="update-text">Existem atualizações disponíveis na agenda</span>
+                <button class="btn-update-now" onclick="atualizarAgoraPelaNotificacao()">
+                    Atualizar Agora
+                </button>
+                <button class="btn-dismiss" onclick="dispensarNotificacao()">
+                    ✕
+                </button>
+            </div>
         </div>
 
         <div class="agenda-wrapper" id="agendaWrapper">
@@ -2207,6 +2318,11 @@
         };
         let dadosDemandaParaVinculos = null;
         let demandaIdVinculos = null;
+
+        let ultimoCheckTimestamp = null;
+        let intervaloVerificacao = null;
+        let notificacaoAtiva = false;
+
 
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
@@ -4097,31 +4213,17 @@
             if (semanas.length > 0) {
                 const hoje = new Date();
                 hoje.setHours(0, 0, 0, 0);
-
-                // console.log('=== DEBUG SEMANA ATUAL ===');
-                // console.log('Data hoje:', hoje);
-                // console.log('Data hoje ISO:', hoje.toISOString().split('T')[0]);                
                 
                 let semanaEncontrada = -1;
                 for (let i = 0; i < semanas.length; i++) {
                     const inicio = new Date(semanas[i].inicio + 'T00:00:00');
                     const fim = new Date(semanas[i].fim + 'T00:00:00');
-
-                    // console.log(`Semana ${i}: ${semanas[i].label}`);
-                    // console.log(`  Inicio: ${inicio.toISOString().split('T')[0]}`);
-                    // console.log(`  Fim: ${fim.toISOString().split('T')[0]}`);
-                    // console.log(`  Hoje >= Inicio? ${hoje >= inicio}`);
-                    // console.log(`  Hoje <= Fim? ${hoje <= fim}`);
-                                
+                    
                     if (hoje >= inicio && hoje <= fim) {
                         semanaEncontrada = i;
-                        // console.log(`  ✓ SEMANA ENCONTRADA: índice ${i}`);
                         break;
                     }
                 }
-
-                // console.log('Semana encontrada (índice):', semanaEncontrada);
-                // console.log('=========================');
                 
                 semanaAtual = semanaEncontrada !== -1 ? semanaEncontrada : semanas.length - 1;
                 
@@ -4132,8 +4234,92 @@
                 await carregarAgenda();
             }
 
-            // Inicializar autocomplete do setor
             initAutocompleteSetor();
+            
+            // ===== ADICIONAR ESTA LINHA =====
+            iniciarVerificacaoAtualizacoes();
+        }
+
+        // Iniciar verificação de atualizações
+        function iniciarVerificacaoAtualizacoes() {
+            // Registrar timestamp inicial
+            ultimoCheckTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            
+            // Verificar a cada 5 segundos
+            intervaloVerificacao = setInterval(async () => {
+                await verificarAtualizacoesDisponiveis();
+            }, 5000); // 5 segundos
+        }
+
+        // Parar verificação (quando modal estiver aberto)
+        function pausarVerificacaoAtualizacoes() {
+            if (intervaloVerificacao) {
+                clearInterval(intervaloVerificacao);
+                intervaloVerificacao = null;
+            }
+        }
+
+        // Retomar verificação
+        function retomarVerificacaoAtualizacoes() {
+            if (!intervaloVerificacao) {
+                iniciarVerificacaoAtualizacoes();
+            }
+        }
+
+        // Verificar se há atualizações
+        async function verificarAtualizacoesDisponiveis() {
+            // Não verificar se já há notificação ativa ou modal aberto
+            if (notificacaoAtiva) return;
+            
+            const modalDemanda = document.getElementById('modal');
+            const modalLocacao = document.getElementById('modalFormLocacao');
+            const modalEmail = document.getElementById('modalEmailFornecedor');
+            
+            if (modalDemanda.style.display === 'block' || 
+                modalLocacao.style.display === 'block' || 
+                modalEmail.style.display === 'block') {
+                return; // Não verificar durante preenchimento de formulário
+            }
+            
+            try {
+                const res = await fetch(`/api/agenda/check-updates?last_check=${encodeURIComponent(ultimoCheckTimestamp)}`);
+                const result = await res.json();
+                
+                if (result.has_updates) {
+                    mostrarNotificacaoAtualizacao();
+                    ultimoCheckTimestamp = result.last_update;
+                }
+                
+            } catch (error) {
+                console.error('Erro ao verificar atualizações:', error);
+            }
+        }
+
+        // Mostrar notificação
+        function mostrarNotificacaoAtualizacao() {
+            const notificacao = document.getElementById('updateNotification');
+            notificacao.style.display = 'block';
+            notificacaoAtiva = true;
+        }
+
+        // Esconder notificação
+        function esconderNotificacaoAtualizacao() {
+            const notificacao = document.getElementById('updateNotification');
+            notificacao.style.display = 'none';
+            notificacaoAtiva = false;
+        }
+
+        // Atualizar agora pela notificação
+        async function atualizarAgoraPelaNotificacao() {
+            esconderNotificacaoAtualizacao();
+            await atualizarAgendaManual();
+            ultimoCheckTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        }
+
+        // Dispensar notificação (continuar vendo dados antigos)
+        function dispensarNotificacao() {
+            esconderNotificacaoAtualizacao();
+            ultimoCheckTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
         }
 
         // Carregar feriados do período atual
@@ -6138,9 +6324,8 @@
         async function atualizarAgendaManual() {
             const botaoAtualizar = event?.target;
             
-            // Adicionar animação de rotação
+            // REMOVER animação de rotação - apenas desabilitar
             if (botaoAtualizar) {
-                botaoAtualizar.classList.add('atualizando');
                 botaoAtualizar.disabled = true;
             }
             
@@ -6151,13 +6336,8 @@
                 await carregarAgenda();
                 inicializarDestaqueLinha();
                 
-                // Feedback de sucesso
-                mostrarAlerta(
-                    '✅ Agenda atualizada com sucesso!<br><br>' +
-                    '<small>Motoristas, veículos e demandas foram recarregados.</small>',
-                    '✅ Atualização Concluída',
-                    '#28a745'
-                );
+                // ===== REMOVER MENSAGEM DE SUCESSO =====
+                // mostrarAlerta(...) - COMENTAR OU REMOVER
                 
             } catch (error) {
                 console.error('Erro ao atualizar agenda:', error);
@@ -6167,9 +6347,8 @@
                     '#dc3545'
                 );
             } finally {
-                // Remover animação
+                // Reabilitar botão
                 if (botaoAtualizar) {
-                    botaoAtualizar.classList.remove('atualizando');
                     botaoAtualizar.disabled = false;
                 }
             }
@@ -6467,9 +6646,9 @@
                         );
                         
                         // Atualizar agenda automaticamente
-                        setTimeout(async () => {
-                            await atualizarAgendaManual();
-                        }, 2000);
+                        // setTimeout(async () => {
+                        //     await atualizarAgendaManual();
+                        // }, 2000);
                         
                         return;
                     }
