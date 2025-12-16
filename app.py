@@ -6631,6 +6631,155 @@ def verificar_email_fornecedor_enviado():
         return jsonify({'erro': str(e)}), 500
 
 
+######  PASSAGENS AEREAS #######
+
+@app.route('/orcamento_passagens_aereas')
+@login_required
+def orcamento_passagens_aereas():
+    return render_template('orcamento_passagens_aereas.html')
+
+@app.route('/api/orcamento/dados_iniciais', methods=['GET'])
+@login_required
+def obter_dados_iniciais_orcamento():
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # Buscar programas
+        cursor.execute("SELECT ID_PROGRAMA, DE_PROGRAMA FROM PROGRAMA_ORCAMENTO ORDER BY DE_PROGRAMA")
+        programas = [{'id': row[0], 'descricao': row[1]} for row in cursor.fetchall()]
+        
+        # Buscar ações orçamentárias
+        cursor.execute("SELECT ID_AO, DE_AO FROM ACAO_ORCAMENTARIA ORDER BY DE_AO")
+        acoes = [{'id': row[0], 'descricao': row[1]} for row in cursor.fetchall()]
+        
+        # Buscar exercícios cadastrados
+        cursor.execute("""
+            SELECT DISTINCT EXERCICIO 
+            FROM ORCAMENTO_PASSAGENS_AEREAS 
+            ORDER BY EXERCICIO DESC
+        """)
+        exercicios = [row[0] for row in cursor.fetchall()]
+        
+        # Obter próximo ID_OPA
+        cursor.execute("SELECT COALESCE(MAX(ID_OPA), 0) + 1 FROM ORCAMENTO_PASSAGENS_AEREAS")
+        proximo_id = cursor.fetchone()[0]
+        
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'programas': programas,
+            'acoes': acoes,
+            'exercicios': exercicios,
+            'proximo_id': proximo_id
+        })
+    except Exception as e:
+        print(f"Erro ao obter dados iniciais: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/orcamento/passagens', methods=['POST'])
+@login_required
+def criar_orcamento_passagem():
+    try:
+        data = request.get_json()
+        cursor = mysql.connection.cursor()
+        usuario = session.get('usuario_login')
+        
+        # Validar e limpar dados
+        fonte = ''.join(filter(str.isdigit, data.get('fonte', '')))
+        unidade = data.get('unidade', '').upper()
+        
+        cursor.execute("""
+            INSERT INTO ORCAMENTO_PASSAGENS_AEREAS 
+            (ID_OPA, EXERCICIO, UO, UNIDADE, FONTE, ID_PROGRAMA, ID_AO, 
+             SUBACAO, OBJETIVO, ELEMENTO_DESPESA, SUBITEM, DESCRICAO, 
+             VL_APROVADO, NU_EMPENHO, USUARIO, DT_LANCAMENTO, ATIVO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), 'S')
+        """, (
+            data['id_opa'],
+            data['exercicio'],
+            data['uo'],
+            unidade,
+            fonte,
+            data.get('id_programa'),
+            data.get('id_ao'),
+            data.get('subacao'),
+            data.get('objetivo'),
+            data.get('elemento_despesa', '33.90.33'),
+            data.get('subitem'),
+            data.get('descricao', 'PASSAGENS PARA O PAÍS'),
+            data.get('vl_aprovado'),
+            data.get('nu_empenho'),
+            usuario
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'success': True, 'message': 'Orçamento cadastrado com sucesso!'})
+    except Exception as e:
+        mysql.connection.rollback()
+        print(f"Erro ao criar orçamento: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/orcamento/passagens/listar', methods=['GET'])
+@login_required
+def listar_orcamento_passagens():
+    try:
+        exercicio = request.args.get('exercicio')
+        cursor = mysql.connection.cursor()
+        
+        query = """
+            SELECT 
+                o.ID_OPA, o.EXERCICIO, o.UO, o.UNIDADE, o.FONTE,
+                p.DE_PROGRAMA, a.DE_AO, o.SUBACAO, o.OBJETIVO,
+                o.ELEMENTO_DESPESA, o.DESCRICAO, o.VL_APROVADO,
+                o.NU_EMPENHO, o.USUARIO, o.DT_LANCAMENTO
+            FROM ORCAMENTO_PASSAGENS_AEREAS o
+            LEFT JOIN PROGRAMA_ORCAMENTO p ON o.ID_PROGRAMA = p.ID_PROGRAMA
+            LEFT JOIN ACAO_ORCAMENTARIA a ON o.ID_AO = a.ID_AO
+            WHERE o.ATIVO = 'S'
+        """
+        
+        params = []
+        if exercicio:
+            query += " AND o.EXERCICIO = %s"
+            params.append(exercicio)
+        
+        query += " ORDER BY o.ID_OPA DESC"
+        
+        cursor.execute(query, params)
+        registros = []
+        
+        for row in cursor.fetchall():
+            registros.append({
+                'id_opa': row[0],
+                'exercicio': row[1],
+                'uo': row[2],
+                'unidade': row[3],
+                'fonte': row[4],
+                'programa': row[5],
+                'acao': row[6],
+                'subacao': row[7],
+                'objetivo': row[8],
+                'elemento_despesa': row[9],
+                'descricao': row[10],
+                'vl_aprovado': float(row[11]) if row[11] else 0,
+                'nu_empenho': row[12],
+                'usuario': row[13],
+                'dt_lancamento': row[14].strftime('%d/%m/%Y %H:%M') if row[14] else ''
+            })
+        
+        cursor.close()
+        return jsonify({'success': True, 'registros': registros})
+    except Exception as e:
+        print(f"Erro ao listar orçamentos: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+
 #######################################
 
 if __name__ == '__main__':
