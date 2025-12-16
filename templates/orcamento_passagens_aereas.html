@@ -273,11 +273,22 @@
             gap: 10px;
         }
 
-        .form-grid {
+        .form-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 15px;
             margin-bottom: 15px;
+        }
+
+        .form-row-5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .form-row-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .form-row-4 {
+            grid-template-columns: 120px 1fr 1fr 1fr;
         }
 
         .form-grid-full {
@@ -298,7 +309,6 @@
                 <div class="form-group">
                     <label for="filtroExercicio">Exercício (Ano):</label>
                     <select id="filtroExercicio" style="min-width: 120px;">
-                        <option value="">Todos</option>
                     </select>
                 </div>
             </div>
@@ -311,8 +321,6 @@
             <table id="tabelaOrcamentos">
                 <thead>
                     <tr>
-                        <th style="width: 60px;">ID</th>
-                        <th style="width: 60px;">Ano</th>
                         <th style="width: 60px;">UO</th>
                         <th style="width: 100px;">Unidade</th>
                         <th style="width: 80px;">Fonte</th>
@@ -320,9 +328,9 @@
                         <th>Ação Orç.</th>
                         <th style="width: 90px;">Elemento</th>
                         <th style="width: 120px;">Valor Aprovado</th>
+                        <th style="width: 120px;">Valor Utilizado</th>
+                        <th style="width: 120px;">Saldo</th>
                         <th style="width: 110px;">Nº Empenho</th>
-                        <th style="width: 80px;">Usuário</th>
-                        <th style="width: 130px;">Data</th>
                         <th style="width: 80px;" class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -343,14 +351,15 @@
                 <div class="modal-body">
                     <input type="hidden" id="modoEdicao" value="false">
                     
-                    <div class="form-grid">
+                    <!-- Linha 1: ID OPA, Exercício, UO, Unidade, Fonte -->
+                    <div class="form-row form-row-5">
                         <div class="form-group">
                             <label for="id_opa">ID OPA: *</label>
                             <input type="text" id="id_opa" name="id_opa" readonly required>
                         </div>
 
                         <div class="form-group">
-                            <label for="exercicio">Exercício (Ano): *</label>
+                            <label for="exercicio">Exercício: *</label>
                             <input type="number" id="exercicio" name="exercicio" min="2000" max="2100" required>
                         </div>
 
@@ -369,10 +378,13 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="fonte">Fonte de Recurso: *</label>
+                            <label for="fonte">Fonte: *</label>
                             <input type="text" id="fonte" name="fonte" maxlength="10" required>
                         </div>
+                    </div>
 
+                    <!-- Linha 2: Programa, Ação Orçamentária, Subação -->
+                    <div class="form-row form-row-3">
                         <div class="form-group">
                             <label for="id_programa">Programa: *</label>
                             <select id="id_programa" name="id_programa" required>
@@ -391,20 +403,20 @@
                             <label for="subacao">Subação:</label>
                             <input type="text" id="subacao" name="subacao" maxlength="45">
                         </div>
+                    </div>
 
+                    <!-- Linha 3: Elemento, Subitem, Valor Aprovado, Nº Empenho -->
+                    <div class="form-row form-row-4">
                         <div class="form-group">
-                            <label for="elemento_despesa">Elemento de Despesa: *</label>
+                            <label for="elemento_despesa">Elemento: *</label>
                             <input type="text" id="elemento_despesa" name="elemento_despesa" value="33.90.33" maxlength="8" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="subitem">Subitem:</label>
-                            <input type="number" id="subitem" name="subitem">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="descricao">Descrição: *</label>
-                            <input type="text" id="descricao" name="descricao" value="PASSAGENS PARA O PAÍS" maxlength="45" required>
+                            <label for="id_subitem">Subitem: *</label>
+                            <select id="id_subitem" name="id_subitem" required>
+                                <option value="">Selecione...</option>
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -418,10 +430,11 @@
                         </div>
                     </div>
 
-                    <div class="form-grid">
+                    <!-- Linha 4: Objetivo -->
+                    <div class="form-row">
                         <div class="form-group form-grid-full">
                             <label for="objetivo">Objetivo:</label>
-                            <textarea id="objetivo" name="objetivo" maxlength="100"></textarea>
+                            <textarea id="objetivo" name="objetivo" maxlength="500"></textarea>
                         </div>
                     </div>
                 </div>
@@ -464,9 +477,18 @@
                         selectAcao.appendChild(option);
                     });
 
-                    // Preencher filtro de exercícios
+                    const selectSubitem = document.getElementById('id_subitem');
+                    selectSubitem.innerHTML = '<option value="">Selecione...</option>';
+                    data.subitens.forEach(subitem => {
+                        const option = document.createElement('option');
+                        option.value = subitem.id;
+                        option.textContent = subitem.descricao;
+                        selectSubitem.appendChild(option);
+                    });
+
+                    // Preencher filtro de exercícios (sem opção "Todos")
                     const filtroExercicio = document.getElementById('filtroExercicio');
-                    filtroExercicio.innerHTML = '<option value="">Todos</option>';
+                    filtroExercicio.innerHTML = '';
                     const anoAtual = new Date().getFullYear();
                     
                     data.exercicios.forEach(exercicio => {
@@ -479,7 +501,7 @@
                         filtroExercicio.appendChild(option);
                     });
 
-                    // Carregar registros
+                    // Carregar registros do ano atual
                     carregarRegistros(anoAtual);
                 }
             } catch (error) {
@@ -587,8 +609,7 @@
                     document.getElementById('subacao').value = reg.subacao || '';
                     document.getElementById('objetivo').value = reg.objetivo || '';
                     document.getElementById('elemento_despesa').value = reg.elemento_despesa;
-                    document.getElementById('subitem').value = reg.subitem || '';
-                    document.getElementById('descricao').value = reg.descricao;
+                    document.getElementById('id_subitem').value = reg.id_subitem || '';
                     document.getElementById('vl_aprovado').value = reg.vl_aprovado.toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
@@ -622,8 +643,7 @@
                 subacao: document.getElementById('subacao').value || null,
                 objetivo: document.getElementById('objetivo').value || null,
                 elemento_despesa: document.getElementById('elemento_despesa').value,
-                subitem: document.getElementById('subitem').value ? parseInt(document.getElementById('subitem').value) : null,
-                descricao: document.getElementById('descricao').value,
+                id_subitem: document.getElementById('id_subitem').value ? parseInt(document.getElementById('id_subitem').value) : null,
                 vl_aprovado: parseFloat(document.getElementById('vl_aprovado').value.replace(/\./g, '').replace(',', '.')),
                 nu_empenho: document.getElementById('nu_empenho').value || null
             };
@@ -655,9 +675,9 @@
         });
 
         // Carregar registros
-        async function carregarRegistros(exercicio = '') {
+        async function carregarRegistros(exercicio) {
             try {
-                const url = exercicio ? `/api/orcamento/passagens/listar?exercicio=${exercicio}` : '/api/orcamento/passagens/listar';
+                const url = `/api/orcamento/passagens/listar?exercicio=${exercicio}`;
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -668,8 +688,6 @@
                     data.registros.forEach(reg => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td>${reg.id_opa}</td>
-                            <td>${reg.exercicio}</td>
                             <td>${reg.uo}</td>
                             <td>${reg.unidade}</td>
                             <td>${reg.fonte}</td>
@@ -677,9 +695,9 @@
                             <td style="font-size: 11px;">${reg.acao || ''}</td>
                             <td>${reg.elemento_despesa}</td>
                             <td class="text-right">R$ ${reg.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="text-right">R$ ${reg.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="text-right">R$ ${reg.vl_saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                             <td>${reg.nu_empenho || ''}</td>
-                            <td>${reg.usuario}</td>
-                            <td>${reg.dt_lancamento}</td>
                             <td class="text-center">
                                 <button class="btn btn-edit" onclick="abrirModal(${reg.id_opa})">Editar</button>
                             </td>
@@ -687,7 +705,7 @@
                         tbody.appendChild(tr);
                     });
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="13" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado</td></tr>';
                 }
             } catch (error) {
                 mostrarAlerta('Erro ao carregar registros: ' + error.message, 'error');
@@ -697,7 +715,6 @@
         function limparFormulario() {
             document.getElementById('formOrcamento').reset();
             document.getElementById('elemento_despesa').value = '33.90.33';
-            document.getElementById('descricao').value = 'PASSAGENS PARA O PAÍS';
         }
 
         function mostrarAlerta(mensagem, tipo) {
