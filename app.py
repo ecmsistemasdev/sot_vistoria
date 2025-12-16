@@ -5298,24 +5298,6 @@ def buscar_dados_agenda():
                 'placa': r[2]
             })
 
-        # cursor.execute("""
-        #     SELECT ID_VEICULO, DS_MODELO, NU_PLACA
-        #     FROM CAD_VEICULOS 
-        #     WHERE FL_ATENDIMENTO = 'S' 
-        #       AND ATIVO = 'S'
-        #       AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-        #       AND (DT_FIM IS NULL OR DT_FIM >= %s)
-        #     ORDER BY ORIGEM_VEICULO DESC, DS_MODELO
-        # """, (fim, inicio))
-        # veiculos = []
-        # for r in cursor.fetchall():
-        #     veiculos.append({
-        #         'id': r[0], 
-        #         'veiculo': f"{r[1]} - {r[2]}", 
-        #         'modelo': r[1], 
-        #         'placa': r[2]
-        #     })
-
         # 4. Veículos EXTRAS (COM VALIDAÇÃO DE PERÍODO)
         cursor.execute("""
             SELECT DISTINCT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
@@ -5365,7 +5347,70 @@ def buscar_dados_agenda():
         if cursor:
             cursor.close()
 			
-			
+# ============================================================
+# BLOCO 1: ROTA DE VERIFICAÇÃO DE SINCRONIZAÇÃO
+# Adicionar após a rota /api/agenda/dados
+# ============================================================
+
+@app.route('/api/agenda/check-updates', methods=['GET'])
+@login_required
+def check_agenda_updates():
+    """Verifica se houve alterações na agenda desde o último check"""
+    cursor = None
+    try:
+        ultimo_check = request.args.get('last_check')  # Timestamp da última verificação
+        
+        if not ultimo_check:
+            return jsonify({'has_updates': False})
+        
+        cursor = mysql.connection.cursor()
+        
+        # Verificar se houve alteração após o timestamp fornecido
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM AGENDA_SYNC 
+            WHERE ULTIMA_ALTERACAO > %s
+        """, (ultimo_check,))
+        
+        count = cursor.fetchone()[0]
+        
+        return jsonify({
+            'has_updates': count > 0,
+            'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+        
+    except Exception as e:
+        print(f"Erro em check_agenda_updates: {str(e)}")
+        return jsonify({'has_updates': False, 'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+# ============================================================
+# BLOCO 2: FUNÇÃO AUXILIAR PARA REGISTRAR ALTERAÇÕES
+# Adicionar no início do arquivo, após os imports
+# ============================================================
+
+def registrar_alteracao_agenda(tipo_operacao='UPDATE'):
+    """Registra uma alteração na tabela de sincronização"""
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            UPDATE AGENDA_SYNC 
+            SET TIPO_OPERACAO = %s,
+                ULTIMA_ALTERACAO = NOW()
+            WHERE ID_SYNC = 1
+        """, (tipo_operacao,))
+        mysql.connection.commit()
+    except Exception as e:
+        print(f"Erro ao registrar alteração: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+
+
 # API: Buscar veículos disponíveis para um período específico (COM VALIDAÇÃO DE PERÍODO)
 @app.route('/api/agenda/veiculos-disponiveis', methods=['GET'])
 @login_required
@@ -5555,6 +5600,8 @@ def criar_demanda():
         id_ad = cursor.lastrowid
         cursor.close()
         
+        registrar_alteracao_agenda('INSERT')
+
         return jsonify({'success': True, 'id': id_ad})
         
     except Exception as e:
@@ -5655,7 +5702,10 @@ def atualizar_demanda(id_ad):
         mysql.connection.commit()
         cursor.close()
         
+        registrar_alteracao_agenda('INSERT')
+
         return jsonify({'success': True})
+    
     except Exception as e:
         mysql.connection.rollback()
         print(f"Erro ao atualizar demanda: {str(e)}")
@@ -5681,7 +5731,10 @@ def excluir_demanda(id_ad):
         mysql.connection.commit()
         cursor.close()
         
+        registrar_alteracao_agenda('INSERT')
+
         return jsonify({'success': True})
+
     except Exception as e:
         mysql.connection.rollback()
         return jsonify({'error': str(e)}), 500
