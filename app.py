@@ -5473,16 +5473,59 @@ def criar_demanda():
         data = request.get_json()
         cursor = mysql.connection.cursor()
 
-		# Obter ID do usuário da sessão
-        usuario = session.get('usuario_login')		
+        # Obter ID do usuário da sessão
+        usuario = session.get('usuario_login')
         
-        # Converter horário para formato TIME ou NULL
+        # ========== VALIDAÇÃO DE CONFLITOS ANTES DE INSERIR ==========
+        id_motorista = data.get('id_motorista')
+        id_veiculo = data.get('id_veiculo')
+        dt_inicio = data['dt_inicio']
+        dt_fim = data['dt_fim']
         horario = data.get('horario')
-        if horario and horario.strip():
+        tem_horario = horario and horario.strip()
+        
+        # 1. Validar conflito de MOTORISTA (se não for NC_MOTORISTA)
+        if id_motorista and int(id_motorista) > 0:
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM AGENDA_DEMANDAS
+                WHERE ID_MOTORISTA = %s
+                  AND DT_INICIO <= %s
+                  AND DT_FIM >= %s
+            """, (id_motorista, dt_fim, dt_inicio))
+            
+            if cursor.fetchone()[0] > 0:
+                cursor.close()
+                return jsonify({
+                    'success': False,
+                    'error': 'Este motorista já possui demanda(s) neste período. Por favor, atualize a página e tente novamente.'
+                }), 409  # HTTP 409 Conflict
+        
+        # 2. Validar conflito de VEÍCULO (apenas se NÃO tiver horário)
+        if id_veiculo and not tem_horario:
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM AGENDA_DEMANDAS
+                WHERE ID_VEICULO = %s
+                  AND DT_INICIO <= %s
+                  AND DT_FIM >= %s
+                  AND (HORARIO IS NULL OR HORARIO = '00:00:00')
+            """, (id_veiculo, dt_fim, dt_inicio))
+            
+            if cursor.fetchone()[0] > 0:
+                cursor.close()
+                return jsonify({
+                    'success': False,
+                    'error': 'Este veículo já possui demanda(s) SEM horário neste período. Por favor, atualize a página e tente novamente.'
+                }), 409  # HTTP 409 Conflict
+        
+        # ========== CONVERTER HORÁRIO ==========
+        if tem_horario:
             horario_value = horario + ':00'
         else:
             horario_value = None
         
+        # ========== INSERIR DEMANDA ==========
         cursor.execute("""
             INSERT INTO AGENDA_DEMANDAS 
             (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
@@ -5494,8 +5537,8 @@ def criar_demanda():
             data.get('id_tipoveiculo'), 
             data.get('id_veiculo'),
             data['id_tipodemanda'], 
-            data['dt_inicio'], 
-            data['dt_fim'],
+            dt_inicio, 
+            dt_fim,
             data.get('setor'), 
             data.get('solicitante'), 
             data.get('destino'), 
@@ -5513,6 +5556,7 @@ def criar_demanda():
         cursor.close()
         
         return jsonify({'success': True, 'id': id_ad})
+        
     except Exception as e:
         mysql.connection.rollback()
         print(f"Erro ao criar demanda: {str(e)}")
