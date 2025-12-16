@@ -61,6 +61,7 @@
         .form-group {
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .form-group label {
@@ -78,6 +79,14 @@
             border-radius: 3px;
             font-size: 13px;
             transition: border-color 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-group select {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .form-group input:focus,
@@ -284,11 +293,11 @@
         }
 
         .form-row-3 {
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
         }
 
         .form-row-4 {
-            grid-template-columns: 120px 1fr 1fr 1fr;
+            grid-template-columns: repeat(4, 1fr);
         }
 
         .form-grid-full {
