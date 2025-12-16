@@ -6652,6 +6652,10 @@ def obter_dados_iniciais_orcamento():
         cursor.execute("SELECT ID_AO, DE_AO FROM ACAO_ORCAMENTARIA ORDER BY DE_AO")
         acoes = [{'id': row[0], 'descricao': row[1]} for row in cursor.fetchall()]
         
+        # Buscar subitens
+        cursor.execute("SELECT ID_SUBITEM, DE_SUBITEM FROM SUBITEM_ORCAMENTO ORDER BY DE_SUBITEM")
+        subitens = [{'id': row[0], 'descricao': row[1]} for row in cursor.fetchall()]
+        
         # Buscar exercícios cadastrados
         cursor.execute("""
             SELECT DISTINCT EXERCICIO 
@@ -6670,6 +6674,7 @@ def obter_dados_iniciais_orcamento():
             'success': True,
             'programas': programas,
             'acoes': acoes,
+            'subitens': subitens,
             'exercicios': exercicios,
             'proximo_id': proximo_id
         })
@@ -6686,7 +6691,7 @@ def obter_orcamento_passagem(id_opa):
         cursor.execute("""
             SELECT 
                 ID_OPA, EXERCICIO, UO, UNIDADE, FONTE, ID_PROGRAMA, ID_AO,
-                SUBACAO, OBJETIVO, ELEMENTO_DESPESA, SUBITEM, DESCRICAO,
+                SUBACAO, OBJETIVO, ELEMENTO_DESPESA, ID_SUBITEM,
                 VL_APROVADO, NU_EMPENHO
             FROM ORCAMENTO_PASSAGENS_AEREAS
             WHERE ID_OPA = %s AND ATIVO = 'S'
@@ -6709,10 +6714,9 @@ def obter_orcamento_passagem(id_opa):
                     'subacao': row[7],
                     'objetivo': row[8],
                     'elemento_despesa': row[9],
-                    'subitem': row[10],
-                    'descricao': row[11],
-                    'vl_aprovado': float(row[12]) if row[12] else 0,
-                    'nu_empenho': row[13]
+                    'id_subitem': row[10],
+                    'vl_aprovado': float(row[11]) if row[11] else 0,
+                    'nu_empenho': row[12]
                 }
             })
         else:
@@ -6737,9 +6741,9 @@ def criar_orcamento_passagem():
         cursor.execute("""
             INSERT INTO ORCAMENTO_PASSAGENS_AEREAS 
             (ID_OPA, EXERCICIO, UO, UNIDADE, FONTE, ID_PROGRAMA, ID_AO, 
-             SUBACAO, OBJETIVO, ELEMENTO_DESPESA, SUBITEM, DESCRICAO, 
+             SUBACAO, OBJETIVO, ELEMENTO_DESPESA, ID_SUBITEM, 
              VL_APROVADO, NU_EMPENHO, USUARIO, DT_LANCAMENTO, ATIVO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), 'S')
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), 'S')
         """, (
             data['id_opa'],
             data['exercicio'],
@@ -6751,8 +6755,7 @@ def criar_orcamento_passagem():
             data.get('subacao'),
             data.get('objetivo'),
             data.get('elemento_despesa', '33.90.33'),
-            data.get('subitem'),
-            data.get('descricao', 'PASSAGENS PARA O PAÍS'),
+            data.get('id_subitem'),
             data.get('vl_aprovado'),
             data.get('nu_empenho'),
             usuario
@@ -6785,7 +6788,7 @@ def atualizar_orcamento_passagem(id_opa):
             UPDATE ORCAMENTO_PASSAGENS_AEREAS 
             SET EXERCICIO = %s, UO = %s, UNIDADE = %s, FONTE = %s,
                 ID_PROGRAMA = %s, ID_AO = %s, SUBACAO = %s, OBJETIVO = %s,
-                ELEMENTO_DESPESA = %s, SUBITEM = %s, DESCRICAO = %s,
+                ELEMENTO_DESPESA = %s, ID_SUBITEM = %s,
                 VL_APROVADO = %s, NU_EMPENHO = %s, USUARIO = %s, DT_LANCAMENTO = NOW()
             WHERE ID_OPA = %s AND ATIVO = 'S'
         """, (
@@ -6798,8 +6801,7 @@ def atualizar_orcamento_passagem(id_opa):
             data.get('subacao'),
             data.get('objetivo'),
             data.get('elemento_despesa', '33.90.33'),
-            data.get('subitem'),
-            data.get('descricao', 'PASSAGENS PARA O PAÍS'),
+            data.get('id_subitem'),
             data.get('vl_aprovado'),
             data.get('nu_empenho'),
             usuario,
@@ -6833,11 +6835,13 @@ def listar_orcamento_passagens():
             SELECT 
                 o.ID_OPA, o.EXERCICIO, o.UO, o.UNIDADE, o.FONTE,
                 p.DE_PROGRAMA, a.DE_AO, o.SUBACAO, o.OBJETIVO,
-                o.ELEMENTO_DESPESA, o.DESCRICAO, o.VL_APROVADO,
-                o.NU_EMPENHO, o.USUARIO, o.DT_LANCAMENTO
+                o.ELEMENTO_DESPESA, o.VL_APROVADO,
+                o.NU_EMPENHO, o.USUARIO, o.DT_LANCAMENTO,
+                COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as VL_UTILIZADO
             FROM ORCAMENTO_PASSAGENS_AEREAS o
             LEFT JOIN PROGRAMA_ORCAMENTO p ON o.ID_PROGRAMA = p.ID_PROGRAMA
             LEFT JOIN ACAO_ORCAMENTARIA a ON o.ID_AO = a.ID_AO
+            LEFT JOIN PASSAGENS_AEREAS_EMITIDAS pae ON o.ID_OPA = pae.ID_OPA
             WHERE o.ATIVO = 'S'
         """
         
@@ -6846,12 +6850,17 @@ def listar_orcamento_passagens():
             query += " AND o.EXERCICIO = %s"
             params.append(exercicio)
         
+        query += " GROUP BY o.ID_OPA, o.EXERCICIO, o.UO, o.UNIDADE, o.FONTE, p.DE_PROGRAMA, a.DE_AO, o.SUBACAO, o.OBJETIVO, o.ELEMENTO_DESPESA, o.VL_APROVADO, o.NU_EMPENHO, o.USUARIO, o.DT_LANCAMENTO"
         query += " ORDER BY o.ID_OPA DESC"
         
         cursor.execute(query, params)
         registros = []
         
         for row in cursor.fetchall():
+            vl_aprovado = float(row[10]) if row[10] else 0
+            vl_utilizado = float(row[14]) if row[14] else 0
+            vl_saldo = vl_aprovado - vl_utilizado
+            
             registros.append({
                 'id_opa': row[0],
                 'exercicio': row[1],
@@ -6863,17 +6872,20 @@ def listar_orcamento_passagens():
                 'subacao': row[7],
                 'objetivo': row[8],
                 'elemento_despesa': row[9],
-                'descricao': row[10],
-                'vl_aprovado': float(row[11]) if row[11] else 0,
-                'nu_empenho': row[12],
-                'usuario': row[13],
-                'dt_lancamento': row[14].strftime('%d/%m/%Y %H:%M') if row[14] else ''
+                'vl_aprovado': vl_aprovado,
+                'nu_empenho': row[11],
+                'usuario': row[12],
+                'dt_lancamento': row[13].strftime('%d/%m/%Y %H:%M') if row[13] else '',
+                'vl_utilizado': vl_utilizado,
+                'vl_saldo': vl_saldo
             })
         
         cursor.close()
         return jsonify({'success': True, 'registros': registros})
     except Exception as e:
         print(f"Erro ao listar orçamentos: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
