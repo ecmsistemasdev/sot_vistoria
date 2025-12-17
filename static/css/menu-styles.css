@@ -16,9 +16,9 @@ body {
     background-color: #d0e4ff !important;
     
     /* CONTROLE DE ALTURA - NÃO ALTERAR */
-    height: 25px !important;
-    min-height: 25px !important;
-    max-height: 25px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
     
     /* PADDING VERTICAL REDUZIDO */
     padding: 0.1rem 0 !important;
