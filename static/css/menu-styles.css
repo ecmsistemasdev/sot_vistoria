@@ -1,12 +1,18 @@
-/* CONFIGURAÇÃO DO BODY PARA TODAS AS PÁGINAS */
+/* ========================================= */
+/* CONFIGURAÇÃO GLOBAL DO BODY */
+/* ========================================= */
 body {
-    padding-top: 56px !important; /* Espaço fixo para o menu */
+    padding-top: 56px !important;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    margin: 0;
 }
 
 /* ========================================= */
-/* ESTILOS DO NAVBAR - ALTURA CONTROLADA */
+/* ESTILOS DO NAVBAR - ALTURA FIXA */
 /* ========================================= */
-
 .fixed-navbar {
     position: fixed;
     top: 0;
@@ -15,13 +21,13 @@ body {
     z-index: 1030;
     background-color: #d0e4ff !important;
     
-    /* CONTROLE DE ALTURA - NÃO ALTERAR */
-    height: 28px !important;
-    min-height: 28px !important;
-    max-height: 28px !important;
+    /* ALTURA FIXA - NÃO ALTERAR */
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
     
-    /* PADDING VERTICAL REDUZIDO */
-    padding: 0.1rem 0 !important;
+    /* PADDING CONTROLADO */
+    padding: 0.2rem 0 !important;
     
     /* SOMBRA SUTIL */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -36,110 +42,205 @@ body {
     height: 100% !important;
     display: flex !important;
     align-items: center !important;
+    justify-content: space-between !important;
     padding: 0 15px !important;
+    margin: 0 auto !important;
+}
+
+/* ========================================= */
+/* BOTÃO TOGGLE (HAMBURGER) */
+/* ========================================= */
+.navbar-toggler {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 1rem !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    height: auto !important;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none !important;
+}
+
+/* ========================================= */
+/* COLLAPSE DO NAVBAR */
+/* ========================================= */
+.navbar-collapse {
+    height: auto !important;
+    display: flex !important;
+    align-items: center !important;
 }
 
 /* ========================================= */
 /* ITENS DO MENU */
 /* ========================================= */
-
 .navbar-nav {
     height: 100% !important;
     display: flex !important;
     align-items: center !important;
     margin: 0 !important;
+    flex-direction: row !important;
 }
 
 .nav-item {
     margin-right: 3px;
     height: auto !important;
+    display: flex !important;
+    align-items: center !important;
 }
 
 .navbar-nav .nav-link {
     padding: 0.25rem 0.75rem !important;
     color: #333 !important;
-    font-size: 0.9rem;
+    font-size: 0.9rem !important;
     line-height: 1.5 !important;
     height: auto !important;
     display: inline-flex !important;
     align-items: center !important;
-    white-space: nowrap;
+    white-space: nowrap !important;
+    transition: background-color 0.2s ease !important;
 }
 
 .navbar-nav .nav-link:hover {
-    background-color: rgba(255,255,255,0.3);
-    border-radius: 3px;
+    background-color: rgba(255,255,255,0.3) !important;
+    border-radius: 3px !important;
+}
+
+/* Link ativo (página atual) */
+.navbar-nav .nav-link.active {
+    font-weight: 600 !important;
+    background-color: rgba(255,255,255,0.5) !important;
+    border-radius: 3px !important;
 }
 
 /* ========================================= */
 /* DROPDOWNS */
 /* ========================================= */
-
-.dropdown-divider {
-    margin: 0.2rem 0;
-}
-
 .dropdown-menu {
-    font-size: 0.9rem;
-    padding: 0.3rem 0;
+    font-size: 0.9rem !important;
+    padding: 0.3rem 0 !important;
     margin-top: 0.125rem !important;
+    border: 1px solid rgba(0,0,0,0.15) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
 }
 
 .dropdown-item {
-    padding: 0.3rem 1rem;
-    font-size: 0.9rem;
+    padding: 0.3rem 1rem !important;
+    font-size: 0.9rem !important;
+    color: #333 !important;
+    transition: background-color 0.2s ease !important;
 }
 
 .dropdown-item:hover {
-    background-color: #f8f9fa;
+    background-color: #f8f9fa !important;
+    color: #333 !important;
+}
+
+.dropdown-divider {
+    margin: 0.2rem 0 !important;
 }
 
 /* ========================================= */
 /* BOTÃO SAIR */
 /* ========================================= */
-
 .btn-logout {
     color: #333 !important;
-    background-color: transparent;
-    border: 1px solid rgba(0,0,0,0.3);
-    font-size: 0.85rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 3px;
-    transition: background-color 0.2s;
-    white-space: nowrap;
-}
-
-.btn-logout:hover {
-    background-color: rgba(0,0,0,0.1);
-    color: #333 !important;
-}
-
-/* ========================================= */
-/* COLLAPSE DO NAVBAR (MOBILE) */
-/* ========================================= */
-
-.navbar-collapse {
+    background-color: transparent !important;
+    border: 1px solid rgba(0,0,0,0.3) !important;
+    font-size: 0.85rem !important;
+    padding: 0.2rem 0.6rem !important;
+    border-radius: 3px !important;
+    transition: background-color 0.2s ease !important;
+    white-space: nowrap !important;
     height: auto !important;
 }
 
-.navbar-toggler {
-    padding: 0.25rem 0.5rem;
-    font-size: 1rem;
-    border: 1px solid rgba(0,0,0,0.1);
+.btn-logout:hover {
+    background-color: rgba(0,0,0,0.1) !important;
+    color: #333 !important;
 }
 
-.navbar-toggler:focus {
-    box-shadow: none;
+.btn-logout:focus {
+    box-shadow: none !important;
+}
+
+/* Container do botão sair */
+.ms-auto {
+    margin-left: auto !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* ========================================= */
+/* CONTEÚDO PRINCIPAL */
+/* ========================================= */
+.content {
+    flex: 1 0 auto;
+    padding-bottom: 60px;
+    width: 100%;
+}
+
+/* ========================================= */
+/* FOOTER FIXO */
+/* ========================================= */
+.footer {
+    flex-shrink: 0;
+    background-color: #343a40;
+    color: white;
+    padding: 10px 0;
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 1020;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ========================================= */
+/* ELEMENTOS ESPECÍFICOS DA PÁGINA INDEX */
+/* ========================================= */
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo-img {
+    height: 60px;
+    width: auto;
+}
+
+.main-title {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    text-align: center;
+    font-size: 0.9rem;
+    margin-bottom: 25px;
+    color: #666666;
+}
+
+.welcome-message {
+    text-align: center;
+    margin: 30px 0;
+    color: #6c757d;
 }
 
 /* ========================================= */
 /* RESPONSIVIDADE MOBILE */
 /* ========================================= */
-
 @media (max-width: 992px) {
-    /* Em mobile, remover padding do body */
+    /* Em mobile, ajustar padding do body */
     body {
         padding-top: 0 !important;
+        font-size: 13px;
     }
     
     /* Menu não fixo em mobile */
@@ -156,6 +257,11 @@ body {
         padding: 10px 15px !important;
     }
     
+    /* Navbar collapse em mobile */
+    .navbar-collapse {
+        padding: 10px 0 !important;
+    }
+    
     /* Menu items em coluna no mobile */
     .navbar-nav {
         flex-direction: column !important;
@@ -166,6 +272,7 @@ body {
     .nav-item {
         width: 100%;
         margin-right: 0;
+        margin-bottom: 5px;
     }
     
     .navbar-nav .nav-link {
@@ -177,6 +284,7 @@ body {
     .ms-auto {
         width: 100%;
         margin-top: 10px;
+        margin-left: 0 !important;
     }
     
     .btn-logout {
@@ -189,6 +297,7 @@ body {
         width: 100%;
         position: static !important;
         transform: none !important;
+        margin-top: 5px !important;
     }
 }
 
@@ -200,12 +309,12 @@ body {
     }
     
     .navbar-nav .nav-link {
-        font-size: 0.85rem;
+        font-size: 0.85rem !important;
     }
 }
 
 /* ========================================= */
-/* AJUSTES PARA EVITAR CONFLITOS */
+/* AJUSTES FINAIS */
 /* ========================================= */
 
 /* Garantir que nada ultrapasse o menu */
@@ -213,43 +322,28 @@ body {
     box-sizing: border-box;
 }
 
-/* Remover margens/paddings extras dos links */
-.navbar-brand {
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* Garantir alinhamento vertical */
-.navbar > .container,
-.navbar > .container-fluid {
+/* Garantir alinhamento */
+.navbar {
     display: flex !important;
     flex-wrap: wrap !important;
     align-items: center !important;
     justify-content: space-between !important;
 }
 
-/* ========================================= */
-/* ESTADOS DO MENU */
-/* ========================================= */
-
-/* Quando o menu está expandido em mobile */
+/* Estados do collapse */
 .navbar-collapse.show,
 .navbar-collapse.collapsing {
     padding: 0 !important;
 }
 
-/* Link ativo (página atual) */
-.navbar-nav .nav-link.active {
-    font-weight: 600;
-    background-color: rgba(255,255,255,0.5);
-    border-radius: 3px;
+/* Ocultar link início por padrão */
+.menu-inicio {
+    display: none !important;
 }
 
 /* ========================================= */
-/* COMPATIBILIDADE COM DIFERENTES TEMAS */
+/* COMPATIBILIDADE COM TEMA ESCURO */
 /* ========================================= */
-
-/* Se você tiver tema escuro, adicione: */
 /*
 .fixed-navbar.dark-theme {
     background-color: #2c3e50 !important;
