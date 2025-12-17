@@ -5363,19 +5363,18 @@ def check_agenda_updates():
         if not ultimo_check:
             return jsonify({'has_updates': False})
         
-        # ===== ADICIONAR: Obter usuário logado =====
         usuario_atual = session.get('usuario_login', '')
         
         cursor = mysql.connection.cursor()
         
-        # ===== MODIFICAR: Filtrar para não mostrar alterações do próprio usuário =====
+        # ===== BUSCAR em tabela de LOG em vez de SYNC =====
         cursor.execute("""
             SELECT 
                 COUNT(*) as total,
                 CONVERT_TZ(NOW(), '+00:00', '-04:00') as agora_local
-            FROM AGENDA_SYNC 
-            WHERE CONVERT_TZ(ULTIMA_ALTERACAO, '+00:00', '-04:00') > %s
-              AND (USUARIO_ALTERACAO IS NULL OR USUARIO_ALTERACAO != %s)
+            FROM AGENDA_ALTERACOES_LOG 
+            WHERE CONVERT_TZ(DATA_ALTERACAO, '+00:00', '-04:00') > %s
+              AND USUARIO_ALTERACAO != %s
         """, (ultimo_check, usuario_atual))
         
         result = cursor.fetchone()
@@ -5400,27 +5399,24 @@ def check_agenda_updates():
         if cursor:
             cursor.close()
 
-
 # ============================================================
 # BLOCO 2: FUNÇÃO AUXILIAR PARA REGISTRAR ALTERAÇÕES
 # Adicionar no início do arquivo, após os imports
 # ============================================================
 
 def registrar_alteracao_agenda(tipo_operacao='UPDATE'):
-    """Registra uma alteração na tabela de sincronização"""
+    """Registra uma alteração na tabela de log"""
     cursor = None
     try:
         cursor = mysql.connection.cursor()
         
-        # ===== ADICIONAR: Obter usuário da sessão =====
+        # ===== INSERIR novo registro em vez de UPDATE =====
         usuario = session.get('usuario_login', '')
         
         cursor.execute("""
-            UPDATE AGENDA_SYNC 
-            SET TIPO_OPERACAO = %s,
-                USUARIO_ALTERACAO = %s,
-                ULTIMA_ALTERACAO = NOW()
-            WHERE ID_SYNC = 1
+            INSERT INTO AGENDA_ALTERACOES_LOG 
+            (TIPO_OPERACAO, USUARIO_ALTERACAO, DATA_ALTERACAO)
+            VALUES (%s, %s, NOW())
         """, (tipo_operacao, usuario))
         
         mysql.connection.commit()
@@ -5429,7 +5425,6 @@ def registrar_alteracao_agenda(tipo_operacao='UPDATE'):
     finally:
         if cursor:
             cursor.close()
-
 
 # API: Buscar veículos disponíveis para um período específico (COM VALIDAÇÃO DE PERÍODO)
 @app.route('/api/agenda/veiculos-disponiveis', methods=['GET'])
