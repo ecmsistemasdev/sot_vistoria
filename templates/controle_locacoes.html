@@ -4,11 +4,613 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
-    <title>Controle de Locações</title>
-    <link rel="stylesheet" href="/static/css/controle_locacoes.css">    
+    <title>Controle de Locações</title>   
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Reset básico para garantir que não haja espaçamentos indesejados */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-size: 14px; /* Reduzido de 16px para 14px */
+        }
+        
+        body {
+            padding-bottom: 65px; /* Reduzido de 80px */
+            margin: 0;
+            overflow-x: hidden;
+            background-color: #f8f9fa;
+        }
+        
+        /* Menu de navegação fixo */
+        .fixed-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            background-color: #d0e4ff !important;
+            padding: 0.2rem 0; /* Reduzido de 0.3rem */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Sombra mais sutil */
+            margin: 0;
+        }
+        
+        .navbar-nav .nav-link {
+            padding: 0.25rem 0.5rem; /* Reduzido */
+            color: #333 !important;
+            font-size: 0.9rem; /* Reduzido */
+        }
+        
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+        
+        .nav-item {
+            margin-right: 3px; /* Reduzido de 5px */
+        }
+        
+        .dropdown-divider {
+            margin: 0.2rem 0; /* Reduzido */
+        }
+        
+        .dropdown-menu {
+            font-size: 0.9rem; /* Reduzido */
+            padding: 0.3rem 0; /* Reduzido */
+        }
+        
+        .dropdown-item {
+            padding: 0.3rem 1rem; /* Reduzido */
+        }
+        
+        .btn-logout {
+            color: #333 !important;
+            background-color: transparent;
+            border: 1px solid rgba(0,0,0,0.3);
+            font-size: 0.85rem; /* Reduzido */
+            padding: 0.2rem 0.6rem; /* Reduzido */
+        }
+        
+        .btn-logout:hover {
+            background-color: rgba(0,0,0,0.1);
+            color: #333 !important;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 0;
+                font-size: 13px; /* Ainda menor em mobile */
+            }
+            
+            .navbar-expand-lg .navbar-collapse {
+                margin-top: 0;
+            }
+            
+            .fixed-navbar .container-fluid {
+                margin: 0;
+                padding-left: 10px; /* Reduzido */
+                padding-right: 10px; /* Reduzido */
+            }
+        }
+        
+        /* Conteúdo da página */
+        .main-content {
+            padding-top: 50px; /* Reduzido de 60px */
+        }
+        
+        .container-fluid {
+            padding-left: 10px; /* Reduzido de 15px */
+            padding-right: 10px; /* Reduzido de 15px */
+        }
+        
+        .container-fluid h4 {
+            font-size: 1.3rem; /* Reduzido */
+            margin-bottom: 0.8rem; /* Reduzido */
+            font-weight: 600;
+        }
+        
+        /* GroupBox */
+        .groupbox {
+            border: 1px solid #ddd;
+            border-radius: 4px; /* Reduzido de 5px */
+            padding: 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08); /* Sombra mais sutil */
+            margin-bottom: 0.5rem; /* Reduzido */
+            transition: height 0.05s;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        
+        .groupbox-header {
+            background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+            padding: 0.35rem 0.8rem; /* Reduzido */
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+            border-radius: 3px 3px 0 0;
+            font-size: 0.85rem; /* Reduzido */
+            color: #495057;
+        }
+        
+        .groupbox-body {
+            padding: 0;
+            overflow-x: auto;
+            height: calc(85px + 1.5rem); /* Reduzido */
+        }
+        
+        .tabs-body {
+            padding: 0;
+            overflow-x: auto;
+            height: calc(120px + 1.5rem); /* Reduzido */
+        }
+        
+        .lista-grande {
+            height: 280px; /* Reduzido de 300px */
+            min-height: 220px; /* Reduzido */
+        }
+        
+        .table-responsive {
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        /* Botões de ação */
+        .acao-btn {
+            margin-bottom: 3px; /* Reduzido */
+            display: block;
+            text-align: center;
+        }
+        
+        .btn-selecionar,
+        .btn-abrir,
+        .btn-devolucao {
+            color: white;
+            padding: 2px 6px; /* Reduzido */
+            border-radius: 3px;
+            text-decoration: none;
+            font-size: 0.7rem; /* Reduzido */
+        }
+        
+        .btn-selecionar {
+            background-color: #0d6efd;
+        }
+        
+        .btn-abrir {
+            background-color: #198754;
+        }
+        
+        .btn-devolucao {
+            background-color: #dc3545;
+        }
+        
+        .btn-sm {
+            padding: 0.18rem 0.35rem; /* Reduzido */
+            font-size: 0.7rem; /* Reduzido */
+        }
+        
+        /* Colunas fixas */
+        .sticky-column {
+            position: sticky;
+            right: 0;
+            background-color: #f8f9fa !important;
+            z-index: 2;
+            border-left: 1px solid #e0e0e0;
+            min-width: 80px; /* Reduzido */
+        }
+        
+        th.sticky-column {
+            position: sticky;
+            right: 0;
+            background-color: #9ecde2 !important;
+            z-index: 999;
+            border-left: 1px solid #e0e0e0;
+        }
+        
+        thead {
+            z-index: 1000;
+        }
+        
+        /* Tabelas */
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,123,255,0.08);
+        }
+        
+        th {
+            position: sticky;
+            top: 0;
+            background-color: #9ecde2 !important;
+            z-index: 998;
+            font-size: 0.75rem; /* Reduzido */
+            padding: 0.4rem 0.4rem !important; /* Reduzido */
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .table {
+            font-size: 0.75rem; /* Reduzido */
+            margin-bottom: 0;
+        }
+        
+        td {
+            padding: 0.3rem 0.4rem !important; /* Reduzido */
+            vertical-align: middle;
+        }
+        
+        .table-sm td, .table-sm th {
+            padding: 0.25rem 0.4rem; /* Reduzido */
+        }
+        
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border-top: 1px solid #dee2e6;
+            padding: 10px 0; /* Reduzido de 15px */
+            box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.08);
+            height: auto;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .footer .container-fluid {
+            width: 100%;
+            padding: 0 10px; /* Reduzido */
+        }
+        
+        .footer .d-flex {
+            width: 100%;
+        }
+        
+        .footer .btn {
+            font-size: 0.85rem; /* Reduzido */
+            padding: 0.35rem 0.7rem; /* Reduzido */
+        }
+        
+        /* Tabs */
+        .nav-tabs {
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 0;
+            font-size: 0.8rem; /* Reduzido */
+            background-color: #f8f9fa;
+            padding-top: 0.3rem; /* Reduzido */
+            padding-left: 0.3rem; /* Reduzido */
+            border-radius: 3px 3px 0 0;
+        }
+        
+        .nav-tabs .nav-link {
+            padding: 0.25rem 0.6rem; /* Reduzido */
+            margin-bottom: -1px;
+            border: 1px solid transparent;
+            border-top-left-radius: 0.25rem;
+            border-top-right-radius: 0.25rem;
+            font-size: 0.8rem; /* Reduzido */
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: #fff;
+            border-color: #dee2e6 #dee2e6 #fff;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            background-color: #fff;
+            padding: 0;
+            height: calc(100% - 30px); /* Ajustado */
+            overflow: hidden;
+        }
+        
+        .tab-pane {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .tab-pane .table-responsive {
+            height: 100%;
+            overflow-y: auto;
+            border-top: 0;
+        }
+        
+        /* Splitter */
+        .splitter {
+            height: 6px; /* Reduzido de 8px */
+            background-color: #e9ecef;
+            cursor: row-resize;
+            margin: 0;
+            position: relative;
+            border-radius: 2px;
+            border: 1px solid #dee2e6;
+            transition: background-color 0.2s;
+        }
+        
+        .splitter:hover {
+            background-color: #dee2e6;
+        }
+        
+        .row.splitter-row {
+            margin-top: 0.3rem; /* Reduzido */
+            margin-bottom: 0.3rem; /* Reduzido */
+        }
+        
+        .splitter-handle {
+            text-align: center;
+            color: #adb5bd;
+            line-height: 6px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .splitter-handle i {
+            font-size: 6px; /* Reduzido */
+        }
+        
+        .splitter.active {
+            background-color: #d0d0d0;
+            box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Formulários */
+        .form-label {
+            font-size: 0.8rem; /* Reduzido */
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+            color: #495057;
+        }
+        
+        .form-control,
+        .form-select {
+            font-size: 0.85rem; /* Reduzido */
+            padding: 0.35rem 0.5rem; /* Reduzido */
+            border-radius: 3px;
+        }
+        
+        .form-control-sm,
+        .form-select-sm {
+            font-size: 0.8rem; /* Reduzido */
+            padding: 0.25rem 0.4rem; /* Reduzido */
+        }
+        
+        .input-group-text {
+            font-size: 0.8rem; /* Reduzido */
+            padding: 0.25rem 0.5rem; /* Reduzido */
+        }
+        
+        .form-control[readonly] {
+            background-color: #f8f9fa;
+            border-color: #ced4da;
+            color: #6c757d;
+            cursor: default;
+            box-shadow: none;
+        }
+        
+        .form-control[readonly]:focus {
+            border-color: #adb5bd;
+            box-shadow: 0 0 0 0.1rem rgba(108, 117, 125, 0.1);
+        }
+        
+        .form-control.bg-readonly {
+            background-color: #e9ecef;
+        }
+        
+        .form-control.bg-readonly-blue {
+            background-color: #e7f1ff;
+        }
+        
+        .form-control.bg-readonly-green {
+            background-color: #e8f5e9;
+        }
+        
+        /* Modais */
+        .modal-header {
+            padding: 0.75rem 1rem; /* Reduzido */
+        }
+        
+        .modal-title {
+            font-size: 1.1rem; /* Reduzido */
+            font-weight: 600;
+        }
+        
+        .modal-body {
+            padding: 1rem; /* Reduzido */
+        }
+        
+        .modal-footer {
+            padding: 0.6rem; /* Reduzido */
+        }
+        
+        .modal-header.bg-primary {
+            background-color: #0d6efd !important;
+        }
+        
+        .modal-header.bg-warning {
+            background-color: #ffc107 !important;
+        }
+        
+        .modal-header.bg-success {
+            background-color: #198754 !important;
+        }
+        
+        #formNovaLocacao .form-label {
+            font-size: 0.8rem; /* Reduzido */
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+        }
+        
+        #arquivoCnhDiv {
+            padding-top: 8px; /* Reduzido */
+            border-top: 1px solid #dee2e6;
+        }
+        
+        /* Responsividade Mobile */
+        @media (max-width: 768px) {
+            .sticky-column {
+                position: sticky;
+                right: 0;
+                z-index: 2;
+                min-width: 70px; /* Reduzido */
+            }
+            
+            .groupbox-body {
+                height: calc(130px + 1.5rem); /* Ajustado */
+            }
+            
+            .lista-grande {
+                height: calc(100vh - 330px); /* Ajustado */
+                min-height: 180px; /* Reduzido */
+            }
+            
+            .footer .container-fluid {
+                padding: 0 8px; /* Reduzido */
+            }
+            
+            .modal-dialog {
+                margin: 0.3rem; /* Reduzido */
+            }
+            
+            .footer .btn {
+                font-size: 0.75rem; /* Menor em mobile */
+                padding: 0.3rem 0.5rem; /* Reduzido */
+            }
+            
+            th {
+                font-size: 0.7rem; /* Reduzido */
+                padding: 0.3rem 0.3rem !important;
+            }
+            
+            td {
+                font-size: 0.7rem; /* Reduzido */
+                padding: 0.25rem 0.3rem !important;
+            }
+            
+            .btn-sm {
+                padding: 0.15rem 0.3rem; /* Reduzido */
+                font-size: 0.65rem; /* Reduzido */
+            }
+            
+            .groupbox-header {
+                font-size: 0.8rem; /* Reduzido */
+                padding: 0.3rem 0.6rem; /* Reduzido */
+            }
+        }
+        
+        @media print {
+            .footer {
+                display: none;
+            }
+        }
+        
+        /* Collapse toggle */
+        .collapse-toggle {
+            cursor: pointer;
+            margin-left: 8px; /* Reduzido */
+            color: #6c757d;
+        }
+        
+        .lista-grande.collapsed {
+            height: 45px !important; /* Reduzido */
+            overflow: hidden;
+        }
+        
+        /* Linha selecionada */
+        #tabela-processos tr.selecionado {
+            background-color: #e8f4ff;
+            font-weight: 600;
+        }
+        
+        /* Botões */
+        .btn {
+            font-size: 0.85rem; /* Reduzido */
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-primary i {
+            color: white;
+        }
+        
+        .btn-danger i {
+            color: white;
+        }
+        
+        .sticky-column .btn {
+            margin-right: 2px; /* Reduzido */
+        }
+        
+        /* Ajustes gerais de espaçamento */
+        .row {
+            margin-bottom: 0.3rem; /* Reduzido */
+        }
+        
+        .col-md-6,
+        .col-md-12 {
+            padding-left: 5px; /* Reduzido */
+            padding-right: 5px; /* Reduzido */
+        }
+        
+        /* Ajustes para melhor densidade visual */
+        .mb-3 {
+            margin-bottom: 0.8rem !important; /* Reduzido */
+        }
+        
+        .mt-2 {
+            margin-top: 0.5rem !important; /* Reduzido */
+        }
+        
+        .p-2 {
+            padding: 0.4rem !important; /* Reduzido */
+        }
+        
+        .p-3 {
+            padding: 0.8rem !important; /* Reduzido */
+        }
+        
+        .p-4 {
+            padding: 1.2rem !important; /* Reduzido */
+        }
+        
+        /* Melhorias visuais */
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0,0,0,.02);
+        }
+        
+        .border {
+            border-color: #dee2e6 !important;
+        }
+        
+        /* Scrollbar personalizada para melhor aparência */
+        ::-webkit-scrollbar {
+            width: 8px; /* Reduzido */
+            height: 8px; /* Reduzido */
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
         /* Modal Relatório Analítico */
         .modal-cnh {
             display: none;
@@ -4589,3 +5191,4 @@
     </script>
 </body>
 </html>
+
