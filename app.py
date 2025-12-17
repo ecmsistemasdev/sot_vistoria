@@ -7103,32 +7103,38 @@ def atualizar_orcamento_passagem(id_opa):
 @login_required
 def listar_orcamento_passagens():
     try:
-        exercicio = request.args.get('exercicio')
+
         cursor = mysql.connection.cursor()
         
-        query = """
+        cursor.execute("""
             SELECT 
-                o.ID_OPA, o.EXERCICIO, o.UO, o.UNIDADE, o.FONTE,
-                p.DE_PROGRAMA, a.DE_AO, o.SUBACAO, o.OBJETIVO,
-                o.ELEMENTO_DESPESA, o.VL_APROVADO,
-                o.NU_EMPENHO, o.USUARIO, o.DT_LANCAMENTO,
-                COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as VL_UTILIZADO
-            FROM ORCAMENTO_PASSAGENS_AEREAS o
-            LEFT JOIN PROGRAMA_ORCAMENTO p ON o.ID_PROGRAMA = p.ID_PROGRAMA
-            LEFT JOIN ACAO_ORCAMENTARIA a ON o.ID_AO = a.ID_AO
-            LEFT JOIN PASSAGENS_AEREAS_EMITIDAS pae ON o.ID_OPA = pae.ID_OPA
-            WHERE o.ATIVO = 'S'
-        """
+                opa.ID_OPA,
+                opa.EXERCICIO,
+                opa.UO,
+                opa.UNIDADE,
+                opa.FONTE,
+                opa.ID_PROGRAMA,
+                p.DE_PROGRAMA as programa,
+                opa.ID_AO,
+                ao.DE_AO as acao,
+                opa.SUBACAO,
+                opa.OBJETIVO,
+                opa.ELEMENTO_DESPESA,
+                opa.ID_SUBITEM,
+                CONCAT(si.ID_SUBITEM, ' - ', si.DE_SUBITEM) as subitem,
+                opa.VL_APROVADO,
+                COALESCE(opa.VL_UTILIZADO, 0) as vl_utilizado,
+                (opa.VL_APROVADO - COALESCE(opa.VL_UTILIZADO, 0)) as vl_saldo,
+                opa.NU_EMPENHO
+            FROM ORCAMENTO_PASSAGENS_AEREAS opa
+            LEFT JOIN PROGRAMA_ORCAMENTO p ON opa.ID_PROGRAMA = p.ID_PROGRAMA
+            LEFT JOIN ACAO_ORCAMENTARIA ao ON opa.ID_AO = ao.ID_AO
+            LEFT JOIN SUBITEM_ORCAMENTO si ON opa.ID_SUBITEM = si.ID_SUBITEM
+            WHERE opa.EXERCICIO = %s
+            ORDER BY opa.ID_OPA
+            """, (exercicio,)
         
-        params = []
-        if exercicio:
-            query += " AND o.EXERCICIO = %s"
-            params.append(exercicio)
-        
-        query += " GROUP BY o.ID_OPA, o.EXERCICIO, o.UO, o.UNIDADE, o.FONTE, p.DE_PROGRAMA, a.DE_AO, o.SUBACAO, o.OBJETIVO, o.ELEMENTO_DESPESA, o.VL_APROVADO, o.NU_EMPENHO, o.USUARIO, o.DT_LANCAMENTO"
-        query += " ORDER BY o.ID_OPA DESC"
-        
-        cursor.execute(query, params)
+        row = cursor.fetchone()
         registros = []
         
         for row in cursor.fetchall():
@@ -7147,10 +7153,10 @@ def listar_orcamento_passagens():
                 'subacao': row[7],
                 'objetivo': row[8],
                 'elemento_despesa': row[9],
+				'subitem': row[11],
                 'vl_aprovado': vl_aprovado,
-                'nu_empenho': row[11],
+                'nu_empenho': row[15],
                 'usuario': row[12],
-                'dt_lancamento': row[13].strftime('%d/%m/%Y %H:%M') if row[13] else '',
                 'vl_utilizado': vl_utilizado,
                 'vl_saldo': vl_saldo
             })
@@ -7162,7 +7168,6 @@ def listar_orcamento_passagens():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
 
 
 #######################################
