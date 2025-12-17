@@ -1547,7 +1547,7 @@
         /* Notificação de Atualização */
         .update-notification {
             position: fixed;
-            top: 70px;
+            top: 80px; /* ← AUMENTADO de 70px para 80px */
             left: 50%;
             transform: translateX(-50%);
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1555,8 +1555,10 @@
             padding: 12px 20px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            z-index: 9999;
+            z-index: 10000; /* ← AUMENTADO de 9999 para 10000 */
             animation: slideDownBounce 0.5s ease-out, pulse 2s ease-in-out infinite;
+            min-width: 400px; /* ← ADICIONAR */
+            text-align: center; /* ← ADICIONAR */
         }
 
         @keyframes slideDownBounce {
@@ -4242,25 +4244,35 @@
 
         // Iniciar verificação de atualizações
         function iniciarVerificacaoAtualizacoes() {
-            // ===== FORMATO CORRETO: YYYY-MM-DD HH:MM:SS =====
-            const agora = new Date();
-            const ano = agora.getFullYear();
-            const mes = String(agora.getMonth() + 1).padStart(2, '0');
-            const dia = String(agora.getDate()).padStart(2, '0');
-            const hora = String(agora.getHours()).padStart(2, '0');
-            const minuto = String(agora.getMinutes()).padStart(2, '0');
-            const segundo = String(agora.getSeconds()).padStart(2, '0');
-            
-            ultimoCheckTimestamp = `${ano}-${mes}-${dia} ${hora}:${minuto}:${segundo}`;
-            
-            // ===== DEBUG (REMOVER DEPOIS) =====
-            console.log('🚀 Iniciando verificação - Timestamp:', ultimoCheckTimestamp);
+            // ===== USAR DATE DIRETO DO MYSQL (MAIS CONFIÁVEL) =====
+            fetch('/api/agenda/check-updates?last_check=2000-01-01 00:00:00')
+                .then(res => res.json())
+                .then(result => {
+                    // Usar o timestamp do servidor como inicial
+                    ultimoCheckTimestamp = result.last_update;
+                    console.log('🚀 Verificação iniciada - Timestamp inicial:', ultimoCheckTimestamp);
+                })
+                .catch(error => {
+                    console.error('❌ Erro ao obter timestamp inicial:', error);
+                    // Fallback: usar timestamp local
+                    const agora = new Date();
+                    const ano = agora.getFullYear();
+                    const mes = String(agora.getMonth() + 1).padStart(2, '0');
+                    const dia = String(agora.getDate()).padStart(2, '0');
+                    const hora = String(agora.getHours()).padStart(2, '0');
+                    const minuto = String(agora.getMinutes()).padStart(2, '0');
+                    const segundo = String(agora.getSeconds()).padStart(2, '0');
+                    ultimoCheckTimestamp = `${ano}-${mes}-${dia} ${hora}:${minuto}:${segundo}`;
+                });
             
             // Verificar a cada 5 segundos
             intervaloVerificacao = setInterval(async () => {
                 await verificarAtualizacoesDisponiveis();
             }, 5000);
+            
+            console.log('✅ Intervalo de verificação criado');
         }
+
 
         // Parar verificação (quando modal estiver aberto)
         function pausarVerificacaoAtualizacoes() {
@@ -4279,9 +4291,13 @@
 
         // Verificar se há atualizações
         async function verificarAtualizacoesDisponiveis() {
-            // Não verificar se já há notificação ativa ou modal aberto
-            if (notificacaoAtiva) return;
+            // Não verificar se já há notificação ativa
+            if (notificacaoAtiva) {
+                console.log('⏸️ Notificação já está ativa');
+                return;
+            }
             
+            // Não verificar se modal estiver aberto
             const modalDemanda = document.getElementById('modal');
             const modalLocacao = document.getElementById('modalFormLocacao');
             const modalEmail = document.getElementById('modalEmailFornecedor');
@@ -4289,6 +4305,7 @@
             if (modalDemanda.style.display === 'block' || 
                 modalLocacao.style.display === 'block' || 
                 modalEmail.style.display === 'block') {
+                console.log('⏸️ Modal aberto - não verifica');
                 return;
             }
             
@@ -4296,23 +4313,22 @@
                 const url = `/api/agenda/check-updates?last_check=${encodeURIComponent(ultimoCheckTimestamp)}`;
                 const res = await fetch(url);
                 
-                // ===== VERIFICAR SE A RESPOSTA É VÁLIDA =====
                 if (!res.ok) {
-                    console.error('Erro na resposta:', res.status);
+                    console.error('❌ Erro na resposta:', res.status);
                     return;
                 }
                 
                 const result = await res.json();
                 
-                // ===== DEBUG (REMOVER DEPOIS) =====
                 console.log('📅 Último check:', ultimoCheckTimestamp);
                 console.log('📦 Resposta:', result);
                 
                 if (result.has_updates) {
-                    console.log('🔔 MOSTRANDO NOTIFICAÇÃO!');
+                    console.log('🔔 ATUALIZAÇÕES DETECTADAS - MOSTRANDO NOTIFICAÇÃO!');
                     mostrarNotificacaoAtualizacao();
-                    // ===== ATUALIZAR TIMESTAMP =====
+                    // ===== ATUALIZAR TIMESTAMP APENAS SE TEM UPDATES =====
                     ultimoCheckTimestamp = result.last_update;
+                    console.log('📅 Novo timestamp:', ultimoCheckTimestamp);
                 }
                 
             } catch (error) {
@@ -4324,16 +4340,22 @@
         function mostrarNotificacaoAtualizacao() {
             const notificacao = document.getElementById('updateNotification');
             
-            // ===== DEBUG (REMOVER DEPOIS) =====
-            console.log('🔔 Elemento notificação:', notificacao);
-            console.log('🔔 Display antes:', notificacao ? notificacao.style.display : 'null');
-            
             if (notificacao) {
+                // ===== FORÇAR VISIBILIDADE =====
                 notificacao.style.display = 'block';
+                notificacao.style.position = 'fixed';
+                notificacao.style.top = '80px';
+                notificacao.style.left = '50%';
+                notificacao.style.transform = 'translateX(-50%)';
+                notificacao.style.zIndex = '10000';
+                
                 notificacaoAtiva = true;
                 
-                // ===== DEBUG (REMOVER DEPOIS) =====
-                console.log('✅ Notificação mostrada! Display:', notificacao.style.display);
+                // ===== DEBUG =====
+                console.log('✅ Notificação ativada!');
+                
+                // ===== SCROLL PARA O TOPO PARA GARANTIR QUE O USUÁRIO VEJA =====
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 console.error('❌ Elemento updateNotification NÃO encontrado!');
             }
