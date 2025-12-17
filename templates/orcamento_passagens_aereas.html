@@ -201,22 +201,51 @@
         }
 
         table th {
-            background-color: #ecf0f1;
-            padding: 10px 8px;
+            background-color: #34495e;
+            padding: 8px 6px;
             text-align: left;
             font-weight: 600;
-            color: #2c3e50;
-            border-bottom: 2px solid #bdc3c7;
+            color: white;
+            border-bottom: 2px solid #2c3e50;
             white-space: nowrap;
+            font-size: 11px;
         }
 
         table td {
-            padding: 8px;
+            padding: 6px;
             border-bottom: 1px solid #ecf0f1;
+            font-size: 12px;
+        }
+
+        table tbody tr:nth-child(even) {
+            background-color: #ecf0f1;
+        }
+
+        table tbody tr:nth-child(odd) {
+            background-color: white;
+        }
+
+        table tbody tr:hover {
+            background-color: #d5dbdb !important;
         }
 
         table tr:hover {
             background-color: #f8f9fa;
+        }
+
+        .filtro-select {
+            width: 100%;
+            padding: 2px 4px;
+            font-size: 10px;
+            border: 1px solid #95a5a6;
+            border-radius: 2px;
+            background-color: white;
+            margin-top: 3px;
+        }
+
+        .filtro-select:focus {
+            outline: none;
+            border-color: #3498db;
         }
 
         .alert {
@@ -353,8 +382,8 @@
                     </select>
                 </div>
             </div>
-            <button class="btn btn-success" onclick="abrirModal()">
-                <span style="font-size: 16px; margin-right: 5px;">+</span> Adicionar Registro
+            <button class="btn btn-primary" onclick="controlarBilhetes()" style="padding: 8px 16px;">
+                📋 Controle de Bilhetes
             </button>
         </div>
 
@@ -362,23 +391,47 @@
             <table id="tabelaOrcamentos">
                 <thead>
                     <tr>
-                        <th style="width: 60px;">UO</th>
-                        <th style="width: 100px;">Unidade</th>
-                        <th style="width: 80px;">Fonte</th>
-                        <th>Programa</th>
-                        <th>Ação Orç.</th>
-                        <th style="width: 90px;">Elemento</th>
-                        <th style="width: 120px;">Valor Aprovado</th>
-                        <th style="width: 120px;">Valor Utilizado</th>
-                        <th style="width: 120px;">Saldo</th>
-                        <th style="width: 110px;">Nº Empenho</th>
-                        <th style="width: 80px;" class="text-center">Ações</th>
+                        <th style="width: 50px;">
+                            UO
+                            <br><select id="filtroUO" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 70px;">
+                            Unidade
+                            <br><select id="filtroUnidade" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 70px;">Fonte</th>
+                        <th style="width: 140px;">
+                            Programa
+                            <br><select id="filtroPrograma" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 140px;">
+                            Ação Orçamentária
+                            <br><select id="filtroAcao" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 70px;">Elemento</th>
+                        <th style="width: 140px;">
+                            SubItem
+                            <br><select id="filtroSubitem" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 100px;">Valor Aprovado</th>
+                        <th style="width: 100px;">Valor Utilizado</th>
+                        <th style="width: 100px;">Saldo</th>
+                        <th style="width: 90px;">
+                            Nº Empenho
+                            <br><select id="filtroEmpenho" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 70px;" class="text-center">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                 </tbody>
             </table>
         </div>
+        <div style="text-align: center; margin-top: 15px;">
+            <button class="btn btn-success" onclick="abrirModal()" style="padding: 6px 20px; font-size: 12px;">
+                <span style="font-size: 14px; margin-right: 5px;">+</span> Adicionar Registro
+            </button>
+        </div>        
     </div>
 
     <!-- Modal -->
@@ -503,6 +556,10 @@
     <script>
         let dadosIniciais = {};
 
+        function controlarBilhetes() {
+            mostrarAlerta('🚧 Funcionalidade em construção', 'success');
+        }        
+
         // Carregar dados iniciais
         async function carregarDadosIniciais() {
             try {
@@ -536,9 +593,9 @@
                     data.subitens.forEach(subitem => {
                         const option = document.createElement('option');
                         option.value = subitem.id;
-                        option.textContent = subitem.descricao;
+                        option.textContent = `${subitem.id} - ${subitem.descricao}`;
                         selectSubitem.appendChild(option);
-                    });
+                    })
 
                     // Preencher filtro de exercícios (sem opção "Todos")
                     const filtroExercicio = document.getElementById('filtroExercicio');
@@ -561,6 +618,92 @@
             } catch (error) {
                 mostrarAlerta('Erro ao carregar dados iniciais: ' + error.message, 'error');
             }
+        }
+
+        function popularFiltros(registros) {
+            // Extrair valores únicos
+            const uos = [...new Set(registros.map(r => r.uo))].sort();
+            const unidades = [...new Set(registros.map(r => r.unidade))].sort();
+            const programas = [...new Set(registros.map(r => r.programa).filter(p => p))].sort();
+            const acoes = [...new Set(registros.map(r => r.acao).filter(a => a))].sort();
+            const subitens = [...new Set(registros.map(r => r.subitem).filter(s => s))].sort();
+            const empenhos = [...new Set(registros.map(r => r.nu_empenho).filter(e => e))].sort();
+            
+            // Popular filtro UO
+            const filtroUO = document.getElementById('filtroUO');
+            filtroUO.innerHTML = '<option value="">Todos</option>';
+            uos.forEach(uo => {
+                filtroUO.innerHTML += `<option value="${uo}">${uo}</option>`;
+            });
+            
+            // Popular filtro Unidade
+            const filtroUnidade = document.getElementById('filtroUnidade');
+            filtroUnidade.innerHTML = '<option value="">Todos</option>';
+            unidades.forEach(unidade => {
+                filtroUnidade.innerHTML += `<option value="${unidade}">${unidade}</option>`;
+            });
+            
+            // Popular filtro Programa
+            const filtroPrograma = document.getElementById('filtroPrograma');
+            filtroPrograma.innerHTML = '<option value="">Todos</option>';
+            programas.forEach(programa => {
+                filtroPrograma.innerHTML += `<option value="${programa}">${programa}</option>`;
+            });
+            
+            // Popular filtro Ação
+            const filtroAcao = document.getElementById('filtroAcao');
+            filtroAcao.innerHTML = '<option value="">Todos</option>';
+            acoes.forEach(acao => {
+                filtroAcao.innerHTML += `<option value="${acao}">${acao}</option>`;
+            });
+            
+            // Popular filtro SubItem
+            const filtroSubitem = document.getElementById('filtroSubitem');
+            filtroSubitem.innerHTML = '<option value="">Todos</option>';
+            subitens.forEach(subitem => {
+                filtroSubitem.innerHTML += `<option value="${subitem}">${subitem}</option>`;
+            });
+            
+            // Popular filtro Empenho
+            const filtroEmpenho = document.getElementById('filtroEmpenho');
+            filtroEmpenho.innerHTML = '<option value="">Todos</option>';
+            empenhos.forEach(empenho => {
+                filtroEmpenho.innerHTML += `<option value="${empenho}">${empenho}</option>`;
+            });
+        }        
+        
+        function aplicarFiltros() {
+            const tbody = document.querySelector('#tabelaOrcamentos tbody');
+            const linhas = tbody.querySelectorAll('tr');
+            
+            const filtroUO = document.getElementById('filtroUO').value.toLowerCase();
+            const filtroUnidade = document.getElementById('filtroUnidade').value.toLowerCase();
+            const filtroPrograma = document.getElementById('filtroPrograma').value.toLowerCase();
+            const filtroAcao = document.getElementById('filtroAcao').value.toLowerCase();
+            const filtroSubitem = document.getElementById('filtroSubitem').value.toLowerCase();
+            const filtroEmpenho = document.getElementById('filtroEmpenho').value.toLowerCase();
+            
+            linhas.forEach(linha => {
+                const colunas = linha.querySelectorAll('td');
+                if (colunas.length === 0) return; // Pular linha vazia
+                
+                const uo = colunas[0].textContent.toLowerCase();
+                const unidade = colunas[1].textContent.toLowerCase();
+                const programa = colunas[3].textContent.toLowerCase();
+                const acao = colunas[4].textContent.toLowerCase();
+                const subitem = colunas[6].textContent.toLowerCase();
+                const empenho = colunas[10].textContent.toLowerCase();
+                
+                const mostrar = 
+                    (filtroUO === '' || uo.includes(filtroUO)) &&
+                    (filtroUnidade === '' || unidade.includes(filtroUnidade)) &&
+                    (filtroPrograma === '' || programa.includes(filtroPrograma)) &&
+                    (filtroAcao === '' || acao.includes(filtroAcao)) &&
+                    (filtroSubitem === '' || subitem.includes(filtroSubitem)) &&
+                    (filtroEmpenho === '' || empenho.includes(filtroEmpenho));
+                
+                linha.style.display = mostrar ? '' : 'none';
+            });
         }
 
         // Máscaras e validações
@@ -613,6 +756,14 @@
         document.getElementById('filtroExercicio').addEventListener('change', function() {
             carregarRegistros(this.value);
         });
+        // Event listeners para filtros da tabela
+        document.getElementById('filtroUO').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroUnidade').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroPrograma').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroAcao').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroSubitem').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroEmpenho').addEventListener('change', aplicarFiltros);
+
 
         // Modal
         function abrirModal(idOpa = null) {
@@ -745,9 +896,10 @@
                             <td>${reg.uo}</td>
                             <td>${reg.unidade}</td>
                             <td>${reg.fonte}</td>
-                            <td style="font-size: 11px;">${reg.programa || ''}</td>
-                            <td style="font-size: 11px;">${reg.acao || ''}</td>
+                            <td style="font-size: 10px;">${reg.programa || ''}</td>
+                            <td style="font-size: 10px;">${reg.acao || ''}</td>
                             <td>${reg.elemento_despesa}</td>
+                            <td style="font-size: 10px;">${reg.subitem || ''}</td>
                             <td class="text-right">R$ ${reg.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                             <td class="text-right">R$ ${reg.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                             <td class="text-right">R$ ${reg.vl_saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -758,8 +910,11 @@
                         `;
                         tbody.appendChild(tr);
                     });
+                    
+                    // Popular os filtros com os dados carregados
+                    popularFiltros(data.registros);
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado</td></tr>';
                 }
             } catch (error) {
                 mostrarAlerta('Erro ao carregar registros: ' + error.message, 'error');
