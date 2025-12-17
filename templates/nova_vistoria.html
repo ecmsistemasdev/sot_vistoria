@@ -5,6 +5,13 @@
     <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nova Vistoria</title>
+
+    <!-- Bootstrap CSS (CARREGAR APENAS UMA VEZ) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- CSS do Menu -->
+    <link rel="stylesheet" href="/static/css/menu-styles.css">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
     <style>
         /* 
@@ -33,69 +40,7 @@
             overflow-x: hidden;
             background-color: #f8f9fa;
         }       
-        /* Menu de navegação fixo */
-        .fixed-navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-            background-color: #d0e4ff !important;
-            padding: 0.2rem 0; /* Reduzido de 0.3rem */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Sombra mais sutil */
-            margin: 0;
-        }
-        
-        .navbar-nav .nav-link {
-            padding: 0.25rem 0.5rem; /* Reduzido */
-            color: #333 !important;
-            font-size: 0.9rem; /* Reduzido */
-        }
-        
-        .navbar-nav .nav-link:hover {
-            background-color: rgba(255,255,255,0.3);
-            border-radius: 3px;
-        }
-        
-        .nav-item {
-            margin-right: 3px; /* Reduzido de 5px */
-        }
-        
-        .dropdown-divider {
-            margin: 0.2rem 0; /* Reduzido */
-        }
-        
-        .dropdown-menu {
-            font-size: 0.9rem; /* Reduzido */
-            padding: 0.3rem 0; /* Reduzido */
-        }
-        
-        .dropdown-item {
-            padding: 0.3rem 1rem; /* Reduzido */
-        }
-        
-        .btn-logout {
-            color: #333 !important;
-            background-color: transparent;
-            border: 1px solid rgba(0,0,0,0.3);
-            font-size: 0.85rem; /* Reduzido */
-            padding: 0.2rem 0.6rem; /* Reduzido */
-        }
-        
-        .btn-logout:hover {
-            background-color: rgba(0,0,0,0.1);
-            color: #333 !important;
-        }        
-
-        /* Responsividade */
-        @media (max-width: 768px) {
-            body {
-                padding-top: 80px; /* Mais espaço para dispositivos móveis */
-            }
-        }
-        /* Fim Menu de navegação */
-
-        
+            
         .preview-container {
             text-align: center;
             margin-top: 10px;
@@ -657,6 +602,16 @@
             </div>
         </div>
     </template>
+
+    <!-- SCRIPTS NA ORDEM CORRETA -->
+    <!-- 1. Bootstrap PRIMEIRO (apenas uma vez) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 2. Script de verificação de autenticação -->
+    <script src="/static/js/auth-check.js"></script>
+    
+    <!-- 3. Script do Menu (DEPOIS do Bootstrap) -->
+    <script src="/static/js/menu-loader.js"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
@@ -1902,6 +1857,7 @@
     </script>
 </body>
 </html>
+
 
 
 
