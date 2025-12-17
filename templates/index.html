@@ -5,14 +5,19 @@
     <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOTWeb</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    
+    <!-- Bootstrap CSS (CARREGAR APENAS UMA VEZ) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- CSS do Menu -->
+    <link rel="stylesheet" href="/static/css/menu-styles.css">
     <style>       
         body {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-top: 50px; /* Reduzido de 60px para 50px */
-            font-size: 14px; /* Adicionado - mesmo da página de controle */
+            padding-top: 50px;
+            font-size: 14px;
         }
        
         /* Menu de navegação fixo */
@@ -23,15 +28,15 @@
             right: 0;
             z-index: 1030;
             background-color: #d0e4ff !important;
-            padding: 0.2rem 0; /* Já estava correto */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Sombra mais sutil */
+            padding: 0.2rem 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             margin: 0;
         }
         
         .navbar-nav .nav-link {
-            padding: 0.25rem 0.5rem; /* Já estava correto */
+            padding: 0.25rem 0.5rem;
             color: #333 !important;
-            font-size: 0.9rem; /* Já estava correto */
+            font-size: 0.9rem;
         }
         
         .navbar-nav .nav-link:hover {
@@ -40,28 +45,28 @@
         }
         
         .nav-item {
-            margin-right: 3px; /* Já estava correto */
+            margin-right: 3px;
         }
         
         .dropdown-divider {
-            margin: 0.2rem 0; /* Já estava correto */
+            margin: 0.2rem 0;
         }
         
         .dropdown-menu {
-            font-size: 0.9rem; /* Já estava correto */
-            padding: 0.3rem 0; /* Já estava correto */
+            font-size: 0.9rem;
+            padding: 0.3rem 0;
         }
         
         .dropdown-item {
-            padding: 0.3rem 1rem; /* Já estava correto */
+            padding: 0.3rem 1rem;
         }
         
         .btn-logout {
             color: #333 !important;
             background-color: transparent;
             border: 1px solid rgba(0,0,0,0.3);
-            font-size: 0.85rem; /* Já estava correto */
-            padding: 0.2rem 0.6rem; /* Já estava correto */
+            font-size: 0.85rem;
+            padding: 0.2rem 0.6rem;
         }
         
         .btn-logout:hover {
@@ -126,87 +131,24 @@
         /* Responsividade */
         @media (max-width: 768px) {
             body {
-                padding-top: 0; /* Alterado para 0 - mesmo da página de controle */
-                font-size: 13px; /* Adicionado - ainda menor em mobile */
+                padding-top: 0;
+                font-size: 13px;
             }
             
             .navbar-expand-lg .navbar-collapse {
-                margin-top: 0; /* Adicionado */
+                margin-top: 0;
             }
             
             .fixed-navbar .container-fluid {
-                margin: 0; /* Adicionado */
-                padding-left: 10px; /* Adicionado */
-                padding-right: 10px; /* Adicionado */
+                margin: 0;
+                padding-left: 10px;
+                padding-right: 10px;
             }
         }
     </style>
-    <!-- Adicionar o script de verificação de autenticação -->
-    <script src="/static/js/auth-check.js"></script>
 </head>
 <body>
-    <!-- Menu de navegação fixo -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-navbar">
-        <div class="container">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <!-- Cadastros -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarCadastros" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Cadastros
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarCadastros">
-                            <li><a class="dropdown-item" href="/motoristas">Motorista</a></li>
-                            <li><a class="dropdown-item" href="/veiculos_frota">Veículo da Frota</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/cadastro_usuarios">Cadastro de Usuários</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Controles -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarControles" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Controles
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarControles">
-                            <li><a class="dropdown-item" href="/controle_locacoes">Locação de Veículos</a></li>
-                            <li><a class="dropdown-item" href="/fluxo_veiculos">Fluxo de Veículo</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/orcamento_passagens_aereas">Controle de Passagens Aéreas</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Vistorias -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarVistorias" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Vistorias
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarVistorias">
-                            <li><a class="dropdown-item" href="/nova_vistoria">Nova Vistoria Completa</a></li>
-                            <li><a class="dropdown-item" href="/nova_vistoria2">Nova Vistoria em Duas Etapas</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/vistorias">Lista Vistorias</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Agenda SEGEOP -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="/agendasegeop">
-                            📅 Agenda SEGEOP
-                        </a>
-                    </li>
-                </ul>
-                <!-- Botão Sair -->
-                <div class="ms-auto">
-                    <button class="btn btn-sm btn-logout" id="btnLogout" onclick="fazerLogout()">Sair</button>
-                </div>
-                
-            </div>
-        </div>
-    </nav>
+    <!-- O menu será carregado automaticamente aqui -->
     
     <!-- Conteúdo principal -->
     <div class="content">
@@ -233,10 +175,18 @@
             </div>
         </div>
     </footer>
+
+    <!-- SCRIPTS NA ORDEM CORRETA -->
+    <!-- 1. Bootstrap PRIMEIRO (apenas uma vez) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <!-- 2. Script de verificação de autenticação -->
+    <script src="/static/js/auth-check.js"></script>
     
-    <!-- Script para exibir informações do usuário -->
+    <!-- 3. Script do Menu (DEPOIS do Bootstrap) -->
+    <script src="/static/js/menu-loader.js"></script>
+    
+    <!-- 4. Scripts da página -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const usuarioNome = localStorage.getItem('usuario_nome');
@@ -246,16 +196,11 @@
             }
         });
         
-        // Função de logout (você pode ajustar conforme sua implementação)
-        //function fazerLogout() {
-        //    localStorage.removeItem('usuario_nome');
-        //    // Adicione aqui sua lógica de logout
-        //    window.location.href = '/login'; // ou sua página de login
-        //}
-
-        // Função de logout corrigida
+        // Função de logout
         function fazerLogout() {
             const btnLogout = document.getElementById('btnLogout');
+            
+            if (!btnLogout) return;
             
             // Desabilitar o botão para evitar múltiplos cliques
             btnLogout.disabled = true;
@@ -264,10 +209,10 @@
             // Fazer requisição para o endpoint de logout do backend
             fetch('/logout', {
                 method: 'GET',
-                credentials: 'same-origin' // Importante para manter os cookies de sessão
+                credentials: 'same-origin'
             })
             .then(response => {
-                // Independente da resposta, limpar o localStorage
+                // Limpar o localStorage
                 localStorage.removeItem('usuario_logado');
                 localStorage.removeItem('usuario_id');
                 localStorage.removeItem('usuario_login');
@@ -287,16 +232,16 @@
                 localStorage.removeItem('usuario_nome');
                 localStorage.removeItem('nivel_acesso');
                 
-                // Redirecionar para a página de login
                 window.location.href = '/login';
             })
             .finally(() => {
-                // Reabilitar o botão (caso algo dê errado)
-                btnLogout.disabled = false;
-                btnLogout.textContent = 'Sair';
+                // Reabilitar o botão
+                if (btnLogout) {
+                    btnLogout.disabled = false;
+                    btnLogout.textContent = 'Sair';
+                }
             });
         }
     </script>
 </body>
 </html>
-
