@@ -2,7 +2,7 @@
 /* CONFIGURAÇÃO GLOBAL DO BODY */
 /* ========================================= */
 body {
-    padding-top: 28px !important;
+    padding-top: 38px !important;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -22,12 +22,12 @@ body {
     background-color: #d0e4ff !important;
     
     /* ALTURA FIXA - NÃO ALTERAR */
-    height: 28px !important;
-    min-height: 28px !important;
-    max-height: 28px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
     
-    /* PADDING CONTROLADO */
-    padding: 0.2rem 0 !important;
+    /* PADDING MÍNIMO */
+    padding: 0 !important;
     
     /* SOMBRA SUTIL */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -51,14 +51,20 @@ body {
 /* BOTÃO TOGGLE (HAMBURGER) */
 /* ========================================= */
 .navbar-toggler {
-    padding: 0.25rem 0.5rem !important;
-    font-size: 1rem !important;
+    padding: 0.15rem 0.3rem !important;
+    font-size: 0.85rem !important;
     border: 1px solid rgba(0,0,0,0.1) !important;
     height: auto !important;
+    line-height: 1 !important;
 }
 
 .navbar-toggler:focus {
     box-shadow: none !important;
+}
+
+.navbar-toggler-icon {
+    width: 1em !important;
+    height: 1em !important;
 }
 
 /* ========================================= */
@@ -89,10 +95,10 @@ body {
 }
 
 .navbar-nav .nav-link {
-    padding: 0.25rem 0.75rem !important;
+    padding: 0.25rem 0.5rem !important;
     color: #333 !important;
     font-size: 0.9rem !important;
-    line-height: 1.5 !important;
+    line-height: 1.2 !important;
     height: auto !important;
     display: inline-flex !important;
     align-items: center !important;
@@ -147,11 +153,12 @@ body {
     background-color: transparent !important;
     border: 1px solid rgba(0,0,0,0.3) !important;
     font-size: 0.85rem !important;
-    padding: 0.2rem 0.6rem !important;
+    padding: 0.15rem 0.5rem !important;
     border-radius: 3px !important;
     transition: background-color 0.2s ease !important;
     white-space: nowrap !important;
     height: auto !important;
+    line-height: 1.2 !important;
 }
 
 .btn-logout:hover {
@@ -168,6 +175,7 @@ body {
     margin-left: auto !important;
     display: flex !important;
     align-items: center !important;
+    height: 100% !important;
 }
 
 /* ========================================= */
