@@ -11,7 +11,398 @@
     <!-- CSS do Menu -->
     <link rel="stylesheet" href="/static/css/menu-styles.css">
     
-    <link rel="stylesheet" href="/static/css/motoristas.css"> 
+    <style>
+        /* Reset básico */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-size: 14px; /* Mesmo tamanho base do controle_locacoes */
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 65px; /* Espaço para o footer */
+            padding-top: 0px; /* Espaço para o menu fixo */
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        /* Container principal */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 80px);
+        }
+        
+        .header-section {
+            position: sticky;
+            top: 50px;
+            background-color: #f8f9fa;
+            z-index: 100;
+            padding-top: 15px; /* Aumentado de 10px */
+            padding-bottom: 15px; /* Aumentado de 10px */
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .header-section h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            line-height: 1.4; /* Aumentado para dar mais espaço vertical */
+            padding: 0.5rem 0; /* Aumentado o padding */
+            min-height: 50px; /* Garante altura mínima */
+        }
+        
+        .header-section h2 { 
+            font-size: 1.5rem; 
+            font-weight: 600; 
+            margin-bottom: 1rem; 
+            line-height: 1.8; /* Aumentado para dar mais espaço vertical */ 
+            padding: 0.5rem 0; /* Aumentado o padding */ 
+            min-height: 50px; /* Garante altura mínima */ 
+        }
+        
+        /* Container de tabela */
+        .table-container {
+            overflow-y: auto;
+            max-height: calc(100vh - 250px);
+            margin-bottom: 15px; /* Reduzido */
+        }
+        
+        .table-header {
+            position: sticky;
+            top: 0;
+            background-color: #9ecde2;
+            z-index: 10;
+        }
+        
+        /* Tabela */
+        .table {
+            font-size: 0.75rem; /* Reduzido - mesmo do controle_locacoes */
+            margin-bottom: 0;
+        }
+        
+        .table thead th {
+            font-size: 0.75rem; /* Reduzido */
+            padding: 1.2rem 0.4rem !important; 
+            font-weight: 600;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            background-color: #9ecde2 !important;
+            z-index: 10;
+            vertical-align: middle; /* Centraliza o texto verticalmente */
+            min-height: 40px; /* Garante altura mínima */    
+        }
+        
+        .table tbody td {
+            padding: 0.3rem 0.4rem !important; /* Reduzido */
+            vertical-align: middle;
+            font-size: 0.75rem; /* Reduzido */
+        }
+        
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0,0,0,.02);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,123,255,0.08);
+        }
+        
+        /* Botões */
+        .btn {
+            font-size: 0.85rem; /* Reduzido */
+        }
+        
+        .btn-sm {
+            padding: 0.18rem 0.35rem; /* Reduzido */
+            font-size: 0.7rem; /* Reduzido */
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff;
+            border-top: 1px solid #dee2e6;
+            padding: 10px 0; /* Reduzido */
+            box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.08);
+            height: auto;
+            display: flex;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .footer .container-fluid {
+            width: 100%;
+            padding: 0 10px; /* Reduzido */
+        }
+        
+        .footer .d-flex {
+            width: 100%;
+        }
+        
+        .footer .btn {
+            font-size: 0.85rem; /* Reduzido */
+            padding: 0.35rem 0.7rem; /* Reduzido */
+        }
+        
+        /* Formulários */
+        .form-title {
+            background-color: #4a90e2;
+            color: white;
+            padding: 5px;
+            margin-bottom: 10px; /* Reduzido */
+            border-radius: 4px;
+            font-size: 1rem; /* Reduzido */
+        }
+        
+        #cadastroForm {
+            background-color: white;
+            padding: 15px; /* Reduzido */
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-label {
+            font-size: 0.8rem; /* Reduzido */
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+            color: #495057;
+        }
+        
+        .form-control,
+        .form-select {
+            font-size: 0.85rem; /* Reduzido */
+            padding: 0.35rem 0.5rem; /* Reduzido */
+            border-radius: 3px;
+        }
+        
+        .form-control-sm,
+        .form-select-sm {
+            font-size: 0.8rem; /* Reduzido */
+            padding: 0.25rem 0.4rem; /* Reduzido */
+        }
+        
+        /* Input group */
+        .input-group {
+            margin-bottom: 0.8rem; /* Reduzido */
+        }
+        
+        .input-group .btn {
+            font-size: 0.85rem; /* Reduzido */
+            padding: 0.35rem 0.7rem; /* Reduzido */
+        }
+        
+        /* Badges */
+        .badge {
+            font-size: 0.7rem; /* Reduzido */
+        }
+        
+        /* File name display */
+        .file-name {
+            margin-top: 5px;
+            color: #6c757d;
+            font-size: 0.8rem; /* Reduzido */
+        }
+        
+        .file-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .btn-visualizar-cnh {
+            margin-left: 10px;
+        }
+        
+        /* Motorista inativo */
+        .motorista-inativo {
+            color: #888888 !important;
+            font-style: italic;
+        }
+        
+        .motorista-inativo td, 
+        .motorista-inativo span, 
+        .motorista-inativo a {
+            color: #888888 !important;
+        }
+        
+        .motorista-inativo .btn-info {
+            opacity: 0.7;
+        }
+        
+        /* Responsividade Mobile */
+        @media (max-width: 768px) {
+            body {
+                padding-top: 60px;
+                font-size: 13px;
+            }
+            
+            .header-section {
+                top: 60px; /* Ajuste se necessário */
+                padding-top: 12px;
+                padding-bottom: 12px;
+            }
+            
+            .header-section h2 {
+                font-size: 1.3rem; /* Aumentado de 1.1rem */
+                line-height: 1.4;
+                padding: 0.2rem 0;
+            }
+            
+            .table {
+                font-size: 0.7rem;
+            }
+            
+            .table thead th {
+                font-size: 0.7rem;
+                padding: 1rem 0.3rem !important;
+                min-height: 35px;
+            }
+            
+            .table tbody td {
+                font-size: 0.7rem;
+                padding: 0.25rem 0.3rem !important;
+            }
+            
+            .btn-sm {
+                padding: 0.15rem 0.3rem;
+                font-size: 0.65rem;
+            }
+            
+            .footer .container-fluid {
+                padding: 0 8px;
+            }
+            
+            .footer .btn {
+                font-size: 0.75rem;
+                padding: 0.3rem 0.5rem;
+            }
+            
+            .table-container {
+                max-height: calc(100vh - 230px);
+            }
+        }
+        
+        /* Print */
+        @media print {
+            .footer {
+                display: none;
+            }
+        }
+        
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Modal de visualização de CNH */
+        .modal-cnh {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            overflow: auto;
+        }
+        
+        .modal-cnh-content {
+            position: relative;
+            background-color: #fff;
+            margin: 2% auto;
+            padding: 0;
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-cnh-header {
+            background-color: #4a90e2;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-cnh-header h5 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+        
+        .modal-cnh-close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+            transition: opacity 0.3s;
+        }
+        
+        .modal-cnh-close:hover {
+            opacity: 0.7;
+        }
+        
+        .modal-cnh-body {
+            padding: 0;
+            height: calc(90vh - 60px);
+        }
+        
+        .modal-cnh-body iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        @media (max-width: 768px) {
+            .modal-cnh-content {
+                width: 95%;
+                height: 85vh;
+                margin: 5% auto;
+            }
+            
+            .modal-cnh-body {
+                height: calc(85vh - 60px);
+            }
+        }        
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -678,6 +1069,7 @@
     </script>
 </body>
 </html>
+
 
 
 
