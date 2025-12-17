@@ -28,9 +28,41 @@ async function carregarMenu() {
             }
         }
         
+        // IMPORTANTE: Reinicializar os componentes do Bootstrap após carregar o menu
+        inicializarBootstrap();
+        
     } catch (error) {
         console.error('Erro ao carregar menu:', error);
     }
+}
+
+// Função para inicializar componentes do Bootstrap
+function inicializarBootstrap() {
+    // Aguardar um pequeno delay para garantir que o DOM foi atualizado
+    setTimeout(() => {
+        // Inicializar todos os dropdowns
+        const dropdowns = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+        dropdowns.forEach(dropdown => {
+            // Verificar se o Bootstrap está disponível
+            if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+                new bootstrap.Dropdown(dropdown);
+            }
+        });
+        
+        // Inicializar o collapse do navbar (para mobile)
+        const navbarToggler = document.querySelector('.navbar-toggler');
+        const navbarCollapse = document.querySelector('.navbar-collapse');
+        
+        if (navbarToggler && navbarCollapse) {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                new bootstrap.Collapse(navbarCollapse, {
+                    toggle: false
+                });
+            }
+        }
+        
+        console.log('Bootstrap inicializado no menu');
+    }, 100);
 }
 
 // Função de logout (global para ser acessível pelo onclick)
@@ -84,5 +116,6 @@ function fazerLogout() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', carregarMenu);
 } else {
+    // Se o DOM já está carregado, carregar imediatamente
     carregarMenu();
 }
