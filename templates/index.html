@@ -7,12 +7,12 @@
     <title>SOTWeb</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
     <style>       
-       
         body {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-top: 60px; /* Espaço para o menu fixo */
+            padding-top: 50px; /* Reduzido de 60px para 50px */
+            font-size: 14px; /* Adicionado - mesmo da página de controle */
         }
        
         /* Menu de navegação fixo */
@@ -23,15 +23,15 @@
             right: 0;
             z-index: 1030;
             background-color: #d0e4ff !important;
-            padding: 0.2rem 0; /* Reduzido */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 0.2rem 0; /* Já estava correto */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Sombra mais sutil */
             margin: 0;
         }
         
         .navbar-nav .nav-link {
-            padding: 0.25rem 0.5rem; /* Reduzido */
+            padding: 0.25rem 0.5rem; /* Já estava correto */
             color: #333 !important;
-            font-size: 0.9rem; /* Reduzido */
+            font-size: 0.9rem; /* Já estava correto */
         }
         
         .navbar-nav .nav-link:hover {
@@ -40,28 +40,28 @@
         }
         
         .nav-item {
-            margin-right: 3px; /* Reduzido */
+            margin-right: 3px; /* Já estava correto */
         }
         
         .dropdown-divider {
-            margin: 0.2rem 0; /* Reduzido */
+            margin: 0.2rem 0; /* Já estava correto */
         }
         
         .dropdown-menu {
-            font-size: 0.9rem; /* Reduzido */
-            padding: 0.3rem 0; /* Reduzido */
+            font-size: 0.9rem; /* Já estava correto */
+            padding: 0.3rem 0; /* Já estava correto */
         }
         
         .dropdown-item {
-            padding: 0.3rem 1rem; /* Reduzido */
+            padding: 0.3rem 1rem; /* Já estava correto */
         }
         
         .btn-logout {
             color: #333 !important;
             background-color: transparent;
             border: 1px solid rgba(0,0,0,0.3);
-            font-size: 0.85rem; /* Reduzido */
-            padding: 0.2rem 0.6rem; /* Reduzido */
+            font-size: 0.85rem; /* Já estava correto */
+            padding: 0.2rem 0.6rem; /* Já estava correto */
         }
         
         .btn-logout:hover {
@@ -126,7 +126,18 @@
         /* Responsividade */
         @media (max-width: 768px) {
             body {
-                padding-top: 80px; /* Mais espaço para dispositivos móveis */
+                padding-top: 0; /* Alterado para 0 - mesmo da página de controle */
+                font-size: 13px; /* Adicionado - ainda menor em mobile */
+            }
+            
+            .navbar-expand-lg .navbar-collapse {
+                margin-top: 0; /* Adicionado */
+            }
+            
+            .fixed-navbar .container-fluid {
+                margin: 0; /* Adicionado */
+                padding-left: 10px; /* Adicionado */
+                padding-right: 10px; /* Adicionado */
             }
         }
     </style>
@@ -288,6 +299,7 @@
     </script>
 </body>
 </html>
+
 
 
 
