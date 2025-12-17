@@ -1547,20 +1547,53 @@
         /* Notificação de Atualização */
         .update-notification {
             position: fixed;
-            top: 80px; /* ← AUMENTADO de 70px para 80px */
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 50%, #c44569 100%);
             color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            z-index: 10000; /* ← AUMENTADO de 9999 para 10000 */
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(255, 107, 107, 0.4), 0 0 0 3px rgba(255, 255, 255, 0.3);
+            z-index: 10000;
             animation: slideDownBounce 0.5s ease-out, pulse 2s ease-in-out infinite;
-            min-width: 400px; /* ← ADICIONAR */
-            text-align: center; /* ← ADICIONAR */
+            min-width: 400px;
+            text-align: center;
+            border: 3px solid rgba(255, 255, 255, 0.5);
         }
 
+        /* ========== GROUPBOX ESTILO DELPHI ========== */
+        .group-box {
+            border: 1px solid #c0c0c0;
+            border-radius: 4px;
+            padding: 15px 12px 12px 12px;
+            margin-bottom: 15px;
+            position: relative;
+            background: #fafafa;
+        }
+        
+        .group-box-legend {
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: white;
+            padding: 0 8px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+        }
+        
+        .group-box-legend .required {
+            color: #dc3545;
+            margin-left: 2px;
+        }
+        
+        .group-box-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
         @keyframes slideDownBounce {
             0% {
                 transform: translateX(-50%) translateY(-100px);
@@ -1577,69 +1610,74 @@
                 transform: translateX(-50%) translateY(0);
             }
         }
-
+        
         @keyframes pulse {
             0%, 100% {
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                box-shadow: 0 8px 24px rgba(255, 107, 107, 0.4), 0 0 0 3px rgba(255, 255, 255, 0.3);
             }
             50% {
-                box-shadow: 0 4px 20px rgba(102, 126, 234, 0.6);
+                box-shadow: 0 8px 32px rgba(255, 107, 107, 0.7), 0 0 0 5px rgba(255, 255, 255, 0.5);
             }
         }
-
+        
         .update-content {
             display: flex;
             align-items: center;
             gap: 15px;
         }
-
+        
         .update-icon {
-            font-size: 24px;
+            font-size: 28px;
             animation: rotate 2s linear infinite;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
-
+        
         @keyframes rotate {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-
+        
         .update-text {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
-
+        
         .btn-update-now {
             background: white;
-            color: #667eea;
+            color: #ff6b6b;
             border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 700;
             transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
-
+        
         .btn-update-now:hover {
             background: #f0f0f0;
-            transform: scale(1.05);
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
-
+        
         .btn-dismiss {
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.25);
             color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            padding: 6px 10px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: bold;
             transition: all 0.3s;
         }
-
+        
         .btn-dismiss:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(1.1);
         }
-
 
 
     </style>
@@ -1822,24 +1860,30 @@
                         </div>
                     </div>
                     
-                    <!-- Linha 4: Motorista com Radio Inline -->
-                    <div class="form-group">
-                        <label id="labelMotorista">Motorista <span class="required">*</span></label>
-                        <div class="motorista-inline-filter" id="motoristaFilter">
-                            <label>
-                                <input type="radio" name="tipoMotorista" value="segeop" checked> SEGEOP
-                            </label>
-                            <label>
-                                <input type="radio" name="tipoMotorista" value="todos"> Todos
-                            </label>
+                    <!-- Linha 4: Motorista (GroupBox Estilo Delphi) -->
+                    <div class="group-box">
+                        <div class="group-box-legend">
+                            <span id="labelMotorista">Motorista <span class="required">*</span></span>
                         </div>
-                        
-                        <select id="idMotorista" required></select>
-
-                        <!-- Campo Motorista Não Cadastrado (oculto por padrão) -->
-                        <div class="form-group" id="divNcMotorista" style="display: none;">
-                            <label>Motorista não cadastrado <span class="required">*</span></label>
-                            <input type="text" id="ncMotorista" maxlength="50">
+                        <div class="group-box-content">
+                            <!-- Radio Buttons -->
+                            <div class="motorista-inline-filter" id="motoristaFilter">
+                                <label>
+                                    <input type="radio" name="tipoMotorista" value="segeop" checked> SEGEOP
+                                </label>
+                                <label>
+                                    <input type="radio" name="tipoMotorista" value="todos"> Todos
+                                </label>
+                            </div>
+                            
+                            <!-- Select Motorista -->
+                            <select id="idMotorista" required></select>
+                    
+                            <!-- Campo Motorista Não Cadastrado (oculto por padrão) -->
+                            <div id="divNcMotorista" style="display: none; margin-top: 8px;">
+                                <label style="font-size: 12px; font-weight: 600;">Motorista não cadastrado <span class="required">*</span></label>
+                                <input type="text" id="ncMotorista" maxlength="50" style="margin-top: 4px;">
+                            </div>
                         </div>
                     </div>
                     
