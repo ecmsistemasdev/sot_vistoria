@@ -1,4 +1,12 @@
-/* Menu de navegação fixo */
+/* CONFIGURAÇÃO DO BODY PARA TODAS AS PÁGINAS */
+body {
+    padding-top: 56px !important; /* Espaço fixo para o menu */
+}
+
+/* ========================================= */
+/* ESTILOS DO NAVBAR - ALTURA CONTROLADA */
+/* ========================================= */
+
 .fixed-navbar {
     position: fixed;
     top: 0;
@@ -6,15 +14,56 @@
     right: 0;
     z-index: 1030;
     background-color: #d0e4ff !important;
-    padding: 0.2rem 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    margin: 0;
+    
+    /* CONTROLE DE ALTURA - NÃO ALTERAR */
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    
+    /* PADDING VERTICAL REDUZIDO */
+    padding: 0.5rem 0 !important;
+    
+    /* SOMBRA SUTIL */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    
+    /* REMOVER MARGENS */
+    margin: 0 !important;
+}
+
+/* Container do navbar */
+.fixed-navbar .container,
+.fixed-navbar .container-fluid {
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 15px !important;
+}
+
+/* ========================================= */
+/* ITENS DO MENU */
+/* ========================================= */
+
+.navbar-nav {
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+}
+
+.nav-item {
+    margin-right: 3px;
+    height: auto !important;
 }
 
 .navbar-nav .nav-link {
-    padding: 0.25rem 0.5rem;
+    padding: 0.25rem 0.75rem !important;
     color: #333 !important;
     font-size: 0.9rem;
+    line-height: 1.5 !important;
+    height: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap;
 }
 
 .navbar-nav .nav-link:hover {
@@ -22,9 +71,9 @@
     border-radius: 3px;
 }
 
-.nav-item {
-    margin-right: 3px;
-}
+/* ========================================= */
+/* DROPDOWNS */
+/* ========================================= */
 
 .dropdown-divider {
     margin: 0.2rem 0;
@@ -33,11 +82,21 @@
 .dropdown-menu {
     font-size: 0.9rem;
     padding: 0.3rem 0;
+    margin-top: 0.125rem !important;
 }
 
 .dropdown-item {
     padding: 0.3rem 1rem;
+    font-size: 0.9rem;
 }
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* ========================================= */
+/* BOTÃO SAIR */
+/* ========================================= */
 
 .btn-logout {
     color: #333 !important;
@@ -45,6 +104,9 @@
     border: 1px solid rgba(0,0,0,0.3);
     font-size: 0.85rem;
     padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+    white-space: nowrap;
 }
 
 .btn-logout:hover {
@@ -52,16 +114,153 @@
     color: #333 !important;
 }
 
-/* Responsividade */
-@media (max-width: 768px) {
-    .navbar-expand-lg .navbar-collapse {
-        margin-top: 0;
+/* ========================================= */
+/* COLLAPSE DO NAVBAR (MOBILE) */
+/* ========================================= */
+
+.navbar-collapse {
+    height: auto !important;
+}
+
+.navbar-toggler {
+    padding: 0.25rem 0.5rem;
+    font-size: 1rem;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.navbar-toggler:focus {
+    box-shadow: none;
+}
+
+/* ========================================= */
+/* RESPONSIVIDADE MOBILE */
+/* ========================================= */
+
+@media (max-width: 992px) {
+    /* Em mobile, remover padding do body */
+    body {
+        padding-top: 0 !important;
     }
     
-    .fixed-navbar .container-fluid,
-    .fixed-navbar .container {
-        margin: 0;
-        padding-left: 10px;
-        padding-right: 10px;
+    /* Menu não fixo em mobile */
+    .fixed-navbar {
+        position: relative !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+    }
+    
+    /* Ajustar padding do container em mobile */
+    .fixed-navbar .container,
+    .fixed-navbar .container-fluid {
+        padding: 10px 15px !important;
+    }
+    
+    /* Menu items em coluna no mobile */
+    .navbar-nav {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        width: 100%;
+    }
+    
+    .nav-item {
+        width: 100%;
+        margin-right: 0;
+    }
+    
+    .navbar-nav .nav-link {
+        width: 100%;
+        padding: 0.5rem 0.75rem !important;
+    }
+    
+    /* Botão sair em mobile */
+    .ms-auto {
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .btn-logout {
+        width: 100%;
+        text-align: center;
+    }
+    
+    /* Dropdown menu em mobile */
+    .dropdown-menu {
+        width: 100%;
+        position: static !important;
+        transform: none !important;
     }
 }
+
+@media (max-width: 768px) {
+    .fixed-navbar .container,
+    .fixed-navbar .container-fluid {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    
+    .navbar-nav .nav-link {
+        font-size: 0.85rem;
+    }
+}
+
+/* ========================================= */
+/* AJUSTES PARA EVITAR CONFLITOS */
+/* ========================================= */
+
+/* Garantir que nada ultrapasse o menu */
+.fixed-navbar * {
+    box-sizing: border-box;
+}
+
+/* Remover margens/paddings extras dos links */
+.navbar-brand {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Garantir alinhamento vertical */
+.navbar > .container,
+.navbar > .container-fluid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+/* ========================================= */
+/* ESTADOS DO MENU */
+/* ========================================= */
+
+/* Quando o menu está expandido em mobile */
+.navbar-collapse.show,
+.navbar-collapse.collapsing {
+    padding: 0 !important;
+}
+
+/* Link ativo (página atual) */
+.navbar-nav .nav-link.active {
+    font-weight: 600;
+    background-color: rgba(255,255,255,0.5);
+    border-radius: 3px;
+}
+
+/* ========================================= */
+/* COMPATIBILIDADE COM DIFERENTES TEMAS */
+/* ========================================= */
+
+/* Se você tiver tema escuro, adicione: */
+/*
+.fixed-navbar.dark-theme {
+    background-color: #2c3e50 !important;
+}
+
+.dark-theme .navbar-nav .nav-link {
+    color: #ecf0f1 !important;
+}
+
+.dark-theme .btn-logout {
+    color: #ecf0f1 !important;
+    border-color: rgba(255,255,255,0.3);
+}
+*/
