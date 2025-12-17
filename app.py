@@ -5363,16 +5363,20 @@ def check_agenda_updates():
         if not ultimo_check:
             return jsonify({'has_updates': False})
         
+        # ===== ADICIONAR: Obter usuário logado =====
+        usuario_atual = session.get('usuario_login', '')
+        
         cursor = mysql.connection.cursor()
         
-        # ===== USAR CONVERT_TZ PARA GARANTIR TIMEZONE =====
+        # ===== MODIFICAR: Filtrar para não mostrar alterações do próprio usuário =====
         cursor.execute("""
             SELECT 
                 COUNT(*) as total,
                 CONVERT_TZ(NOW(), '+00:00', '-04:00') as agora_local
             FROM AGENDA_SYNC 
             WHERE CONVERT_TZ(ULTIMA_ALTERACAO, '+00:00', '-04:00') > %s
-        """, (ultimo_check,))
+              AND (USUARIO_ALTERACAO IS NULL OR USUARIO_ALTERACAO != %s)
+        """, (ultimo_check, usuario_atual))
         
         result = cursor.fetchone()
         count = result[0]
@@ -5407,12 +5411,18 @@ def registrar_alteracao_agenda(tipo_operacao='UPDATE'):
     cursor = None
     try:
         cursor = mysql.connection.cursor()
+        
+        # ===== ADICIONAR: Obter usuário da sessão =====
+        usuario = session.get('usuario_login', '')
+        
         cursor.execute("""
             UPDATE AGENDA_SYNC 
             SET TIPO_OPERACAO = %s,
+                USUARIO_ALTERACAO = %s,
                 ULTIMA_ALTERACAO = NOW()
             WHERE ID_SYNC = 1
-        """, (tipo_operacao,))
+        """, (tipo_operacao, usuario))
+        
         mysql.connection.commit()
     except Exception as e:
         print(f"Erro ao registrar alteração: {str(e)}")
