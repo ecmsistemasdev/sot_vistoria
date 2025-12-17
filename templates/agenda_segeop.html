@@ -4323,12 +4323,15 @@
                 console.log('📅 Último check:', ultimoCheckTimestamp);
                 console.log('📦 Resposta:', result);
                 
+                // ===== ALTERADO: Sempre atualizar timestamp =====
+                if (result.last_update) {
+                    ultimoCheckTimestamp = result.last_update;
+                    console.log('📅 Timestamp atualizado:', ultimoCheckTimestamp);
+                }
+                
                 if (result.has_updates) {
                     console.log('🔔 ATUALIZAÇÕES DETECTADAS - MOSTRANDO NOTIFICAÇÃO!');
                     mostrarNotificacaoAtualizacao();
-                    // ===== ATUALIZAR TIMESTAMP APENAS SE TEM UPDATES =====
-                    ultimoCheckTimestamp = result.last_update;
-                    console.log('📅 Novo timestamp:', ultimoCheckTimestamp);
                 }
                 
             } catch (error) {
@@ -4378,7 +4381,7 @@
         // Dispensar notificação (continuar vendo dados antigos)
         function dispensarNotificacao() {
             esconderNotificacaoAtualizacao();
-            ultimoCheckTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            // ultimoCheckTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
         }
 
         // Carregar feriados do período atual
