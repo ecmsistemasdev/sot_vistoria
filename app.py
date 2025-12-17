@@ -7103,7 +7103,9 @@ def atualizar_orcamento_passagem(id_opa):
 @login_required
 def listar_orcamento_passagens():
     try:
-
+        # Obter o exercício dos parâmetros ou usar o ano atual
+        exercicio = request.args.get('exercicio', datetime.now().year)
+        
         cursor = mysql.connection.cursor()
         
         cursor.execute("""
@@ -7132,15 +7134,14 @@ def listar_orcamento_passagens():
             LEFT JOIN SUBITEM_ORCAMENTO si ON opa.ID_SUBITEM = si.ID_SUBITEM
             WHERE opa.EXERCICIO = %s
             ORDER BY opa.ID_OPA
-            """, (exercicio,)
+        """, (exercicio,))
         
-        row = cursor.fetchone()
         registros = []
         
         for row in cursor.fetchall():
-            vl_aprovado = float(row[10]) if row[10] else 0
-            vl_utilizado = float(row[14]) if row[14] else 0
-            vl_saldo = vl_aprovado - vl_utilizado
+            vl_aprovado = float(row[14]) if row[14] else 0
+            vl_utilizado = float(row[15]) if row[15] else 0
+            vl_saldo = float(row[16]) if row[16] else 0
             
             registros.append({
                 'id_opa': row[0],
@@ -7148,26 +7149,29 @@ def listar_orcamento_passagens():
                 'uo': row[2],
                 'unidade': row[3],
                 'fonte': row[4],
-                'programa': row[5],
-                'acao': row[6],
-                'subacao': row[7],
-                'objetivo': row[8],
-                'elemento_despesa': row[9],
-				'subitem': row[11],
+                'id_programa': row[5],
+                'programa': row[6],
+                'id_acao': row[7],
+                'acao': row[8],
+                'subacao': row[9],
+                'objetivo': row[10],
+                'elemento_despesa': row[11],
+                'id_subitem': row[12],
+                'subitem': row[13],
                 'vl_aprovado': vl_aprovado,
-                'nu_empenho': row[15],
-                'usuario': row[12],
                 'vl_utilizado': vl_utilizado,
-                'vl_saldo': vl_saldo
+                'vl_saldo': vl_saldo,
+                'nu_empenho': row[17]
             })
         
         cursor.close()
         return jsonify({'success': True, 'registros': registros})
+        
     except Exception as e:
         print(f"Erro ao listar orçamentos: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 #######################################
