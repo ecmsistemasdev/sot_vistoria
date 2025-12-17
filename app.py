@@ -7130,69 +7130,72 @@ def listar_orcamento_passagens():
                 opa.ID_SUBITEM,
                 CONCAT(si.ID_SUBITEM, ' - ', si.DE_SUBITEM) as subitem,
                 opa.VL_APROVADO,
-                COALESCE(opa.VL_UTILIZADO, 0) as vl_utilizado,
-                (opa.VL_APROVADO - COALESCE(opa.VL_UTILIZADO, 0)) as vl_saldo,
-                opa.NU_EMPENHO
+                opa.NU_EMPENHO,
+                COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as vl_utilizado
             FROM ORCAMENTO_PASSAGENS_AEREAS opa
             LEFT JOIN PROGRAMA_ORCAMENTO p ON opa.ID_PROGRAMA = p.ID_PROGRAMA
             LEFT JOIN ACAO_ORCAMENTARIA ao ON opa.ID_AO = ao.ID_AO
             LEFT JOIN SUBITEM_ORCAMENTO si ON opa.ID_SUBITEM = si.ID_SUBITEM
+            LEFT JOIN PASSAGENS_AEREAS_EMITIDAS pae ON opa.ID_OPA = pae.ID_OPA AND pae.ATIVO = 'S'
             WHERE opa.EXERCICIO = %s
+            GROUP BY 
+                opa.ID_OPA,
+                opa.EXERCICIO,
+                opa.UO,
+                opa.UNIDADE,
+                opa.FONTE,
+                opa.ID_PROGRAMA,
+                p.DE_PROGRAMA,
+                opa.ID_AO,
+                ao.DE_AO,
+                opa.SUBACAO,
+                opa.OBJETIVO,
+                opa.ELEMENTO_DESPESA,
+                opa.ID_SUBITEM,
+                si.ID_SUBITEM,
+                si.DE_SUBITEM,
+                opa.VL_APROVADO,
+                opa.NU_EMPENHO
             ORDER BY opa.ID_OPA
         """
         
-        print(f"DEBUG: Executando query...")
         cursor.execute(query, (exercicio,))
-        
-        print(f"DEBUG: Query executada com sucesso")
         
         rows = cursor.fetchall()
         print(f"DEBUG: Encontrados {len(rows)} registros")
         
         registros = []
         
-        for idx, row in enumerate(rows):
-            try:
-                print(f"DEBUG: Processando registro {idx + 1}")
-                print(f"DEBUG: Row data: {row}")
-                
-                # Tratar valores None e conversões
-                vl_aprovado = float(row[14]) if row[14] is not None else 0.0
-                vl_utilizado = float(row[15]) if row[15] is not None else 0.0
-                vl_saldo = float(row[16]) if row[16] is not None else 0.0
-                
-                registro = {
-                    'id_opa': row[0],
-                    'exercicio': row[1],
-                    'uo': row[2] or '',
-                    'unidade': row[3] or '',
-                    'fonte': row[4] or '',
-                    'id_programa': row[5],
-                    'programa': row[6] or '',
-                    'id_ao': row[7],
-                    'acao': row[8] or '',
-                    'subacao': row[9] or '',
-                    'objetivo': row[10] or '',
-                    'elemento_despesa': row[11] or '',
-                    'id_subitem': row[12],
-                    'subitem': row[13] or '',
-                    'vl_aprovado': vl_aprovado,
-                    'vl_utilizado': vl_utilizado,
-                    'vl_saldo': vl_saldo,
-                    'nu_empenho': row[17] or ''
-                }
-                
-                registros.append(registro)
-                print(f"DEBUG: Registro {idx + 1} processado com sucesso")
-                
-            except Exception as e:
-                print(f"ERRO ao processar registro {idx + 1}: {str(e)}")
-                print(f"ERRO: Row completa: {row}")
-                raise
+        for row in rows:
+            # Tratar valores None e conversões
+            vl_aprovado = float(row[14]) if row[14] is not None else 0.0
+            vl_utilizado = float(row[16]) if row[16] is not None else 0.0
+            vl_saldo = vl_aprovado - vl_utilizado
+            
+            registro = {
+                'id_opa': row[0],
+                'exercicio': row[1],
+                'uo': row[2] or '',
+                'unidade': row[3] or '',
+                'fonte': row[4] or '',
+                'id_programa': row[5],
+                'programa': row[6] or '',
+                'id_ao': row[7],
+                'acao': row[8] or '',
+                'subacao': row[9] or '',
+                'objetivo': row[10] or '',
+                'elemento_despesa': row[11] or '',
+                'id_subitem': row[12],
+                'subitem': row[13] or '',
+                'vl_aprovado': vl_aprovado,
+                'vl_utilizado': vl_utilizado,
+                'vl_saldo': vl_saldo,
+                'nu_empenho': row[15] or ''
+            }
+            
+            registros.append(registro)
         
         cursor.close()
-        
-        print(f"DEBUG: Retornando {len(registros)} registros")
         
         return jsonify({
             'success': True, 
