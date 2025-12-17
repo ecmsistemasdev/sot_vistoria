@@ -6908,9 +6908,9 @@ def verificar_email_fornecedor_enviado():
 
 ######  PASSAGENS AEREAS #######
 
-@app.route('/orcamento_passagens_aereas')
+@app.route('/controle_passagens_aereas')
 @login_required
-def orcamento_passagens_aereas():
+def controle_passagens_aereas():
     return render_template('orcamento_passagens_aereas.html')
 
 @app.route('/api/orcamento/dados_iniciais', methods=['GET'])
