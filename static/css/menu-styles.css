@@ -2,7 +2,7 @@
 /* CONFIGURAÇÃO GLOBAL DO BODY */
 /* ========================================= */
 body {
-    padding-top: 38px !important;
+    padding-top: 30px !important;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -14,23 +14,23 @@ body {
 /* ESTILOS DO NAVBAR - ALTURA FIXA */
 /* ========================================= */
 .fixed-navbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1030;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1030 !important;
     background-color: #d0e4ff !important;
     
     /* ALTURA FIXA - NÃO ALTERAR */
-    height: 38px !important;
-    min-height: 38px !important;
-    max-height: 38px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
     
     /* PADDING MÍNIMO */
     padding: 0 !important;
     
     /* SOMBRA SUTIL */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     
     /* REMOVER MARGENS */
     margin: 0 !important;
@@ -45,6 +45,12 @@ body {
     justify-content: space-between !important;
     padding: 0 15px !important;
     margin: 0 auto !important;
+    max-width: 100% !important;
+}
+
+/* Garantir que o navbar em si não tenha padding */
+.navbar.fixed-navbar {
+    padding: 0 !important;
 }
 
 /* ========================================= */
@@ -77,7 +83,7 @@ body {
 }
 
 /* ========================================= */
-/* ITENS DO MENU */
+/* ITENS DO MENU - FONTE FIXA */
 /* ========================================= */
 .navbar-nav {
     height: 100% !important;
@@ -88,13 +94,16 @@ body {
 }
 
 .nav-item {
-    margin-right: 3px;
+    margin-right: 3px !important;
     height: auto !important;
     display: flex !important;
     align-items: center !important;
 }
 
-.navbar-nav .nav-link {
+/* FORÇA O TAMANHO DA FONTE - CRÍTICO */
+.navbar-nav .nav-link,
+.fixed-navbar .navbar-nav .nav-link,
+.navbar .navbar-nav .nav-link {
     padding: 0.25rem 0.5rem !important;
     color: #333 !important;
     font-size: 0.9rem !important;
@@ -104,18 +113,30 @@ body {
     align-items: center !important;
     white-space: nowrap !important;
     transition: background-color 0.2s ease !important;
+    font-weight: normal !important;
 }
 
-.navbar-nav .nav-link:hover {
+.navbar-nav .nav-link:hover,
+.fixed-navbar .navbar-nav .nav-link:hover,
+.navbar .navbar-nav .nav-link:hover {
     background-color: rgba(255,255,255,0.3) !important;
     border-radius: 3px !important;
 }
 
 /* Link ativo (página atual) */
-.navbar-nav .nav-link.active {
+.navbar-nav .nav-link.active,
+.fixed-navbar .navbar-nav .nav-link.active,
+.navbar .navbar-nav .nav-link.active {
     font-weight: 600 !important;
     background-color: rgba(255,255,255,0.5) !important;
     border-radius: 3px !important;
+}
+
+/* Dropdown toggle - mesma fonte */
+.navbar-nav .dropdown-toggle,
+.fixed-navbar .navbar-nav .dropdown-toggle,
+.navbar .navbar-nav .dropdown-toggle {
+    font-size: 0.9rem !important;
 }
 
 /* ========================================= */
@@ -146,27 +167,37 @@ body {
 }
 
 /* ========================================= */
-/* BOTÃO SAIR */
+/* BOTÃO SAIR - FONTE FIXA */
 /* ========================================= */
-.btn-logout {
+.btn-logout,
+.fixed-navbar .btn-logout,
+button.btn-logout,
+.navbar .btn-logout {
     color: #333 !important;
     background-color: transparent !important;
     border: 1px solid rgba(0,0,0,0.3) !important;
     font-size: 0.85rem !important;
-    padding: 0.15rem 0.5rem !important;
+    padding: 0.2rem 0.6rem; !important; /* padding: 0.15rem 0.5rem !important; */
     border-radius: 3px !important;
     transition: background-color 0.2s ease !important;
     white-space: nowrap !important;
     height: auto !important;
     line-height: 1.2 !important;
+    font-weight: normal !important;
 }
 
-.btn-logout:hover {
+.btn-logout:hover,
+.fixed-navbar .btn-logout:hover,
+button.btn-logout:hover,
+.navbar .btn-logout:hover {
     background-color: rgba(0,0,0,0.1) !important;
     color: #333 !important;
 }
 
-.btn-logout:focus {
+.btn-logout:focus,
+.fixed-navbar .btn-logout:focus,
+button.btn-logout:focus,
+.navbar .btn-logout:focus {
     box-shadow: none !important;
 }
 
@@ -245,13 +276,11 @@ body {
 /* RESPONSIVIDADE MOBILE */
 /* ========================================= */
 @media (max-width: 992px) {
-    /* Em mobile, ajustar padding do body */
     body {
         padding-top: 0 !important;
         font-size: 13px;
     }
     
-    /* Menu não fixo em mobile */
     .fixed-navbar {
         position: relative !important;
         height: auto !important;
@@ -259,18 +288,15 @@ body {
         max-height: none !important;
     }
     
-    /* Ajustar padding do container em mobile */
     .fixed-navbar .container,
     .fixed-navbar .container-fluid {
         padding: 10px 15px !important;
     }
     
-    /* Navbar collapse em mobile */
     .navbar-collapse {
         padding: 10px 0 !important;
     }
     
-    /* Menu items em coluna no mobile */
     .navbar-nav {
         flex-direction: column !important;
         align-items: flex-start !important;
@@ -279,8 +305,8 @@ body {
     
     .nav-item {
         width: 100%;
-        margin-right: 0;
-        margin-bottom: 5px;
+        margin-right: 0 !important;
+        /* margin-bottom: 5px; */
     }
     
     .navbar-nav .nav-link {
@@ -288,7 +314,6 @@ body {
         padding: 0.5rem 0.75rem !important;
     }
     
-    /* Botão sair em mobile */
     .ms-auto {
         width: 100%;
         margin-top: 10px;
@@ -300,12 +325,15 @@ body {
         text-align: center;
     }
     
-    /* Dropdown menu em mobile */
     .dropdown-menu {
+        font-size: 0.9rem; 
+        padding: 0.3rem 0;
+        /*
         width: 100%;
         position: static !important;
         transform: none !important;
         margin-top: 5px !important;
+        */ 
     }
 }
 
@@ -322,12 +350,20 @@ body {
 }
 
 /* ========================================= */
-/* AJUSTES FINAIS */
+/* RESET DE ESTILOS DO BOOTSTRAP */
 /* ========================================= */
 
-/* Garantir que nada ultrapasse o menu */
-.fixed-navbar * {
-    box-sizing: border-box;
+/* Sobrescrever QUALQUER estilo do Bootstrap que possa afetar o menu */
+.navbar * {
+    box-sizing: border-box !important;
+}
+
+.navbar .nav-link {
+    font-size: 0.9rem !important;
+}
+
+.navbar .btn {
+    font-size: 0.85rem !important;
 }
 
 /* Garantir alinhamento */
@@ -350,19 +386,23 @@ body {
 }
 
 /* ========================================= */
-/* COMPATIBILIDADE COM TEMA ESCURO */
+/* RESET ESPECÍFICO PARA EVITAR CONFLITOS */
 /* ========================================= */
-/*
-.fixed-navbar.dark-theme {
-    background-color: #2c3e50 !important;
+
+/* Resetar estilos que podem vir de outras folhas de estilo */
+.fixed-navbar a {
+    font-size: inherit !important;
 }
 
-.dark-theme .navbar-nav .nav-link {
-    color: #ecf0f1 !important;
+.fixed-navbar button {
+    font-size: inherit !important;
 }
 
-.dark-theme .btn-logout {
-    color: #ecf0f1 !important;
-    border-color: rgba(255,255,255,0.3);
+/* Garantir especificidade máxima */
+nav.navbar.fixed-navbar .navbar-nav .nav-link {
+    font-size: 0.9rem !important;
 }
-*/
+
+nav.navbar.fixed-navbar .btn-logout {
+    font-size: 0.85rem !important;
+}
