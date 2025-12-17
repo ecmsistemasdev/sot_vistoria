@@ -5358,29 +5358,39 @@ def check_agenda_updates():
     """Verifica se houve alterações na agenda desde o último check"""
     cursor = None
     try:
-        ultimo_check = request.args.get('last_check')  # Timestamp da última verificação
+        ultimo_check = request.args.get('last_check')
         
         if not ultimo_check:
             return jsonify({'has_updates': False})
         
         cursor = mysql.connection.cursor()
         
-        # Verificar se houve alteração após o timestamp fornecido
+        # ===== USAR CONVERT_TZ PARA GARANTIR TIMEZONE =====
         cursor.execute("""
-            SELECT COUNT(*) 
+            SELECT 
+                COUNT(*) as total,
+                CONVERT_TZ(NOW(), '+00:00', '-04:00') as agora_local
             FROM AGENDA_SYNC 
-            WHERE ULTIMA_ALTERACAO > %s
+            WHERE CONVERT_TZ(ULTIMA_ALTERACAO, '+00:00', '-04:00') > %s
         """, (ultimo_check,))
         
-        count = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        count = result[0]
+        agora_local = result[1]
+        
+        # Formatar timestamp corretamente
+        if agora_local:
+            last_update = agora_local.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            last_update = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         return jsonify({
             'has_updates': count > 0,
-            'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'last_update': last_update
         })
         
     except Exception as e:
-        print(f"Erro em check_agenda_updates: {str(e)}")
+        app.logger.error(f"❌ Erro em check_agenda_updates: {str(e)}")
         return jsonify({'has_updates': False, 'error': str(e)}), 500
     finally:
         if cursor:
