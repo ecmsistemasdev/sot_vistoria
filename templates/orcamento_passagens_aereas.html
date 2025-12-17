@@ -364,6 +364,46 @@
         .form-grid-full {
             grid-column: 1 / -1;
         }
+
+        /* Estilização dos selects de filtro nos cabeçalhos */
+        table th select.filtro-select {
+            width: 100%;
+            padding: 4px 6px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid #3498db;
+            border-radius: 3px;
+            background-color: #525e69;
+            color: white;
+            margin-top: 0;
+            cursor: pointer;
+        }
+
+        table th select.filtro-select:focus {
+            outline: none;
+            border-color: #2980b9;
+            background-color: #3d4a54;
+        }
+
+        table th select.filtro-select option {
+            background-color: white;
+            color: #333;
+            font-size: 12px;
+            font-weight: normal;
+            padding: 5px;
+        }
+
+        /* Alinhamento dos cabeçalhos de valores */
+        table th.text-right {
+            text-align: right;
+        }
+
+        /* Reduzir fonte das opções dos selects do formulário modal */
+        #modalOrcamento select option {
+            font-size: 12px;
+        }
+
+
     </style>
 </head>
 <body>
@@ -392,33 +432,27 @@
                 <thead>
                     <tr>
                         <th style="width: 50px;">
-                            UO
-                            <br><select id="filtroUO" class="filtro-select"></select>
+                            <select id="filtroUO" class="filtro-select"></select>
                         </th>
                         <th style="width: 70px;">
-                            Unidade
-                            <br><select id="filtroUnidade" class="filtro-select"></select>
+                            <select id="filtroUnidade" class="filtro-select"></select>
                         </th>
                         <th style="width: 70px;">Fonte</th>
                         <th style="width: 140px;">
-                            Programa
-                            <br><select id="filtroPrograma" class="filtro-select"></select>
+                            <select id="filtroPrograma" class="filtro-select"></select>
                         </th>
                         <th style="width: 140px;">
-                            Ação Orçamentária
-                            <br><select id="filtroAcao" class="filtro-select"></select>
+                            <select id="filtroAcao" class="filtro-select"></select>
                         </th>
                         <th style="width: 70px;">Elemento</th>
                         <th style="width: 140px;">
-                            SubItem
-                            <br><select id="filtroSubitem" class="filtro-select"></select>
+                            <select id="filtroSubitem" class="filtro-select"></select>
                         </th>
-                        <th style="width: 100px;">Valor Aprovado</th>
-                        <th style="width: 100px;">Valor Utilizado</th>
-                        <th style="width: 100px;">Saldo</th>
+                        <th style="width: 100px;" class="text-right">Valor Aprovado</th>
+                        <th style="width: 100px;" class="text-right">Valor Utilizado</th>
+                        <th style="width: 100px;" class="text-right">Saldo</th>
                         <th style="width: 90px;">
-                            Nº Empenho
-                            <br><select id="filtroEmpenho" class="filtro-select"></select>
+                            <select id="filtroEmpenho" class="filtro-select"></select>
                         </th>
                         <th style="width: 70px;" class="text-center">Ações</th>
                     </tr>
@@ -631,42 +665,42 @@
             
             // Popular filtro UO
             const filtroUO = document.getElementById('filtroUO');
-            filtroUO.innerHTML = '<option value="">Todos</option>';
+            filtroUO.innerHTML = '<option value="">UO</option>';
             uos.forEach(uo => {
                 filtroUO.innerHTML += `<option value="${uo}">${uo}</option>`;
             });
             
             // Popular filtro Unidade
             const filtroUnidade = document.getElementById('filtroUnidade');
-            filtroUnidade.innerHTML = '<option value="">Todos</option>';
+            filtroUnidade.innerHTML = '<option value="">Unidade</option>';
             unidades.forEach(unidade => {
                 filtroUnidade.innerHTML += `<option value="${unidade}">${unidade}</option>`;
             });
             
             // Popular filtro Programa
             const filtroPrograma = document.getElementById('filtroPrograma');
-            filtroPrograma.innerHTML = '<option value="">Todos</option>';
+            filtroPrograma.innerHTML = '<option value="">Programa</option>';
             programas.forEach(programa => {
                 filtroPrograma.innerHTML += `<option value="${programa}">${programa}</option>`;
             });
             
             // Popular filtro Ação
             const filtroAcao = document.getElementById('filtroAcao');
-            filtroAcao.innerHTML = '<option value="">Todos</option>';
+            filtroAcao.innerHTML = '<option value="">Ação Orçamentária</option>';
             acoes.forEach(acao => {
                 filtroAcao.innerHTML += `<option value="${acao}">${acao}</option>`;
             });
             
             // Popular filtro SubItem
             const filtroSubitem = document.getElementById('filtroSubitem');
-            filtroSubitem.innerHTML = '<option value="">Todos</option>';
+            filtroSubitem.innerHTML = '<option value="">SubItem</option>';
             subitens.forEach(subitem => {
                 filtroSubitem.innerHTML += `<option value="${subitem}">${subitem}</option>`;
             });
             
             // Popular filtro Empenho
             const filtroEmpenho = document.getElementById('filtroEmpenho');
-            filtroEmpenho.innerHTML = '<option value="">Todos</option>';
+            filtroEmpenho.innerHTML = '<option value="">Nº Empenho</option>';
             empenhos.forEach(empenho => {
                 filtroEmpenho.innerHTML += `<option value="${empenho}">${empenho}</option>`;
             });
@@ -939,12 +973,12 @@
         }
 
         // Fechar modal ao clicar fora
-        window.onclick = function(event) {
-            const modal = document.getElementById('modalOrcamento');
-            if (event.target === modal) {
-                fecharModal();
-            }
-        }
+        // window.onclick = function(event) {
+        //     const modal = document.getElementById('modalOrcamento');
+        //     if (event.target === modal) {
+        //         fecharModal();
+        //     }
+        // }
 
         // Carregar ao iniciar
         window.addEventListener('DOMContentLoaded', carregarDadosIniciais);
