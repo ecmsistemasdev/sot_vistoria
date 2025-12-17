@@ -21,12 +21,46 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-top: 50px;
+            padding-top: 56px !important; /* Altura padrão do navbar Bootstrap */
             background-color: #f5f5f5;
             color: #333;
             font-size: 13px;
+            min-height: 100vh;
         }
 
+        /* ========================================= */
+        /* ESTILOS DO MENU - FORÇAR ALTURA CORRETA */
+        /* ========================================= */
+        .fixed-navbar {
+            height: 56px !important; /* Altura fixa do menu */
+            min-height: 56px !important;
+            max-height: 56px !important;
+            padding: 0.5rem 0 !important; /* Padding vertical reduzido */
+        }
+
+        .navbar-nav {
+            height: 100% !important;
+            align-items: center !important;
+        }
+
+        .navbar-nav .nav-link {
+            padding: 0.25rem 0.75rem !important;
+            line-height: 1.5 !important;
+            height: auto !important;
+        }
+
+        .navbar .container,
+        .navbar .container-fluid {
+            height: 100% !important;
+            align-items: center !important;
+        }
+
+        .navbar-collapse {
+            height: auto !important;
+        }
+
+        /* FIM ESTILOS DO MENU - FORÇAR ALTURA CORRETA */
+        
         .container {
             max-width: 1600px;
             margin: 0 auto;
