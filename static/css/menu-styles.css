@@ -2,7 +2,7 @@
 /* CONFIGURAÇÃO GLOBAL DO BODY */
 /* ========================================= */
 body {
-    padding-top: 56px !important;
+    padding-top: 28px !important;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -22,9 +22,9 @@ body {
     background-color: #d0e4ff !important;
     
     /* ALTURA FIXA - NÃO ALTERAR */
-    height: 56px !important;
-    min-height: 56px !important;
-    max-height: 56px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
     
     /* PADDING CONTROLADO */
     padding: 0.2rem 0 !important;
