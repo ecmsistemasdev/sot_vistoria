@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOTWeb</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css">
+    <!-- Bootstrap e outros CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">    
+    <!-- CSS do Menu -->
+    <link rel="stylesheet" href="/static/css/menu-styles.css">
     <style>       
         body {
             min-height: 100vh;
@@ -145,69 +149,7 @@
     <script src="/static/js/auth-check.js"></script>
 </head>
 <body>
-    <!-- Menu de navegação fixo -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-navbar">
-        <div class="container">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <!-- Cadastros -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarCadastros" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Cadastros
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarCadastros">
-                            <li><a class="dropdown-item" href="/motoristas">Motorista</a></li>
-                            <li><a class="dropdown-item" href="/veiculos_frota">Veículo da Frota</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/cadastro_usuarios">Cadastro de Usuários</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Controles -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarControles" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Controles
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarControles">
-                            <li><a class="dropdown-item" href="/controle_locacoes">Locação de Veículos</a></li>
-                            <li><a class="dropdown-item" href="/fluxo_veiculos">Fluxo de Veículo</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/orcamento_passagens_aereas">Controle de Passagens Aéreas</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Vistorias -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarVistorias" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Vistorias
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarVistorias">
-                            <li><a class="dropdown-item" href="/nova_vistoria">Nova Vistoria Completa</a></li>
-                            <li><a class="dropdown-item" href="/nova_vistoria2">Nova Vistoria em Duas Etapas</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/vistorias">Lista Vistorias</a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Agenda SEGEOP -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="/agendasegeop">
-                            📅 Agenda SEGEOP
-                        </a>
-                    </li>
-                </ul>
-                <!-- Botão Sair -->
-                <div class="ms-auto">
-                    <button class="btn btn-sm btn-logout" id="btnLogout" onclick="fazerLogout()">Sair</button>
-                </div>
-                
-            </div>
-        </div>
-    </nav>
-    
+    <!-- O menu será carregado automaticamente aqui -->
     <!-- Conteúdo principal -->
     <div class="content">
         <div class="container mt-4">
@@ -233,6 +175,12 @@
             </div>
         </div>
     </footer>
+
+    <!-- Scripts no final -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Script do Menu (IMPORTANTE: carregar antes dos seus scripts) -->
+    <script src="/static/js/menu-loader.js"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
     
@@ -299,6 +247,7 @@
     </script>
 </body>
 </html>
+
 
 
 
