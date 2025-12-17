@@ -7109,9 +7109,11 @@ def listar_orcamento_passagens():
             from datetime import datetime
             exercicio = datetime.now().year
         
+        print(f"DEBUG: Buscando orçamentos para exercício: {exercicio}")
+        
         cursor = mysql.connection.cursor()
         
-        cursor.execute("""
+        query = """
             SELECT 
                 opa.ID_OPA,
                 opa.EXERCICIO,
@@ -7137,38 +7139,60 @@ def listar_orcamento_passagens():
             LEFT JOIN SUBITEM_ORCAMENTO si ON opa.ID_SUBITEM = si.ID_SUBITEM
             WHERE opa.EXERCICIO = %s
             ORDER BY opa.ID_OPA
-        """, (exercicio,))
+        """
+        
+        print(f"DEBUG: Executando query...")
+        cursor.execute(query, (exercicio,))
+        
+        print(f"DEBUG: Query executada com sucesso")
+        
+        rows = cursor.fetchall()
+        print(f"DEBUG: Encontrados {len(rows)} registros")
         
         registros = []
         
-        for row in cursor.fetchall():
-            # Tratar valores None e conversões
-            vl_aprovado = float(row[14]) if row[14] is not None else 0.0
-            vl_utilizado = float(row[15]) if row[15] is not None else 0.0
-            vl_saldo = float(row[16]) if row[16] is not None else 0.0
-            
-            registros.append({
-                'id_opa': row[0],
-                'exercicio': row[1],
-                'uo': row[2] or '',
-                'unidade': row[3] or '',
-                'fonte': row[4] or '',
-                'id_programa': row[5],
-                'programa': row[6] or '',
-                'id_ao': row[7],
-                'acao': row[8] or '',
-                'subacao': row[9] or '',
-                'objetivo': row[10] or '',
-                'elemento_despesa': row[11] or '',
-                'id_subitem': row[12],
-                'subitem': row[13] or '',
-                'vl_aprovado': vl_aprovado,
-                'vl_utilizado': vl_utilizado,
-                'vl_saldo': vl_saldo,
-                'nu_empenho': row[17] or ''
-            })
+        for idx, row in enumerate(rows):
+            try:
+                print(f"DEBUG: Processando registro {idx + 1}")
+                print(f"DEBUG: Row data: {row}")
+                
+                # Tratar valores None e conversões
+                vl_aprovado = float(row[14]) if row[14] is not None else 0.0
+                vl_utilizado = float(row[15]) if row[15] is not None else 0.0
+                vl_saldo = float(row[16]) if row[16] is not None else 0.0
+                
+                registro = {
+                    'id_opa': row[0],
+                    'exercicio': row[1],
+                    'uo': row[2] or '',
+                    'unidade': row[3] or '',
+                    'fonte': row[4] or '',
+                    'id_programa': row[5],
+                    'programa': row[6] or '',
+                    'id_ao': row[7],
+                    'acao': row[8] or '',
+                    'subacao': row[9] or '',
+                    'objetivo': row[10] or '',
+                    'elemento_despesa': row[11] or '',
+                    'id_subitem': row[12],
+                    'subitem': row[13] or '',
+                    'vl_aprovado': vl_aprovado,
+                    'vl_utilizado': vl_utilizado,
+                    'vl_saldo': vl_saldo,
+                    'nu_empenho': row[17] or ''
+                }
+                
+                registros.append(registro)
+                print(f"DEBUG: Registro {idx + 1} processado com sucesso")
+                
+            except Exception as e:
+                print(f"ERRO ao processar registro {idx + 1}: {str(e)}")
+                print(f"ERRO: Row completa: {row}")
+                raise
         
         cursor.close()
+        
+        print(f"DEBUG: Retornando {len(registros)} registros")
         
         return jsonify({
             'success': True, 
@@ -7176,12 +7200,13 @@ def listar_orcamento_passagens():
         })
         
     except Exception as e:
-        print(f"Erro ao listar orçamentos: {str(e)}")
+        print(f"ERRO GERAL ao listar orçamentos: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
             'success': False, 
-            'error': str(e)
+            'error': str(e),
+            'message': 'Erro ao carregar orçamentos'
         }), 500
 
 
