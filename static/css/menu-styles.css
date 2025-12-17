@@ -21,7 +21,7 @@ body {
     max-height: 25px !important;
     
     /* PADDING VERTICAL REDUZIDO */
-    padding: 0.5rem 0 !important;
+    padding: 0.1rem 0 !important;
     
     /* SOMBRA SUTIL */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
