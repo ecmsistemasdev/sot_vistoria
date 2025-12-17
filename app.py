@@ -6928,7 +6928,7 @@ def obter_dados_iniciais_orcamento():
         acoes = [{'id': row[0], 'descricao': row[1]} for row in cursor.fetchall()]
         
         # Buscar subitens
-        cursor.execute("SELECT ID_SUBITEM, DE_SUBITEM FROM SUBITEM_ORCAMENTO ORDER BY DE_SUBITEM")
+        cursor.execute("SELECT ID_SUBITEM, DE_SUBITEM FROM SUBITEM_ORCAMENTO ORDER BY ID_SUBITEM")
         subitens = [{'id': row[0], 'descricao': row[1]} for row in cursor.fetchall()]
         
         # Buscar exercícios cadastrados
