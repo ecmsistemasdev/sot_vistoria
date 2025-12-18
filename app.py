@@ -7223,7 +7223,7 @@ def listar_orcamento_passagens():
 @login_required
 def passagens_controle():
     try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor = mysql.connection.cursor()
         
         # Buscar todas as passagens ativas
         cursor.execute("""
@@ -7267,24 +7267,28 @@ def passagens_controle():
         
         cursor.close()
         
+        # CORREÇÃO: use session.get() ao invés de session['name']
+        # Tenta pegar 'name', se não existir tenta 'username', se não existir usa 'Usuário'
+        # nome_usuario = session.get('name') or session.get('username') or 'Usuário'
+        nome_usuario = session.get('usuario_login')
+		
         return render_template('passagens_controle.html', 
                              passagens=passagens,
                              cias=cias,
-                             usuario=session['name'])
+                             usuario=nome_usuario)
     
     except Exception as e:
         flash(f'Erro ao carregar passagens: {str(e)}', 'danger')
-        return redirect(url_for('orcamento_passagens_aereas'))
-
+        # CORREÇÃO: use o nome correto da rota
+        return redirect(url_for('controle_passagens_aereas'))
+		
 
 # ----- ROTA: SALVAR NOVA PASSAGEM -----
 @app.route('/passagens/salvar', methods=['POST'])
+@login_required
 def passagens_salvar():
-    if 'loggedin' not in session:
-        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
-    
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+	try:
+        cursor = mysql.connection.cursor()
         
         # Receber dados do formulário
         id_opa = request.form.get('id_opa')
@@ -7346,12 +7350,10 @@ def passagens_salvar():
 
 # ----- ROTA: BUSCAR DADOS DE UMA PASSAGEM PARA EDIÇÃO -----
 @app.route('/passagens/buscar/<int:id_of>')
+@login_required
 def passagens_buscar(id_of):
-    if 'loggedin' not in session:
-        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
-    
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+	try:
+        cursor = mysql.connection.cursor()
         
         cursor.execute("""
             SELECT 
@@ -7390,12 +7392,10 @@ def passagens_buscar(id_of):
 
 # ----- ROTA: ATUALIZAR PASSAGEM -----
 @app.route('/passagens/atualizar', methods=['POST'])
+@login_required
 def passagens_atualizar():
-    if 'loggedin' not in session:
-        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
-    
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+	try:
+        cursor = mysql.connection.cursor()
         
         # Receber dados do formulário
         id_of = request.form.get('id_of_edit')
@@ -7466,12 +7466,10 @@ def passagens_atualizar():
 
 # ----- ROTA: EXCLUIR (INATIVAR) PASSAGEM -----
 @app.route('/passagens/excluir/<int:id_of>', methods=['POST'])
+@login_required
 def passagens_excluir(id_of):
-    if 'loggedin' not in session:
-        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
-    
     try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor = mysql.connection.cursor()
         
         # Inativar ao invés de deletar
         cursor.execute("""
@@ -7491,12 +7489,11 @@ def passagens_excluir(id_of):
 
 # ----- ROTA: FILTRAR PASSAGENS -----
 @app.route('/passagens/filtrar', methods=['POST'])
+@login_required
 def passagens_filtrar():
-    if 'loggedin' not in session:
-        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
     
     try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor = mysql.connection.cursor()
         
         # Receber filtros
         dt_inicio = request.form.get('dt_inicio_filtro')
