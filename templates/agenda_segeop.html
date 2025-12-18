@@ -13,8 +13,16 @@
     <link rel="stylesheet" href="/static/css/menu-styles.css">
 
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { box-sizing: border-box; }
 
+        /* Reset apenas para elementos fora do menu */
+        body > *:not(#menu-container),
+        .page-container,
+        .page-container * {
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding-top: 30px !important; /* ALTERADO: era 56px */
