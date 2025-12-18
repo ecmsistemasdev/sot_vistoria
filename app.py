@@ -7267,11 +7267,8 @@ def passagens_controle():
         
         cursor.close()
         
-        # CORREÇÃO: use session.get() ao invés de session['name']
-        # Tenta pegar 'name', se não existir tenta 'username', se não existir usa 'Usuário'
-        # nome_usuario = session.get('name') or session.get('username') or 'Usuário'
         nome_usuario = session.get('usuario_login')
-		
+        
         return render_template('passagens_controle.html', 
                              passagens=passagens,
                              cias=cias,
@@ -7279,15 +7276,14 @@ def passagens_controle():
     
     except Exception as e:
         flash(f'Erro ao carregar passagens: {str(e)}', 'danger')
-        # CORREÇÃO: use o nome correto da rota
         return redirect(url_for('controle_passagens_aereas'))
-		
+
 
 # ----- ROTA: SALVAR NOVA PASSAGEM -----
 @app.route('/passagens/salvar', methods=['POST'])
 @login_required
 def passagens_salvar():
-	try:
+    try:
         cursor = mysql.connection.cursor()
         
         # Receber dados do formulário
@@ -7352,7 +7348,7 @@ def passagens_salvar():
 @app.route('/passagens/buscar/<int:id_of>')
 @login_required
 def passagens_buscar(id_of):
-	try:
+    try:
         cursor = mysql.connection.cursor()
         
         cursor.execute("""
@@ -7394,7 +7390,7 @@ def passagens_buscar(id_of):
 @app.route('/passagens/atualizar', methods=['POST'])
 @login_required
 def passagens_atualizar():
-	try:
+    try:
         cursor = mysql.connection.cursor()
         
         # Receber dados do formulário
@@ -7491,7 +7487,6 @@ def passagens_excluir(id_of):
 @app.route('/passagens/filtrar', methods=['POST'])
 @login_required
 def passagens_filtrar():
-    
     try:
         cursor = mysql.connection.cursor()
         
@@ -7560,7 +7555,6 @@ def passagens_filtrar():
     
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erro ao filtrar: {str(e)}'}), 500
-
 
 #######################################
 
