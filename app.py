@@ -7213,6 +7213,360 @@ def listar_orcamento_passagens():
         }), 500
 
 
+# ============================================================================
+# MÓDULO: CONTROLE DE BILHETES - PASSAGENS AÉREAS
+# ============================================================================
+# Adicione estas rotas ao seu arquivo app.py
+
+# ----- ROTA: PÁGINA PRINCIPAL DE CONTROLE DE BILHETES -----
+@app.route('/passagens/controle')
+def passagens_controle():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Buscar todas as passagens ativas
+        cursor.execute("""
+            SELECT 
+                ID_OF,
+                ID_OPA,
+                ID_CONTROLE,
+                NU_SEI,
+                NOME_PASSAGEIRO,
+                DATE_FORMAT(DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
+                ROTA,
+                ORIGEM,
+                DESTINO,
+                DATE_FORMAT(DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
+                CIA,
+                LOCALIZADOR,
+                FORMAT(VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
+                FORMAT(VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
+                FORMAT(VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
+                FORMAT(VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
+                FORMAT(VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F,
+                VL_TARIFA,
+                VL_TAXA_EXTRA,
+                VL_ASSENTO,
+                VL_TAXA_EMBARQUE,
+                VL_TOTAL
+            FROM PASSAGENS_AEREAS_EMITIDAS
+            WHERE ATIVO = 'S'
+            ORDER BY DT_EMISSAO DESC, ID_OF DESC
+        """)
+        passagens = cursor.fetchall()
+        
+        # Buscar lista de companhias aéreas para o filtro
+        cursor.execute("""
+            SELECT DISTINCT CIA 
+            FROM PASSAGENS_AEREAS_EMITIDAS 
+            WHERE ATIVO = 'S' AND CIA IS NOT NULL
+            ORDER BY CIA
+        """)
+        cias = cursor.fetchall()
+        
+        cursor.close()
+        
+        return render_template('passagens_controle.html', 
+                             passagens=passagens,
+                             cias=cias,
+                             usuario=session['name'])
+    
+    except Exception as e:
+        flash(f'Erro ao carregar passagens: {str(e)}', 'danger')
+        return redirect(url_for('orcamento_passagens_aereas'))
+
+
+# ----- ROTA: SALVAR NOVA PASSAGEM -----
+@app.route('/passagens/salvar', methods=['POST'])
+def passagens_salvar():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Receber dados do formulário
+        id_opa = request.form.get('id_opa')
+        id_controle = request.form.get('id_controle')
+        nu_sei = request.form.get('nu_sei')
+        nome_passageiro = request.form.get('nome_passageiro')
+        dt_emissao = request.form.get('dt_emissao')
+        rota = request.form.get('rota')
+        origem = request.form.get('origem')
+        destino = request.form.get('destino')
+        dt_embarque = request.form.get('dt_embarque')
+        cia = request.form.get('cia')
+        localizador = request.form.get('localizador')
+        
+        # Valores financeiros - converter de formato brasileiro
+        vl_tarifa = request.form.get('vl_tarifa', '0').replace('.', '').replace(',', '.')
+        vl_taxa_extra = request.form.get('vl_taxa_extra', '0').replace('.', '').replace(',', '.')
+        vl_assento = request.form.get('vl_assento', '0').replace('.', '').replace(',', '.')
+        vl_taxa_embarque = request.form.get('vl_taxa_embarque', '0').replace('.', '').replace(',', '.')
+        vl_total = request.form.get('vl_total', '0').replace('.', '').replace(',', '.')
+        
+        # Converter datas de dd/mm/yyyy para yyyy-mm-dd
+        dt_emissao_sql = None
+        dt_embarque_sql = None
+        
+        if dt_emissao:
+            dt_emissao_sql = datetime.strptime(dt_emissao, '%d/%m/%Y').strftime('%Y-%m-%d')
+        
+        if dt_embarque:
+            dt_embarque_sql = datetime.strptime(dt_embarque, '%d/%m/%Y').strftime('%Y-%m-%d')
+        
+        # Inserir no banco
+        cursor.execute("""
+            INSERT INTO PASSAGENS_AEREAS_EMITIDAS (
+                ID_OPA, ID_CONTROLE, NU_SEI, NOME_PASSAGEIRO, DT_EMISSAO,
+                ROTA, ORIGEM, DESTINO, DT_EMBARQUE, CIA, LOCALIZADOR,
+                VL_TARIFA, VL_TAXA_EXTRA, VL_ASSENTO, VL_TAXA_EMBARQUE, VL_TOTAL,
+                ATIVO
+            ) VALUES (
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                'S'
+            )
+        """, (
+            id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
+            rota, origem, destino, dt_embarque_sql, cia, localizador,
+            vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'success': True, 'message': 'Passagem cadastrada com sucesso!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao salvar: {str(e)}'}), 500
+
+
+# ----- ROTA: BUSCAR DADOS DE UMA PASSAGEM PARA EDIÇÃO -----
+@app.route('/passagens/buscar/<int:id_of>')
+def passagens_buscar(id_of):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        cursor.execute("""
+            SELECT 
+                ID_OF,
+                ID_OPA,
+                ID_CONTROLE,
+                NU_SEI,
+                NOME_PASSAGEIRO,
+                DATE_FORMAT(DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO,
+                ROTA,
+                ORIGEM,
+                DESTINO,
+                DATE_FORMAT(DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE,
+                CIA,
+                LOCALIZADOR,
+                FORMAT(VL_TARIFA, 2, 'de_DE') as VL_TARIFA,
+                FORMAT(VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA,
+                FORMAT(VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO,
+                FORMAT(VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE,
+                FORMAT(VL_TOTAL, 2, 'de_DE') as VL_TOTAL
+            FROM PASSAGENS_AEREAS_EMITIDAS
+            WHERE ID_OF = %s AND ATIVO = 'S'
+        """, (id_of,))
+        
+        passagem = cursor.fetchone()
+        cursor.close()
+        
+        if passagem:
+            return jsonify({'success': True, 'data': passagem})
+        else:
+            return jsonify({'success': False, 'message': 'Passagem não encontrada'}), 404
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao buscar: {str(e)}'}), 500
+
+
+# ----- ROTA: ATUALIZAR PASSAGEM -----
+@app.route('/passagens/atualizar', methods=['POST'])
+def passagens_atualizar():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Receber dados do formulário
+        id_of = request.form.get('id_of_edit')
+        id_opa = request.form.get('id_opa_edit')
+        id_controle = request.form.get('id_controle_edit')
+        nu_sei = request.form.get('nu_sei_edit')
+        nome_passageiro = request.form.get('nome_passageiro_edit')
+        dt_emissao = request.form.get('dt_emissao_edit')
+        rota = request.form.get('rota_edit')
+        origem = request.form.get('origem_edit')
+        destino = request.form.get('destino_edit')
+        dt_embarque = request.form.get('dt_embarque_edit')
+        cia = request.form.get('cia_edit')
+        localizador = request.form.get('localizador_edit')
+        
+        # Valores financeiros
+        vl_tarifa = request.form.get('vl_tarifa_edit', '0').replace('.', '').replace(',', '.')
+        vl_taxa_extra = request.form.get('vl_taxa_extra_edit', '0').replace('.', '').replace(',', '.')
+        vl_assento = request.form.get('vl_assento_edit', '0').replace('.', '').replace(',', '.')
+        vl_taxa_embarque = request.form.get('vl_taxa_embarque_edit', '0').replace('.', '').replace(',', '.')
+        vl_total = request.form.get('vl_total_edit', '0').replace('.', '').replace(',', '.')
+        
+        # Converter datas
+        dt_emissao_sql = None
+        dt_embarque_sql = None
+        
+        if dt_emissao:
+            dt_emissao_sql = datetime.strptime(dt_emissao, '%d/%m/%Y').strftime('%Y-%m-%d')
+        
+        if dt_embarque:
+            dt_embarque_sql = datetime.strptime(dt_embarque, '%d/%m/%Y').strftime('%Y-%m-%d')
+        
+        # Atualizar no banco
+        cursor.execute("""
+            UPDATE PASSAGENS_AEREAS_EMITIDAS SET
+                ID_OPA = %s,
+                ID_CONTROLE = %s,
+                NU_SEI = %s,
+                NOME_PASSAGEIRO = %s,
+                DT_EMISSAO = %s,
+                ROTA = %s,
+                ORIGEM = %s,
+                DESTINO = %s,
+                DT_EMBARQUE = %s,
+                CIA = %s,
+                LOCALIZADOR = %s,
+                VL_TARIFA = %s,
+                VL_TAXA_EXTRA = %s,
+                VL_ASSENTO = %s,
+                VL_TAXA_EMBARQUE = %s,
+                VL_TOTAL = %s
+            WHERE ID_OF = %s AND ATIVO = 'S'
+        """, (
+            id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
+            rota, origem, destino, dt_embarque_sql, cia, localizador,
+            vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
+            id_of
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'success': True, 'message': 'Passagem atualizada com sucesso!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao atualizar: {str(e)}'}), 500
+
+
+# ----- ROTA: EXCLUIR (INATIVAR) PASSAGEM -----
+@app.route('/passagens/excluir/<int:id_of>', methods=['POST'])
+def passagens_excluir(id_of):
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Inativar ao invés de deletar
+        cursor.execute("""
+            UPDATE PASSAGENS_AEREAS_EMITIDAS 
+            SET ATIVO = 'N' 
+            WHERE ID_OF = %s
+        """, (id_of,))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({'success': True, 'message': 'Passagem excluída com sucesso!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao excluir: {str(e)}'}), 500
+
+
+# ----- ROTA: FILTRAR PASSAGENS -----
+@app.route('/passagens/filtrar', methods=['POST'])
+def passagens_filtrar():
+    if 'loggedin' not in session:
+        return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Receber filtros
+        dt_inicio = request.form.get('dt_inicio_filtro')
+        dt_fim = request.form.get('dt_fim_filtro')
+        cia_filtro = request.form.get('cia_filtro')
+        passageiro_filtro = request.form.get('passageiro_filtro')
+        localizador_filtro = request.form.get('localizador_filtro')
+        
+        # Montar query dinamicamente
+        query = """
+            SELECT 
+                ID_OF,
+                ID_OPA,
+                ID_CONTROLE,
+                NU_SEI,
+                NOME_PASSAGEIRO,
+                DATE_FORMAT(DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
+                ROTA,
+                ORIGEM,
+                DESTINO,
+                DATE_FORMAT(DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
+                CIA,
+                LOCALIZADOR,
+                FORMAT(VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
+                FORMAT(VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
+                FORMAT(VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
+                FORMAT(VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
+                FORMAT(VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F
+            FROM PASSAGENS_AEREAS_EMITIDAS
+            WHERE ATIVO = 'S'
+        """
+        
+        params = []
+        
+        if dt_inicio:
+            dt_inicio_sql = datetime.strptime(dt_inicio, '%d/%m/%Y').strftime('%Y-%m-%d')
+            query += " AND DT_EMISSAO >= %s"
+            params.append(dt_inicio_sql)
+        
+        if dt_fim:
+            dt_fim_sql = datetime.strptime(dt_fim, '%d/%m/%Y').strftime('%Y-%m-%d')
+            query += " AND DT_EMISSAO <= %s"
+            params.append(dt_fim_sql)
+        
+        if cia_filtro:
+            query += " AND CIA = %s"
+            params.append(cia_filtro)
+        
+        if passageiro_filtro:
+            query += " AND NOME_PASSAGEIRO LIKE %s"
+            params.append(f"%{passageiro_filtro}%")
+        
+        if localizador_filtro:
+            query += " AND LOCALIZADOR LIKE %s"
+            params.append(f"%{localizador_filtro}%")
+        
+        query += " ORDER BY DT_EMISSAO DESC, ID_OF DESC"
+        
+        cursor.execute(query, params)
+        passagens = cursor.fetchall()
+        cursor.close()
+        
+        return jsonify({'success': True, 'data': passagens})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Erro ao filtrar: {str(e)}'}), 500
+
+
 #######################################
 
 if __name__ == '__main__':
