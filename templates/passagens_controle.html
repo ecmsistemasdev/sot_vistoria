@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Bilhetes - Passagens Aéreas</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .content-wrapper {
+            padding: 30px;
+            margin-top: 20px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,.08);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 20px;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,.2);
+        }
+        
+        .btn-success {
+            border-radius: 5px;
+        }
+        
+        .btn-warning {
+            border-radius: 5px;
+        }
+        
+        .btn-danger {
+            border-radius: 5px;
+        }
+        
+        .btn-info {
+            border-radius: 5px;
+        }
+        
+        .table {
+            font-size: 14px;
+        }
+        
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .modal-header .close {
+            color: white;
+            opacity: 1;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .badge-success {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .action-buttons .btn {
+            padding: 5px 10px;
+            margin: 0 2px;
+            font-size: 12px;
+        }
+        
+        .valor-total {
+            font-weight: bold;
+            color: #28a745;
+            font-size: 16px;
+        }
+        
+        .required:after {
+            content: " *";
+            color: red;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .info-box i {
+            color: #2196F3;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/orcamento_passagens_aereas">
+                <i class="fas fa-plane"></i> Passagens Aéreas
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/orcamento_passagens_aereas">
+                            <i class="fas fa-arrow-left"></i> Voltar ao Orçamento
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-user"></i> {{ usuario }}
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <div class="container-fluid content-wrapper">
+        <!-- Cabeçalho -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes Emitidos</h2>
+                <p class="text-muted">Gerencie os bilhetes de passagens aéreas emitidas</p>
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <button class="btn btn-primary" data-toggle="modal" data-target="#modalCadastro">
+                    <i class="fas fa-plus"></i> Nova Passagem
+                </button>
+                <button class="btn btn-info" data-toggle="modal" data-target="#modalFiltros">
+                    <i class="fas fa-filter"></i> Filtros
+                </button>
+                <button class="btn btn-success" onclick="limparFiltros()">
+                    <i class="fas fa-sync"></i> Limpar Filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Card com a Tabela -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-list"></i> Bilhetes Emitidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="tabelaPassagens" class="table table-striped table-bordered table-hover" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Passageiro</th>
+                                        <th>CIA</th>
+                                        <th>Localizador</th>
+                                        <th>Rota</th>
+                                        <th>Dt. Emissão</th>
+                                        <th>Dt. Embarque</th>
+                                        <th>Valor Total</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for passagem in passagens %}
+                                    <tr>
+                                        <td>{{ passagem.ID_OF }}</td>
+                                        <td>{{ passagem.NOME_PASSAGEIRO }}</td>
+                                        <td><span class="badge badge-info">{{ passagem.CIA }}</span></td>
+                                        <td>{{ passagem.LOCALIZADOR }}</td>
+                                        <td><strong>{{ passagem.ROTA }}</strong></td>
+                                        <td>{{ passagem.DT_EMISSAO_F }}</td>
+                                        <td>{{ passagem.DT_EMBARQUE_F }}</td>
+                                        <td class="text-right">R$ {{ passagem.VL_TOTAL_F }}</td>
+                                        <td class="action-buttons text-center">
+                                            <button class="btn btn-sm btn-warning" onclick="editarPassagem({{ passagem.ID_OF }})" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="confirmarExclusao({{ passagem.ID_OF }})" title="Excluir">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Cadastro -->
+    <div class="modal fade" id="modalCadastro" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Cadastrar Nova Passagem</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form id="formCadastro" onsubmit="salvarPassagem(event)">
+                    <div class="modal-body">
+                        <div class="info-box">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Atenção:</strong> Campos marcados com <span style="color: red;">*</span> são obrigatórios.
+                        </div>
+                        
+                        <!-- Dados Administrativos -->
+                        <h6 class="mb-3"><i class="fas fa-file-alt"></i> Dados Administrativos</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>ID OPA</label>
+                                    <input type="number" class="form-control" name="id_opa" id="id_opa">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>ID Controle</label>
+                                    <input type="number" class="form-control" name="id_controle" id="id_controle">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Nº SEI</label>
+                                    <input type="text" class="form-control" name="nu_sei" id="nu_sei" maxlength="25">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Dados do Passageiro e Emissão -->
+                        <h6 class="mb-3"><i class="fas fa-user"></i> Dados do Passageiro</h6>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label class="required">Nome do Passageiro</label>
+                                    <input type="text" class="form-control" name="nome_passageiro" id="nome_passageiro" maxlength="100" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="required">Data de Emissão</label>
+                                    <input type="text" class="form-control data-mask" name="dt_emissao" id="dt_emissao" placeholder="dd/mm/aaaa" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Dados do Voo -->
+                        <h6 class="mb-3"><i class="fas fa-plane-departure"></i> Dados do Voo</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="required">Companhia Aérea</label>
+                                    <input type="text" class="form-control text-uppercase" name="cia" id="cia" maxlength="10" placeholder="Ex: GOL, LATAM" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="required">Localizador</label>
+                                    <input type="text" class="form-control text-uppercase" name="localizador" id="localizador" maxlength="20" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="required">Rota (Aeroportos)</label>
+                                    <input type="text" class="form-control text-uppercase" name="rota" id="rota" maxlength="45" placeholder="Ex: PVH/MAO/GRU" required>
+                                    <small class="form-text text-muted">Use "/" para separar os aeroportos</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="required">Origem</label>
+                                    <input type="text" class="form-control" name="origem" id="origem" maxlength="35" placeholder="Ex: Porto Velho" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="required">Destino</label>
+                                    <input type="text" class="form-control" name="destino" id="destino" maxlength="35" placeholder="Ex: São Paulo" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="required">Data de Embarque</label>
+                                    <input type="text" class="form-control data-mask" name="dt_embarque" id="dt_embarque" placeholder="dd/mm/aaaa" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Valores -->
+                        <h6 class="mb-3"><i class="fas fa-dollar-sign"></i> Valores</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="required">Valor Tarifa</label>
+                                    <input type="text" class="form-control money-mask" name="vl_tarifa" id="vl_tarifa" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Taxa Extra</label>
+                                    <input type="text" class="form-control money-mask" name="vl_taxa_extra" id="vl_taxa_extra" value="0,00">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Valor Assento</label>
+                                    <input type="text" class="form-control money-mask" name="vl_assento" id="vl_assento" value="0,00">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Taxa Embarque</label>
+                                    <input type="text" class="form-control money-mask" name="vl_taxa_embarque" id="vl_taxa_embarque" value="0,00">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="alert alert-success text-center">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-calculator"></i> 
+                                        Valor Total: <span id="vl_total_display" class="valor-total">R$ 0,00</span>
+                                    </h5>
+                                </div>
+                                <input type="hidden" name="vl_total" id="vl_total" value="0,00">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div class="modal fade" id="modalEdicao" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Passagem</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form id="formEdicao" onsubmit="atualizarPassagem(event)">
+                    <input type="hidden" name="id_of_edit" id="id_of_edit">
+                    <div class="modal-body">
+                        <!-- Mesma estrutura do formulário de cadastro, mas com IDs diferentes (_edit) -->
+                        <h6 class="mb-3"><i class="fas fa-file-alt"></i> Dados Administrativos</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>ID OPA</label>
+                                    <input type="number" class="form-control" name="id_opa_edit" id="id_opa_edit">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>ID Controle</label>
+                                    <input type="number" class="form-control" name="id_controle_edit" id="id_controle_edit">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Nº SEI</label>
+                                    <input type="text" class="form-control" name="nu_sei_edit" id="nu_sei_edit" maxlength="25">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h6 class="mb-3"><i class="fas fa-user"></i> Dados do Passageiro</h6>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label class="required">Nome do Passageiro</label>
+                                    <input type="text" class="form-control" name="nome_passageiro_edit" id="nome_passageiro_edit" maxlength="100" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="required">Data de Emissão</label>
+                                    <input type="text" class="form-control data-mask" name="dt_emissao_edit" id="dt_emissao_edit" placeholder="dd/mm/aaaa" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h6 class="mb-3"><i class="fas fa-plane-departure"></i> Dados do Voo</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="required">Companhia Aérea</label>
+                                    <input type="text" class="form-control text-uppercase" name="cia_edit" id="cia_edit" maxlength="10" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="required">Localizador</label>
+                                    <input type="text" class="form-control text-uppercase" name="localizador_edit" id="localizador_edit" maxlength="20" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="required">Rota (Aeroportos)</label>
+                                    <input type="text" class="form-control text-uppercase" name="rota_edit" id="rota_edit" maxlength="45" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="required">Origem</label>
+                                    <input type="text" class="form-control" name="origem_edit" id="origem_edit" maxlength="35" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="required">Destino</label>
+                                    <input type="text" class="form-control" name="destino_edit" id="destino_edit" maxlength="35" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="required">Data de Embarque</label>
+                                    <input type="text" class="form-control data-mask" name="dt_embarque_edit" id="dt_embarque_edit" placeholder="dd/mm/aaaa" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h6 class="mb-3"><i class="fas fa-dollar-sign"></i> Valores</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="required">Valor Tarifa</label>
+                                    <input type="text" class="form-control money-mask" name="vl_tarifa_edit" id="vl_tarifa_edit" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Taxa Extra</label>
+                                    <input type="text" class="form-control money-mask" name="vl_taxa_extra_edit" id="vl_taxa_extra_edit">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Valor Assento</label>
+                                    <input type="text" class="form-control money-mask" name="vl_assento_edit" id="vl_assento_edit">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Taxa Embarque</label>
+                                    <input type="text" class="form-control money-mask" name="vl_taxa_embarque_edit" id="vl_taxa_embarque_edit">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="alert alert-success text-center">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-calculator"></i> 
+                                        Valor Total: <span id="vl_total_display_edit" class="valor-total">R$ 0,00</span>
+                                    </h5>
+                                </div>
+                                <input type="hidden" name="vl_total_edit" id="vl_total_edit">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Atualizar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Filtros -->
+    <div class="modal fade" id="modalFiltros" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-filter"></i> Filtrar Passagens</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <form id="formFiltros" onsubmit="aplicarFiltros(event)">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Período de Emissão</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control data-mask" name="dt_inicio_filtro" id="dt_inicio_filtro" placeholder="Data Início">
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control data-mask" name="dt_fim_filtro" id="dt_fim_filtro" placeholder="Data Fim">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Companhia Aérea</label>
+                            <select class="form-control" name="cia_filtro" id="cia_filtro">
+                                <option value="">Todas</option>
+                                {% for cia in cias %}
+                                <option value="{{ cia.CIA }}">{{ cia.CIA }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Nome do Passageiro</label>
+                            <input type="text" class="form-control" name="passageiro_filtro" id="passageiro_filtro" placeholder="Digite o nome">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Localizador</label>
+                            <input type="text" class="form-control" name="localizador_filtro" id="localizador_filtro" placeholder="Digite o localizador">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times"></i> Fechar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Aplicar Filtros
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Inicializar DataTable
+            $('#tabelaPassagens').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
+                },
+                order: [[0, 'desc']],
+                pageLength: 25,
+                responsive: true
+            });
+
+            // Máscaras
+            $('.data-mask').mask('00/00/0000');
+            $('.money-mask').mask('#.##0,00', {reverse: true});
+
+            // Calcular total ao digitar nos campos de valor (Cadastro)
+            $('#vl_tarifa, #vl_taxa_extra, #vl_assento, #vl_taxa_embarque').on('keyup', function() {
+                calcularTotal();
+            });
+
+            // Calcular total ao digitar nos campos de valor (Edição)
+            $('#vl_tarifa_edit, #vl_taxa_extra_edit, #vl_assento_edit, #vl_taxa_embarque_edit').on('keyup', function() {
+                calcularTotalEdit();
+            });
+
+            // Limpar formulário ao fechar modal
+            $('#modalCadastro').on('hidden.bs.modal', function () {
+                $('#formCadastro')[0].reset();
+                $('#vl_total_display').text('R$ 0,00');
+            });
+        });
+
+        // Função para calcular o valor total (Cadastro)
+        function calcularTotal() {
+            var tarifa = parseFloat($('#vl_tarifa').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var taxaExtra = parseFloat($('#vl_taxa_extra').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var assento = parseFloat($('#vl_assento').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var taxaEmbarque = parseFloat($('#vl_taxa_embarque').val().replace(/\./g, '').replace(',', '.')) || 0;
+            
+            var total = tarifa + taxaExtra + assento + taxaEmbarque;
+            
+            $('#vl_total').val(total.toFixed(2).replace('.', ','));
+            $('#vl_total_display').text('R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+        }
+
+        // Função para calcular o valor total (Edição)
+        function calcularTotalEdit() {
+            var tarifa = parseFloat($('#vl_tarifa_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var taxaExtra = parseFloat($('#vl_taxa_extra_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var assento = parseFloat($('#vl_assento_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var taxaEmbarque = parseFloat($('#vl_taxa_embarque_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
+            
+            var total = tarifa + taxaExtra + assento + taxaEmbarque;
+            
+            $('#vl_total_edit').val(total.toFixed(2).replace('.', ','));
+            $('#vl_total_display_edit').text('R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+        }
+
+        // Salvar nova passagem
+        function salvarPassagem(event) {
+            event.preventDefault();
+            
+            $.ajax({
+                url: '/passagens/salvar',
+                type: 'POST',
+                data: $('#formCadastro').serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        alert('Passagem cadastrada com sucesso!');
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao salvar: ' + xhr.responseJSON.message);
+                }
+            });
+        }
+
+        // Buscar dados para edição
+        function editarPassagem(id) {
+            $.ajax({
+                url: '/passagens/buscar/' + id,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var data = response.data;
+                        
+                        // Preencher formulário de edição
+                        $('#id_of_edit').val(data.ID_OF);
+                        $('#id_opa_edit').val(data.ID_OPA);
+                        $('#id_controle_edit').val(data.ID_CONTROLE);
+                        $('#nu_sei_edit').val(data.NU_SEI);
+                        $('#nome_passageiro_edit').val(data.NOME_PASSAGEIRO);
+                        $('#dt_emissao_edit').val(data.DT_EMISSAO);
+                        $('#rota_edit').val(data.ROTA);
+                        $('#origem_edit').val(data.ORIGEM);
+                        $('#destino_edit').val(data.DESTINO);
+                        $('#dt_embarque_edit').val(data.DT_EMBARQUE);
+                        $('#cia_edit').val(data.CIA);
+                        $('#localizador_edit').val(data.LOCALIZADOR);
+                        $('#vl_tarifa_edit').val(data.VL_TARIFA);
+                        $('#vl_taxa_extra_edit').val(data.VL_TAXA_EXTRA);
+                        $('#vl_assento_edit').val(data.VL_ASSENTO);
+                        $('#vl_taxa_embarque_edit').val(data.VL_TAXA_EMBARQUE);
+                        $('#vl_total_edit').val(data.VL_TOTAL);
+                        
+                        // Calcular e exibir total
+                        calcularTotalEdit();
+                        
+                        // Abrir modal
+                        $('#modalEdicao').modal('show');
+                    } else {
+                        alert('Erro: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao buscar dados: ' + xhr.responseJSON.message);
+                }
+            });
+        }
+
+        // Atualizar passagem
+        function atualizarPassagem(event) {
+            event.preventDefault();
+            
+            $.ajax({
+                url: '/passagens/atualizar',
+                type: 'POST',
+                data: $('#formEdicao').serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        alert('Passagem atualizada com sucesso!');
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao atualizar: ' + xhr.responseJSON.message);
+                }
+            });
+        }
+
+        // Confirmar exclusão
+        function confirmarExclusao(id) {
+            if (confirm('Tem certeza que deseja excluir esta passagem?')) {
+                $.ajax({
+                    url: '/passagens/excluir/' + id,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Passagem excluída com sucesso!');
+                            location.reload();
+                        } else {
+                            alert('Erro: ' + response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        alert('Erro ao excluir: ' + xhr.responseJSON.message);
+                    }
+                });
+            }
+        }
+
+        // Aplicar filtros
+        function aplicarFiltros(event) {
+            event.preventDefault();
+            
+            $.ajax({
+                url: '/passagens/filtrar',
+                type: 'POST',
+                data: $('#formFiltros').serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        // Limpar tabela
+                        var table = $('#tabelaPassagens').DataTable();
+                        table.clear();
+                        
+                        // Adicionar linhas filtradas
+                        response.data.forEach(function(passagem) {
+                            table.row.add([
+                                passagem.ID_OF,
+                                passagem.NOME_PASSAGEIRO,
+                                '<span class="badge badge-info">' + passagem.CIA + '</span>',
+                                passagem.LOCALIZADOR,
+                                '<strong>' + passagem.ROTA + '</strong>',
+                                passagem.DT_EMISSAO_F,
+                                passagem.DT_EMBARQUE_F,
+                                'R$ ' + passagem.VL_TOTAL_F,
+                                '<button class="btn btn-sm btn-warning" onclick="editarPassagem(' + passagem.ID_OF + ')" title="Editar"><i class="fas fa-edit"></i></button> ' +
+                                '<button class="btn btn-sm btn-danger" onclick="confirmarExclusao(' + passagem.ID_OF + ')" title="Excluir"><i class="fas fa-trash"></i></button>'
+                            ]);
+                        });
+                        
+                        table.draw();
+                        $('#modalFiltros').modal('hide');
+                    } else {
+                        alert('Erro: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao filtrar: ' + xhr.responseJSON.message);
+                }
+            });
+        }
+
+        // Limpar filtros
+        function limparFiltros() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
