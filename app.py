@@ -7220,10 +7220,8 @@ def listar_orcamento_passagens():
 
 # ----- ROTA: PÁGINA PRINCIPAL DE CONTROLE DE BILHETES -----
 @app.route('/passagens/controle')
+@login_required
 def passagens_controle():
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))
-    
     try:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
