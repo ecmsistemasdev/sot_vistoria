@@ -13,23 +13,38 @@
     <link rel="stylesheet" href="/static/css/menu-styles.css">
 
     <style>
-        * { box-sizing: border-box; }
-
-        /* Reset apenas para elementos fora do menu */
-        body > *:not(#menu-container),
-        .page-container,
-        .page-container * {
-            margin: 0;
-            padding: 0;
-        }
-        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-top: 30px !important; /* ALTERADO: era 56px */
+            padding-top: 56px !important;
             background-color: #f5f5f5;
             color: #333;
             font-size: 13px;
             min-height: 100vh;
+        }
+
+        /* ⬇️ ADICIONAR TODO ESTE BLOCO AQUI ⬇️ */
+        /* ========================================= */
+        /* ESTILOS DO MENU - FORÇAR ALTURA E ALINHAMENTO CORRETO */
+        /* ========================================= */
+
+        .navbar-nav {
+            height: 100% !important;
+            align-items: center !important;
+        }
+
+        .navbar .container,
+        .navbar .container-fluid {
+            height: 100% !important;
+            align-items: center !important;
+        }
+
+        .navbar-collapse {
+            height: auto !important;
+        }
+
+        #menu-container * {
+            margin: revert;
+            padding: revert;
         }
 
         .page-container {
