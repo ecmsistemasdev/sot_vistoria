@@ -34,6 +34,11 @@
             margin: 20px auto;
             padding: 0 15px;
         }
+
+        /* Ajuste para o link Voltar ao Orçamento */
+        .page-header {
+            position: relative;
+        }
         
         /* Cabeçalho da página */
         .page-header {
@@ -43,6 +48,28 @@
             border-radius: 5px;
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .page-header .btn-voltar {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .page-header .btn-voltar:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .page-header .btn-voltar i {
+            margin-right: 5px;
         }
         
         .page-header h2 {
@@ -440,6 +467,29 @@
         <!-- Cabeçalho -->
         <div class="page-header">
             <h2><i class="fas fa-plane"></i> Controle de Bilhetes - Passagens Aéreas</h2>
+            <a class="btn-voltar" href="/controle_passagens_aereas">
+                <i class="fas fa-arrow-left"></i> Voltar ao Orçamento
+            </a>
+            <p>Gerenciamento completo de passagens aéreas emitidas</p>
+            <div class="page-actions">
+                <button class="btn btn-success" onclick="$('#modalCadastro').modal('show')">
+                    <i class="fas fa-plus"></i> Adicionar Bilhete
+                </button>
+                <button class="btn btn-primary" onclick="$('#modalFiltros').modal('show')">
+                    <i class="fas fa-filter"></i> Filtros
+                </button>
+                <button class="btn btn-secondary" onclick="limparFiltros()">
+                    <i class="fas fa-sync"></i> Limpar Filtros
+                </button>
+                <a class="nav-link" href="/controle_passagens_aereas">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Orçamento
+                </a> 
+            </div>
+        </div>
+        
+        <!--
+        <div class="page-header">
+            <h2><i class="fas fa-plane"></i> Controle de Bilhetes - Passagens Aéreas</h2>
             <p>Gerenciamento completo de passagens aéreas emitidas</p>
                         <div class="page-actions">
                 <button class="btn btn-success" onclick="$('#modalCadastro').modal('show')">
@@ -456,7 +506,8 @@
                 </a>   
             </div>
         </div>
-
+        -->
+        
         <!-- Card com Tabela -->
         <div class="card">
             <div class="card-header">
