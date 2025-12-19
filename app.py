@@ -7342,7 +7342,7 @@ def passagens_salvar():
                 'S'
             )
         """, (
-            id_of id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
+            id_of, id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
             rota, origem, destino, dt_embarque_sql, cia, localizador,
             vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total
         ))
