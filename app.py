@@ -7681,7 +7681,7 @@ def passagens_filtrar():
         from datetime import datetime
         cursor = mysql.connection.cursor()
         
-        # Receber filtros
+        # Receber filtros - AGORA VEM NO FORMATO yyyy-mm-dd DO input type="date"
         dt_inicio = request.form.get('dt_inicio_filtro')
         dt_fim = request.form.get('dt_fim_filtro')
         cia_filtro = request.form.get('cia_filtro')
@@ -7696,13 +7696,13 @@ def passagens_filtrar():
                 pae.ID_CONTROLE,
                 pae.NU_SEI,
                 pae.NOME_PASSAGEIRO,
-                DATE_FORMAT(pae.DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
+                DATE_FORMAT(pae.DT_EMISSAO, '%%d/%%m/%%Y') as DT_EMISSAO_F,
                 pae.ROTA,
                 pae.CODIGO_ORIGEM,
                 pae.CODIGO_DESTINO,
                 CONCAT(ao.CODIGO_IATA, ' - ', ao.CIDADE, '/', ao.UF_ESTADO) as ORIGEM_FORMATADA,
                 CONCAT(ad.CODIGO_IATA, ' - ', ad.CIDADE, '/', ad.UF_ESTADO) as DESTINO_FORMATADO,
-                DATE_FORMAT(pae.DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
+                DATE_FORMAT(pae.DT_EMBARQUE, '%%d/%%m/%%Y') as DT_EMBARQUE_F,
                 pae.CIA,
                 pae.LOCALIZADOR,
                 FORMAT(pae.VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
@@ -7718,37 +7718,39 @@ def passagens_filtrar():
         
         params = []
         
-        if dt_inicio:
-            dt_inicio_sql = datetime.strptime(dt_inicio, '%d/%m/%Y').strftime('%Y-%m-%d')
+        # As datas já vêm no formato yyyy-mm-dd do input type="date"
+        if dt_inicio and dt_inicio.strip():
             query += " AND pae.DT_EMISSAO >= %s"
-            params.append(dt_inicio_sql)
+            params.append(dt_inicio)
         
-        if dt_fim:
-            dt_fim_sql = datetime.strptime(dt_fim, '%d/%m/%Y').strftime('%Y-%m-%d')
+        if dt_fim and dt_fim.strip():
             query += " AND pae.DT_EMISSAO <= %s"
-            params.append(dt_fim_sql)
+            params.append(dt_fim)
         
-        if cia_filtro:
+        if cia_filtro and cia_filtro.strip():
             query += " AND pae.CIA = %s"
             params.append(cia_filtro)
         
-        if passageiro_filtro:
+        if passageiro_filtro and passageiro_filtro.strip():
             query += " AND pae.NOME_PASSAGEIRO LIKE %s"
             params.append(f"%{passageiro_filtro}%")
         
-        if localizador_filtro:
+        if localizador_filtro and localizador_filtro.strip():
             query += " AND pae.LOCALIZADOR LIKE %s"
             params.append(f"%{localizador_filtro}%")
         
         query += " ORDER BY pae.DT_EMISSAO DESC, pae.ID_OF DESC"
         
-        cursor.execute(query, params)
+        cursor.execute(query, tuple(params))
         passagens = cursor.fetchall()
         cursor.close()
         
         return jsonify({'success': True, 'data': passagens})
     
     except Exception as e:
+        print(f"Erro ao filtrar passagens: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': f'Erro ao filtrar: {str(e)}'}), 500
 
 # ----- ROTA: BUSCAR ORÇAMENTOS DISPONÍVEIS PARA SELEÇÃO -----
