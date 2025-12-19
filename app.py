@@ -7279,6 +7279,16 @@ def passagens_controle():
         return redirect(url_for('controle_passagens_aereas'))
 
 
+def obter_proximo_id_of():
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT MAX(ID_ITEM) FROM PASSAGENS_AEREAS_EMITIDAS")
+    resultado = cursor.fetchone()
+    cursor.close()
+    
+    ultimo_id = resultado[0] if resultado[0] else 0
+    return ultimo_id + 1
+
+
 # ----- ROTA: SALVAR NOVA PASSAGEM -----
 @app.route('/passagens/salvar', methods=['POST'])
 @login_required
@@ -7316,21 +7326,23 @@ def passagens_salvar():
         if dt_embarque:
             dt_embarque_sql = datetime.strptime(dt_embarque, '%d/%m/%Y').strftime('%Y-%m-%d')
         
+        id_of = obter_proximo_id_of()
+        
         # Inserir no banco
         cursor.execute("""
             INSERT INTO PASSAGENS_AEREAS_EMITIDAS (
-                ID_OPA, ID_CONTROLE, NU_SEI, NOME_PASSAGEIRO, DT_EMISSAO,
+                ID_OF, ID_OPA, ID_CONTROLE, NU_SEI, NOME_PASSAGEIRO, DT_EMISSAO,
                 ROTA, ORIGEM, DESTINO, DT_EMBARQUE, CIA, LOCALIZADOR,
                 VL_TARIFA, VL_TAXA_EXTRA, VL_ASSENTO, VL_TAXA_EMBARQUE, VL_TOTAL,
                 ATIVO
             ) VALUES (
-                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
                 'S'
             )
         """, (
-            id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
+            id_of id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
             rota, origem, destino, dt_embarque_sql, cia, localizador,
             vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total
         ))
