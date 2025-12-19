@@ -7388,7 +7388,7 @@ def buscar_aeroportos():
 def obter_passagem(id_of):
     """
     Obter dados de uma passagem específica para edição
-    CORRIGIDO: Retorna todos os campos necessários
+    CORRIGIDO: Formato de data correto
     """
     try:
         cursor = mysql.connection.cursor()
@@ -7400,13 +7400,13 @@ def obter_passagem(id_of):
                 pae.ID_CONTROLE,
                 pae.NU_SEI,
                 pae.NOME_PASSAGEIRO,
-                DATE_FORMAT(pae.DT_EMISSAO, '%Y-%m-%d') as DT_EMISSAO,
+                DATE_FORMAT(pae.DT_EMISSAO, '%%Y-%%m-%%d') as DT_EMISSAO,
                 pae.ROTA,
                 pae.CODIGO_ORIGEM,
                 pae.CODIGO_DESTINO,
                 pae.ORIGEM,
                 pae.DESTINO,
-                DATE_FORMAT(pae.DT_EMBARQUE, '%Y-%m-%d') as DT_EMBARQUE,
+                DATE_FORMAT(pae.DT_EMBARQUE, '%%Y-%%m-%%d') as DT_EMBARQUE,
                 pae.CIA,
                 pae.LOCALIZADOR,
                 pae.VL_TARIFA,
