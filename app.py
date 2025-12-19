@@ -7238,8 +7238,6 @@ def passagens_controle():
                 pae.CODIGO_DESTINO,
                 CONCAT(ao.CODIGO_IATA, ' - ', ao.CIDADE, '/', ao.UF_ESTADO) as ORIGEM_FORMATADA,
                 CONCAT(ad.CODIGO_IATA, ' - ', ad.CIDADE, '/', ad.UF_ESTADO) as DESTINO_FORMATADO,
-                pae.ORIGEM,
-                pae.DESTINO,
                 DATE_FORMAT(pae.DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
                 pae.CIA,
                 pae.LOCALIZADOR,
@@ -7388,7 +7386,6 @@ def buscar_aeroportos():
 def obter_passagem(id_of):
     """
     Obter dados de uma passagem específica para edição
-    CORRIGIDO: Formato de data correto
     """
     try:
         cursor = mysql.connection.cursor()
@@ -7480,12 +7477,12 @@ def obter_passagem(id_of):
         }), 500
 
 
-# ----- ROTA: SALVAR NOVA PASSAGEM -----
+# ----- ROTA: SALVAR NOVA PASSAGEM - ATUALIZADA COM CAMPOS MAIÚSCULOS -----
 @app.route('/passagens/salvar', methods=['POST'])
 @login_required
 def passagens_salvar():
     """
-    Salvar nova passagem - ATUALIZADA para usar códigos de aeroportos
+    Salvar nova passagem - ATUALIZADA para gravar CIA, LOCALIZADOR e ROTA em MAIÚSCULO
     """
     try:
         cursor = mysql.connection.cursor()
@@ -7496,7 +7493,11 @@ def passagens_salvar():
         nu_sei = request.form.get('nu_sei')
         nome_passageiro = request.form.get('nome_passageiro')
         dt_emissao = request.form.get('dt_emissao')
-        rota = request.form.get('rota')
+        
+        # FORÇAR MAIÚSCULAS nos campos CIA, LOCALIZADOR e ROTA
+        rota = request.form.get('rota', '').upper()
+        cia = request.form.get('cia', '').upper()
+        localizador = request.form.get('localizador', '').upper()
         
         # Códigos IATA dos aeroportos
         codigo_origem = request.form.get('codigo_origem')
@@ -7507,8 +7508,6 @@ def passagens_salvar():
         destino = request.form.get('destino', '')
         
         dt_embarque = request.form.get('dt_embarque')
-        cia = request.form.get('cia')
-        localizador = request.form.get('localizador')
         
         # Valores financeiros - converter de formato brasileiro
         vl_tarifa = request.form.get('vl_tarifa', '0').replace('.', '').replace(',', '.')
@@ -7560,12 +7559,12 @@ def passagens_salvar():
         return jsonify({'success': False, 'message': f'Erro ao salvar: {str(e)}'}), 500
 
 
-# ----- ROTA ATUALIZADA: ATUALIZAR PASSAGEM -----
+# ----- ROTA ATUALIZADA: ATUALIZAR PASSAGEM - COM CAMPOS MAIÚSCULOS -----
 @app.route('/passagens/atualizar', methods=['POST'])
 @login_required
 def passagens_atualizar():
     """
-    Atualizar passagem - ATUALIZADA para usar códigos de aeroportos
+    Atualizar passagem - ATUALIZADA para gravar CIA, LOCALIZADOR e ROTA em MAIÚSCULO
     """
     try:
         cursor = mysql.connection.cursor()
@@ -7577,7 +7576,11 @@ def passagens_atualizar():
         nu_sei = request.form.get('nu_sei_edit')
         nome_passageiro = request.form.get('nome_passageiro_edit')
         dt_emissao = request.form.get('dt_emissao_edit')
-        rota = request.form.get('rota_edit')
+        
+        # FORÇAR MAIÚSCULAS nos campos CIA, LOCALIZADOR e ROTA
+        rota = request.form.get('rota_edit', '').upper()
+        cia = request.form.get('cia_edit', '').upper()
+        localizador = request.form.get('localizador_edit', '').upper()
         
         # Códigos IATA dos aeroportos
         codigo_origem = request.form.get('codigo_origem_edit')
@@ -7588,8 +7591,6 @@ def passagens_atualizar():
         destino = request.form.get('destino_edit', '')
         
         dt_embarque = request.form.get('dt_embarque_edit')
-        cia = request.form.get('cia_edit')
-        localizador = request.form.get('localizador_edit')
         
         # Valores financeiros
         vl_tarifa = request.form.get('vl_tarifa_edit', '0').replace('.', '').replace(',', '.')
@@ -7765,7 +7766,8 @@ def listar_orcamentos_disponiveis():
                 opa.ID_OPA,
                 opa.UO,
                 opa.UNIDADE,
-                CONCAT(p.ID_PROGRAMA, ' - ', p.DE_PROGRAMA) as PROGRAMA,
+                p.ID_PROGRAMA,
+                p.DE_PROGRAMA,
                 CONCAT(si.ID_SUBITEM, ' - ', si.DE_SUBITEM) as SUBITEM,
                 opa.VL_APROVADO,
                 COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as VL_UTILIZADO,
@@ -7797,17 +7799,20 @@ def listar_orcamentos_disponiveis():
         
         registros = []
         for row in rows:
+            # Formatar programa completo: ID - DESCRIÇÃO
+            programa_completo = f"{row[3]} - {row[4]}" if row[3] and row[4] else ''
+            
             registro = {
                 'id_opa': row[0],
                 'uo': row[1] or '',
                 'unidade': row[2] or '',
-                'programa': row[3] or '',
-                'subitem': row[4] or '',
-                'vl_aprovado': float(row[5]) if row[5] else 0.0,
-                'vl_utilizado': float(row[6]) if row[6] else 0.0,
-                'saldo': float(row[7]) if row[7] else 0.0,
-                'nu_empenho': row[8] or '',
-                'exercicio': row[9]
+                'programa': programa_completo,
+                'subitem': row[5] or '',
+                'vl_aprovado': float(row[6]) if row[6] else 0.0,
+                'vl_utilizado': float(row[7]) if row[7] else 0.0,
+                'saldo': float(row[8]) if row[8] else 0.0,
+                'nu_empenho': row[9] or '',
+                'exercicio': row[10]
             }
             registros.append(registro)
         
@@ -7826,6 +7831,7 @@ def listar_orcamentos_disponiveis():
             'success': False,
             'error': str(e)
         }), 500
+
 
 #######################################
 
