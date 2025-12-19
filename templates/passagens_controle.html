@@ -621,12 +621,12 @@
                                     <tr>
                                         <td>{{ p[0] }}</td>
                                         <td>{{ p[4] }}</td>
-                                        <td><span class="badge badge-info">{{ p[10] }}</span></td>
-                                        <td>{{ p[11] }}</td>
+                                        <td><span class="badge badge-info">{{ p[14] }}</span></td>
+                                        <td>{{ p[15] }}</td>
                                         <td><strong>{{ p[6] }}</strong></td>
                                         <td>{{ p[5] }}</td>
-                                        <td>{{ p[9] }}</td>
-                                        <td>R$ {{ p[16] }}</td>
+                                        <td>{{ p[13] }}</td>
+                                        <td>R$ {{ p[20] }}</td>
                                         <td>
                                             <div class="action-buttons">
                                                 <button class="btn btn-sm btn-warning" onclick="editarPassagem({{ p[0] }})" title="Editar">
@@ -878,21 +878,31 @@
                             <strong>Atenção:</strong> Campos com <span style="color: #e74c3c;">*</span> são obrigatórios.
                         </div>
 
-                        <!-- Unidade/Programa/Empenho (somente leitura na edição) -->
+                        <!-- Unidade/Programa/Empenho -->
                         <div class="form-group">
                             <label>Unidade/Programa/Empenho</label>
-                            <input type="text" class="form-control" id="orcamento_display_edit" readonly>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="orcamento_display_edit" readonly placeholder="Orçamento vinculado">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-info" onclick="abrirSeletorOrcamentoEdit()" title="Alterar orçamento">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Clique em buscar para alterar o orçamento vinculado
+                            </small>
                         </div>
 
-                        <!-- Nº SEI -->
+                        <!-- Nº SEI e Data Emissão -->
                         <div class="row">
-                            <div class="col-6">
+                            <div class="col-7">
                                 <div class="form-group">
                                     <label>Nº SEI</label>
                                     <input type="text" class="form-control sei-mask" id="nu_sei_edit" name="nu_sei_edit" placeholder="0000000-00.0000.0.00.0000">
                                 </div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-5">
                                 <div class="form-group">
                                     <label class="required">Data Emissão</label>
                                     <input type="date" class="form-control" id="dt_emissao_edit" name="dt_emissao_edit" required>
@@ -1314,6 +1324,145 @@
                 );
             }
         }
+
+
+        // Função para abrir seletor de orçamento
+        function abrirSeletorOrcamento() {
+            $.ajax({
+                url: '/api/orcamento/passagens/disponiveis',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var tbody = $('#tbodyOrcamentos');
+                        tbody.empty();
+                        
+                        response.registros.forEach(function(orcamento) {
+                            var row = '<tr>' +
+                                '<td>' + orcamento.uo + '</td>' +
+                                '<td>' + orcamento.unidade + '</td>' +
+                                '<td>' + orcamento.programa + '</td>' +
+                                '<td>' + orcamento.subitem + '</td>' +
+                                '<td>R$ ' + orcamento.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                                '<td>R$ ' + orcamento.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                                '<td><span class="badge badge-success">R$ ' + orcamento.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</span></td>' +
+                                '<td>' + orcamento.nu_empenho + '</td>' +
+                                '<td><button type="button" class="btn btn-sm btn-primary" onclick="selecionarOrcamento(' + 
+                                    orcamento.id_opa + ', \'' + orcamento.unidade + '\', \'' + orcamento.nu_empenho + '\')">Selecionar</button></td>' +
+                                '</tr>';
+                            tbody.append(row);
+                        });
+                        
+                        // Destruir DataTable anterior se existir
+                        if ($.fn.DataTable.isDataTable('#tabelaOrcamentos')) {
+                            $('#tabelaOrcamentos').DataTable().destroy();
+                        }
+                        
+                        // Inicializar DataTable do modal
+                        $('#tabelaOrcamentos').DataTable({
+                            language: {
+                                url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
+                            },
+                            pageLength: 10,
+                            order: [[0, 'asc']]
+                        });
+                        
+                        $('#modalSeletorOrcamento').modal('show');
+                    } else {
+                        alert('Erro ao carregar orçamentos: ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao buscar orçamentos disponíveis');
+                }
+            });
+        }
+
+        // Função para selecionar orçamento
+        function selecionarOrcamento(idOpa, unidade, empenho) {
+            $('#id_opa').val(idOpa);
+            $('#orcamento_display').val(unidade + ' - ' + empenho);
+            $('#modalSeletorOrcamento').modal('hide');
+        }
+
+        // ============================================================================
+        // ABRIR MODAL SELETOR DE ORÇAMENTO (EDIÇÃO)
+        // ============================================================================
+        function abrirSeletorOrcamentoEdit() {
+            // Carregar orçamentos disponíveis
+            $.ajax({
+                url: '/api/orcamento/passagens/disponiveis',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var tbody = $('#tbodyOrcamentos');
+                        tbody.empty();
+                        
+                        if (response.registros.length === 0) {
+                            tbody.append(`
+                                <tr>
+                                    <td colspan="9" class="text-center">
+                                        <i class="fas fa-info-circle"></i> Nenhum orçamento com saldo disponível
+                                    </td>
+                                </tr>
+                            `);
+                        } else {
+                            response.registros.forEach(function(orc) {
+                                var vlAprovado = parseFloat(orc.vl_aprovado).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                var vlUtilizado = parseFloat(orc.vl_utilizado).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                var saldo = parseFloat(orc.saldo).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                
+                                tbody.append(`
+                                    <tr>
+                                        <td>${orc.uo}</td>
+                                        <td>${orc.unidade}</td>
+                                        <td>${orc.programa}</td>
+                                        <td>${orc.subitem}</td>
+                                        <td class="text-right">R$ ${vlAprovado}</td>
+                                        <td class="text-right">R$ ${vlUtilizado}</td>
+                                        <td class="text-right"><strong>R$ ${saldo}</strong></td>
+                                        <td>${orc.nu_empenho || '-'}</td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-success" 
+                                                    onclick="selecionarOrcamentoEdit(${orc.id_opa}, '${orc.unidade}', '${orc.programa}', '${orc.nu_empenho || ''}')">
+                                                <i class="fas fa-check"></i> Selecionar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `);
+                            });
+                        }
+                        
+                        // Abrir modal
+                        $('#modalSeletorOrcamento').modal('show');
+                    } else {
+                        alert('Erro ao carregar orçamentos: ' + (response.message || 'Erro desconhecido'));
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Erro ao carregar orçamentos:', xhr);
+                    alert('Erro ao carregar orçamentos disponíveis');
+                }
+            });
+        }
+
+        // ============================================================================
+        // SELECIONAR ORÇAMENTO (EDIÇÃO)
+        // ============================================================================
+        function selecionarOrcamentoEdit(idOpa, unidade, programa, empenho) {
+            // Preencher campo hidden
+            $('#id_opa_edit').val(idOpa);
+            
+            // Preencher campo visível
+            var displayText = `${unidade} - ${programa}`;
+            if (empenho) {
+                displayText += ` - Empenho: ${empenho}`;
+            }
+            $('#orcamento_display_edit').val(displayText);
+            
+            // Fechar modal
+            $('#modalSeletorOrcamento').modal('hide');
+        }
+
         
         // ============================================================================
         // CARREGAR ORÇAMENTOS DISPONÍVEIS
