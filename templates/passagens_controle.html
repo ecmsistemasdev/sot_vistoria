@@ -14,6 +14,9 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     
+    <!-- jQuery UI CSS para Autocomplete -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    
     <style>
         /* ============================================================================
            SISTEMA DE CONTROLE DE PASSAGENS AÉREAS
@@ -220,40 +223,18 @@
         }
         
         .table tbody td {
-            padding: 8px 10px;
+            padding: 8px;
             vertical-align: middle;
+            border-bottom: 1px solid #ecf0f1;
         }
         
-        /* Modais */
-        .modal-header {
-            background-color: #2c3e50;
-            color: white;
-            padding: 12px 20px;
-        }
-        
-        .modal-header .modal-title {
-            font-size: 14px;
-            font-weight: 600;
-        }
-        
-        .modal-header .close {
-            color: white;
-            opacity: 1;
-            font-size: 24px;
-            font-weight: 300;
-        }
-        
-        .modal-body {
-            padding: 20px;
-        }
-
-        .modal-dialog.modal-form {
-            max-width: 900px !important;
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
         }
         
         /* Forms */
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         
         .form-group label {
@@ -267,20 +248,49 @@
         .form-control {
             font-size: 13px;
             padding: 8px 12px;
-            border: 1px solid #ddd;
+            border: 1px solid #bdc3c7;
             border-radius: 3px;
             transition: border-color 0.2s;
         }
         
         .form-control:focus {
             border-color: #3498db;
-            outline: none;
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+            box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.15);
         }
         
-        .form-control:disabled {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
+        .form-control-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        /* Autocomplete customizado */
+        .ui-autocomplete {
+            max-height: 250px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 9999 !important;
+            font-size: 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .ui-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .ui-menu-item:hover,
+        .ui-menu-item.ui-state-active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .ui-helper-hidden-accessible {
+            display: none;
         }
         
         /* Badges */
@@ -289,541 +299,534 @@
             font-size: 11px;
             font-weight: 600;
             border-radius: 3px;
+            display: inline-block;
         }
         
-        .badge-info {
+        .badge-primary { background-color: #3498db; color: white; }
+        .badge-success { background-color: #27ae60; color: white; }
+        .badge-warning { background-color: #f39c12; color: white; }
+        .badge-danger { background-color: #e74c3c; color: white; }
+        .badge-info { background-color: #16a085; color: white; }
+        .badge-secondary { background-color: #95a5a6; color: white; }
+        
+        /* Modals */
+        .modal-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+        }
+        
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #ecf0f1;
+        }
+        
+        .close {
+            color: white;
+            opacity: 0.9;
+        }
+        
+        .close:hover {
+            color: white;
+            opacity: 1;
+        }
+        
+        /* Layout de 3 colunas para formulários */
+        .row-3-cols {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        /* Layout de 2 colunas para formulários */
+        .row-2-cols {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        /* Campo que ocupa largura total */
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        /* Valor Total Display */
+        .valor-total-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #27ae60;
+            text-align: center;
+            padding: 10px;
+            background-color: #ecf0f1;
+            border-radius: 3px;
+            margin-top: 10px;
+        }
+        
+        /* Input com ícone */
+        .input-group-prepend .input-group-text {
+            background-color: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-right: none;
+            font-size: 12px;
+            color: #2c3e50;
+        }
+        
+        .input-group .form-control {
+            border-left: none;
+        }
+        
+        /* DataTables customização */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 10px;
+        }
+        
+        .dataTables_wrapper .dataTables_length select {
+            padding: 5px;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 5px 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        .dataTables_wrapper .dataTables_info {
+            font-size: 12px;
+            padding-top: 10px;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: 12px;
+            padding-top: 10px;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 5px 10px;
+            margin-left: 2px;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+            background-color: white;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background-color: #ecf0f1;
+            border-color: #95a5a6;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background-color: #3498db;
+            color: white !important;
+            border-color: #3498db;
+        }
+        
+        /* Filtros compactos */
+        .filtros-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        
+        .filtros-row .form-group {
+            flex: 1;
+            min-width: 150px;
+            margin-bottom: 10px;
+        }
+        
+        .filtros-row .btn-group {
+            display: flex;
+            gap: 5px;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .row-3-cols {
+                grid-template-columns: 1fr;
+            }
+            
+            .row-2-cols {
+                grid-template-columns: 1fr;
+            }
+            
+            .filtros-row {
+                flex-direction: column;
+            }
+            
+            .filtros-row .form-group {
+                width: 100%;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+        
+        /* Indicadores visuais */
+        .text-success { color: #27ae60 !important; }
+        .text-danger { color: #e74c3c !important; }
+        .text-warning { color: #f39c12 !important; }
+        .text-info { color: #16a085 !important; }
+        .text-muted { color: #95a5a6 !important; }
+        
+        /* Alertas */
+        .alert {
+            padding: 10px 15px;
+            border-radius: 3px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        
+        .alert-success {
+            background-color: #d5f4e6;
+            border: 1px solid #27ae60;
+            color: #186a3b;
+        }
+        
+        .alert-danger {
+            background-color: #fadbd8;
+            border: 1px solid #e74c3c;
+            color: #78281f;
+        }
+        
+        .alert-warning {
+            background-color: #fcf3cf;
+            border: 1px solid #f39c12;
+            color: #7e5109;
+        }
+        
+        .alert-info {
+            background-color: #d6eaf8;
+            border: 1px solid #3498db;
+            color: #1b4f72;
+        }
+        
+        /* Spinner de loading */
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+        }
+        
+        /* Campo desabilitado */
+        .form-control:disabled {
+            background-color: #ecf0f1;
+            cursor: not-allowed;
+        }
+        
+        /* Tooltip customizado */
+        .tooltip-inner {
+            background-color: #2c3e50;
+            font-size: 12px;
+        }
+        
+        /* Scroll suave */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Seleção de texto */
+        ::selection {
             background-color: #3498db;
             color: white;
         }
         
-        .badge-success {
-            background-color: #27ae60;
+        /* Modal Seleção Orçamento - AJUSTADO PARA LARGURA MAIOR */
+        .modal-orcamento {
+            max-width: 90% !important;
+        }
+        
+        @media (min-width: 992px) {
+            .modal-orcamento {
+                max-width: 1200px !important;
+            }
+        }
+        
+        /* Tabela de Seleção de Orçamentos */
+        .tabela-orcamentos {
+            font-size: 11px;
+        }
+        
+        .tabela-orcamentos thead th {
+            background-color: #34495e;
             color: white;
+            padding: 8px 5px;
+            font-size: 11px;
         }
         
-        .badge-warning {
-            background-color: #f39c12;
-            color: white;
+        .tabela-orcamentos tbody td {
+            padding: 6px 5px;
         }
         
-        .badge-danger {
-            background-color: #e74c3c;
-            color: white;
+        .tabela-orcamentos .btn-selecionar {
+            padding: 3px 8px;
+            font-size: 11px;
         }
         
-        /* ============================================================================
-           ESTILOS DO AUTOCOMPLETE DE AEROPORTOS
-           ============================================================================ */
-        
-        .aeroporto-autocomplete {
-            position: relative;
+        /* Campos com texto maiúsculo forçado */
+        .uppercase-input {
+            text-transform: uppercase !important;
         }
-        
-        .aeroporto-autocomplete-list {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            max-height: 300px;
-            overflow-y: auto;
-            background: white;
-            border: 1px solid #ddd;
-            border-top: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: none;
-            border-radius: 0 0 4px 4px;
-        }
-        
-        .aeroporto-autocomplete-list.show {
-            display: block;
-        }
-        
-        .aeroporto-autocomplete-item {
-            padding: 10px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background-color 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .aeroporto-autocomplete-item:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .aeroporto-autocomplete-item:last-child {
-            border-bottom: none;
-        }
-        
-        .aeroporto-codigo {
-            font-weight: bold;
-            color: #0066cc;
-            margin-right: 8px;
-            font-size: 13px;
-            min-width: 40px;
-        }
-        
-        .aeroporto-local {
-            color: #666;
-            font-size: 13px;
-            flex: 1;
-        }
-        
-        .aeroporto-pais {
-            font-size: 0.85em;
-            color: #999;
-            margin-left: 5px;
-        }
-        
-        .autocomplete-loading {
-            padding: 10px 15px;
-            text-align: center;
-            color: #999;
-            font-style: italic;
-            font-size: 12px;
-        }
-        
-        /* Estilo para input com autocomplete ativo */
-        .aeroporto-autocomplete .form-control:focus {
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-        }
-        
-        .aeroporto-autocomplete .form-control:focus + input + .aeroporto-autocomplete-list.show {
-            border-top: 1px solid #3498db;
-        }
-        
-        /* ============================================================================
-           RESPONSIVIDADE
-           ============================================================================ */
-        
-        @media (max-width: 768px) {
-            .content-wrapper {
-                padding: 10px;
-            }
-        
-            .page-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-        
-            .table {
-                font-size: 11px;
-            }
-        
-            .btn {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
-        
-            .btn-sm {
-                padding: 4px 8px;
-                font-size: 11px;
-            }
-        
-            .action-buttons {
-                flex-direction: column;
-                gap: 3px;
-            }
-        
-            .aeroporto-autocomplete-list {
-                max-height: 200px;
-            }
-        
-            .aeroporto-codigo {
-                font-size: 12px;
-                min-width: 35px;
-            }
-        
-            .aeroporto-local {
-                font-size: 12px;
-            }
-        }
-        
-        /* ============================================================================
-           UTILIDADES
-           ============================================================================ */
-        
-        .text-center {
-            text-align: center;
-        }
-        
-        .text-right {
-            text-align: right;
-        }
-        
-        .text-muted {
-            color: #95a5a6;
-        }
-        
-        .mt-3 {
-            margin-top: 1rem;
-        }
-        
-        .mb-3 {
-            margin-bottom: 1rem;
-        }
-        
-        .p-3 {
-            padding: 1rem;
-        }
-        
-        /* ScrollBar customizado */
-        .aeroporto-autocomplete-list::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        .aeroporto-autocomplete-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        
-        .aeroporto-autocomplete-list::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        
-        .aeroporto-autocomplete-list::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-        
-        /* ============================================================================
-           ANIMAÇÕES
-           ============================================================================ */
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .aeroporto-autocomplete-list.show {
-            animation: fadeIn 0.2s ease-out;
-        }
-        
-        /* Highlight ao selecionar */
-        .aeroporto-autocomplete-item:active {
-            background-color: #e8f4f8;
-        }
-        
-        /* ============================================================================
-           IMPRESSÃO
-           ============================================================================ */
-        
-        @media print {
-            .navbar,
-            .btn,
-            .action-buttons,
-            .aeroporto-autocomplete-list {
-                display: none !important;
-            }
-        
-            .card {
-                box-shadow: none;
-                border: 1px solid #ddd;
-            }
-        
-            .table {
-                font-size: 10px;
-            }
-        }        
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/controle_passagens_aereas">
-                <i class="fas fa-plane"></i> Passagens Aéreas
-            </a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/controle_passagens_aereas">
-                            <i class="fas fa-arrow-left"></i> Voltar ao Orçamento
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <span class="nav-link">
-                            <i class="fas fa-user"></i> {{ usuario }}
-                        </span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/logout">
-                            <i class="fas fa-sign-out-alt"></i> Sair
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Conteúdo Principal -->
-    <div class="container-fluid content-wrapper">
-        <!-- Cabeçalho -->
+    <div class="content-wrapper">
+        <!-- Cabeçalho da Página -->
         <div class="page-header">
             <div>
-                <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes Emitidos</h2>
-                <p>Gerencie os bilhetes de passagens aéreas emitidas</p>
+                <h2><i class="fas fa-plane"></i> Controle de Bilhetes - Passagens Aéreas</h2>
+                <p>Gerenciamento completo de passagens aéreas emitidas</p>
             </div>
-        </div>
-
-        <!-- Botões de Ação -->
-        <div class="row mb-3">
-            <div class="col-md-12">
-                <button class="btn btn-primary" data-toggle="modal" data-target="#modalCadastro">
-                    <i class="fas fa-plus"></i> Adicionar Bilhete
+            <div>
+                <button class="btn btn-success" onclick="abrirModalCadastro()">
+                    <i class="fas fa-plus"></i> Nova Passagem
                 </button>
-                <button class="btn btn-info" data-toggle="modal" data-target="#modalFiltros">
+                <button class="btn btn-info" onclick="$('#modalFiltros').modal('show')">
                     <i class="fas fa-filter"></i> Filtros
                 </button>
-                <button class="btn btn-success" onclick="limparFiltros()">
-                    <i class="fas fa-sync"></i> Limpar Filtros
-                </button>
             </div>
         </div>
 
-        <!-- Card com a Tabela -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-list"></i> Bilhetes Emitidos</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table id="tabelaPassagens" class="table table-striped table-bordered table-hover" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Passageiro</th>
-                                        <th>CIA</th>
-                                        <th>Localizador</th>
-                                        <th>Rota</th>
-                                        <th>Emissão</th>
-                                        <th>Embarque</th>
-                                        <th>Valor Total</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for p in passagens %}
-                                    <tr>
-                                        <td>{{ p[0] }}</td>
-                                        <td>{{ p[4] }}</td>
-                                        <td><span class="badge badge-info">{{ p[14] }}</span></td>
-                                        <td>{{ p[15] }}</td>
-                                        <td><strong>{{ p[6] }}</strong></td>
-                                        <td>{{ p[5] }}</td>
-                                        <td>{{ p[13] }}</td>
-                                        <td>R$ {{ p[20] }}</td>
-                                        <td>
-                                            <div class="action-buttons">
-                                                <button class="btn btn-sm btn-warning" onclick="editarPassagem({{ p[0] }})" title="Editar">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-danger" onclick="confirmarExclusao({{ p[0] }})" title="Excluir">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+        <!-- Card com Tabela de Passagens -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Bilhetes Emitidos</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tabelaPassagens" class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">ID</th>
+                                <th>Passageiro</th>
+                                <th style="width: 180px;">Origem</th>
+                                <th style="width: 180px;">Destino</th>
+                                <th style="width: 120px;">Rota</th>
+                                <th style="width: 100px;">Emissão</th>
+                                <th style="width: 100px;">Embarque</th>
+                                <th style="width: 100px;">Valor Total</th>
+                                <th style="width: 120px;" class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for passagem in passagens %}
+                            <tr>
+                                <td>{{ passagem[0] }}</td>
+                                <td>{{ passagem[4] }}</td>
+                                <td><span class="badge badge-info">{{ passagem[9] or '-' }}</span></td>
+                                <td><span class="badge badge-success">{{ passagem[10] or '-' }}</span></td>
+                                <td><strong>{{ passagem[6] or '-' }}</strong></td>
+                                <td>{{ passagem[5] }}</td>
+                                <td>{{ passagem[11] }}</td>
+                                <td>R$ {{ passagem[20] }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-warning" 
+                                                onclick="editarPassagem({{ passagem[0] }})" 
+                                                title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                onclick="confirmarExclusao({{ passagem[0] }})" 
+                                                title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Cadastro -->
-    <div class="modal fade" id="modalCadastro" tabindex="-1">
-        <div class="modal-dialog modal-form">
+    <!-- ============================================================================
+         MODAL: CADASTRO DE NOVA PASSAGEM
+         ============================================================================ -->
+    <div class="modal fade" id="modalCadastro" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-plus"></i> Adicionar Bilhete</h5>
+                    <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Cadastrar Nova Passagem</h5>
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
-                    <form id="formCadastro" onsubmit="salvarPassagem(event)">
-                        <input type="hidden" id="id_opa" name="id_opa">
-                        <input type="hidden" name="id_controle" value="0">
-
-                        <div class="info-box">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Atenção:</strong> Campos com <span style="color: #e74c3c;">*</span> são obrigatórios.
-                        </div>
-
-                        <!-- Unidade/Programa/Empenho -->
-                        <div class="form-group">
-                            <label class="required">Unidade/Programa/Empenho</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="orcamento_display" readonly placeholder="Clique em buscar para selecionar" required>
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-info" onclick="abrirSeletorOrcamento()">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Nº SEI -->
-                        <div class="row">
-                            <div class="col-7">
-                                <div class="form-group">
-                                    <label>Nº SEI</label>
-                                    <input type="text" class="form-control sei-mask" id="nu_sei_edit" name="nu_sei_edit" placeholder="0000000-00.0000.0.00.0000">
-                                </div>
-                            </div>
-                            <div class="col-5">
-                                <div class="form-group">
-                                    <label class="required">Data Emissão</label>
-                                    <input type="date" class="form-control" id="dt_emissao" name="dt_emissao" required>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Nome do Passageiro -->
-                        <div class="form-group">
-                            <label class="required">Nome do Passageiro</label>
-                            <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" maxlength="100" required>
-                        </div>
-
-                        <!-- Origem, Destino, Rota -->
-                        <div class="row">
-                            <!-- Campo Origem com Autocomplete -->
-                            <div class="col-4">
-                                <div class="form-group aeroporto-autocomplete">
-                                    <label for="origem">Origem *</label>
-                                    <input 
-                                        type="text" 
-                                        class="form-control" 
-                                        id="origem" 
-                                        name="origem"
-                                        placeholder="Ex: PVH ou Porto Velho"
-                                        required
-                                        autocomplete="off">
-                                    <input type="hidden" id="codigo_origem" name="codigo_origem">
-                                    <div class="aeroporto-autocomplete-list" id="origem-list"></div>
+                <form id="formCadastro" onsubmit="salvarPassagem(event)">
+                    <div class="modal-body">
+                        <!-- Linha 1: Unidade/Programa/Empenho, Processo SEI, Passageiro -->
+                        <div class="row-3-cols">
+                            <div class="form-group">
+                                <label>Unidade/Programa/Empenho: <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="orcamento_display" readonly 
+                                           placeholder="Clique para selecionar..." required>
+                                    <input type="hidden" id="id_opa" name="id_opa" required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="button" onclick="abrirModalOrcamentos()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- Campo Destino com Autocomplete -->
-                            <div class="col-4">
-                                <div class="form-group aeroporto-autocomplete">
-                                    <label for="destino">Destino *</label>
-                                    <input 
-                                        type="text" 
-                                        class="form-control" 
-                                        id="destino" 
-                                        name="destino"
-                                        placeholder="Ex: GRU ou São Paulo"
-                                        required
-                                        autocomplete="off">
-                                    <input type="hidden" id="codigo_destino" name="codigo_destino">
-                                    <div class="aeroporto-autocomplete-list" id="destino-list"></div>
-                                </div>
+                            <div class="form-group">
+                                <label>Processo SEI:</label>
+                                <input type="text" class="form-control" id="nu_sei" name="nu_sei" 
+                                       placeholder="Número do processo">
                             </div>
+                            
+                            <div class="form-group">
+                                <label>Nome do Passageiro: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" 
+                                       placeholder="Nome completo" required>
+                            </div>
+                        </div>
                         
-                            <!-- Campo Rota -->
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Rota</label>
-                                    <input type="text" class="form-control" id="rota" name="rota" style="text-transform: uppercase;" required>
+                        <!-- Linha 2: Data Emissão, Rota, Data Embarque -->
+                        <div class="row-3-cols">
+                            <div class="form-group">
+                                <label>Data de Emissão: <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="dt_emissao" name="dt_emissao" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Rota:</label>
+                                <input type="text" class="form-control uppercase-input" id="rota" name="rota" 
+                                       placeholder="Ex: PVH/BSB">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Data de Embarque: <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="dt_embarque" name="dt_embarque" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Linha 3: Origem, Destino -->
+                        <div class="row-2-cols">
+                            <div class="form-group">
+                                <label>Aeroporto de Origem: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="origem" name="origem" 
+                                       placeholder="Digite código ou cidade..." required>
+                                <input type="hidden" id="codigo_origem" name="codigo_origem">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Aeroporto de Destino: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="destino" name="destino" 
+                                       placeholder="Digite código ou cidade..." required>
+                                <input type="hidden" id="codigo_destino" name="codigo_destino">
+                            </div>
+                        </div>
+                        
+                        <!-- Linha 4: CIA, Localizador -->
+                        <div class="row-2-cols">
+                            <div class="form-group">
+                                <label>Companhia Aérea: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control uppercase-input" id="cia" name="cia" 
+                                       placeholder="Ex: GOL, LATAM, AZUL" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Localizador: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control uppercase-input" id="localizador" name="localizador" 
+                                       placeholder="Código de reserva" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Linha 5: Valores Financeiros -->
+                        <div class="row-3-cols">
+                            <div class="form-group">
+                                <label>Valor da Tarifa:</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">R$</span>
+                                    </div>
+                                    <input type="text" class="form-control valor-input" id="vl_tarifa" name="vl_tarifa" 
+                                           value="0,00" onkeyup="calcularTotal()">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Taxa Extra:</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">R$</span>
+                                    </div>
+                                    <input type="text" class="form-control valor-input" id="vl_taxa_extra" name="vl_taxa_extra" 
+                                           value="0,00" onkeyup="calcularTotal()">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Assento:</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">R$</span>
+                                    </div>
+                                    <input type="text" class="form-control valor-input" id="vl_assento" name="vl_assento" 
+                                           value="0,00" onkeyup="calcularTotal()">
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Data Embarque, CIA, Localizador -->
-                        <div class="row">
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Data Embarque</label>
-                                    <input type="date" class="form-control" id="dt_embarque" name="dt_embarque" required>
+                        
+                        <!-- Linha 6: Taxa de Embarque e Total -->
+                        <div class="row-2-cols">
+                            <div class="form-group">
+                                <label>Taxa de Embarque:</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">R$</span>
+                                    </div>
+                                    <input type="text" class="form-control valor-input" id="vl_taxa_embarque" name="vl_taxa_embarque" 
+                                           value="0,00" onkeyup="calcularTotal()">
                                 </div>
                             </div>
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Cia Aérea</label>
-                                    <input type="text" class="form-control" id="cia" name="cia" maxlength="10" style="text-transform: uppercase;" required>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label>Localizador</label>
-                                    <input type="text" class="form-control" id="localizador" name="localizador" maxlength="10" style="text-transform: uppercase;">
-                                </div>
+                            
+                            <div class="form-group">
+                                <label>Valor Total:</label>
+                                <input type="hidden" id="vl_total" name="vl_total" value="0,00">
+                                <div class="valor-total-display" id="vl_total_display">R$ 0,00</div>
                             </div>
                         </div>
-
-                        <hr>
-                        <h6 style="font-size: 13px; margin-bottom: 10px;"><i class="fas fa-dollar-sign"></i> Valores</h6>
-
-                        <!-- Valores -->
-                        <div class="row">
-                            <div class="col-3">
-                                <div class="form-group">
-                                    <label class="required">Tarifa</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_tarifa" name="vl_tarifa" value="0,00" required>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="form-group">
-                                    <label>Taxa Extra</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_extra" name="vl_taxa_extra" value="0,00">
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="form-group">
-                                    <label>Assento</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_assento" name="vl_assento" value="0,00">
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="form-group">
-                                    <label>Taxa Embarque</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_embarque" name="vl_taxa_embarque" value="0,00">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Valor Total</label>
-                            <input type="hidden" id="vl_total" name="vl_total" value="0,00">
-                            <div class="valor-total" id="vl_total_display">R$ 0,00</div>
-                        </div>
-
-                        <div class="text-right mt-3">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Salvar
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="limparFormularioCadastro()">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Salvar Passagem
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Modal Seletor de Orçamento -->
-    <div class="modal fade" id="modalSeletorOrcamento" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+    <!-- ============================================================================
+         MODAL: SELEÇÃO DE ORÇAMENTO - AJUSTADO PARA LARGURA MAIOR
+         ============================================================================ -->
+    <div class="modal fade" id="modalOrcamentos" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-orcamento" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-search"></i> Selecionar Orçamento</h5>
@@ -833,33 +836,42 @@
                 </div>
                 <div class="modal-body">
                     <div class="table-responsive">
-                        <table id="tabelaOrcamentos" class="table table-striped table-bordered table-hover table-sm" style="width:100%; font-size: 11px;">
+                        <table id="tabelaOrcamentos" class="table table-striped table-bordered tabela-orcamentos">
                             <thead>
                                 <tr>
-                                    <th>UO</th>
-                                    <th>Unidade</th>
+                                    <th style="width: 60px;">ID</th>
+                                    <th style="width: 80px;">Exercício</th>
+                                    <th style="width: 80px;">UO</th>
+                                    <th style="width: 100px;">Unidade</th>
                                     <th>Programa</th>
                                     <th>Subitem</th>
-                                    <th>Aprovado</th>
-                                    <th>Utilizado</th>
-                                    <th>Saldo</th>
-                                    <th>Empenho</th>
-                                    <th>Ações</th>
+                                    <th style="width: 100px;">Aprovado</th>
+                                    <th style="width: 100px;">Utilizado</th>
+                                    <th style="width: 100px;">Saldo</th>
+                                    <th style="width: 120px;">Empenho</th>
+                                    <th style="width: 80px;" class="text-center">Ação</th>
                                 </tr>
                             </thead>
-                            <tbody id="tbodyOrcamentos">
-                                <!-- Será preenchido via JavaScript -->
+                            <tbody id="listaOrcamentos">
+                                <!-- Preenchido via JavaScript -->
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Edição -->
-    <div class="modal fade" id="modalEdicao" tabindex="-1">
-        <div class="modal-dialog modal-form">
+    <!-- ============================================================================
+         MODAL: EDIÇÃO DE PASSAGEM
+         ============================================================================ -->
+    <div class="modal fade" id="modalEdicao" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Passagem</h5>
@@ -867,653 +879,452 @@
                         <span>&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
-                    <form id="formEdicao" onsubmit="atualizarPassagem(event)">
-                        <input type="hidden" id="id_of_edit" name="id_of_edit">
-                        <input type="hidden" id="id_opa_edit" name="id_opa_edit">
-                        <input type="hidden" name="id_controle_edit" value="0">
-
-                        <div class="info-box">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Atenção:</strong> Campos com <span style="color: #e74c3c;">*</span> são obrigatórios.
-                        </div>
-
-                        <!-- Unidade/Programa/Empenho -->
-                        <div class="form-group">
-                            <label>Unidade/Programa/Empenho</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="orcamento_display_edit" readonly placeholder="Orçamento vinculado">
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-info" onclick="abrirSeletorOrcamentoEdit()" title="Alterar orçamento">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i> Clique em buscar para alterar o orçamento vinculado
-                            </small>
-                        </div>
-
-                        <!-- Nº SEI e Data Emissão -->
-                        <div class="row">
-                            <div class="col-7">
-                                <div class="form-group">
-                                    <label>Nº SEI</label>
-                                    <input type="text" class="form-control sei-mask" id="nu_sei_edit" name="nu_sei_edit" placeholder="0000000-00.0000.0.00.0000">
-                                </div>
-                            </div>
-                            <div class="col-5">
-                                <div class="form-group">
-                                    <label class="required">Data Emissão</label>
-                                    <input type="date" class="form-control" id="dt_emissao_edit" name="dt_emissao_edit" required>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Nome do Passageiro -->
-                        <div class="form-group">
-                            <label class="required">Nome do Passageiro</label>
-                            <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" maxlength="100" required>
-                        </div>
-
-                        <!-- Origem, Destino, Rota -->
-                        <div class="row">
-                            <!-- Campo Origem com Autocomplete (Edição) -->
-                            <div class="col-4">
-                                <div class="form-group aeroporto-autocomplete">
-                                    <label for="origem_edit">Origem *</label>
-                                    <input 
-                                        type="text" 
-                                        class="form-control" 
-                                        id="origem_edit" 
-                                        name="origem_edit"
-                                        placeholder="Ex: PVH ou Porto Velho"
-                                        required
-                                        autocomplete="off">
-                                    <input type="hidden" id="codigo_origem_edit" name="codigo_origem_edit">
-                                    <div class="aeroporto-autocomplete-list" id="origem-list-edit"></div>
+                <form id="formEdicao" onsubmit="atualizarPassagem(event)">
+                    <input type="hidden" id="id_of_edit" name="id_of_edit">
+                    <div class="modal-body">
+                        <!-- Linha 1: Unidade/Programa/Empenho, Processo SEI, Passageiro -->
+                        <div class="row-3-cols">
+                            <div class="form-group">
+                                <label>Unidade/Programa/Empenho: <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="orcamento_display_edit" readonly 
+                                           placeholder="Clique para selecionar..." required>
+                                    <input type="hidden" id="id_opa_edit" name="id_opa_edit" required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" type="button" onclick="abrirModalOrcamentosEdit()">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- Campo Destino com Autocomplete (Edição) -->
-                            <div class="col-4">
-                                <div class="form-group aeroporto-autocomplete">
-                                    <label for="destino_edit">Destino *</label>
-                                    <input 
-                                        type="text" 
-                                        class="form-control" 
-                                        id="destino_edit" 
-                                        name="destino_edit"
-                                        placeholder="Ex: GRU ou São Paulo"
-                                        required
-                                        autocomplete="off">
-                                    <input type="hidden" id="codigo_destino_edit" name="codigo_destino_edit">
-                                    <div class="aeroporto-autocomplete-list" id="destino-list-edit"></div>
-                                </div>
+                            <div class="form-group">
+                                <label>Processo SEI:</label>
+                                <input type="text" class="form-control" id="nu_sei_edit" name="nu_sei_edit">
                             </div>
+                            
+                            <div class="form-group">
+                                <label>Nome do Passageiro: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" required>
+                            </div>
+                        </div>
                         
-                            <!-- Campo Rota (Edição) -->
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Rota</label>
-                                    <input type="text" class="form-control" id="rota_edit" name="rota_edit" style="text-transform: uppercase;" required>
+                        <!-- Linha 2: Data Emissão, Rota, Data Embarque -->
+                        <div class="row-3-cols">
+                            <div class="form-group">
+                                <label>Data de Emissão: <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="dt_emissao_edit" name="dt_emissao_edit" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Rota:</label>
+                                <input type="text" class="form-control uppercase-input" id="rota_edit" name="rota_edit">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Data de Embarque: <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="dt_embarque_edit" name="dt_embarque_edit" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Linha 3: Origem, Destino -->
+                        <div class="row-2-cols">
+                            <div class="form-group">
+                                <label>Aeroporto de Origem: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="origem_edit" name="origem_edit" required>
+                                <input type="hidden" id="codigo_origem_edit" name="codigo_origem_edit">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Aeroporto de Destino: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="destino_edit" name="destino_edit" required>
+                                <input type="hidden" id="codigo_destino_edit" name="codigo_destino_edit">
+                            </div>
+                        </div>
+                        
+                        <!-- Linha 4: CIA, Localizador -->
+                        <div class="row-2-cols">
+                            <div class="form-group">
+                                <label>Companhia Aérea: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control uppercase-input" id="cia_edit" name="cia_edit" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Localizador: <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control uppercase-input" id="localizador_edit" name="localizador_edit" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Linha 5: Valores Financeiros -->
+                        <div class="row-3-cols">
+                            <div class="form-group">
+                                <label>Valor da Tarifa:</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">R$</span>
+                                    </div>
+                                    <input type="text" class="form-control valor-input" id="vl_tarifa_edit" name="vl_tarifa_edit" 
+                                           value="0,00" onkeyup="calcularTotalEdit()">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Taxa Extra:</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">R$</span>
+                                    </div>
+                                    <input type="text" class="form-control valor-input" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" 
+                                           value="0,00" onkeyup="calcularTotalEdit()">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Assento:</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">R$</span>
+                                    </div>
+                                    <input type="text" class="form-control valor-input" id="vl_assento_edit" name="vl_assento_edit" 
+                                           value="0,00" onkeyup="calcularTotalEdit()">
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Data Embarque, CIA, Localizador -->
-                        <div class="row">
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Data Embarque</label>
-                                    <input type="date" class="form-control" id="dt_embarque_edit" name="dt_embarque_edit" required>
+                        
+                        <!-- Linha 6: Taxa de Embarque e Total -->
+                        <div class="row-2-cols">
+                            <div class="form-group">
+                                <label>Taxa de Embarque:</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">R$</span>
+                                    </div>
+                                    <input type="text" class="form-control valor-input" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" 
+                                           value="0,00" onkeyup="calcularTotalEdit()">
                                 </div>
                             </div>
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Cia Aérea</label>
-                                    <input type="text" class="form-control" id="cia_edit" name="cia_edit" maxlength="10" style="text-transform: uppercase;" required>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label>Localizador</label>
-                                    <input type="text" class="form-control" id="localizador_edit" name="localizador_edit" maxlength="10" style="text-transform: uppercase;">
-                                </div>
+                            
+                            <div class="form-group">
+                                <label>Valor Total:</label>
+                                <input type="hidden" id="vl_total_edit" name="vl_total_edit" value="0,00">
+                                <div class="valor-total-display" id="vl_total_display_edit">R$ 0,00</div>
                             </div>
                         </div>
-
-                        <hr>
-                        <h6 style="font-size: 13px; margin-bottom: 10px;"><i class="fas fa-dollar-sign"></i> Valores</h6>
-
-                        <!-- Valores -->
-                        <div class="row">
-                            <div class="col-3">
-                                <div class="form-group">
-                                    <label class="required">Tarifa</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_tarifa_edit" name="vl_tarifa_edit" value="0,00" required>
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="form-group">
-                                    <label>Taxa Extra</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" value="0,00">
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="form-group">
-                                    <label>Assento</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_assento_edit" name="vl_assento_edit" value="0,00">
-                                </div>
-                            </div>
-                            <div class="col-3">
-                                <div class="form-group">
-                                    <label>Taxa Embarque</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" value="0,00">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Valor Total</label>
-                            <input type="hidden" id="vl_total_edit" name="vl_total_edit" value="0,00">
-                            <div class="valor-total" id="vl_total_display_edit">R$ 0,00</div>
-                        </div>
-
-                        <div class="text-right mt-3">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Atualizar
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Atualizar Passagem
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Modal Filtros -->
-    <div class="modal fade" id="modalFiltros" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+    <!-- ============================================================================
+         MODAL: FILTROS
+         ============================================================================ -->
+    <div class="modal fade" id="modalFiltros" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-filter"></i> Filtros</h5>
+                    <h5 class="modal-title"><i class="fas fa-filter"></i> Filtrar Passagens</h5>
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
-                    <form id="formFiltros" onsubmit="aplicarFiltros(event)">
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="form-group">
-                                    <label>Data Início</label>
-                                    <input type="date" class="form-control" id="dt_inicio_filtro" name="dt_inicio_filtro">
-                                </div>
+                <form id="formFiltros" onsubmit="aplicarFiltros(event)">
+                    <div class="modal-body">
+                        <div class="row-2-cols">
+                            <div class="form-group">
+                                <label>Data Inicial:</label>
+                                <input type="date" class="form-control" id="dt_inicio_filtro" name="dt_inicio_filtro">
                             </div>
-                            <div class="col-6">
-                                <div class="form-group">
-                                    <label>Data Fim</label>
-                                    <input type="date" class="form-control" id="dt_fim_filtro" name="dt_fim_filtro">
-                                </div>
+                            
+                            <div class="form-group">
+                                <label>Data Final:</label>
+                                <input type="date" class="form-control" id="dt_fim_filtro" name="dt_fim_filtro">
                             </div>
                         </div>
-
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="form-group">
-                                    <label>Companhia Aérea</label>
-                                    <select class="form-control" id="cia_filtro" name="cia_filtro">
-                                        <option value="">Todas</option>
-                                        {% for cia in cias %}
-                                        <option value="{{ cia[0] }}">{{ cia[0] }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+                        
+                        <div class="row-3-cols">
+                            <div class="form-group">
+                                <label>Companhia Aérea:</label>
+                                <select class="form-control" id="cia_filtro" name="cia_filtro">
+                                    <option value="">Todas</option>
+                                    {% for cia in cias %}
+                                    <option value="{{ cia[0] }}">{{ cia[0] }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
-                            <div class="col-6">
-                                <div class="form-group">
-                                    <label>Passageiro</label>
-                                    <input type="text" class="form-control" id="passageiro_filtro" name="passageiro_filtro" placeholder="Nome do passageiro">
-                                </div>
+                            
+                            <div class="form-group">
+                                <label>Passageiro:</label>
+                                <input type="text" class="form-control" id="passageiro_filtro" name="passageiro_filtro" 
+                                       placeholder="Nome do passageiro">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Localizador:</label>
+                                <input type="text" class="form-control" id="localizador_filtro" name="localizador_filtro" 
+                                       placeholder="Código de reserva">
                             </div>
                         </div>
-
-                        <div class="form-group">
-                            <label>Localizador</label>
-                            <input type="text" class="form-control" id="localizador_filtro" name="localizador_filtro" placeholder="Código do localizador">
-                        </div>
-
-                        <div class="text-right mt-3">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Aplicar Filtros
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="limparFiltros()">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times"></i> Fechar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Aplicar Filtros
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    
+    <!-- jQuery UI (para Autocomplete) -->
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <!-- DataTables JS -->
     <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 
     <script>
         // ============================================================================
-        // SISTEMA DE CONTROLE DE PASSAGENS AÉREAS
-        // JavaScript Completo Atualizado
+        // VARIÁVEIS GLOBAIS
         // ============================================================================
+        var orcamentoSelecionado = null;
+        var isEditMode = false;
         
         // ============================================================================
-        // CLASSE: AeroportoAutocomplete
-        // Implementa busca e seleção de aeroportos com autocomplete
-        // ============================================================================
-        class AeroportoAutocomplete {
-            constructor(inputId, hiddenCodeId, listId) {
-                this.input = document.getElementById(inputId);
-                this.hiddenCode = document.getElementById(hiddenCodeId);
-                this.list = document.getElementById(listId);
-                this.timeout = null;
-                this.minChars = 2;
-                this.debounceTime = 300;
-                
-                this.init();
-            }
-            
-            init() {
-                // Evento de digitação
-                this.input.addEventListener('input', (e) => {
-                    clearTimeout(this.timeout);
-                    const termo = e.target.value.trim();
-                    
-                    if (termo.length < this.minChars) {
-                        this.hideList();
-                        return;
-                    }
-                    
-                    // Debounce para evitar muitas requisições
-                    this.timeout = setTimeout(() => {
-                        this.buscar(termo);
-                    }, this.debounceTime);
-                });
-                
-                // Evento de foco - reabrir lista se já tiver valor
-                this.input.addEventListener('focus', () => {
-                    const termo = this.input.value.trim();
-                    if (termo.length >= this.minChars && this.list.children.length > 0) {
-                        this.list.classList.add('show');
-                    }
-                });
-                
-                // Fechar lista ao clicar fora
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.aeroporto-autocomplete')) {
-                        this.hideList();
-                    }
-                });
-                
-                // Limpar código oculto quando input é limpo manualmente
-                this.input.addEventListener('change', () => {
-                    if (!this.input.value.trim()) {
-                        this.hiddenCode.value = '';
-                    }
-                });
-            }
-            
-            async buscar(termo) {
-                try {
-                    this.showLoading();
-                    
-                    const response = await fetch(`/api/aeroportos/buscar?termo=${encodeURIComponent(termo)}`);
-                    const data = await response.json();
-                    
-                    if (data.success && data.aeroportos.length > 0) {
-                        this.renderList(data.aeroportos);
-                    } else {
-                        this.showEmpty();
-                    }
-                } catch (error) {
-                    console.error('Erro ao buscar aeroportos:', error);
-                    this.showError();
-                }
-            }
-            
-            renderList(aeroportos) {
-                this.list.innerHTML = '';
-                
-                aeroportos.forEach(aero => {
-                    const item = document.createElement('div');
-                    item.className = 'aeroporto-autocomplete-item';
-                    item.innerHTML = `
-                        <span class="aeroporto-codigo">${aero.codigo_iata}</span>
-                        <span class="aeroporto-local">${aero.cidade}${aero.uf ? '/' + aero.uf : ''}</span>
-                        <span class="aeroporto-pais">(${aero.pais})</span>
-                    `;
-                    
-                    item.addEventListener('click', () => {
-                        this.selecionar(aero);
-                    });
-                    
-                    this.list.appendChild(item);
-                });
-                
-                this.list.classList.add('show');
-            }
-            
-            selecionar(aeroporto) {
-                // Preencher campo visível
-                const uf = aeroporto.uf ? `/${aeroporto.uf}` : '';
-                this.input.value = `${aeroporto.codigo_iata} - ${aeroporto.cidade}${uf}`;
-                
-                // Preencher campo oculto com código IATA
-                this.hiddenCode.value = aeroporto.codigo_iata;
-                
-                this.hideList();
-                
-                // Disparar evento personalizado para outros scripts que possam precisar
-                const event = new CustomEvent('aeroporto-selecionado', {
-                    detail: aeroporto
-                });
-                this.input.dispatchEvent(event);
-            }
-            
-            showLoading() {
-                this.list.innerHTML = '<div class="autocomplete-loading">Buscando aeroportos...</div>';
-                this.list.classList.add('show');
-            }
-            
-            showEmpty() {
-                this.list.innerHTML = '<div class="autocomplete-loading">Nenhum aeroporto encontrado</div>';
-                this.list.classList.add('show');
-            }
-            
-            showError() {
-                this.list.innerHTML = '<div class="autocomplete-loading" style="color: #dc3545;">Erro ao buscar aeroportos</div>';
-                this.list.classList.add('show');
-            }
-            
-            hideList() {
-                this.list.classList.remove('show');
-            }
-        }
-        
-        // ============================================================================
-        // INICIALIZAÇÃO QUANDO O DOCUMENTO ESTIVER PRONTO
+        // INICIALIZAÇÃO DA PÁGINA
         // ============================================================================
         $(document).ready(function() {
             // Inicializar DataTable
             $('#tabelaPassagens').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json"
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
                 },
-                "pageLength": 25,
-                "order": [[0, "desc"]],
-                "columnDefs": [
-                    { "orderable": false, "targets": -1 }
-                ]
+                order: [[0, 'desc']],
+                pageLength: 25,
+                responsive: true
             });
-        
-            // Máscaras de input
-            aplicarMascaras();
-        
-            // Listeners de cálculo automático
-            $('#vl_tarifa, #vl_taxa_extra, #vl_assento, #vl_taxa_embarque').on('input', calcularTotal);
-            $('#vl_tarifa_edit, #vl_taxa_extra_edit, #vl_assento_edit, #vl_taxa_embarque_edit').on('input', calcularTotalEdit);
-        
-            // Carregar orçamentos no modal de cadastro
-            $('#modalCadastro').on('show.bs.modal', function() {
-                carregarOrcamentos('id_opa');
+            
+            // Configurar data de hoje nos campos de data
+            var hoje = new Date().toISOString().split('T')[0];
+            $('#dt_emissao').val(hoje);
+            $('#dt_emissao_edit').val(hoje);
+            
+            // Configurar autocomplete de aeroportos - FORMULÁRIO DE CADASTRO
+            configurarAutocomplete('#origem', '#codigo_origem', false);
+            configurarAutocomplete('#destino', '#codigo_destino', false);
+            
+            // Configurar autocomplete de aeroportos - FORMULÁRIO DE EDIÇÃO
+            configurarAutocomplete('#origem_edit', '#codigo_origem_edit', true);
+            configurarAutocomplete('#destino_edit', '#codigo_destino_edit', true);
+            
+            // Máscara de moeda para campos de valor
+            $('.valor-input').on('keyup', function() {
+                var valor = $(this).val().replace(/\D/g, '');
+                var valorFormatado = (parseInt(valor) / 100).toFixed(2)
+                    .replace('.', ',')
+                    .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                $(this).val(valorFormatado);
             });
-        
-            // Carregar orçamentos no modal de edição
-            $('#modalEdicao').on('show.bs.modal', function() {
-                carregarOrcamentos('id_opa_edit');
-            });
-        
-            // Inicializar autocompletes de aeroportos
-            inicializarAutocompletes();
         });
         
         // ============================================================================
-        // INICIALIZAÇÃO DOS AUTOCOMPLETES DE AEROPORTOS
+        // CONFIGURAR AUTOCOMPLETE DE AEROPORTOS
         // ============================================================================
-        function inicializarAutocompletes() {
-            // Autocomplete para ORIGEM (modal de cadastro)
-            if (document.getElementById('origem')) {
-                window.autocompleteOrigem = new AeroportoAutocomplete(
-                    'origem',
-                    'codigo_origem',
-                    'origem-list'
-                );
-            }
-            
-            // Autocomplete para DESTINO (modal de cadastro)
-            if (document.getElementById('destino')) {
-                window.autocompleteDestino = new AeroportoAutocomplete(
-                    'destino',
-                    'codigo_destino',
-                    'destino-list'
-                );
-            }
-            
-            // Autocomplete para ORIGEM (modal de edição)
-            if (document.getElementById('origem_edit')) {
-                window.autocompleteOrigemEdit = new AeroportoAutocomplete(
-                    'origem_edit',
-                    'codigo_origem_edit',
-                    'origem-list-edit'
-                );
-            }
-            
-            // Autocomplete para DESTINO (modal de edição)
-            if (document.getElementById('destino_edit')) {
-                window.autocompleteDestinoEdit = new AeroportoAutocomplete(
-                    'destino_edit',
-                    'codigo_destino_edit',
-                    'destino-list-edit'
-                );
-            }
-        }
-
-
-        // Função para abrir seletor de orçamento
-        function abrirSeletorOrcamento() {
-            $.ajax({
-                url: '/api/orcamento/passagens/disponiveis',
-                type: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        var tbody = $('#tbodyOrcamentos');
-                        tbody.empty();
-                        
-                        response.registros.forEach(function(orcamento) {
-                            var row = '<tr>' +
-                                '<td>' + orcamento.uo + '</td>' +
-                                '<td>' + orcamento.unidade + '</td>' +
-                                '<td>' + orcamento.programa + '</td>' +
-                                '<td>' + orcamento.subitem + '</td>' +
-                                '<td>R$ ' + orcamento.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
-                                '<td>R$ ' + orcamento.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
-                                '<td><span class="badge badge-success">R$ ' + orcamento.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</span></td>' +
-                                '<td>' + orcamento.nu_empenho + '</td>' +
-                                '<td><button type="button" class="btn btn-sm btn-primary" onclick="selecionarOrcamento(' + 
-                                    orcamento.id_opa + ', \'' + orcamento.unidade + '\', \'' + orcamento.nu_empenho + '\')">Selecionar</button></td>' +
-                                '</tr>';
-                            tbody.append(row);
-                        });
-                        
-                        // Destruir DataTable anterior se existir
-                        if ($.fn.DataTable.isDataTable('#tabelaOrcamentos')) {
-                            $('#tabelaOrcamentos').DataTable().destroy();
+        function configurarAutocomplete(inputSelector, codigoSelector, isEdit) {
+            $(inputSelector).autocomplete({
+                source: function(request, response) {
+                    $.ajax({
+                        url: '/api/aeroportos/buscar',
+                        dataType: 'json',
+                        data: { termo: request.term },
+                        success: function(data) {
+                            if (data.success) {
+                                response(data.aeroportos.map(function(item) {
+                                    return {
+                                        label: item.display,
+                                        value: item.display,
+                                        codigo: item.codigo_iata,
+                                        dados: item
+                                    };
+                                }));
+                            } else {
+                                response([]);
+                            }
+                        },
+                        error: function() {
+                            response([]);
                         }
-                        
-                        // Inicializar DataTable do modal
-                        $('#tabelaOrcamentos').DataTable({
-                            language: {
-                                url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
-                            },
-                            pageLength: 10,
-                            order: [[0, 'asc']]
-                        });
-                        
-                        $('#modalSeletorOrcamento').modal('show');
-                    } else {
-                        alert('Erro ao carregar orçamentos: ' + response.error);
-                    }
+                    });
                 },
-                error: function(xhr) {
-                    alert('Erro ao buscar orçamentos disponíveis');
+                minLength: 2,
+                select: function(event, ui) {
+                    // Salvar código IATA no campo hidden
+                    $(codigoSelector).val(ui.item.codigo);
+                    
+                    // Atualizar campo ROTA automaticamente
+                    atualizarRota(isEdit);
+                    
+                    return true;
+                },
+                change: function(event, ui) {
+                    // Se o campo foi limpo ou alterado manualmente, limpar o código
+                    if (!ui.item) {
+                        $(codigoSelector).val('');
+                        atualizarRota(isEdit);
+                    }
                 }
             });
         }
-
-        // Função para selecionar orçamento
-        function selecionarOrcamento(idOpa, unidade, empenho) {
-            $('#id_opa').val(idOpa);
-            $('#orcamento_display').val(unidade + ' - ' + empenho);
-            $('#modalSeletorOrcamento').modal('hide');
-        }
-
+        
         // ============================================================================
-        // ABRIR MODAL SELETOR DE ORÇAMENTO (EDIÇÃO)
+        // ATUALIZAR CAMPO ROTA AUTOMATICAMENTE
         // ============================================================================
-        function abrirSeletorOrcamentoEdit() {
-            // Carregar orçamentos disponíveis
-            $.ajax({
-                url: '/api/orcamento/passagens/disponiveis',
-                type: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        var tbody = $('#tbodyOrcamentos');
-                        tbody.empty();
-                        
-                        if (response.registros.length === 0) {
-                            tbody.append(`
-                                <tr>
-                                    <td colspan="9" class="text-center">
-                                        <i class="fas fa-info-circle"></i> Nenhum orçamento com saldo disponível
-                                    </td>
-                                </tr>
-                            `);
-                        } else {
-                            response.registros.forEach(function(orc) {
-                                var vlAprovado = parseFloat(orc.vl_aprovado).toLocaleString('pt-BR', {minimumFractionDigits: 2});
-                                var vlUtilizado = parseFloat(orc.vl_utilizado).toLocaleString('pt-BR', {minimumFractionDigits: 2});
-                                var saldo = parseFloat(orc.saldo).toLocaleString('pt-BR', {minimumFractionDigits: 2});
-                                
-                                tbody.append(`
-                                    <tr>
-                                        <td>${orc.uo}</td>
-                                        <td>${orc.unidade}</td>
-                                        <td>${orc.programa}</td>
-                                        <td>${orc.subitem}</td>
-                                        <td class="text-right">R$ ${vlAprovado}</td>
-                                        <td class="text-right">R$ ${vlUtilizado}</td>
-                                        <td class="text-right"><strong>R$ ${saldo}</strong></td>
-                                        <td>${orc.nu_empenho || '-'}</td>
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-sm btn-success" 
-                                                    onclick="selecionarOrcamentoEdit(${orc.id_opa}, '${orc.unidade}', '${orc.programa}', '${orc.nu_empenho || ''}')">
-                                                <i class="fas fa-check"></i> Selecionar
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `);
-                            });
-                        }
-                        
-                        // Abrir modal
-                        $('#modalSeletorOrcamento').modal('show');
-                    } else {
-                        alert('Erro ao carregar orçamentos: ' + (response.message || 'Erro desconhecido'));
-                    }
-                },
-                error: function(xhr) {
-                    console.error('Erro ao carregar orçamentos:', xhr);
-                    alert('Erro ao carregar orçamentos disponíveis');
+        function atualizarRota(isEdit) {
+            var sufixo = isEdit ? '_edit' : '';
+            var codigoOrigem = $('#codigo_origem' + sufixo).val();
+            var codigoDestino = $('#codigo_destino' + sufixo).val();
+            var campoRota = $('#rota' + sufixo);
+            
+            // Só atualiza se o campo rota estiver vazio
+            if (!campoRota.val() || campoRota.val().trim() === '') {
+                if (codigoOrigem && codigoDestino) {
+                    campoRota.val(codigoOrigem + '/' + codigoDestino);
+                } else if (codigoOrigem) {
+                    campoRota.val(codigoOrigem);
+                } else if (codigoDestino) {
+                    campoRota.val(codigoDestino);
                 }
-            });
-        }
-
-        // ============================================================================
-        // SELECIONAR ORÇAMENTO (EDIÇÃO)
-        // ============================================================================
-        function selecionarOrcamentoEdit(idOpa, unidade, programa, empenho) {
-            // Preencher campo hidden
-            $('#id_opa_edit').val(idOpa);
-            
-            // Preencher campo visível
-            var displayText = `${unidade} - ${programa}`;
-            if (empenho) {
-                displayText += ` - Empenho: ${empenho}`;
             }
-            $('#orcamento_display_edit').val(displayText);
-            
-            // Fechar modal
-            $('#modalSeletorOrcamento').modal('hide');
         }
-
+        
+        // ============================================================================
+        // ABRIR MODAL DE CADASTRO
+        // ============================================================================
+        function abrirModalCadastro() {
+            limparFormularioCadastro();
+            $('#modalCadastro').modal('show');
+        }
+        
+        // ============================================================================
+        // ABRIR MODAL DE SELEÇÃO DE ORÇAMENTOS (CADASTRO)
+        // ============================================================================
+        function abrirModalOrcamentos() {
+            isEditMode = false;
+            carregarOrcamentosDisponiveis();
+            $('#modalOrcamentos').modal('show');
+        }
+        
+        // ============================================================================
+        // ABRIR MODAL DE SELEÇÃO DE ORÇAMENTOS (EDIÇÃO)
+        // ============================================================================
+        function abrirModalOrcamentosEdit() {
+            isEditMode = true;
+            carregarOrcamentosDisponiveis();
+            $('#modalOrcamentos').modal('show');
+        }
         
         // ============================================================================
         // CARREGAR ORÇAMENTOS DISPONÍVEIS
         // ============================================================================
-        function carregarOrcamentos(selectId) {
+        function carregarOrcamentosDisponiveis() {
             $.ajax({
                 url: '/api/orcamento/passagens/disponiveis',
                 type: 'GET',
                 success: function(response) {
                     if (response.success) {
-                        var select = $('#' + selectId);
-                        select.empty();
-                        select.append('<option value="">Selecione...</option>');
+                        var tbody = $('#listaOrcamentos');
+                        tbody.empty();
                         
-                        response.registros.forEach(function(orc) {
-                            var saldo = parseFloat(orc.saldo).toFixed(2);
-                            var label = `ID ${orc.id_opa} - ${orc.unidade} - ${orc.programa} - Saldo: R$ ${saldo}`;
-                            select.append(`<option value="${orc.id_opa}">${label}</option>`);
+                        if (response.registros.length === 0) {
+                            tbody.append('<tr><td colspan="11" class="text-center">Nenhum orçamento com saldo disponível</td></tr>');
+                        } else {
+                            response.registros.forEach(function(orc) {
+                                var row = '<tr>' +
+                                    '<td>' + orc.id_opa + '</td>' +
+                                    '<td>' + orc.exercicio + '</td>' +
+                                    '<td>' + orc.uo + '</td>' +
+                                    '<td>' + orc.unidade + '</td>' +
+                                    '<td>' + orc.programa + '</td>' +
+                                    '<td>' + orc.subitem + '</td>' +
+                                    '<td>R$ ' + formatarMoeda(orc.vl_aprovado) + '</td>' +
+                                    '<td>R$ ' + formatarMoeda(orc.vl_utilizado) + '</td>' +
+                                    '<td class="text-success"><strong>R$ ' + formatarMoeda(orc.saldo) + '</strong></td>' +
+                                    '<td>' + orc.nu_empenho + '</td>' +
+                                    '<td class="text-center">' +
+                                    '<button class="btn btn-sm btn-primary btn-selecionar" ' +
+                                    'onclick="selecionarOrcamento(' + orc.id_opa + ', \'' + 
+                                    orc.unidade + '\', \'' + orc.programa + '\', \'' + orc.nu_empenho + '\')">' +
+                                    '<i class="fas fa-check"></i>' +
+                                    '</button>' +
+                                    '</td>' +
+                                    '</tr>';
+                                tbody.append(row);
+                            });
+                        }
+                        
+                        // Inicializar DataTable na tabela de orçamentos
+                        if ($.fn.DataTable.isDataTable('#tabelaOrcamentos')) {
+                            $('#tabelaOrcamentos').DataTable().destroy();
+                        }
+                        
+                        $('#tabelaOrcamentos').DataTable({
+                            language: {
+                                url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
+                            },
+                            order: [[0, 'desc']],
+                            pageLength: 10,
+                            searching: true,
+                            paging: true,
+                            info: true
                         });
                     }
                 },
                 error: function(xhr) {
-                    console.error('Erro ao carregar orçamentos:', xhr);
-                    alert('Erro ao carregar orçamentos disponíveis');
+                    alert('Erro ao carregar orçamentos: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Erro desconhecido'));
                 }
             });
         }
         
         // ============================================================================
-        // MÁSCARAS DE INPUT
+        // SELECIONAR ORÇAMENTO
         // ============================================================================
-        function aplicarMascaras() {
-            // Máscara de moeda
-            $('.money-mask').mask('#.##0,00', {reverse: true});
+        function selecionarOrcamento(id_opa, unidade, programa, empenho) {
+            var displayText = unidade + ' - ' + programa + ' - ' + empenho;
             
-            // Máscara de Nº SEI: 0000000-00.0000.0.00.0000
-            $('.sei-mask').mask('0000000-00.0000.0.00.0000');
+            if (isEditMode) {
+                $('#id_opa_edit').val(id_opa);
+                $('#orcamento_display_edit').val(displayText);
+            } else {
+                $('#id_opa').val(id_opa);
+                $('#orcamento_display').val(displayText);
+            }
             
-            // Listeners para calcular total automaticamente
-            $('.money-mask').on('blur', function() {
-                var id = $(this).attr('id');
-                if (id.includes('_edit')) {
-                    calcularTotalEdit();
-                } else {
-                    calcularTotal();
-                }
-            });
+            $('#modalOrcamentos').modal('hide');
         }
         
         // ============================================================================
-        // CALCULAR VALOR TOTAL (CADASTRO)
+        // CALCULAR TOTAL (CADASTRO)
         // ============================================================================
         function calcularTotal() {
             var tarifa = parseFloat($('#vl_tarifa').val().replace(/\./g, '').replace(',', '.')) || 0;
@@ -1523,12 +1334,12 @@
             
             var total = tarifa + taxaExtra + assento + taxaEmbarque;
             
-            $('#vl_total').val(total.toFixed(2).replace('.', ','));
-            $('#vl_total_display').text('R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('#vl_total').val(formatarMoeda(total));
+            $('#vl_total_display').text('R$ ' + formatarMoeda(total));
         }
         
         // ============================================================================
-        // CALCULAR VALOR TOTAL (EDIÇÃO)
+        // CALCULAR TOTAL (EDIÇÃO)
         // ============================================================================
         function calcularTotalEdit() {
             var tarifa = parseFloat($('#vl_tarifa_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
@@ -1538,8 +1349,8 @@
             
             var total = tarifa + taxaExtra + assento + taxaEmbarque;
             
-            $('#vl_total_edit').val(total.toFixed(2).replace('.', ','));
-            $('#vl_total_display_edit').text('R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+            $('#vl_total_edit').val(formatarMoeda(total));
+            $('#vl_total_display_edit').text('R$ ' + formatarMoeda(total));
         }
         
         // ============================================================================
@@ -1547,12 +1358,6 @@
         // ============================================================================
         function salvarPassagem(event) {
             event.preventDefault();
-            
-            // Validar orçamento selecionado
-            if (!$('#id_opa').val()) {
-                alert('Por favor, selecione um orçamento (Unidade/Programa/Empenho)');
-                return;
-            }
             
             // Validar aeroportos selecionados
             if (!$('#codigo_origem').val()) {
@@ -1584,7 +1389,7 @@
         }
         
         // ============================================================================
-        // BUSCAR DADOS PARA EDIÇÃO (CORRIGIDO)
+        // EDITAR PASSAGEM
         // ============================================================================
         function editarPassagem(id) {
             $.ajax({
@@ -1596,7 +1401,7 @@
                         
                         // Preencher campos básicos
                         $('#id_of_edit').val(p.id_of);
-                        $('#id_opa_edit').val(p.id_opa || '');
+                        $('#id_opa_edit').val(p.id_opa);
                         $('#nu_sei_edit').val(p.nu_sei || '');
                         $('#nome_passageiro_edit').val(p.nome_passageiro || '');
                         $('#dt_emissao_edit').val(p.dt_emissao || '');
@@ -1631,6 +1436,9 @@
                         // Calcular e exibir total
                         calcularTotalEdit();
                         
+                        // Carregar informações do orçamento
+                        carregarInfoOrcamento(p.id_opa, true);
+                        
                         // Abrir modal
                         $('#modalEdicao').modal('show');
                     } else {
@@ -1640,6 +1448,41 @@
                 error: function(xhr) {
                     console.error('Erro completo:', xhr);
                     alert('Erro ao buscar dados: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Erro desconhecido'));
+                }
+            });
+        }
+        
+        // ============================================================================
+        // CARREGAR INFORMAÇÕES DO ORÇAMENTO PARA EXIBIÇÃO
+        // ============================================================================
+        function carregarInfoOrcamento(id_opa, isEdit) {
+            $.ajax({
+                url: '/api/orcamento/passagens/' + id_opa,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var orc = response.registro;
+                        
+                        // Buscar descrições de programa
+                        $.ajax({
+                            url: '/api/orcamento/dados_iniciais',
+                            type: 'GET',
+                            success: function(dadosResponse) {
+                                if (dadosResponse.success) {
+                                    var programa = dadosResponse.programas.find(p => p.id === orc.id_programa);
+                                    var programaDesc = programa ? programa.descricao : '';
+                                    
+                                    var displayText = orc.unidade + ' - ' + programaDesc + ' - ' + orc.nu_empenho;
+                                    
+                                    if (isEdit) {
+                                        $('#orcamento_display_edit').val(displayText);
+                                    } else {
+                                        $('#orcamento_display').val(displayText);
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }
             });
         }
@@ -1736,15 +1579,6 @@
                         table.clear();
                         
                         response.data.forEach(function(passagem) {
-                            // passagem[0] = ID_OF
-                            // passagem[4] = NOME_PASSAGEIRO
-                            // passagem[9] = ORIGEM_FORMATADA
-                            // passagem[10] = DESTINO_FORMATADO
-                            // passagem[6] = ROTA
-                            // passagem[5] = DT_EMISSAO_F
-                            // passagem[13] = DT_EMBARQUE_F
-                            // passagem[18] = VL_TOTAL_F
-                            
                             table.row.add([
                                 passagem[0],
                                 passagem[4],
@@ -1787,8 +1621,14 @@
             document.getElementById('formCadastro').reset();
             $('#codigo_origem').val('');
             $('#codigo_destino').val('');
+            $('#id_opa').val('');
+            $('#orcamento_display').val('');
             $('#vl_total').val('0,00');
             $('#vl_total_display').text('R$ 0,00');
+            
+            // Resetar data para hoje
+            var hoje = new Date().toISOString().split('T')[0];
+            $('#dt_emissao').val(hoje);
         }
         
         // ============================================================================
