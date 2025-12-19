@@ -235,21 +235,26 @@
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .form-group label {
             font-size: 12px;
             font-weight: 600;
             color: #555;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .form-control {
-            padding: 8px 10px;
+            padding: 6px 10px;
             font-size: 13px;
             border: 1px solid #ccc;
             border-radius: 3px;
+        }
+
+        .form-control-sm {
+            padding: 5px 8px;
+            font-size: 12px;
         }
         
         .form-control:focus {
@@ -266,6 +271,10 @@
         .badge-info {
             background-color: #3498db;
         }
+
+        .badge-success {
+            background-color: #27ae60;
+        }
         
         .required:after {
             content: " *";
@@ -276,8 +285,8 @@
         .info-box {
             background-color: #e8f4f8;
             border-left: 4px solid #3498db;
-            padding: 10px 15px;
-            margin-bottom: 15px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
             border-radius: 3px;
             font-size: 12px;
         }
@@ -310,17 +319,62 @@
 
         .form-row {
             display: flex;
-            gap: 15px;
+            gap: 10px;
+            margin-bottom: 0;
         }
 
         .form-row .form-group {
             flex: 1;
             min-width: 0;
+            margin-bottom: 12px;
         }
 
         input[readonly] {
             background-color: #f8f9fa;
             color: #666;
+        }
+
+        .input-group-append .btn {
+            padding: 6px 12px;
+        }
+
+        .col-auto {
+            flex: 0 0 auto;
+            width: auto;
+        }
+
+        .col-2 {
+            flex: 0 0 16.666667%;
+            max-width: 16.666667%;
+        }
+
+        .col-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+
+        .col-4 {
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+        }
+
+        .col-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+
+        .col-8 {
+            flex: 0 0 66.666667%;
+            max-width: 66.666667%;
+        }
+
+        /* Reduzir o modal em 25% */
+        .modal-dialog.modal-form {
+            max-width: 650px;
+        }
+
+        .modal-dialog.modal-lg {
+            max-width: 900px;
         }
     </style>
 </head>
@@ -438,7 +492,7 @@
 
     <!-- Modal Cadastro -->
     <div class="modal fade" id="modalCadastro" tabindex="-1">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-form">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-plus"></i> Nova Passagem</h5>
@@ -448,86 +502,121 @@
                 </div>
                 <div class="modal-body">
                     <form id="formCadastro" onsubmit="salvarPassagem(event)">
+                        <input type="hidden" id="id_opa" name="id_opa">
+                        <input type="hidden" name="id_controle" value="0">
+
                         <div class="info-box">
                             <i class="fas fa-info-circle"></i>
-                            <strong>Atenção:</strong> Preencha todos os campos obrigatórios marcados com asterisco (*).
+                            <strong>Atenção:</strong> Campos com <span style="color: #e74c3c;">*</span> são obrigatórios.
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="required">ID OPA</label>
-                                <input type="number" class="form-control" id="id_opa" name="id_opa" required>
-                            </div>
-                            <div class="form-group">
-                                <label>ID Controle</label>
-                                <input type="text" class="form-control" id="id_controle" name="id_controle">
-                            </div>
-                            <div class="form-group">
-                                <label>Nº SEI</label>
-                                <input type="text" class="form-control" id="nu_sei" name="nu_sei">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group" style="flex: 2;">
-                                <label class="required">Nome do Passageiro</label>
-                                <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" required style="text-transform: uppercase;">
-                            </div>
-                            <div class="form-group">
-                                <label class="required">Data Emissão</label>
-                                <input type="text" class="form-control data-mask" id="dt_emissao" name="dt_emissao" placeholder="DD/MM/AAAA" required>
+                        <!-- Unidade/Programa/Empenho -->
+                        <div class="form-group">
+                            <label class="required">Unidade/Programa/Empenho</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="orcamento_display" readonly placeholder="Clique em buscar para selecionar" required>
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-info" onclick="abrirSeletorOrcamento()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="required">Rota</label>
-                                <input type="text" class="form-control" id="rota" name="rota" required style="text-transform: uppercase;">
+                        <!-- Nº SEI -->
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Nº SEI</label>
+                                    <input type="text" class="form-control sei-mask" id="nu_sei" name="nu_sei" placeholder="0000000-00.0000.0.00.0000">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label class="required">Origem</label>
-                                <input type="text" class="form-control" id="origem" name="origem" required style="text-transform: uppercase;">
-                            </div>
-                            <div class="form-group">
-                                <label class="required">Destino</label>
-                                <input type="text" class="form-control" id="destino" name="destino" required style="text-transform: uppercase;">
-                            </div>
-                            <div class="form-group">
-                                <label class="required">Data Embarque</label>
-                                <input type="text" class="form-control data-mask" id="dt_embarque" name="dt_embarque" placeholder="DD/MM/AAAA" required>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="required">Data Emissão</label>
+                                    <input type="date" class="form-control" id="dt_emissao" name="dt_emissao" required>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="required">Cia Aérea</label>
-                                <input type="text" class="form-control" id="cia" name="cia" required style="text-transform: uppercase;">
+                        <!-- Nome do Passageiro -->
+                        <div class="form-group">
+                            <label class="required">Nome do Passageiro</label>
+                            <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" maxlength="100" required>
+                        </div>
+
+                        <!-- Rota, Origem, Destino -->
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Rota</label>
+                                    <input type="text" class="form-control" id="rota" name="rota" style="text-transform: uppercase;" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Localizador</label>
-                                <input type="text" class="form-control" id="localizador" name="localizador" style="text-transform: uppercase;">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Origem</label>
+                                    <input type="text" class="form-control" id="origem" name="origem" style="text-transform: uppercase;" required>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Destino</label>
+                                    <input type="text" class="form-control" id="destino" name="destino" style="text-transform: uppercase;" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Embarque, CIA, Localizador -->
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Data Embarque</label>
+                                    <input type="date" class="form-control" id="dt_embarque" name="dt_embarque" required>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Cia Aérea</label>
+                                    <input type="text" class="form-control" id="cia" name="cia" maxlength="10" style="text-transform: uppercase;" required>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label>Localizador</label>
+                                    <input type="text" class="form-control" id="localizador" name="localizador" maxlength="10" style="text-transform: uppercase;">
+                                </div>
                             </div>
                         </div>
 
                         <hr>
-                        <h6><i class="fas fa-dollar-sign"></i> Valores</h6>
+                        <h6 style="font-size: 13px; margin-bottom: 10px;"><i class="fas fa-dollar-sign"></i> Valores</h6>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="required">Tarifa</label>
-                                <input type="text" class="form-control money-mask" id="vl_tarifa" name="vl_tarifa" value="0,00" required>
+                        <!-- Valores -->
+                        <div class="row">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label class="required">Tarifa</label>
+                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_tarifa" name="vl_tarifa" value="0,00" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Taxa Extra</label>
-                                <input type="text" class="form-control money-mask" id="vl_taxa_extra" name="vl_taxa_extra" value="0,00">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label>Taxa Extra</label>
+                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_extra" name="vl_taxa_extra" value="0,00">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Assento</label>
-                                <input type="text" class="form-control money-mask" id="vl_assento" name="vl_assento" value="0,00">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label>Assento</label>
+                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_assento" name="vl_assento" value="0,00">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Taxa Embarque</label>
-                                <input type="text" class="form-control money-mask" id="vl_taxa_embarque" name="vl_taxa_embarque" value="0,00">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label>Taxa Embarque</label>
+                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_embarque" name="vl_taxa_embarque" value="0,00">
+                                </div>
                             </div>
                         </div>
 
@@ -551,9 +640,45 @@
         </div>
     </div>
 
+    <!-- Modal Seletor de Orçamento -->
+    <div class="modal fade" id="modalSeletorOrcamento" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-search"></i> Selecionar Orçamento</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table id="tabelaOrcamentos" class="table table-striped table-bordered table-hover table-sm" style="width:100%; font-size: 11px;">
+                            <thead>
+                                <tr>
+                                    <th>UO</th>
+                                    <th>Unidade</th>
+                                    <th>Programa</th>
+                                    <th>Subitem</th>
+                                    <th>Aprovado</th>
+                                    <th>Utilizado</th>
+                                    <th>Saldo</th>
+                                    <th>Empenho</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyOrcamentos">
+                                <!-- Será preenchido via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Edição -->
     <div class="modal fade" id="modalEdicao" tabindex="-1">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-form">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Passagem</h5>
@@ -564,87 +689,114 @@
                 <div class="modal-body">
                     <form id="formEdicao" onsubmit="atualizarPassagem(event)">
                         <input type="hidden" id="id_of_edit" name="id_of_edit">
+                        <input type="hidden" id="id_opa_edit" name="id_opa_edit">
+                        <input type="hidden" name="id_controle_edit" value="0">
 
                         <div class="info-box">
                             <i class="fas fa-info-circle"></i>
-                            <strong>Atenção:</strong> Preencha todos os campos obrigatórios marcados com asterisco (*).
+                            <strong>Atenção:</strong> Campos com <span style="color: #e74c3c;">*</span> são obrigatórios.
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="required">ID OPA</label>
-                                <input type="number" class="form-control" id="id_opa_edit" name="id_opa_edit" required>
-                            </div>
-                            <div class="form-group">
-                                <label>ID Controle</label>
-                                <input type="text" class="form-control" id="id_controle_edit" name="id_controle_edit">
-                            </div>
-                            <div class="form-group">
-                                <label>Nº SEI</label>
-                                <input type="text" class="form-control" id="nu_sei_edit" name="nu_sei_edit">
-                            </div>
+                        <!-- Unidade/Programa/Empenho (somente leitura na edição) -->
+                        <div class="form-group">
+                            <label>Unidade/Programa/Empenho</label>
+                            <input type="text" class="form-control" id="orcamento_display_edit" readonly>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group" style="flex: 2;">
-                                <label class="required">Nome do Passageiro</label>
-                                <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" required style="text-transform: uppercase;">
+                        <!-- Nº SEI -->
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Nº SEI</label>
+                                    <input type="text" class="form-control sei-mask" id="nu_sei_edit" name="nu_sei_edit" placeholder="0000000-00.0000.0.00.0000">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label class="required">Data Emissão</label>
-                                <input type="text" class="form-control data-mask" id="dt_emissao_edit" name="dt_emissao_edit" placeholder="DD/MM/AAAA" required>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="required">Data Emissão</label>
+                                    <input type="date" class="form-control" id="dt_emissao_edit" name="dt_emissao_edit" required>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="required">Rota</label>
-                                <input type="text" class="form-control" id="rota_edit" name="rota_edit" required style="text-transform: uppercase;">
+                        <!-- Nome do Passageiro -->
+                        <div class="form-group">
+                            <label class="required">Nome do Passageiro</label>
+                            <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" maxlength="100" required>
+                        </div>
+
+                        <!-- Rota, Origem, Destino -->
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Rota</label>
+                                    <input type="text" class="form-control" id="rota_edit" name="rota_edit" style="text-transform: uppercase;" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label class="required">Origem</label>
-                                <input type="text" class="form-control" id="origem_edit" name="origem_edit" required style="text-transform: uppercase;">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Origem</label>
+                                    <input type="text" class="form-control" id="origem_edit" name="origem_edit" style="text-transform: uppercase;" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label class="required">Destino</label>
-                                <input type="text" class="form-control" id="destino_edit" name="destino_edit" required style="text-transform: uppercase;">
-                            </div>
-                            <div class="form-group">
-                                <label class="required">Data Embarque</label>
-                                <input type="text" class="form-control data-mask" id="dt_embarque_edit" name="dt_embarque_edit" placeholder="DD/MM/AAAA" required>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Destino</label>
+                                    <input type="text" class="form-control" id="destino_edit" name="destino_edit" style="text-transform: uppercase;" required>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="required">Cia Aérea</label>
-                                <input type="text" class="form-control" id="cia_edit" name="cia_edit" required style="text-transform: uppercase;">
+                        <!-- Data Embarque, CIA, Localizador -->
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Data Embarque</label>
+                                    <input type="date" class="form-control" id="dt_embarque_edit" name="dt_embarque_edit" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Localizador</label>
-                                <input type="text" class="form-control" id="localizador_edit" name="localizador_edit" style="text-transform: uppercase;">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Cia Aérea</label>
+                                    <input type="text" class="form-control" id="cia_edit" name="cia_edit" maxlength="10" style="text-transform: uppercase;" required>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label>Localizador</label>
+                                    <input type="text" class="form-control" id="localizador_edit" name="localizador_edit" maxlength="10" style="text-transform: uppercase;">
+                                </div>
                             </div>
                         </div>
 
                         <hr>
-                        <h6><i class="fas fa-dollar-sign"></i> Valores</h6>
+                        <h6 style="font-size: 13px; margin-bottom: 10px;"><i class="fas fa-dollar-sign"></i> Valores</h6>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="required">Tarifa</label>
-                                <input type="text" class="form-control money-mask" id="vl_tarifa_edit" name="vl_tarifa_edit" value="0,00" required>
+                        <!-- Valores -->
+                        <div class="row">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label class="required">Tarifa</label>
+                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_tarifa_edit" name="vl_tarifa_edit" value="0,00" required>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Taxa Extra</label>
-                                <input type="text" class="form-control money-mask" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" value="0,00">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label>Taxa Extra</label>
+                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" value="0,00">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Assento</label>
-                                <input type="text" class="form-control money-mask" id="vl_assento_edit" name="vl_assento_edit" value="0,00">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label>Assento</label>
+                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_assento_edit" name="vl_assento_edit" value="0,00">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Taxa Embarque</label>
-                                <input type="text" class="form-control money-mask" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" value="0,00">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label>Taxa Embarque</label>
+                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" value="0,00">
+                                </div>
                             </div>
                         </div>
 
@@ -680,30 +832,38 @@
                 </div>
                 <div class="modal-body">
                     <form id="formFiltros" onsubmit="aplicarFiltros(event)">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Data Início</label>
-                                <input type="text" class="form-control data-mask" id="dt_inicio_filtro" name="dt_inicio_filtro" placeholder="DD/MM/AAAA">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Data Início</label>
+                                    <input type="date" class="form-control" id="dt_inicio_filtro" name="dt_inicio_filtro">
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Data Fim</label>
-                                <input type="text" class="form-control data-mask" id="dt_fim_filtro" name="dt_fim_filtro" placeholder="DD/MM/AAAA">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Data Fim</label>
+                                    <input type="date" class="form-control" id="dt_fim_filtro" name="dt_fim_filtro">
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Companhia Aérea</label>
-                                <select class="form-control" id="cia_filtro" name="cia_filtro">
-                                    <option value="">Todas</option>
-                                    {% for cia in cias %}
-                                    <option value="{{ cia[0] }}">{{ cia[0] }}</option>
-                                    {% endfor %}
-                                </select>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Companhia Aérea</label>
+                                    <select class="form-control" id="cia_filtro" name="cia_filtro">
+                                        <option value="">Todas</option>
+                                        {% for cia in cias %}
+                                        <option value="{{ cia[0] }}">{{ cia[0] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Passageiro</label>
-                                <input type="text" class="form-control" id="passageiro_filtro" name="passageiro_filtro" placeholder="Nome do passageiro">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Passageiro</label>
+                                    <input type="text" class="form-control" id="passageiro_filtro" name="passageiro_filtro" placeholder="Nome do passageiro">
+                                </div>
                             </div>
                         </div>
 
@@ -736,7 +896,7 @@
 
     <script>
         $(document).ready(function() {
-            // Inicializar DataTable
+            // Inicializar DataTable principal
             $('#tabelaPassagens').DataTable({
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
@@ -746,10 +906,10 @@
                 responsive: true
             });
 
-            // Máscaras
-            $('.data-mask').mask('00/00/0000');
+            // Máscara SEI
+            $('.sei-mask').mask('0000000-00.0000.0.00.0000');
             
-            // Máscara de moeda melhorada - sempre formata, mesmo com poucos dígitos
+            // Máscara de moeda melhorada
             $('.money-mask').each(function() {
                 $(this).mask('#.##0,00', {
                     reverse: true,
@@ -777,10 +937,70 @@
             // Limpar formulário ao fechar modal
             $('#modalCadastro').on('hidden.bs.modal', function () {
                 $('#formCadastro')[0].reset();
+                $('#id_opa').val('');
+                $('#orcamento_display').val('');
                 $('.money-mask').val('0,00');
                 $('#vl_total_display').text('R$ 0,00');
             });
         });
+
+        // Função para abrir seletor de orçamento
+        function abrirSeletorOrcamento() {
+            $.ajax({
+                url: '/api/orcamento/passagens/disponiveis',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var tbody = $('#tbodyOrcamentos');
+                        tbody.empty();
+                        
+                        response.registros.forEach(function(orcamento) {
+                            var row = '<tr>' +
+                                '<td>' + orcamento.uo + '</td>' +
+                                '<td>' + orcamento.unidade + '</td>' +
+                                '<td>' + orcamento.programa + '</td>' +
+                                '<td>' + orcamento.subitem + '</td>' +
+                                '<td>R$ ' + orcamento.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                                '<td>R$ ' + orcamento.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                                '<td><span class="badge badge-success">R$ ' + orcamento.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</span></td>' +
+                                '<td>' + orcamento.nu_empenho + '</td>' +
+                                '<td><button type="button" class="btn btn-sm btn-primary" onclick="selecionarOrcamento(' + 
+                                    orcamento.id_opa + ', \'' + orcamento.unidade + '\', \'' + orcamento.nu_empenho + '\')">Selecionar</button></td>' +
+                                '</tr>';
+                            tbody.append(row);
+                        });
+                        
+                        // Destruir DataTable anterior se existir
+                        if ($.fn.DataTable.isDataTable('#tabelaOrcamentos')) {
+                            $('#tabelaOrcamentos').DataTable().destroy();
+                        }
+                        
+                        // Inicializar DataTable do modal
+                        $('#tabelaOrcamentos').DataTable({
+                            language: {
+                                url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
+                            },
+                            pageLength: 10,
+                            order: [[0, 'asc']]
+                        });
+                        
+                        $('#modalSeletorOrcamento').modal('show');
+                    } else {
+                        alert('Erro ao carregar orçamentos: ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao buscar orçamentos disponíveis');
+                }
+            });
+        }
+
+        // Função para selecionar orçamento
+        function selecionarOrcamento(idOpa, unidade, empenho) {
+            $('#id_opa').val(idOpa);
+            $('#orcamento_display').val(unidade + ' - ' + empenho);
+            $('#modalSeletorOrcamento').modal('hide');
+        }
 
         // Função para calcular o valor total (Cadastro)
         function calcularTotal() {
@@ -812,6 +1032,11 @@
         function salvarPassagem(event) {
             event.preventDefault();
             
+            if (!$('#id_opa').val()) {
+                alert('Por favor, selecione um orçamento (Unidade/Programa/Empenho)');
+                return;
+            }
+            
             $.ajax({
                 url: '/passagens/salvar',
                 type: 'POST',
@@ -842,14 +1067,25 @@
                         // Preencher formulário de edição
                         $('#id_of_edit').val(data[0]);
                         $('#id_opa_edit').val(data[1]);
-                        $('#id_controle_edit').val(data[2]);
+                        $('#orcamento_display_edit').val('ID OPA: ' + data[1]);
                         $('#nu_sei_edit').val(data[3]);
                         $('#nome_passageiro_edit').val(data[4]);
-                        $('#dt_emissao_edit').val(data[5]);
+                        
+                        // Converter datas de dd/mm/yyyy para yyyy-mm-dd
+                        if (data[5]) {
+                            var partes = data[5].split('/');
+                            $('#dt_emissao_edit').val(partes[2] + '-' + partes[1] + '-' + partes[0]);
+                        }
+                        
                         $('#rota_edit').val(data[6]);
                         $('#origem_edit').val(data[7]);
                         $('#destino_edit').val(data[8]);
-                        $('#dt_embarque_edit').val(data[9]);
+                        
+                        if (data[9]) {
+                            var partes = data[9].split('/');
+                            $('#dt_embarque_edit').val(partes[2] + '-' + partes[1] + '-' + partes[0]);
+                        }
+                        
                         $('#cia_edit').val(data[10]);
                         $('#localizador_edit').val(data[11]);
                         $('#vl_tarifa_edit').val(data[12]);
@@ -877,10 +1113,30 @@
         function atualizarPassagem(event) {
             event.preventDefault();
             
+            // Converter datas de yyyy-mm-dd para dd/mm/yyyy antes de enviar
+            var dtEmissao = $('#dt_emissao_edit').val();
+            var dtEmbarque = $('#dt_embarque_edit').val();
+            
+            // Criar um FormData para manipular os dados
+            var formData = new FormData($('#formEdicao')[0]);
+            
+            // Converter as datas de volta para dd/mm/yyyy
+            if (dtEmissao) {
+                var partes = dtEmissao.split('-');
+                formData.set('dt_emissao_edit', partes[2] + '/' + partes[1] + '/' + partes[0]);
+            }
+            
+            if (dtEmbarque) {
+                var partes = dtEmbarque.split('-');
+                formData.set('dt_embarque_edit', partes[2] + '/' + partes[1] + '/' + partes[0]);
+            }
+            
             $.ajax({
                 url: '/passagens/atualizar',
                 type: 'POST',
-                data: $('#formEdicao').serialize(),
+                data: formData,
+                processData: false,
+                contentType: false,
                 success: function(response) {
                     if (response.success) {
                         alert('Passagem atualizada com sucesso!');
@@ -920,17 +1176,31 @@
         function aplicarFiltros(event) {
             event.preventDefault();
             
+            // Converter datas para formato dd/mm/yyyy
+            var dtInicio = $('#dt_inicio_filtro').val();
+            var dtFim = $('#dt_fim_filtro').val();
+            
+            var formData = $('#formFiltros').serialize();
+            
+            if (dtInicio) {
+                var partes = dtInicio.split('-');
+                formData += '&dt_inicio_filtro=' + partes[2] + '/' + partes[1] + '/' + partes[0];
+            }
+            
+            if (dtFim) {
+                var partes = dtFim.split('-');
+                formData += '&dt_fim_filtro=' + partes[2] + '/' + partes[1] + '/' + partes[0];
+            }
+            
             $.ajax({
                 url: '/passagens/filtrar',
                 type: 'POST',
-                data: $('#formFiltros').serialize(),
+                data: formData,
                 success: function(response) {
                     if (response.success) {
-                        // Limpar tabela
                         var table = $('#tabelaPassagens').DataTable();
                         table.clear();
                         
-                        // Adicionar linhas filtradas
                         response.data.forEach(function(passagem) {
                             table.row.add([
                                 passagem[0],
