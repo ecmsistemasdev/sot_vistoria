@@ -7834,7 +7834,44 @@ def listar_orcamentos_disponiveis():
             'error': str(e)
         }), 500
 
-
+# ----- ROTA: BUSCAR LISTA DE PASSAGEIROS CADASTRADOS -----
+@app.route('/api/passageiros/listar', methods=['GET'])
+@login_required
+def listar_passageiros():
+    """
+    Retorna lista de passageiros únicos já cadastrados no sistema
+    para autocomplete
+    """
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+            SELECT DISTINCT NOME_PASSAGEIRO 
+            FROM PASSAGENS_AEREAS_EMITIDAS 
+            WHERE ATIVO = 'S' 
+            AND NOME_PASSAGEIRO IS NOT NULL 
+            AND NOME_PASSAGEIRO != ''
+            ORDER BY NOME_PASSAGEIRO
+        """
+        
+        cursor.execute(query)
+        passageiros = [row[0] for row in cursor.fetchall()]
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'passageiros': passageiros
+        })
+        
+    except Exception as e:
+        print(f"Erro ao listar passageiros: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+		
 #######################################
 
 if __name__ == '__main__':
