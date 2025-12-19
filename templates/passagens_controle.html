@@ -15,123 +15,312 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
+            background-color: #f5f5f5;
+            color: #333;
+            font-size: 13px;
+            padding-top: 20px;
         }
         
         .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #2c3e50;
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            padding: 8px 0;
+        }
+
+        .navbar-brand {
+            font-size: 14px;
+            font-weight: 600;
+            color: white !important;
+        }
+
+        .navbar-nav .nav-link {
+            font-size: 13px;
+            color: white !important;
+            padding: 8px 15px;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 3px;
         }
         
         .content-wrapper {
-            padding: 30px;
-            margin-top: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .page-header p {
+            font-size: 12px;
+            margin: 0;
+            opacity: 0.9;
         }
         
         .card {
             border: none;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,.08);
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
             margin-bottom: 20px;
+            background-color: white;
         }
         
         .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #2c3e50;
             color: white;
-            border-radius: 10px 10px 0 0 !important;
-            padding: 15px 20px;
+            border-radius: 4px 4px 0 0 !important;
+            padding: 10px 15px;
+        }
+
+        .card-header h5 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 15px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn i {
+            margin-right: 5px;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 5px;
-            padding: 8px 20px;
+            background-color: #3498db;
+            color: white;
         }
         
         .btn-primary:hover {
-            background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,.2);
+            background-color: #2980b9;
+            color: white;
         }
         
         .btn-success {
-            border-radius: 5px;
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+            color: white;
         }
         
         .btn-warning {
-            border-radius: 5px;
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+            color: white;
         }
         
         .btn-danger {
-            border-radius: 5px;
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+            color: white;
         }
         
         .btn-info {
-            border-radius: 5px;
+            background-color: #16a085;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background-color: #138d75;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
         }
         
         .table {
-            font-size: 14px;
+            font-size: 12px;
+            margin-bottom: 0;
         }
         
         .table thead th {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
+            background-color: #ecf0f1;
+            border-bottom: 2px solid #bdc3c7;
             font-weight: 600;
-            color: #495057;
+            color: #2c3e50;
+            font-size: 12px;
+            padding: 10px;
+            vertical-align: middle;
+        }
+
+        .table tbody td {
+            padding: 8px 10px;
+            vertical-align: middle;
         }
         
         .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #2c3e50;
             color: white;
+            padding: 12px 20px;
+        }
+
+        .modal-header .modal-title {
+            font-size: 14px;
+            font-weight: 600;
         }
         
         .modal-header .close {
             color: white;
             opacity: 1;
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            padding: 8px 10px;
+            font-size: 13px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
         }
         
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
         }
         
-        .badge-success {
-            padding: 5px 10px;
-            font-size: 12px;
+        .badge {
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
         }
-        
-        .action-buttons .btn {
-            padding: 5px 10px;
-            margin: 0 2px;
-            font-size: 12px;
-        }
-        
-        .valor-total {
-            font-weight: bold;
-            color: #28a745;
-            font-size: 16px;
+
+        .badge-info {
+            background-color: #3498db;
         }
         
         .required:after {
             content: " *";
-            color: red;
+            color: #e74c3c;
+            font-weight: bold;
         }
         
         .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #2196F3;
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
             padding: 10px 15px;
             margin-bottom: 15px;
-            border-radius: 4px;
+            border-radius: 3px;
+            font-size: 12px;
         }
         
         .info-box i {
-            color: #2196F3;
+            color: #3498db;
             margin-right: 8px;
+        }
+
+        .valor-total {
+            font-weight: bold;
+            color: #27ae60;
+            font-size: 15px;
+            padding: 8px;
+            background-color: #e8f8f5;
+            border-radius: 3px;
+            text-align: center;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            font-size: 12px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            min-width: 0;
+        }
+
+        input[readonly] {
+            background-color: #f8f9fa;
+            color: #666;
         }
     </style>
 </head>
@@ -139,7 +328,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/orcamento_passagens_aereas">
+            <a class="navbar-brand" href="/controle_passagens_aereas">
                 <i class="fas fa-plane"></i> Passagens Aéreas
             </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
@@ -148,7 +337,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/orcamento_passagens_aereas">
+                        <a class="nav-link" href="/controle_passagens_aereas">
                             <i class="fas fa-arrow-left"></i> Voltar ao Orçamento
                         </a>
                     </li>
@@ -170,10 +359,10 @@
     <!-- Conteúdo Principal -->
     <div class="container-fluid content-wrapper">
         <!-- Cabeçalho -->
-        <div class="row mb-4">
-            <div class="col-md-12">
+        <div class="page-header">
+            <div>
                 <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes Emitidos</h2>
-                <p class="text-muted">Gerencie os bilhetes de passagens aéreas emitidas</p>
+                <p>Gerencie os bilhetes de passagens aéreas emitidas</p>
             </div>
         </div>
 
@@ -197,7 +386,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-list"></i> Bilhetes Emitidos</h5>
+                        <h5><i class="fas fa-list"></i> Bilhetes Emitidos</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -209,30 +398,32 @@
                                         <th>CIA</th>
                                         <th>Localizador</th>
                                         <th>Rota</th>
-                                        <th>Dt. Emissão</th>
-                                        <th>Dt. Embarque</th>
+                                        <th>Emissão</th>
+                                        <th>Embarque</th>
                                         <th>Valor Total</th>
                                         <th>Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for passagem in passagens %}
+                                    {% for p in passagens %}
                                     <tr>
-                                        <td>{{ passagem.ID_OF }}</td>
-                                        <td>{{ passagem.NOME_PASSAGEIRO }}</td>
-                                        <td><span class="badge badge-info">{{ passagem.CIA }}</span></td>
-                                        <td>{{ passagem.LOCALIZADOR }}</td>
-                                        <td><strong>{{ passagem.ROTA }}</strong></td>
-                                        <td>{{ passagem.DT_EMISSAO_F }}</td>
-                                        <td>{{ passagem.DT_EMBARQUE_F }}</td>
-                                        <td class="text-right">R$ {{ passagem.VL_TOTAL_F }}</td>
-                                        <td class="action-buttons text-center">
-                                            <button class="btn btn-sm btn-warning" onclick="editarPassagem({{ passagem.ID_OF }})" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="confirmarExclusao({{ passagem.ID_OF }})" title="Excluir">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                        <td>{{ p[0] }}</td>
+                                        <td>{{ p[4] }}</td>
+                                        <td><span class="badge badge-info">{{ p[10] }}</span></td>
+                                        <td>{{ p[11] }}</td>
+                                        <td><strong>{{ p[6] }}</strong></td>
+                                        <td>{{ p[5] }}</td>
+                                        <td>{{ p[9] }}</td>
+                                        <td>R$ {{ p[16] }}</td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn btn-sm btn-warning" onclick="editarPassagem({{ p[0] }})" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="confirmarExclusao({{ p[0] }})" title="Excluir">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -245,171 +436,124 @@
         </div>
     </div>
 
-    <!-- Modal de Cadastro -->
-    <div class="modal fade" id="modalCadastro" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
+    <!-- Modal Cadastro -->
+    <div class="modal fade" id="modalCadastro" tabindex="-1">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-plus-circle"></i> Cadastrar Nova Passagem</h5>
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Nova Passagem</h5>
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
-                <form id="formCadastro" onsubmit="salvarPassagem(event)">
-                    <div class="modal-body">
+                <div class="modal-body">
+                    <form id="formCadastro" onsubmit="salvarPassagem(event)">
                         <div class="info-box">
                             <i class="fas fa-info-circle"></i>
-                            <strong>Atenção:</strong> Campos marcados com <span style="color: red;">*</span> são obrigatórios.
+                            <strong>Atenção:</strong> Preencha todos os campos obrigatórios marcados com asterisco (*).
                         </div>
-                        
-                        <!-- Dados Administrativos -->
-                        <h6 class="mb-3"><i class="fas fa-file-alt"></i> Dados Administrativos</h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>ID OPA</label>
-                                    <input type="number" class="form-control" name="id_opa" id="id_opa">
-                                </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required">ID OPA</label>
+                                <input type="number" class="form-control" id="id_opa" name="id_opa" required>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>ID Controle</label>
-                                    <input type="number" class="form-control" name="id_controle" id="id_controle">
-                                </div>
+                            <div class="form-group">
+                                <label>ID Controle</label>
+                                <input type="text" class="form-control" id="id_controle" name="id_controle">
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Nº SEI</label>
-                                    <input type="text" class="form-control" name="nu_sei" id="nu_sei" maxlength="25">
-                                </div>
+                            <div class="form-group">
+                                <label>Nº SEI</label>
+                                <input type="text" class="form-control" id="nu_sei" name="nu_sei">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 2;">
+                                <label class="required">Nome do Passageiro</label>
+                                <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Data Emissão</label>
+                                <input type="text" class="form-control data-mask" id="dt_emissao" name="dt_emissao" placeholder="DD/MM/AAAA" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required">Rota</label>
+                                <input type="text" class="form-control" id="rota" name="rota" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Origem</label>
+                                <input type="text" class="form-control" id="origem" name="origem" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Destino</label>
+                                <input type="text" class="form-control" id="destino" name="destino" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Data Embarque</label>
+                                <input type="text" class="form-control data-mask" id="dt_embarque" name="dt_embarque" placeholder="DD/MM/AAAA" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required">Cia Aérea</label>
+                                <input type="text" class="form-control" id="cia" name="cia" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label>Localizador</label>
+                                <input type="text" class="form-control" id="localizador" name="localizador" style="text-transform: uppercase;">
                             </div>
                         </div>
 
                         <hr>
+                        <h6><i class="fas fa-dollar-sign"></i> Valores</h6>
 
-                        <!-- Dados do Passageiro e Emissão -->
-                        <h6 class="mb-3"><i class="fas fa-user"></i> Dados do Passageiro</h6>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label class="required">Nome do Passageiro</label>
-                                    <input type="text" class="form-control" name="nome_passageiro" id="nome_passageiro" maxlength="100" required>
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required">Tarifa</label>
+                                <input type="text" class="form-control money-mask" id="vl_tarifa" name="vl_tarifa" value="0,00" required>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="required">Data de Emissão</label>
-                                    <input type="text" class="form-control data-mask" name="dt_emissao" id="dt_emissao" placeholder="dd/mm/aaaa" required>
-                                </div>
+                            <div class="form-group">
+                                <label>Taxa Extra</label>
+                                <input type="text" class="form-control money-mask" id="vl_taxa_extra" name="vl_taxa_extra" value="0,00">
+                            </div>
+                            <div class="form-group">
+                                <label>Assento</label>
+                                <input type="text" class="form-control money-mask" id="vl_assento" name="vl_assento" value="0,00">
+                            </div>
+                            <div class="form-group">
+                                <label>Taxa Embarque</label>
+                                <input type="text" class="form-control money-mask" id="vl_taxa_embarque" name="vl_taxa_embarque" value="0,00">
                             </div>
                         </div>
 
-                        <hr>
-
-                        <!-- Dados do Voo -->
-                        <h6 class="mb-3"><i class="fas fa-plane-departure"></i> Dados do Voo</h6>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="required">Companhia Aérea</label>
-                                    <input type="text" class="form-control text-uppercase" name="cia" id="cia" maxlength="10" placeholder="Ex: GOL, LATAM" required>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="required">Localizador</label>
-                                    <input type="text" class="form-control text-uppercase" name="localizador" id="localizador" maxlength="20" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="required">Rota (Aeroportos)</label>
-                                    <input type="text" class="form-control text-uppercase" name="rota" id="rota" maxlength="45" placeholder="Ex: PVH/MAO/GRU" required>
-                                    <small class="form-text text-muted">Use "/" para separar os aeroportos</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="required">Origem</label>
-                                    <input type="text" class="form-control" name="origem" id="origem" maxlength="35" placeholder="Ex: Porto Velho" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="required">Destino</label>
-                                    <input type="text" class="form-control" name="destino" id="destino" maxlength="35" placeholder="Ex: São Paulo" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="required">Data de Embarque</label>
-                                    <input type="text" class="form-control data-mask" name="dt_embarque" id="dt_embarque" placeholder="dd/mm/aaaa" required>
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label>Valor Total</label>
+                            <input type="hidden" id="vl_total" name="vl_total" value="0,00">
+                            <div class="valor-total" id="vl_total_display">R$ 0,00</div>
                         </div>
 
-                        <hr>
-
-                        <!-- Valores -->
-                        <h6 class="mb-3"><i class="fas fa-dollar-sign"></i> Valores</h6>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="required">Valor Tarifa</label>
-                                    <input type="text" class="form-control money-mask" name="vl_tarifa" id="vl_tarifa" required>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Taxa Extra</label>
-                                    <input type="text" class="form-control money-mask" name="vl_taxa_extra" id="vl_taxa_extra" value="0,00">
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Valor Assento</label>
-                                    <input type="text" class="form-control money-mask" name="vl_assento" id="vl_assento" value="0,00">
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Taxa Embarque</label>
-                                    <input type="text" class="form-control money-mask" name="vl_taxa_embarque" id="vl_taxa_embarque" value="0,00">
-                                </div>
-                            </div>
+                        <div class="text-right mt-3">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salvar
+                            </button>
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="alert alert-success text-center">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-calculator"></i> 
-                                        Valor Total: <span id="vl_total_display" class="valor-total">R$ 0,00</span>
-                                    </h5>
-                                </div>
-                                <input type="hidden" name="vl_total" id="vl_total" value="0,00">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                            <i class="fas fa-times"></i> Cancelar
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Salvar
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Edição -->
-    <div class="modal fade" id="modalEdicao" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg" role="document">
+    <!-- Modal Edição -->
+    <div class="modal fade" id="modalEdicao" tabindex="-1">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Passagem</h5>
@@ -417,203 +561,167 @@
                         <span>&times;</span>
                     </button>
                 </div>
-                <form id="formEdicao" onsubmit="atualizarPassagem(event)">
-                    <input type="hidden" name="id_of_edit" id="id_of_edit">
-                    <div class="modal-body">
-                        <!-- Mesma estrutura do formulário de cadastro, mas com IDs diferentes (_edit) -->
-                        <h6 class="mb-3"><i class="fas fa-file-alt"></i> Dados Administrativos</h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>ID OPA</label>
-                                    <input type="number" class="form-control" name="id_opa_edit" id="id_opa_edit">
-                                </div>
+                <div class="modal-body">
+                    <form id="formEdicao" onsubmit="atualizarPassagem(event)">
+                        <input type="hidden" id="id_of_edit" name="id_of_edit">
+
+                        <div class="info-box">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Atenção:</strong> Preencha todos os campos obrigatórios marcados com asterisco (*).
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required">ID OPA</label>
+                                <input type="number" class="form-control" id="id_opa_edit" name="id_opa_edit" required>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>ID Controle</label>
-                                    <input type="number" class="form-control" name="id_controle_edit" id="id_controle_edit">
-                                </div>
+                            <div class="form-group">
+                                <label>ID Controle</label>
+                                <input type="text" class="form-control" id="id_controle_edit" name="id_controle_edit">
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Nº SEI</label>
-                                    <input type="text" class="form-control" name="nu_sei_edit" id="nu_sei_edit" maxlength="25">
-                                </div>
+                            <div class="form-group">
+                                <label>Nº SEI</label>
+                                <input type="text" class="form-control" id="nu_sei_edit" name="nu_sei_edit">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 2;">
+                                <label class="required">Nome do Passageiro</label>
+                                <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Data Emissão</label>
+                                <input type="text" class="form-control data-mask" id="dt_emissao_edit" name="dt_emissao_edit" placeholder="DD/MM/AAAA" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required">Rota</label>
+                                <input type="text" class="form-control" id="rota_edit" name="rota_edit" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Origem</label>
+                                <input type="text" class="form-control" id="origem_edit" name="origem_edit" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Destino</label>
+                                <input type="text" class="form-control" id="destino_edit" name="destino_edit" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Data Embarque</label>
+                                <input type="text" class="form-control data-mask" id="dt_embarque_edit" name="dt_embarque_edit" placeholder="DD/MM/AAAA" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required">Cia Aérea</label>
+                                <input type="text" class="form-control" id="cia_edit" name="cia_edit" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label>Localizador</label>
+                                <input type="text" class="form-control" id="localizador_edit" name="localizador_edit" style="text-transform: uppercase;">
                             </div>
                         </div>
 
                         <hr>
+                        <h6><i class="fas fa-dollar-sign"></i> Valores</h6>
 
-                        <h6 class="mb-3"><i class="fas fa-user"></i> Dados do Passageiro</h6>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label class="required">Nome do Passageiro</label>
-                                    <input type="text" class="form-control" name="nome_passageiro_edit" id="nome_passageiro_edit" maxlength="100" required>
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="required">Tarifa</label>
+                                <input type="text" class="form-control money-mask" id="vl_tarifa_edit" name="vl_tarifa_edit" value="0,00" required>
                             </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="required">Data de Emissão</label>
-                                    <input type="text" class="form-control data-mask" name="dt_emissao_edit" id="dt_emissao_edit" placeholder="dd/mm/aaaa" required>
-                                </div>
+                            <div class="form-group">
+                                <label>Taxa Extra</label>
+                                <input type="text" class="form-control money-mask" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" value="0,00">
+                            </div>
+                            <div class="form-group">
+                                <label>Assento</label>
+                                <input type="text" class="form-control money-mask" id="vl_assento_edit" name="vl_assento_edit" value="0,00">
+                            </div>
+                            <div class="form-group">
+                                <label>Taxa Embarque</label>
+                                <input type="text" class="form-control money-mask" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" value="0,00">
                             </div>
                         </div>
 
-                        <hr>
-
-                        <h6 class="mb-3"><i class="fas fa-plane-departure"></i> Dados do Voo</h6>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="required">Companhia Aérea</label>
-                                    <input type="text" class="form-control text-uppercase" name="cia_edit" id="cia_edit" maxlength="10" required>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="required">Localizador</label>
-                                    <input type="text" class="form-control text-uppercase" name="localizador_edit" id="localizador_edit" maxlength="20" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="required">Rota (Aeroportos)</label>
-                                    <input type="text" class="form-control text-uppercase" name="rota_edit" id="rota_edit" maxlength="45" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="required">Origem</label>
-                                    <input type="text" class="form-control" name="origem_edit" id="origem_edit" maxlength="35" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="required">Destino</label>
-                                    <input type="text" class="form-control" name="destino_edit" id="destino_edit" maxlength="35" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label class="required">Data de Embarque</label>
-                                    <input type="text" class="form-control data-mask" name="dt_embarque_edit" id="dt_embarque_edit" placeholder="dd/mm/aaaa" required>
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label>Valor Total</label>
+                            <input type="hidden" id="vl_total_edit" name="vl_total_edit" value="0,00">
+                            <div class="valor-total" id="vl_total_display_edit">R$ 0,00</div>
                         </div>
 
-                        <hr>
-
-                        <h6 class="mb-3"><i class="fas fa-dollar-sign"></i> Valores</h6>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="required">Valor Tarifa</label>
-                                    <input type="text" class="form-control money-mask" name="vl_tarifa_edit" id="vl_tarifa_edit" required>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Taxa Extra</label>
-                                    <input type="text" class="form-control money-mask" name="vl_taxa_extra_edit" id="vl_taxa_extra_edit">
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Valor Assento</label>
-                                    <input type="text" class="form-control money-mask" name="vl_assento_edit" id="vl_assento_edit">
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Taxa Embarque</label>
-                                    <input type="text" class="form-control money-mask" name="vl_taxa_embarque_edit" id="vl_taxa_embarque_edit">
-                                </div>
-                            </div>
+                        <div class="text-right mt-3">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Atualizar
+                            </button>
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="alert alert-success text-center">
-                                    <h5 class="mb-0">
-                                        <i class="fas fa-calculator"></i> 
-                                        Valor Total: <span id="vl_total_display_edit" class="valor-total">R$ 0,00</span>
-                                    </h5>
-                                </div>
-                                <input type="hidden" name="vl_total_edit" id="vl_total_edit">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                            <i class="fas fa-times"></i> Cancelar
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Atualizar
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Filtros -->
-    <div class="modal fade" id="modalFiltros" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
+    <!-- Modal Filtros -->
+    <div class="modal fade" id="modalFiltros" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-filter"></i> Filtrar Passagens</h5>
+                    <h5 class="modal-title"><i class="fas fa-filter"></i> Filtros</h5>
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
                 </div>
-                <form id="formFiltros" onsubmit="aplicarFiltros(event)">
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Período de Emissão</label>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control data-mask" name="dt_inicio_filtro" id="dt_inicio_filtro" placeholder="Data Início">
-                                </div>
-                                <div class="col-md-6">
-                                    <input type="text" class="form-control data-mask" name="dt_fim_filtro" id="dt_fim_filtro" placeholder="Data Fim">
-                                </div>
+                <div class="modal-body">
+                    <form id="formFiltros" onsubmit="aplicarFiltros(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Data Início</label>
+                                <input type="text" class="form-control data-mask" id="dt_inicio_filtro" name="dt_inicio_filtro" placeholder="DD/MM/AAAA">
+                            </div>
+                            <div class="form-group">
+                                <label>Data Fim</label>
+                                <input type="text" class="form-control data-mask" id="dt_fim_filtro" name="dt_fim_filtro" placeholder="DD/MM/AAAA">
                             </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label>Companhia Aérea</label>
-                            <select class="form-control" name="cia_filtro" id="cia_filtro">
-                                <option value="">Todas</option>
-                                {% for cia in cias %}
-                                <option value="{{ cia.CIA }}">{{ cia.CIA }}</option>
-                                {% endfor %}
-                            </select>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Companhia Aérea</label>
+                                <select class="form-control" id="cia_filtro" name="cia_filtro">
+                                    <option value="">Todas</option>
+                                    {% for cia in cias %}
+                                    <option value="{{ cia[0] }}">{{ cia[0] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Passageiro</label>
+                                <input type="text" class="form-control" id="passageiro_filtro" name="passageiro_filtro" placeholder="Nome do passageiro">
+                            </div>
                         </div>
-                        
-                        <div class="form-group">
-                            <label>Nome do Passageiro</label>
-                            <input type="text" class="form-control" name="passageiro_filtro" id="passageiro_filtro" placeholder="Digite o nome">
-                        </div>
-                        
+
                         <div class="form-group">
                             <label>Localizador</label>
-                            <input type="text" class="form-control" name="localizador_filtro" id="localizador_filtro" placeholder="Digite o localizador">
+                            <input type="text" class="form-control" id="localizador_filtro" name="localizador_filtro" placeholder="Código do localizador">
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                            <i class="fas fa-times"></i> Fechar
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search"></i> Aplicar Filtros
-                        </button>
-                    </div>
-                </form>
+
+                        <div class="text-right mt-3">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Aplicar Filtros
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -640,21 +748,36 @@
 
             // Máscaras
             $('.data-mask').mask('00/00/0000');
-            $('.money-mask').mask('#.##0,00', {reverse: true});
+            
+            // Máscara de moeda melhorada - sempre formata, mesmo com poucos dígitos
+            $('.money-mask').each(function() {
+                $(this).mask('#.##0,00', {
+                    reverse: true,
+                    placeholder: '0,00'
+                });
+            });
+
+            // Garantir que campos de valor sempre comecem com 0,00
+            $('.money-mask').on('focus', function() {
+                if ($(this).val() === '' || $(this).val() === '0,00') {
+                    $(this).val('0,00');
+                }
+            });
 
             // Calcular total ao digitar nos campos de valor (Cadastro)
-            $('#vl_tarifa, #vl_taxa_extra, #vl_assento, #vl_taxa_embarque').on('keyup', function() {
+            $('#vl_tarifa, #vl_taxa_extra, #vl_assento, #vl_taxa_embarque').on('input blur', function() {
                 calcularTotal();
             });
 
             // Calcular total ao digitar nos campos de valor (Edição)
-            $('#vl_tarifa_edit, #vl_taxa_extra_edit, #vl_assento_edit, #vl_taxa_embarque_edit').on('keyup', function() {
+            $('#vl_tarifa_edit, #vl_taxa_extra_edit, #vl_assento_edit, #vl_taxa_embarque_edit').on('input blur', function() {
                 calcularTotalEdit();
             });
 
             // Limpar formulário ao fechar modal
             $('#modalCadastro').on('hidden.bs.modal', function () {
                 $('#formCadastro')[0].reset();
+                $('.money-mask').val('0,00');
                 $('#vl_total_display').text('R$ 0,00');
             });
         });
@@ -702,7 +825,7 @@
                     }
                 },
                 error: function(xhr) {
-                    alert('Erro ao salvar: ' + xhr.responseJSON.message);
+                    alert('Erro ao salvar: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Erro desconhecido'));
                 }
             });
         }
@@ -717,23 +840,23 @@
                         var data = response.data;
                         
                         // Preencher formulário de edição
-                        $('#id_of_edit').val(data.ID_OF);
-                        $('#id_opa_edit').val(data.ID_OPA);
-                        $('#id_controle_edit').val(data.ID_CONTROLE);
-                        $('#nu_sei_edit').val(data.NU_SEI);
-                        $('#nome_passageiro_edit').val(data.NOME_PASSAGEIRO);
-                        $('#dt_emissao_edit').val(data.DT_EMISSAO);
-                        $('#rota_edit').val(data.ROTA);
-                        $('#origem_edit').val(data.ORIGEM);
-                        $('#destino_edit').val(data.DESTINO);
-                        $('#dt_embarque_edit').val(data.DT_EMBARQUE);
-                        $('#cia_edit').val(data.CIA);
-                        $('#localizador_edit').val(data.LOCALIZADOR);
-                        $('#vl_tarifa_edit').val(data.VL_TARIFA);
-                        $('#vl_taxa_extra_edit').val(data.VL_TAXA_EXTRA);
-                        $('#vl_assento_edit').val(data.VL_ASSENTO);
-                        $('#vl_taxa_embarque_edit').val(data.VL_TAXA_EMBARQUE);
-                        $('#vl_total_edit').val(data.VL_TOTAL);
+                        $('#id_of_edit').val(data[0]);
+                        $('#id_opa_edit').val(data[1]);
+                        $('#id_controle_edit').val(data[2]);
+                        $('#nu_sei_edit').val(data[3]);
+                        $('#nome_passageiro_edit').val(data[4]);
+                        $('#dt_emissao_edit').val(data[5]);
+                        $('#rota_edit').val(data[6]);
+                        $('#origem_edit').val(data[7]);
+                        $('#destino_edit').val(data[8]);
+                        $('#dt_embarque_edit').val(data[9]);
+                        $('#cia_edit').val(data[10]);
+                        $('#localizador_edit').val(data[11]);
+                        $('#vl_tarifa_edit').val(data[12]);
+                        $('#vl_taxa_extra_edit').val(data[13]);
+                        $('#vl_assento_edit').val(data[14]);
+                        $('#vl_taxa_embarque_edit').val(data[15]);
+                        $('#vl_total_edit').val(data[16]);
                         
                         // Calcular e exibir total
                         calcularTotalEdit();
@@ -745,7 +868,7 @@
                     }
                 },
                 error: function(xhr) {
-                    alert('Erro ao buscar dados: ' + xhr.responseJSON.message);
+                    alert('Erro ao buscar dados: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Erro desconhecido'));
                 }
             });
         }
@@ -767,7 +890,7 @@
                     }
                 },
                 error: function(xhr) {
-                    alert('Erro ao atualizar: ' + xhr.responseJSON.message);
+                    alert('Erro ao atualizar: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Erro desconhecido'));
                 }
             });
         }
@@ -787,7 +910,7 @@
                         }
                     },
                     error: function(xhr) {
-                        alert('Erro ao excluir: ' + xhr.responseJSON.message);
+                        alert('Erro ao excluir: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Erro desconhecido'));
                     }
                 });
             }
@@ -810,16 +933,18 @@
                         // Adicionar linhas filtradas
                         response.data.forEach(function(passagem) {
                             table.row.add([
-                                passagem.ID_OF,
-                                passagem.NOME_PASSAGEIRO,
-                                '<span class="badge badge-info">' + passagem.CIA + '</span>',
-                                passagem.LOCALIZADOR,
-                                '<strong>' + passagem.ROTA + '</strong>',
-                                passagem.DT_EMISSAO_F,
-                                passagem.DT_EMBARQUE_F,
-                                'R$ ' + passagem.VL_TOTAL_F,
-                                '<button class="btn btn-sm btn-warning" onclick="editarPassagem(' + passagem.ID_OF + ')" title="Editar"><i class="fas fa-edit"></i></button> ' +
-                                '<button class="btn btn-sm btn-danger" onclick="confirmarExclusao(' + passagem.ID_OF + ')" title="Excluir"><i class="fas fa-trash"></i></button>'
+                                passagem[0],
+                                passagem[4],
+                                '<span class="badge badge-info">' + passagem[10] + '</span>',
+                                passagem[11],
+                                '<strong>' + passagem[6] + '</strong>',
+                                passagem[5],
+                                passagem[9],
+                                'R$ ' + passagem[16],
+                                '<div class="action-buttons">' +
+                                '<button class="btn btn-sm btn-warning" onclick="editarPassagem(' + passagem[0] + ')" title="Editar"><i class="fas fa-edit"></i></button> ' +
+                                '<button class="btn btn-sm btn-danger" onclick="confirmarExclusao(' + passagem[0] + ')" title="Excluir"><i class="fas fa-trash"></i></button>' +
+                                '</div>'
                             ]);
                         });
                         
@@ -830,7 +955,7 @@
                     }
                 },
                 error: function(xhr) {
-                    alert('Erro ao filtrar: ' + xhr.responseJSON.message);
+                    alert('Erro ao filtrar: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Erro desconhecido'));
                 }
             });
         }
