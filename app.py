@@ -7293,12 +7293,15 @@ def obter_proximo_id_of():
 @app.route('/passagens/salvar', methods=['POST'])
 @login_required
 def passagens_salvar():
+    """
+    Salvar nova passagem - ATUALIZADA para novos campos
+    """
     try:
         cursor = mysql.connection.cursor()
         
         # Receber dados do formulário
-        id_opa = request.form.get('id_opa')
-        id_controle = request.form.get('id_controle')
+        id_opa = request.form.get('id_opa')  # Vem do seletor de orçamento
+        id_controle = 0  # Valor fixo por enquanto
         nu_sei = request.form.get('nu_sei')
         nome_passageiro = request.form.get('nome_passageiro')
         dt_emissao = request.form.get('dt_emissao')
@@ -7316,17 +7319,12 @@ def passagens_salvar():
         vl_taxa_embarque = request.form.get('vl_taxa_embarque', '0').replace('.', '').replace(',', '.')
         vl_total = request.form.get('vl_total', '0').replace('.', '').replace(',', '.')
         
-        # Converter datas de dd/mm/yyyy para yyyy-mm-dd
-        dt_emissao_sql = None
-        dt_embarque_sql = None
-        
-        if dt_emissao:
-            dt_emissao_sql = datetime.strptime(dt_emissao, '%d/%m/%Y').strftime('%Y-%m-%d')
-        
-        if dt_embarque:
-            dt_embarque_sql = datetime.strptime(dt_embarque, '%d/%m/%Y').strftime('%Y-%m-%d')
+        # As datas já vêm no formato yyyy-mm-dd do input type="date"
+        dt_emissao_sql = dt_emissao if dt_emissao else None
+        dt_embarque_sql = dt_embarque if dt_embarque else None
         
         id_of = obter_proximo_id_of()
+        usuario = session.get('usuario_login')
         
         # Inserir no banco
         cursor.execute("""
@@ -7353,50 +7351,89 @@ def passagens_salvar():
         return jsonify({'success': True, 'message': 'Passagem cadastrada com sucesso!'})
     
     except Exception as e:
+        mysql.connection.rollback()
+        print(f"Erro ao salvar passagem: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': f'Erro ao salvar: {str(e)}'}), 500
 
 
-# ----- ROTA: BUSCAR DADOS DE UMA PASSAGEM PARA EDIÇÃO -----
-@app.route('/passagens/buscar/<int:id_of>')
+# ----- ROTA ATUALIZADA: ATUALIZAR PASSAGEM -----
+@app.route('/passagens/atualizar', methods=['POST'])
 @login_required
-def passagens_buscar(id_of):
+def passagens_atualizar():
+    """
+    Atualizar passagem - ATUALIZADA para novos campos
+    """
     try:
         cursor = mysql.connection.cursor()
         
-        cursor.execute("""
-            SELECT 
-                ID_OF,
-                ID_OPA,
-                ID_CONTROLE,
-                NU_SEI,
-                NOME_PASSAGEIRO,
-                DATE_FORMAT(DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO,
-                ROTA,
-                ORIGEM,
-                DESTINO,
-                DATE_FORMAT(DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE,
-                CIA,
-                LOCALIZADOR,
-                FORMAT(VL_TARIFA, 2, 'de_DE') as VL_TARIFA,
-                FORMAT(VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA,
-                FORMAT(VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO,
-                FORMAT(VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE,
-                FORMAT(VL_TOTAL, 2, 'de_DE') as VL_TOTAL
-            FROM PASSAGENS_AEREAS_EMITIDAS
-            WHERE ID_OF = %s AND ATIVO = 'S'
-        """, (id_of,))
+        # Receber dados do formulário
+        id_of = request.form.get('id_of_edit')
+        id_opa = request.form.get('id_opa_edit')
+        id_controle = 0  # Valor fixo por enquanto
+        nu_sei = request.form.get('nu_sei_edit')
+        nome_passageiro = request.form.get('nome_passageiro_edit')
+        dt_emissao = request.form.get('dt_emissao_edit')
+        rota = request.form.get('rota_edit')
+        origem = request.form.get('origem_edit')
+        destino = request.form.get('destino_edit')
+        dt_embarque = request.form.get('dt_embarque_edit')
+        cia = request.form.get('cia_edit')
+        localizador = request.form.get('localizador_edit')
         
-        passagem = cursor.fetchone()
+        # Valores financeiros
+        vl_tarifa = request.form.get('vl_tarifa_edit', '0').replace('.', '').replace(',', '.')
+        vl_taxa_extra = request.form.get('vl_taxa_extra_edit', '0').replace('.', '').replace(',', '.')
+        vl_assento = request.form.get('vl_assento_edit', '0').replace('.', '').replace(',', '.')
+        vl_taxa_embarque = request.form.get('vl_taxa_embarque_edit', '0').replace('.', '').replace(',', '.')
+        vl_total = request.form.get('vl_total_edit', '0').replace('.', '').replace(',', '.')
+        
+        # As datas já vêm no formato yyyy-mm-dd do input type="date"
+        dt_emissao_sql = dt_emissao if dt_emissao else None
+        dt_embarque_sql = dt_embarque if dt_embarque else None
+        
+        usuario = session.get('usuario_login')
+        
+        # Atualizar no banco
+        cursor.execute("""
+            UPDATE PASSAGENS_AEREAS_EMITIDAS SET
+                ID_OPA = %s,
+                ID_CONTROLE = %s,
+                NU_SEI = %s,
+                NOME_PASSAGEIRO = %s,
+                DT_EMISSAO = %s,
+                ROTA = %s,
+                ORIGEM = %s,
+                DESTINO = %s,
+                DT_EMBARQUE = %s,
+                CIA = %s,
+                LOCALIZADOR = %s,
+                VL_TARIFA = %s,
+                VL_TAXA_EXTRA = %s,
+                VL_ASSENTO = %s,
+                VL_TAXA_EMBARQUE = %s,
+                VL_TOTAL = %s
+            WHERE ID_OF = %s AND ATIVO = 'S'
+        """, (
+            id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
+            rota, origem, destino, dt_embarque_sql, cia, localizador,
+            vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
+            id_of
+        ))
+        
+        mysql.connection.commit()
         cursor.close()
         
-        if passagem:
-            return jsonify({'success': True, 'data': passagem})
-        else:
-            return jsonify({'success': False, 'message': 'Passagem não encontrada'}), 404
+        return jsonify({'success': True, 'message': 'Passagem atualizada com sucesso!'})
     
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Erro ao buscar: {str(e)}'}), 500
-
+        mysql.connection.rollback()
+        print(f"Erro ao atualizar passagem: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Erro ao atualizar: {str(e)}'}), 500
+    
 
 # ----- ROTA: ATUALIZAR PASSAGEM -----
 @app.route('/passagens/atualizar', methods=['POST'])
@@ -7567,6 +7604,84 @@ def passagens_filtrar():
     
     except Exception as e:
         return jsonify({'success': False, 'message': f'Erro ao filtrar: {str(e)}'}), 500
+
+# ----- ROTA: BUSCAR ORÇAMENTOS DISPONÍVEIS PARA SELEÇÃO -----
+@app.route('/api/orcamento/passagens/disponiveis', methods=['GET'])
+@login_required
+def listar_orcamentos_disponiveis():
+    """
+    Retorna lista de orçamentos com saldo disponível para vincular passagens
+    """
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+            SELECT 
+                opa.ID_OPA,
+                opa.UO,
+                opa.UNIDADE,
+                CONCAT(p.ID_PROGRAMA, ' - ', p.DE_PROGRAMA) as PROGRAMA,
+                CONCAT(si.ID_SUBITEM, ' - ', si.DE_SUBITEM) as SUBITEM,
+                opa.VL_APROVADO,
+                COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as VL_UTILIZADO,
+                (opa.VL_APROVADO - COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0)) as SALDO,
+                opa.NU_EMPENHO,
+                opa.EXERCICIO
+            FROM ORCAMENTO_PASSAGENS_AEREAS opa
+            LEFT JOIN PROGRAMA_ORCAMENTO p ON opa.ID_PROGRAMA = p.ID_PROGRAMA
+            LEFT JOIN SUBITEM_ORCAMENTO si ON opa.ID_SUBITEM = si.ID_SUBITEM
+            LEFT JOIN PASSAGENS_AEREAS_EMITIDAS pae ON opa.ID_OPA = pae.ID_OPA AND pae.ATIVO = 'S'
+            WHERE opa.ATIVO = 'S'
+            GROUP BY 
+                opa.ID_OPA,
+                opa.UO,
+                opa.UNIDADE,
+                p.ID_PROGRAMA,
+                p.DE_PROGRAMA,
+                si.ID_SUBITEM,
+                si.DE_SUBITEM,
+                opa.VL_APROVADO,
+                opa.NU_EMPENHO,
+                opa.EXERCICIO
+            HAVING SALDO > 0
+            ORDER BY opa.EXERCICIO DESC, opa.ID_OPA DESC
+        """
+        
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        
+        registros = []
+        for row in rows:
+            registro = {
+                'id_opa': row[0],
+                'uo': row[1] or '',
+                'unidade': row[2] or '',
+                'programa': row[3] or '',
+                'subitem': row[4] or '',
+                'vl_aprovado': float(row[5]) if row[5] else 0.0,
+                'vl_utilizado': float(row[6]) if row[6] else 0.0,
+                'saldo': float(row[7]) if row[7] else 0.0,
+                'nu_empenho': row[8] or '',
+                'exercicio': row[9]
+            }
+            registros.append(registro)
+        
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'registros': registros
+        })
+        
+    except Exception as e:
+        print(f"Erro ao listar orçamentos disponíveis: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 #######################################
 
