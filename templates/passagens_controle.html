@@ -246,6 +246,10 @@
         .modal-body {
             padding: 20px;
         }
+
+        .modal-dialog.modal-form {
+            max-width: 900px !important;
+        }
         
         /* Forms */
         .form-group {
@@ -578,7 +582,7 @@
         <div class="row mb-3">
             <div class="col-md-12">
                 <button class="btn btn-primary" data-toggle="modal" data-target="#modalCadastro">
-                    <i class="fas fa-plus"></i> Nova Passagem
+                    <i class="fas fa-plus"></i> Adicionar Bilhete
                 </button>
                 <button class="btn btn-info" data-toggle="modal" data-target="#modalFiltros">
                     <i class="fas fa-filter"></i> Filtros
@@ -649,7 +653,7 @@
         <div class="modal-dialog modal-form">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-plus"></i> Nova Passagem</h5>
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Adicionar Bilhete</h5>
                     <button type="button" class="close" data-dismiss="modal">
                         <span>&times;</span>
                     </button>
@@ -679,13 +683,13 @@
 
                         <!-- Nº SEI -->
                         <div class="row">
-                            <div class="col-6">
+                            <div class="col-7">
                                 <div class="form-group">
                                     <label>Nº SEI</label>
-                                    <input type="text" class="form-control sei-mask" id="nu_sei" name="nu_sei" placeholder="0000000-00.0000.0.00.0000">
+                                    <input type="text" class="form-control sei-mask" id="nu_sei_edit" name="nu_sei_edit" placeholder="0000000-00.0000.0.00.0000">
                                 </div>
                             </div>
-                            <div class="col-6">
+                            <div class="col-5">
                                 <div class="form-group">
                                     <label class="required">Data Emissão</label>
                                     <input type="date" class="form-control" id="dt_emissao" name="dt_emissao" required>
@@ -701,36 +705,41 @@
 
                         <!-- Origem, Destino, Rota -->
                         <div class="row">
-                            <!-- EXEMPLO: Campo de Origem com Autocomplete -->
-                            <div class="form-group aeroporto-autocomplete">
-                                <label for="origem">Origem *</label>
-                                <input 
-                                    type="text" 
-                                    class="form-control" 
-                                    id="origem" 
-                                    name="origem"
-                                    placeholder="Digite código (ex: PVH) ou cidade (ex: Porto Velho)"
-                                    required
-                                    autocomplete="off">
-                                <input type="hidden" id="codigo_origem" name="codigo_origem">
-                                <div class="aeroporto-autocomplete-list" id="origem-list"></div>
+                            <!-- Campo Origem com Autocomplete -->
+                            <div class="col-4">
+                                <div class="form-group aeroporto-autocomplete">
+                                    <label for="origem">Origem *</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="origem" 
+                                        name="origem"
+                                        placeholder="Ex: PVH ou Porto Velho"
+                                        required
+                                        autocomplete="off">
+                                    <input type="hidden" id="codigo_origem" name="codigo_origem">
+                                    <div class="aeroporto-autocomplete-list" id="origem-list"></div>
+                                </div>
                             </div>
                             
-                            <!-- EXEMPLO: Campo de Destino com Autocomplete -->
-                            <div class="form-group aeroporto-autocomplete">
-                                <label for="destino">Destino *</label>
-                                <input 
-                                    type="text" 
-                                    class="form-control" 
-                                    id="destino" 
-                                    name="destino"
-                                    placeholder="Digite código (ex: GRU) ou cidade (ex: São Paulo)"
-                                    required
-                                    autocomplete="off">
-                                <input type="hidden" id="codigo_destino" name="codigo_destino">
-                                <div class="aeroporto-autocomplete-list" id="destino-list"></div>
+                            <!-- Campo Destino com Autocomplete -->
+                            <div class="col-4">
+                                <div class="form-group aeroporto-autocomplete">
+                                    <label for="destino">Destino *</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="destino" 
+                                        name="destino"
+                                        placeholder="Ex: GRU ou São Paulo"
+                                        required
+                                        autocomplete="off">
+                                    <input type="hidden" id="codigo_destino" name="codigo_destino">
+                                    <div class="aeroporto-autocomplete-list" id="destino-list"></div>
+                                </div>
                             </div>
-
+                        
+                            <!-- Campo Rota -->
                             <div class="col-4">
                                 <div class="form-group">
                                     <label class="required">Rota</label>
@@ -897,24 +906,47 @@
                             <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" maxlength="100" required>
                         </div>
 
-                        <!-- Rota, Origem, Destino -->
+                        <!-- Origem, Destino, Rota -->
                         <div class="row">
+                            <!-- Campo Origem com Autocomplete (Edição) -->
+                            <div class="col-4">
+                                <div class="form-group aeroporto-autocomplete">
+                                    <label for="origem_edit">Origem *</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="origem_edit" 
+                                        name="origem_edit"
+                                        placeholder="Ex: PVH ou Porto Velho"
+                                        required
+                                        autocomplete="off">
+                                    <input type="hidden" id="codigo_origem_edit" name="codigo_origem_edit">
+                                    <div class="aeroporto-autocomplete-list" id="origem-list-edit"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Campo Destino com Autocomplete (Edição) -->
+                            <div class="col-4">
+                                <div class="form-group aeroporto-autocomplete">
+                                    <label for="destino_edit">Destino *</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="destino_edit" 
+                                        name="destino_edit"
+                                        placeholder="Ex: GRU ou São Paulo"
+                                        required
+                                        autocomplete="off">
+                                    <input type="hidden" id="codigo_destino_edit" name="codigo_destino_edit">
+                                    <div class="aeroporto-autocomplete-list" id="destino-list-edit"></div>
+                                </div>
+                            </div>
+                        
+                            <!-- Campo Rota (Edição) -->
                             <div class="col-4">
                                 <div class="form-group">
                                     <label class="required">Rota</label>
                                     <input type="text" class="form-control" id="rota_edit" name="rota_edit" style="text-transform: uppercase;" required>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Origem</label>
-                                    <input type="text" class="form-control" id="origem_edit" name="origem_edit" style="text-transform: uppercase;" required>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Destino</label>
-                                    <input type="text" class="form-control" id="destino_edit" name="destino_edit" style="text-transform: uppercase;" required>
                                 </div>
                             </div>
                         </div>
@@ -1315,10 +1347,13 @@
         // ============================================================================
         function aplicarMascaras() {
             // Máscara de moeda
-            $('.money').mask('#.##0,00', {reverse: true});
+            $('.money-mask').mask('#.##0,00', {reverse: true});
+            
+            // Máscara de Nº SEI: 0000000-00.0000.0.00.0000
+            $('.sei-mask').mask('0000000-00.0000.0.00.0000');
             
             // Listeners para calcular total automaticamente
-            $('.money').on('blur', function() {
+            $('.money-mask').on('blur', function() {
                 var id = $(this).attr('id');
                 if (id.includes('_edit')) {
                     calcularTotalEdit();
