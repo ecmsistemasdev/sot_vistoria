@@ -390,6 +390,38 @@
             padding: 5px 10px;
             margin-left: 2px;
         }
+
+        /* Dropdown customizado para CIA Aérea */
+        .cia-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ced4da;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .cia-suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        
+        .cia-suggestion-item:hover {
+            background-color: #e8f4f8;
+        }
+        
+        .cia-suggestion-item.selected {
+            background-color: #d4e9f7;
+        }
+
         
         /* Responsividade */
         @media (max-width: 768px) {
@@ -409,14 +441,14 @@
         <div class="page-header">
             <h2><i class="fas fa-plane"></i> Controle de Bilhetes - Passagens Aéreas</h2>
             <p>Gerenciamento completo de passagens aéreas emitidas</p>
-            <div class="page-actions">
+                        <div class="page-actions">
                 <button class="btn btn-success" onclick="$('#modalCadastro').modal('show')">
                     <i class="fas fa-plus"></i> Adicionar Bilhete
                 </button>
-                <button class="btn btn-info" onclick="$('#modalFiltros').modal('show')">
-                    <i class="fas fa-filter"></i> Filtrar
+                <button class="btn btn-primary" onclick="$('#modalFiltros').modal('show')">
+                    <i class="fas fa-filter"></i> Filtros
                 </button>
-                <button class="btn btn-success" onclick="limparFiltros()">
+                <button class="btn btn-secondary" onclick="limparFiltros()">
                     <i class="fas fa-sync"></i> Limpar Filtros
                 </button>
             </div>
@@ -585,13 +617,19 @@
                             <div class="col-4">
                                 <div class="form-group">
                                     <label class="required">Cia Aérea</label>
-                                    <!-- <input type="text" class="form-control" id="cia" name="cia" maxlength="10" style="text-transform: uppercase;" required> -->
+                                    <div style="position: relative;">
+                                        <input type="text" class="form-control form-control-sm" id="cia" name="cia" maxlength="10"
+                                               autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
+                                        <div id="cia-suggestions" class="cia-suggestions" style="display: none;"></div>
+                                    </div>
+                                    <!--
                                     <input type="text" class="form-control form-control-sm" id="cia" name="cia" maxlength="10" autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
                                     <datalist id="cia-list">
                                         <option value="AZUL">
                                         <option value="GOL">
                                         <option value="LATAM">
-                                    </datalist>         
+                                    </datalist>
+                                    -->
                                 </div>
                             </div>
                             <div class="col-4">
@@ -805,14 +843,20 @@
                             <div class="col-4">
                                 <div class="form-group">
                                     <label class="required">Cia Aérea</label>
-                                    <!-- <input type="text" class="form-control" id="cia_edit" name="cia_edit" maxlength="10" style="text-transform: uppercase;" required> -->
+                                    <div style="position: relative;">
+                                        <input type="text" class="form-control form-control-sm" id="cia_edit" name="cia" maxlength="10" 
+                                               autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
+                                        <div id="cia-suggestions-edit" class="cia-suggestions" style="display: none;"></div>
+                                    </div>
+                                    
+                                    <!--
                                     <input type="text" class="form-control form-control-sm" id="cia_edit" name="cia_edit" maxlength="10" autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
                                     <datalist id="cia-list-edit">
                                         <option value="AZUL">
                                         <option value="GOL">
                                         <option value="LATAM">
                                     </datalist>
-
+                                    -->
                                 </div>
                             </div>
                             <div class="col-4">
@@ -1716,6 +1760,104 @@
         // Carregar passageiros ao iniciar
         $(document).ready(function() {
             carregarPassageiros();
+        });
+
+        // ============================================================================
+        // DROPDOWN CUSTOMIZADO PARA CIA AÉREA (SEMPRE MOSTRA AS 3 OPÇÕES)
+        // ============================================================================
+        var ciasDisponiveis = ['AZUL', 'GOL', 'LATAM'];
+        
+        function configurarDropdownCia(inputId, suggestionsId) {
+            var $input = $('#' + inputId);
+            var $suggestions = $('#' + suggestionsId);
+            var selectedIndex = -1;
+            
+            // Criar itens do dropdown
+            function criarDropdown() {
+                $suggestions.empty();
+                ciasDisponiveis.forEach(function(cia) {
+                    var $item = $('<div class="cia-suggestion-item"></div>').text(cia);
+                    $item.on('click', function(e) {
+                        e.stopPropagation();
+                        $input.val(cia);
+                        $suggestions.hide();
+                        selectedIndex = -1;
+                    });
+                    $suggestions.append($item);
+                });
+            }
+            
+            // Mostrar dropdown ao focar no campo
+            $input.on('focus', function() {
+                criarDropdown();
+                $suggestions.show();
+                selectedIndex = -1;
+            });
+            
+            // Esconder dropdown ao clicar fora
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#' + inputId).length && 
+                    !$(e.target).closest('#' + suggestionsId).length) {
+                    $suggestions.hide();
+                }
+            });
+            
+            // Navegação com teclado
+            $input.on('keydown', function(e) {
+                if (!$suggestions.is(':visible')) {
+                    if (e.keyCode === 40) { // Seta para baixo
+                        e.preventDefault();
+                        criarDropdown();
+                        $suggestions.show();
+                    }
+                    return;
+                }
+                
+                var $items = $suggestions.find('.cia-suggestion-item');
+                
+                if (e.keyCode === 40) { // Seta para baixo
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, $items.length - 1);
+                    $items.removeClass('selected');
+                    if (selectedIndex >= 0) {
+                        $items.eq(selectedIndex).addClass('selected');
+                    }
+                } else if (e.keyCode === 38) { // Seta para cima
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    $items.removeClass('selected');
+                    if (selectedIndex >= 0) {
+                        $items.eq(selectedIndex).addClass('selected');
+                    }
+                } else if (e.keyCode === 13) { // Enter
+                    if (selectedIndex >= 0) {
+                        e.preventDefault();
+                        $input.val($items.eq(selectedIndex).text());
+                        $suggestions.hide();
+                        selectedIndex = -1;
+                    }
+                } else if (e.keyCode === 27) { // Esc
+                    $suggestions.hide();
+                    selectedIndex = -1;
+                }
+            });
+            
+            // Manter dropdown visível durante digitação
+            $input.on('input', function() {
+                if (!$suggestions.is(':visible')) {
+                    criarDropdown();
+                    $suggestions.show();
+                }
+            });
+        }
+        
+        // Inicializar dropdowns ao abrir os modais
+        $('#modalCadastro').on('shown.bs.modal', function() {
+            configurarDropdownCia('cia', 'cia-suggestions');
+        });
+        
+        $('#modalEdicao').on('shown.bs.modal', function() {
+            configurarDropdownCia('cia_edit', 'cia-suggestions-edit');
         });
         
     </script>
