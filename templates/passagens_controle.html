@@ -382,6 +382,9 @@
                 <button class="btn btn-info" onclick="$('#modalFiltros').modal('show')">
                     <i class="fas fa-filter"></i> Filtros
                 </button>
+                <button class="btn btn-success" onclick="limparFiltros()">
+                    <i class="fas fa-sync"></i> Limpar Filtros
+                </button>
             </div>
         </div>
 
@@ -1525,6 +1528,13 @@
                     alert('Erro ao aplicar filtros');
                 }
             });
+        }
+
+        // ============================================================================
+        // LIMPAR FILTROS
+        // ============================================================================
+        function limparFiltros() {
+            location.reload();
         }
         
         // ============================================================================
