@@ -6906,7 +6906,7 @@ def verificar_email_fornecedor_enviado():
         return jsonify({'erro': str(e)}), 500
 
 
-######  PASSAGENS AEREAS #######
+######  PASSAGENS AEREAS - CÓDIGO ATUALIZADO #######
 
 @app.route('/controle_passagens_aereas')
 @login_required
@@ -7216,7 +7216,6 @@ def listar_orcamento_passagens():
 # ============================================================================
 # MÓDULO: CONTROLE DE BILHETES - PASSAGENS AÉREAS
 # ============================================================================
-# Adicione estas rotas ao seu arquivo app.py
 
 # ----- ROTA: PÁGINA PRINCIPAL DE CONTROLE DE BILHETES -----
 @app.route('/passagens/controle')
@@ -7225,34 +7224,42 @@ def passagens_controle():
     try:
         cursor = mysql.connection.cursor()
         
-        # Buscar todas as passagens ativas
+        # Buscar todas as passagens ativas com informações dos aeroportos
         cursor.execute("""
             SELECT 
-                ID_OF,
-                ID_OPA,
-                ID_CONTROLE,
-                NU_SEI,
-                NOME_PASSAGEIRO,
-                DATE_FORMAT(DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
-                ROTA,
-                ORIGEM,
-                DESTINO,
-                DATE_FORMAT(DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
-                CIA,
-                LOCALIZADOR,
-                FORMAT(VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
-                FORMAT(VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
-                FORMAT(VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
-                FORMAT(VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
-                FORMAT(VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F,
-                VL_TARIFA,
-                VL_TAXA_EXTRA,
-                VL_ASSENTO,
-                VL_TAXA_EMBARQUE,
-                VL_TOTAL
-            FROM PASSAGENS_AEREAS_EMITIDAS
-            WHERE ATIVO = 'S'
-            ORDER BY DT_EMISSAO DESC, ID_OF DESC
+                pae.ID_OF,
+                pae.ID_OPA,
+                pae.ID_CONTROLE,
+                pae.NU_SEI,
+                pae.NOME_PASSAGEIRO,
+                DATE_FORMAT(pae.DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
+                pae.ROTA,
+                pae.CODIGO_ORIGEM,
+                pae.CODIGO_DESTINO,
+                CONCAT(ao.CODIGO_IATA, ' - ', ao.CIDADE, '/', ao.UF_ESTADO) as ORIGEM_FORMATADA,
+                CONCAT(ad.CODIGO_IATA, ' - ', ad.CIDADE, '/', ad.UF_ESTADO) as DESTINO_FORMATADO,
+                pae.ORIGEM,
+                pae.DESTINO,
+                DATE_FORMAT(pae.DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
+                pae.CIA,
+                pae.LOCALIZADOR,
+                FORMAT(pae.VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
+                FORMAT(pae.VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
+                FORMAT(pae.VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
+                FORMAT(pae.VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
+                FORMAT(pae.VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F,
+                pae.VL_TARIFA,
+                pae.VL_TAXA_EXTRA,
+                pae.VL_ASSENTO,
+                pae.VL_TAXA_EMBARQUE,
+                pae.VL_TOTAL,
+                pae.DT_EMISSAO,
+                pae.DT_EMBARQUE
+            FROM PASSAGENS_AEREAS_EMITIDAS pae
+            LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
+            LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
+            WHERE pae.ATIVO = 'S'
+            ORDER BY pae.DT_EMISSAO DESC, pae.ID_OF DESC
         """)
         passagens = cursor.fetchall()
         
@@ -7289,25 +7296,216 @@ def obter_proximo_id_of():
     return ultimo_id + 1
 
 
+# ----- NOVA ROTA: BUSCAR AEROPORTOS (AUTOCOMPLETE) -----
+@app.route('/api/aeroportos/buscar', methods=['GET'])
+@login_required
+def buscar_aeroportos():
+    """
+    Busca aeroportos por código IATA, cidade ou nome
+    Usado para autocomplete nos campos origem/destino
+    """
+    try:
+        termo = request.args.get('termo', '').strip()
+        
+        if len(termo) < 2:
+            return jsonify({'success': True, 'aeroportos': []})
+        
+        cursor = mysql.connection.cursor()
+        
+        # Buscar por código IATA ou cidade
+        query = """
+            SELECT 
+                ID_AEROPORTO,
+                CODIGO_IATA,
+                NOME_AEROPORTO,
+                CIDADE,
+                UF_ESTADO,
+                PAIS,
+                CODIGO_PAIS
+            FROM AEROPORTOS
+            WHERE ATIVO = 'S'
+            AND (
+                CODIGO_IATA LIKE %s
+                OR CIDADE LIKE %s
+                OR NOME_AEROPORTO LIKE %s
+            )
+            ORDER BY 
+                CASE 
+                    WHEN CODIGO_IATA LIKE %s THEN 1
+                    WHEN CIDADE LIKE %s THEN 2
+                    ELSE 3
+                END,
+                CIDADE
+            LIMIT 15
+        """
+        
+        termo_busca = f"%{termo}%"
+        termo_inicio = f"{termo}%"
+        
+        cursor.execute(query, (
+            termo_inicio, termo_busca, termo_busca,
+            termo_inicio, termo_inicio
+        ))
+        
+        rows = cursor.fetchall()
+        cursor.close()
+        
+        aeroportos = []
+        for row in rows:
+            # Formatar display
+            uf = f"/{row[4]}" if row[4] else ""
+            display = f"{row[1]} - {row[3]}{uf}"
+            
+            aeroportos.append({
+                'id': row[0],
+                'codigo_iata': row[1],
+                'nome': row[2],
+                'cidade': row[3],
+                'uf': row[4] or '',
+                'pais': row[5],
+                'codigo_pais': row[6],
+                'display': display
+            })
+        
+        return jsonify({
+            'success': True,
+            'aeroportos': aeroportos
+        })
+        
+    except Exception as e:
+        print(f"Erro ao buscar aeroportos: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ----- ROTA: OBTER DETALHES DE UMA PASSAGEM (PARA EDIÇÃO) -----
+@app.route('/api/passagens/obter/<int:id_of>', methods=['GET'])
+@login_required
+def obter_passagem(id_of):
+    """
+    Obter dados de uma passagem específica para edição
+    CORRIGIDO: Retorna todos os campos necessários
+    """
+    try:
+        cursor = mysql.connection.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                pae.ID_OF,
+                pae.ID_OPA,
+                pae.ID_CONTROLE,
+                pae.NU_SEI,
+                pae.NOME_PASSAGEIRO,
+                DATE_FORMAT(pae.DT_EMISSAO, '%Y-%m-%d') as DT_EMISSAO,
+                pae.ROTA,
+                pae.CODIGO_ORIGEM,
+                pae.CODIGO_DESTINO,
+                pae.ORIGEM,
+                pae.DESTINO,
+                DATE_FORMAT(pae.DT_EMBARQUE, '%Y-%m-%d') as DT_EMBARQUE,
+                pae.CIA,
+                pae.LOCALIZADOR,
+                pae.VL_TARIFA,
+                pae.VL_TAXA_EXTRA,
+                pae.VL_ASSENTO,
+                pae.VL_TAXA_EMBARQUE,
+                pae.VL_TOTAL,
+                ao.CIDADE as ORIGEM_CIDADE,
+                ao.UF_ESTADO as ORIGEM_UF,
+                ad.CIDADE as DESTINO_CIDADE,
+                ad.UF_ESTADO as DESTINO_UF
+            FROM PASSAGENS_AEREAS_EMITIDAS pae
+            LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
+            LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
+            WHERE pae.ID_OF = %s AND pae.ATIVO = 'S'
+        """, (id_of,))
+        
+        row = cursor.fetchone()
+        cursor.close()
+        
+        if not row:
+            return jsonify({
+                'success': False,
+                'message': 'Passagem não encontrada'
+            }), 404
+        
+        # Montar objeto da passagem
+        passagem = {
+            'id_of': row[0],
+            'id_opa': row[1],
+            'id_controle': row[2],
+            'nu_sei': row[3] or '',
+            'nome_passageiro': row[4] or '',
+            'dt_emissao': row[5] or '',
+            'rota': row[6] or '',
+            'codigo_origem': row[7] or '',
+            'codigo_destino': row[8] or '',
+            'origem': row[9] or '',
+            'destino': row[10] or '',
+            'dt_embarque': row[11] or '',
+            'cia': row[12] or '',
+            'localizador': row[13] or '',
+            'vl_tarifa': float(row[14]) if row[14] else 0,
+            'vl_taxa_extra': float(row[15]) if row[15] else 0,
+            'vl_assento': float(row[16]) if row[16] else 0,
+            'vl_taxa_embarque': float(row[17]) if row[17] else 0,
+            'vl_total': float(row[18]) if row[18] else 0
+        }
+        
+        # Formatar displays de origem/destino se houver código
+        if row[7]:  # Se tem código de origem
+            uf_origem = f"/{row[20]}" if row[20] else ""
+            passagem['origem_display'] = f"{row[7]} - {row[19]}{uf_origem}"
+        
+        if row[8]:  # Se tem código de destino
+            uf_destino = f"/{row[22]}" if row[22] else ""
+            passagem['destino_display'] = f"{row[8]} - {row[21]}{uf_destino}"
+        
+        return jsonify({
+            'success': True,
+            'passagem': passagem
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter passagem: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao buscar dados: {str(e)}'
+        }), 500
+
+
 # ----- ROTA: SALVAR NOVA PASSAGEM -----
 @app.route('/passagens/salvar', methods=['POST'])
 @login_required
 def passagens_salvar():
     """
-    Salvar nova passagem - ATUALIZADA para novos campos
+    Salvar nova passagem - ATUALIZADA para usar códigos de aeroportos
     """
     try:
         cursor = mysql.connection.cursor()
         
         # Receber dados do formulário
-        id_opa = request.form.get('id_opa')  # Vem do seletor de orçamento
+        id_opa = request.form.get('id_opa')
         id_controle = 0  # Valor fixo por enquanto
         nu_sei = request.form.get('nu_sei')
         nome_passageiro = request.form.get('nome_passageiro')
         dt_emissao = request.form.get('dt_emissao')
         rota = request.form.get('rota')
-        origem = request.form.get('origem')
-        destino = request.form.get('destino')
+        
+        # Códigos IATA dos aeroportos
+        codigo_origem = request.form.get('codigo_origem')
+        codigo_destino = request.form.get('codigo_destino')
+        
+        # Campos de texto origem/destino (mantidos para compatibilidade)
+        origem = request.form.get('origem', '')
+        destino = request.form.get('destino', '')
+        
         dt_embarque = request.form.get('dt_embarque')
         cia = request.form.get('cia')
         localizador = request.form.get('localizador')
@@ -7330,19 +7528,23 @@ def passagens_salvar():
         cursor.execute("""
             INSERT INTO PASSAGENS_AEREAS_EMITIDAS (
                 ID_OF, ID_OPA, ID_CONTROLE, NU_SEI, NOME_PASSAGEIRO, DT_EMISSAO,
-                ROTA, ORIGEM, DESTINO, DT_EMBARQUE, CIA, LOCALIZADOR,
+                ROTA, CODIGO_ORIGEM, CODIGO_DESTINO, ORIGEM, DESTINO, 
+                DT_EMBARQUE, CIA, LOCALIZADOR,
                 VL_TARIFA, VL_TAXA_EXTRA, VL_ASSENTO, VL_TAXA_EMBARQUE, VL_TOTAL,
                 ATIVO, USUARIO, DT_LANCAMENTO
             ) VALUES (
                 %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s,
                 %s, %s, %s, %s, %s,
                 'S', %s, NOW()
             )
         """, (
             id_of, id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
-            rota, origem, destino, dt_embarque_sql, cia, localizador,
-            vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total
+            rota, codigo_origem, codigo_destino, origem, destino,
+            dt_embarque_sql, cia, localizador,
+            vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
+            usuario
         ))
         
         mysql.connection.commit()
@@ -7363,7 +7565,7 @@ def passagens_salvar():
 @login_required
 def passagens_atualizar():
     """
-    Atualizar passagem - ATUALIZADA para novos campos
+    Atualizar passagem - ATUALIZADA para usar códigos de aeroportos
     """
     try:
         cursor = mysql.connection.cursor()
@@ -7376,8 +7578,15 @@ def passagens_atualizar():
         nome_passageiro = request.form.get('nome_passageiro_edit')
         dt_emissao = request.form.get('dt_emissao_edit')
         rota = request.form.get('rota_edit')
-        origem = request.form.get('origem_edit')
-        destino = request.form.get('destino_edit')
+        
+        # Códigos IATA dos aeroportos
+        codigo_origem = request.form.get('codigo_origem_edit')
+        codigo_destino = request.form.get('codigo_destino_edit')
+        
+        # Campos de texto origem/destino
+        origem = request.form.get('origem_edit', '')
+        destino = request.form.get('destino_edit', '')
+        
         dt_embarque = request.form.get('dt_embarque_edit')
         cia = request.form.get('cia_edit')
         localizador = request.form.get('localizador_edit')
@@ -7404,6 +7613,8 @@ def passagens_atualizar():
                 NOME_PASSAGEIRO = %s,
                 DT_EMISSAO = %s,
                 ROTA = %s,
+                CODIGO_ORIGEM = %s,
+                CODIGO_DESTINO = %s,
                 ORIGEM = %s,
                 DESTINO = %s,
                 DT_EMBARQUE = %s,
@@ -7414,12 +7625,13 @@ def passagens_atualizar():
                 VL_ASSENTO = %s,
                 VL_TAXA_EMBARQUE = %s,
                 VL_TOTAL = %s,
-				USUARIO = %s,
-				DT_LANCAMENTO = NOW()
+                USUARIO = %s,
+                DT_LANCAMENTO = NOW()
             WHERE ID_OF = %s AND ATIVO = 'S'
         """, (
             id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
-            rota, origem, destino, dt_embarque_sql, cia, localizador,
+            rota, codigo_origem, codigo_destino, origem, destino,
+            dt_embarque_sql, cia, localizador,
             vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
             usuario, id_of
         ))
@@ -7465,6 +7677,7 @@ def passagens_excluir(id_of):
 @login_required
 def passagens_filtrar():
     try:
+        from datetime import datetime
         cursor = mysql.connection.cursor()
         
         # Receber filtros
@@ -7477,52 +7690,56 @@ def passagens_filtrar():
         # Montar query dinamicamente
         query = """
             SELECT 
-                ID_OF,
-                ID_OPA,
-                ID_CONTROLE,
-                NU_SEI,
-                NOME_PASSAGEIRO,
-                DATE_FORMAT(DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
-                ROTA,
-                ORIGEM,
-                DESTINO,
-                DATE_FORMAT(DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
-                CIA,
-                LOCALIZADOR,
-                FORMAT(VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
-                FORMAT(VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
-                FORMAT(VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
-                FORMAT(VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
-                FORMAT(VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F
-            FROM PASSAGENS_AEREAS_EMITIDAS
-            WHERE ATIVO = 'S'
+                pae.ID_OF,
+                pae.ID_OPA,
+                pae.ID_CONTROLE,
+                pae.NU_SEI,
+                pae.NOME_PASSAGEIRO,
+                DATE_FORMAT(pae.DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
+                pae.ROTA,
+                pae.CODIGO_ORIGEM,
+                pae.CODIGO_DESTINO,
+                CONCAT(ao.CODIGO_IATA, ' - ', ao.CIDADE, '/', ao.UF_ESTADO) as ORIGEM_FORMATADA,
+                CONCAT(ad.CODIGO_IATA, ' - ', ad.CIDADE, '/', ad.UF_ESTADO) as DESTINO_FORMATADO,
+                DATE_FORMAT(pae.DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
+                pae.CIA,
+                pae.LOCALIZADOR,
+                FORMAT(pae.VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
+                FORMAT(pae.VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
+                FORMAT(pae.VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
+                FORMAT(pae.VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
+                FORMAT(pae.VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F
+            FROM PASSAGENS_AEREAS_EMITIDAS pae
+            LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
+            LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
+            WHERE pae.ATIVO = 'S'
         """
         
         params = []
         
         if dt_inicio:
             dt_inicio_sql = datetime.strptime(dt_inicio, '%d/%m/%Y').strftime('%Y-%m-%d')
-            query += " AND DT_EMISSAO >= %s"
+            query += " AND pae.DT_EMISSAO >= %s"
             params.append(dt_inicio_sql)
         
         if dt_fim:
             dt_fim_sql = datetime.strptime(dt_fim, '%d/%m/%Y').strftime('%Y-%m-%d')
-            query += " AND DT_EMISSAO <= %s"
+            query += " AND pae.DT_EMISSAO <= %s"
             params.append(dt_fim_sql)
         
         if cia_filtro:
-            query += " AND CIA = %s"
+            query += " AND pae.CIA = %s"
             params.append(cia_filtro)
         
         if passageiro_filtro:
-            query += " AND NOME_PASSAGEIRO LIKE %s"
+            query += " AND pae.NOME_PASSAGEIRO LIKE %s"
             params.append(f"%{passageiro_filtro}%")
         
         if localizador_filtro:
-            query += " AND LOCALIZADOR LIKE %s"
+            query += " AND pae.LOCALIZADOR LIKE %s"
             params.append(f"%{localizador_filtro}%")
         
-        query += " ORDER BY DT_EMISSAO DESC, ID_OF DESC"
+        query += " ORDER BY pae.DT_EMISSAO DESC, pae.ID_OF DESC"
         
         cursor.execute(query, params)
         passagens = cursor.fetchall()
@@ -7609,7 +7826,6 @@ def listar_orcamentos_disponiveis():
             'success': False,
             'error': str(e)
         }), 500
-
 
 #######################################
 
