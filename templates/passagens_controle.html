@@ -211,6 +211,40 @@
             color: white;
             opacity: 1;
         }
+
+        /* Ajustes para o select de paginação do DataTables */
+        .dataTables_length select {
+            min-width: 70px !important;
+            padding-right: 25px !important;
+            margin: 0 5px;
+        }
+        
+        /* Autocomplete personalizado */
+        .autocomplete-suggestions {
+            border: 1px solid #d4d4d4;
+            background: #fff;
+            overflow: auto;
+            max-height: 200px;
+            position: absolute;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .autocomplete-suggestion {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .autocomplete-suggestion:hover {
+            background-color: #e8f4f8;
+        }
+        
+        .autocomplete-suggestion.selected {
+            background-color: #d4e9f7;
+        }
+
         
         /* Modal formulário (tamanho padrão para cadastro e edição) */
         .modal-form {
@@ -380,7 +414,7 @@
                     <i class="fas fa-plus"></i> Adicionar Bilhete
                 </button>
                 <button class="btn btn-info" onclick="$('#modalFiltros').modal('show')">
-                    <i class="fas fa-filter"></i> Filtros
+                    <i class="fas fa-filter"></i> Filtrar
                 </button>
                 <button class="btn btn-success" onclick="limparFiltros()">
                     <i class="fas fa-sync"></i> Limpar Filtros
@@ -491,7 +525,8 @@
                         <!-- Nome do Passageiro -->
                         <div class="form-group">
                             <label class="required">Nome do Passageiro</label>
-                            <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" maxlength="100" required>
+                            <!-- <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" maxlength="100" required> -->
+                            <input type="text" class="form-control form-control-sm" id="nome_passageiro" name="nome_passageiro" autocomplete="off" maxlength="100" required>
                         </div>
 
                         <!-- Origem, Destino, Rota -->
@@ -550,7 +585,13 @@
                             <div class="col-4">
                                 <div class="form-group">
                                     <label class="required">Cia Aérea</label>
-                                    <input type="text" class="form-control" id="cia" name="cia" maxlength="10" style="text-transform: uppercase;" required>
+                                    <!-- <input type="text" class="form-control" id="cia" name="cia" maxlength="10" style="text-transform: uppercase;" required> -->
+                                    <input type="text" class="form-control form-control-sm" id="cia" name="cia" maxlength="10" autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
+                                    <datalist id="cia-list">
+                                        <option value="AZUL">
+                                        <option value="GOL">
+                                        <option value="LATAM">
+                                    </datalist>         
                                 </div>
                             </div>
                             <div class="col-4">
@@ -704,7 +745,8 @@
                         <!-- Nome do Passageiro -->
                         <div class="form-group">
                             <label class="required">Nome do Passageiro</label>
-                            <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" maxlength="100" required>
+                            <!-- <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" maxlength="100" required> -->
+                            <input type="text" class="form-control form-control-sm" id="nome_passageiro_edit" name="nome_passageiro_edit" autocomplete="off" maxlength="100" required>
                         </div>
 
                         <!-- Origem, Destino, Rota -->
@@ -763,7 +805,14 @@
                             <div class="col-4">
                                 <div class="form-group">
                                     <label class="required">Cia Aérea</label>
-                                    <input type="text" class="form-control" id="cia_edit" name="cia_edit" maxlength="10" style="text-transform: uppercase;" required>
+                                    <!-- <input type="text" class="form-control" id="cia_edit" name="cia_edit" maxlength="10" style="text-transform: uppercase;" required> -->
+                                    <input type="text" class="form-control form-control-sm" id="cia_edit" name="cia_edit" maxlength="10" autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
+                                    <datalist id="cia-list-edit">
+                                        <option value="AZUL">
+                                        <option value="GOL">
+                                        <option value="LATAM">
+                                    </datalist>
+
                                 </div>
                             </div>
                             <div class="col-4">
@@ -1544,6 +1593,131 @@
             if (!valor) return '0,00';
             return parseFloat(valor).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         }
+
+        // ============================================================================
+        // AUTOCOMPLETE PARA NOME DO PASSAGEIRO
+        // ============================================================================
+        var passageirosCache = [];
+        
+        // Carregar lista de passageiros ao carregar a página
+        function carregarPassageiros() {
+            $.ajax({
+                url: '/api/passageiros/listar',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        passageirosCache = response.passageiros;
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Erro ao carregar passageiros:', xhr);
+                }
+            });
+        }
+        
+        // Função para criar e exibir sugestões
+        function criarSugestoes(inputElement, sugestoes) {
+            // Remover sugestões anteriores
+            $('.autocomplete-suggestions').remove();
+            
+            if (sugestoes.length === 0) return;
+            
+            var $input = $(inputElement);
+            var offset = $input.offset();
+            var height = $input.outerHeight();
+            var width = $input.outerWidth();
+            
+            var $suggestions = $('<div class="autocomplete-suggestions"></div>');
+            $suggestions.css({
+                'top': offset.top + height + 'px',
+                'left': offset.left + 'px',
+                'width': width + 'px'
+            });
+            
+            sugestoes.forEach(function(sugestao) {
+                var $item = $('<div class="autocomplete-suggestion"></div>');
+                $item.text(sugestao);
+                $item.on('click', function() {
+                    $input.val(sugestao);
+                    $('.autocomplete-suggestions').remove();
+                });
+                $suggestions.append($item);
+            });
+            
+            $('body').append($suggestions);
+        }
+        
+        // Configurar autocomplete para campos de passageiro
+        function configurarAutocompletePassageiro(inputId) {
+            var $input = $('#' + inputId);
+            var selectedIndex = -1;
+            
+            $input.on('input', function() {
+                var valor = $(this).val().toUpperCase();
+                
+                if (valor.length < 2) {
+                    $('.autocomplete-suggestions').remove();
+                    return;
+                }
+                
+                var sugestoesFiltradas = passageirosCache.filter(function(nome) {
+                    return nome.toUpperCase().indexOf(valor) !== -1;
+                });
+                
+                criarSugestoes(this, sugestoesFiltradas.slice(0, 10));
+                selectedIndex = -1;
+            });
+            
+            $input.on('keydown', function(e) {
+                var $suggestions = $('.autocomplete-suggestions');
+                var $items = $suggestions.find('.autocomplete-suggestion');
+                
+                if ($items.length === 0) return;
+                
+                if (e.keyCode === 40) { // Seta para baixo
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, $items.length - 1);
+                    $items.removeClass('selected');
+                    $items.eq(selectedIndex).addClass('selected');
+                    $items.eq(selectedIndex)[0].scrollIntoView({ block: 'nearest' });
+                } else if (e.keyCode === 38) { // Seta para cima
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    $items.removeClass('selected');
+                    $items.eq(selectedIndex).addClass('selected');
+                    $items.eq(selectedIndex)[0].scrollIntoView({ block: 'nearest' });
+                } else if (e.keyCode === 13) { // Enter
+                    if (selectedIndex >= 0) {
+                        e.preventDefault();
+                        $input.val($items.eq(selectedIndex).text());
+                        $('.autocomplete-suggestions').remove();
+                    }
+                } else if (e.keyCode === 27) { // Esc
+                    $('.autocomplete-suggestions').remove();
+                }
+            });
+            
+            $input.on('blur', function() {
+                setTimeout(function() {
+                    $('.autocomplete-suggestions').remove();
+                }, 200);
+            });
+        }
+        
+        // Inicializar autocomplete ao abrir modais
+        $('#modalCadastro').on('shown.bs.modal', function() {
+            configurarAutocompletePassageiro('nome_passageiro');
+        });
+        
+        $('#modalEdicao').on('shown.bs.modal', function() {
+            configurarAutocompletePassageiro('nome_passageiro_edit');
+        });
+        
+        // Carregar passageiros ao iniciar
+        $(document).ready(function() {
+            carregarPassageiros();
+        });
+        
     </script>
 </body>
 </html>
