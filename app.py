@@ -7332,12 +7332,12 @@ def passagens_salvar():
                 ID_OF, ID_OPA, ID_CONTROLE, NU_SEI, NOME_PASSAGEIRO, DT_EMISSAO,
                 ROTA, ORIGEM, DESTINO, DT_EMBARQUE, CIA, LOCALIZADOR,
                 VL_TARIFA, VL_TAXA_EXTRA, VL_ASSENTO, VL_TAXA_EMBARQUE, VL_TOTAL,
-                ATIVO
+                ATIVO, USUARIO, DT_LANCAMENTO
             ) VALUES (
                 %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
-                'S'
+                'S', %s, NOW()
             )
         """, (
             id_of, id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
@@ -7413,13 +7413,15 @@ def passagens_atualizar():
                 VL_TAXA_EXTRA = %s,
                 VL_ASSENTO = %s,
                 VL_TAXA_EMBARQUE = %s,
-                VL_TOTAL = %s
+                VL_TOTAL = %s,
+				USUARIO = %s,
+				DT_LANCAMENTO = NOW()
             WHERE ID_OF = %s AND ATIVO = 'S'
         """, (
             id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
             rota, origem, destino, dt_embarque_sql, cia, localizador,
             vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
-            id_of
+            usuario, id_of
         ))
         
         mysql.connection.commit()
