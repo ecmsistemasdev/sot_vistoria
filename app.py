@@ -7281,7 +7281,7 @@ def passagens_controle():
 
 def obter_proximo_id_of():
     cursor = mysql.connection.cursor()
-    cursor.execute("SELECT MAX(ID_ITEM) FROM PASSAGENS_AEREAS_EMITIDAS")
+    cursor.execute("SELECT MAX(ID_OF) FROM PASSAGENS_AEREAS_EMITIDAS")
     resultado = cursor.fetchone()
     cursor.close()
     
