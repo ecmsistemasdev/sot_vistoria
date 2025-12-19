@@ -15,12 +15,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     
     <style>
+        /* ============================================================================
+           SISTEMA DE CONTROLE DE PASSAGENS AÉREAS
+           CSS Completo Atualizado com Autocomplete de Aeroportos
+           ============================================================================ */
+        
+        /* Reset básico */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f5f5f5;
@@ -29,35 +35,38 @@
             padding-top: 20px;
         }
         
+        /* Navbar */
         .navbar {
             background-color: #2c3e50;
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
             padding: 8px 0;
         }
-
+        
         .navbar-brand {
             font-size: 14px;
             font-weight: 600;
             color: white !important;
         }
-
+        
         .navbar-nav .nav-link {
             font-size: 13px;
             color: white !important;
             padding: 8px 15px;
         }
-
+        
         .navbar-nav .nav-link:hover {
             background-color: rgba(255,255,255,0.1);
             border-radius: 3px;
         }
         
+        /* Content Wrapper */
         .content-wrapper {
             max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
         }
-
+        
+        /* Page Header */
         .page-header {
             background-color: #2c3e50;
             color: white;
@@ -68,20 +77,21 @@
             justify-content: space-between;
             align-items: center;
         }
-
+        
         .page-header h2 {
             font-size: 16px;
             font-weight: 600;
             margin: 0;
             letter-spacing: 0.5px;
         }
-
+        
         .page-header p {
             font-size: 12px;
             margin: 0;
             opacity: 0.9;
         }
         
+        /* Cards */
         .card {
             border: none;
             border-radius: 4px;
@@ -96,17 +106,18 @@
             border-radius: 4px 4px 0 0 !important;
             padding: 10px 15px;
         }
-
+        
         .card-header h5 {
             font-size: 14px;
             font-weight: 600;
             margin: 0;
         }
-
+        
         .card-body {
             padding: 15px;
         }
         
+        /* Botões */
         .btn {
             padding: 8px 16px;
             border: none;
@@ -116,7 +127,7 @@
             font-weight: 600;
             transition: all 0.2s;
         }
-
+        
         .btn i {
             margin-right: 5px;
         }
@@ -135,7 +146,7 @@
             background-color: #27ae60;
             color: white;
         }
-
+        
         .btn-success:hover {
             background-color: #229954;
             color: white;
@@ -145,7 +156,7 @@
             background-color: #f39c12;
             color: white;
         }
-
+        
         .btn-warning:hover {
             background-color: #e67e22;
             color: white;
@@ -155,7 +166,7 @@
             background-color: #e74c3c;
             color: white;
         }
-
+        
         .btn-danger:hover {
             background-color: #c0392b;
             color: white;
@@ -165,33 +176,34 @@
             background-color: #16a085;
             color: white;
         }
-
+        
         .btn-info:hover {
             background-color: #138d75;
             color: white;
         }
-
+        
         .btn-secondary {
             background-color: #95a5a6;
             color: white;
         }
-
+        
         .btn-secondary:hover {
             background-color: #7f8c8d;
             color: white;
         }
-
+        
         .btn-sm {
             padding: 5px 10px;
             font-size: 12px;
         }
-
+        
         .action-buttons {
             display: flex;
             gap: 5px;
             justify-content: center;
         }
         
+        /* Tabelas */
         .table {
             font-size: 12px;
             margin-bottom: 0;
@@ -206,18 +218,19 @@
             padding: 10px;
             vertical-align: middle;
         }
-
+        
         .table tbody td {
             padding: 8px 10px;
             vertical-align: middle;
         }
         
+        /* Modais */
         .modal-header {
             background-color: #2c3e50;
             color: white;
             padding: 12px 20px;
         }
-
+        
         .modal-header .modal-title {
             font-size: 14px;
             font-weight: 600;
@@ -229,153 +242,294 @@
             font-size: 24px;
             font-weight: 300;
         }
-
+        
         .modal-body {
             padding: 20px;
         }
-
+        
+        /* Forms */
         .form-group {
-            margin-bottom: 12px;
+            margin-bottom: 15px;
         }
-
+        
         .form-group label {
             font-size: 12px;
             font-weight: 600;
-            color: #555;
-            margin-bottom: 4px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            display: block;
         }
-
+        
         .form-control {
-            padding: 6px 10px;
             font-size: 13px;
-            border: 1px solid #ccc;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
             border-radius: 3px;
-        }
-
-        .form-control-sm {
-            padding: 5px 8px;
-            font-size: 12px;
+            transition: border-color 0.2s;
         }
         
         .form-control:focus {
             border-color: #3498db;
+            outline: none;
             box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
         }
         
+        .form-control:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+        
+        /* Badges */
         .badge {
-            padding: 4px 8px;
+            padding: 5px 10px;
             font-size: 11px;
             font-weight: 600;
+            border-radius: 3px;
         }
-
+        
         .badge-info {
             background-color: #3498db;
+            color: white;
         }
-
+        
         .badge-success {
             background-color: #27ae60;
+            color: white;
         }
         
-        .required:after {
-            content: " *";
-            color: #e74c3c;
+        .badge-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        
+        .badge-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        /* ============================================================================
+           ESTILOS DO AUTOCOMPLETE DE AEROPORTOS
+           ============================================================================ */
+        
+        .aeroporto-autocomplete {
+            position: relative;
+        }
+        
+        .aeroporto-autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+            border-radius: 0 0 4px 4px;
+        }
+        
+        .aeroporto-autocomplete-list.show {
+            display: block;
+        }
+        
+        .aeroporto-autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .aeroporto-autocomplete-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .aeroporto-autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        
+        .aeroporto-codigo {
             font-weight: bold;
+            color: #0066cc;
+            margin-right: 8px;
+            font-size: 13px;
+            min-width: 40px;
         }
         
-        .info-box {
-            background-color: #e8f4f8;
-            border-left: 4px solid #3498db;
-            padding: 8px 12px;
-            margin-bottom: 12px;
-            border-radius: 3px;
+        .aeroporto-local {
+            color: #666;
+            font-size: 13px;
+            flex: 1;
+        }
+        
+        .aeroporto-pais {
+            font-size: 0.85em;
+            color: #999;
+            margin-left: 5px;
+        }
+        
+        .autocomplete-loading {
+            padding: 10px 15px;
+            text-align: center;
+            color: #999;
+            font-style: italic;
             font-size: 12px;
         }
         
-        .info-box i {
-            color: #3498db;
-            margin-right: 8px;
+        /* Estilo para input com autocomplete ativo */
+        .aeroporto-autocomplete .form-control:focus {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
         }
-
-        .valor-total {
-            font-weight: bold;
-            color: #27ae60;
-            font-size: 15px;
-            padding: 8px;
-            background-color: #e8f8f5;
-            border-radius: 3px;
+        
+        .aeroporto-autocomplete .form-control:focus + input + .aeroporto-autocomplete-list.show {
+            border-top: 1px solid #3498db;
+        }
+        
+        /* ============================================================================
+           RESPONSIVIDADE
+           ============================================================================ */
+        
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 10px;
+            }
+        
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        
+            .table {
+                font-size: 11px;
+            }
+        
+            .btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        
+            .btn-sm {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+        
+            .action-buttons {
+                flex-direction: column;
+                gap: 3px;
+            }
+        
+            .aeroporto-autocomplete-list {
+                max-height: 200px;
+            }
+        
+            .aeroporto-codigo {
+                font-size: 12px;
+                min-width: 35px;
+            }
+        
+            .aeroporto-local {
+                font-size: 12px;
+            }
+        }
+        
+        /* ============================================================================
+           UTILIDADES
+           ============================================================================ */
+        
+        .text-center {
             text-align: center;
         }
-
-        .table-responsive {
-            overflow-x: auto;
+        
+        .text-right {
+            text-align: right;
         }
-
-        .dataTables_wrapper .dataTables_length,
-        .dataTables_wrapper .dataTables_filter,
-        .dataTables_wrapper .dataTables_info,
-        .dataTables_wrapper .dataTables_paginate {
-            font-size: 12px;
+        
+        .text-muted {
+            color: #95a5a6;
         }
-
-        .form-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 0;
+        
+        .mt-3 {
+            margin-top: 1rem;
         }
-
-        .form-row .form-group {
-            flex: 1;
-            min-width: 0;
-            margin-bottom: 12px;
+        
+        .mb-3 {
+            margin-bottom: 1rem;
         }
-
-        input[readonly] {
-            background-color: #f8f9fa;
-            color: #666;
+        
+        .p-3 {
+            padding: 1rem;
         }
-
-        .input-group-append .btn {
-            padding: 6px 12px;
+        
+        /* ScrollBar customizado */
+        .aeroporto-autocomplete-list::-webkit-scrollbar {
+            width: 8px;
         }
-
-        .col-auto {
-            flex: 0 0 auto;
-            width: auto;
+        
+        .aeroporto-autocomplete-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
         }
-
-        .col-2 {
-            flex: 0 0 16.666667%;
-            max-width: 16.666667%;
+        
+        .aeroporto-autocomplete-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
         }
-
-        .col-3 {
-            flex: 0 0 25%;
-            max-width: 25%;
+        
+        .aeroporto-autocomplete-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
-
-        .col-4 {
-            flex: 0 0 33.333333%;
-            max-width: 33.333333%;
+        
+        /* ============================================================================
+           ANIMAÇÕES
+           ============================================================================ */
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-
-        .col-6 {
-            flex: 0 0 50%;
-            max-width: 50%;
+        
+        .aeroporto-autocomplete-list.show {
+            animation: fadeIn 0.2s ease-out;
         }
-
-        .col-8 {
-            flex: 0 0 66.666667%;
-            max-width: 66.666667%;
+        
+        /* Highlight ao selecionar */
+        .aeroporto-autocomplete-item:active {
+            background-color: #e8f4f8;
         }
-
-        /* Reduzir o modal em 25% */
-        .modal-dialog.modal-form {
-            max-width: 650px;
-        }
-
-        .modal-dialog.modal-lg {
-            max-width: 900px;
-        }
+        
+        /* ============================================================================
+           IMPRESSÃO
+           ============================================================================ */
+        
+        @media print {
+            .navbar,
+            .btn,
+            .action-buttons,
+            .aeroporto-autocomplete-list {
+                display: none !important;
+            }
+        
+            .card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        
+            .table {
+                font-size: 10px;
+            }
+        }        
     </style>
 </head>
 <body>
@@ -545,24 +699,42 @@
                             <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" maxlength="100" required>
                         </div>
 
-                        <!-- Rota, Origem, Destino -->
+                        <!-- Origem, Destino, Rota -->
                         <div class="row">
+                            <!-- EXEMPLO: Campo de Origem com Autocomplete -->
+                            <div class="form-group aeroporto-autocomplete">
+                                <label for="origem">Origem *</label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="origem" 
+                                    name="origem"
+                                    placeholder="Digite código (ex: PVH) ou cidade (ex: Porto Velho)"
+                                    required
+                                    autocomplete="off">
+                                <input type="hidden" id="codigo_origem" name="codigo_origem">
+                                <div class="aeroporto-autocomplete-list" id="origem-list"></div>
+                            </div>
+                            
+                            <!-- EXEMPLO: Campo de Destino com Autocomplete -->
+                            <div class="form-group aeroporto-autocomplete">
+                                <label for="destino">Destino *</label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="destino" 
+                                    name="destino"
+                                    placeholder="Digite código (ex: GRU) ou cidade (ex: São Paulo)"
+                                    required
+                                    autocomplete="off">
+                                <input type="hidden" id="codigo_destino" name="codigo_destino">
+                                <div class="aeroporto-autocomplete-list" id="destino-list"></div>
+                            </div>
+
                             <div class="col-4">
                                 <div class="form-group">
                                     <label class="required">Rota</label>
                                     <input type="text" class="form-control" id="rota" name="rota" style="text-transform: uppercase;" required>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Origem</label>
-                                    <input type="text" class="form-control" id="origem" name="origem" style="text-transform: uppercase;" required>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Destino</label>
-                                    <input type="text" class="form-control" id="destino" name="destino" style="text-transform: uppercase;" required>
                                 </div>
                             </div>
                         </div>
@@ -895,114 +1067,270 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 
     <script>
-        $(document).ready(function() {
-            // Inicializar DataTable principal
-            $('#tabelaPassagens').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
-                },
-                order: [[0, 'desc']],
-                pageLength: 25,
-                responsive: true
-            });
-
-            // Máscara SEI
-            $('.sei-mask').mask('0000000-00.0000.0.00.0000');
+        // ============================================================================
+        // SISTEMA DE CONTROLE DE PASSAGENS AÉREAS
+        // JavaScript Completo Atualizado
+        // ============================================================================
+        
+        // ============================================================================
+        // CLASSE: AeroportoAutocomplete
+        // Implementa busca e seleção de aeroportos com autocomplete
+        // ============================================================================
+        class AeroportoAutocomplete {
+            constructor(inputId, hiddenCodeId, listId) {
+                this.input = document.getElementById(inputId);
+                this.hiddenCode = document.getElementById(hiddenCodeId);
+                this.list = document.getElementById(listId);
+                this.timeout = null;
+                this.minChars = 2;
+                this.debounceTime = 300;
+                
+                this.init();
+            }
             
-            // Máscara de moeda melhorada
-            $('.money-mask').each(function() {
-                $(this).mask('#.##0,00', {
-                    reverse: true,
-                    placeholder: '0,00'
+            init() {
+                // Evento de digitação
+                this.input.addEventListener('input', (e) => {
+                    clearTimeout(this.timeout);
+                    const termo = e.target.value.trim();
+                    
+                    if (termo.length < this.minChars) {
+                        this.hideList();
+                        return;
+                    }
+                    
+                    // Debounce para evitar muitas requisições
+                    this.timeout = setTimeout(() => {
+                        this.buscar(termo);
+                    }, this.debounceTime);
                 });
-            });
-
-            // Garantir que campos de valor sempre comecem com 0,00
-            $('.money-mask').on('focus', function() {
-                if ($(this).val() === '' || $(this).val() === '0,00') {
-                    $(this).val('0,00');
+                
+                // Evento de foco - reabrir lista se já tiver valor
+                this.input.addEventListener('focus', () => {
+                    const termo = this.input.value.trim();
+                    if (termo.length >= this.minChars && this.list.children.length > 0) {
+                        this.list.classList.add('show');
+                    }
+                });
+                
+                // Fechar lista ao clicar fora
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.aeroporto-autocomplete')) {
+                        this.hideList();
+                    }
+                });
+                
+                // Limpar código oculto quando input é limpo manualmente
+                this.input.addEventListener('change', () => {
+                    if (!this.input.value.trim()) {
+                        this.hiddenCode.value = '';
+                    }
+                });
+            }
+            
+            async buscar(termo) {
+                try {
+                    this.showLoading();
+                    
+                    const response = await fetch(`/api/aeroportos/buscar?termo=${encodeURIComponent(termo)}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.aeroportos.length > 0) {
+                        this.renderList(data.aeroportos);
+                    } else {
+                        this.showEmpty();
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar aeroportos:', error);
+                    this.showError();
                 }
+            }
+            
+            renderList(aeroportos) {
+                this.list.innerHTML = '';
+                
+                aeroportos.forEach(aero => {
+                    const item = document.createElement('div');
+                    item.className = 'aeroporto-autocomplete-item';
+                    item.innerHTML = `
+                        <span class="aeroporto-codigo">${aero.codigo_iata}</span>
+                        <span class="aeroporto-local">${aero.cidade}${aero.uf ? '/' + aero.uf : ''}</span>
+                        <span class="aeroporto-pais">(${aero.pais})</span>
+                    `;
+                    
+                    item.addEventListener('click', () => {
+                        this.selecionar(aero);
+                    });
+                    
+                    this.list.appendChild(item);
+                });
+                
+                this.list.classList.add('show');
+            }
+            
+            selecionar(aeroporto) {
+                // Preencher campo visível
+                const uf = aeroporto.uf ? `/${aeroporto.uf}` : '';
+                this.input.value = `${aeroporto.codigo_iata} - ${aeroporto.cidade}${uf}`;
+                
+                // Preencher campo oculto com código IATA
+                this.hiddenCode.value = aeroporto.codigo_iata;
+                
+                this.hideList();
+                
+                // Disparar evento personalizado para outros scripts que possam precisar
+                const event = new CustomEvent('aeroporto-selecionado', {
+                    detail: aeroporto
+                });
+                this.input.dispatchEvent(event);
+            }
+            
+            showLoading() {
+                this.list.innerHTML = '<div class="autocomplete-loading">Buscando aeroportos...</div>';
+                this.list.classList.add('show');
+            }
+            
+            showEmpty() {
+                this.list.innerHTML = '<div class="autocomplete-loading">Nenhum aeroporto encontrado</div>';
+                this.list.classList.add('show');
+            }
+            
+            showError() {
+                this.list.innerHTML = '<div class="autocomplete-loading" style="color: #dc3545;">Erro ao buscar aeroportos</div>';
+                this.list.classList.add('show');
+            }
+            
+            hideList() {
+                this.list.classList.remove('show');
+            }
+        }
+        
+        // ============================================================================
+        // INICIALIZAÇÃO QUANDO O DOCUMENTO ESTIVER PRONTO
+        // ============================================================================
+        $(document).ready(function() {
+            // Inicializar DataTable
+            $('#tabelaPassagens').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json"
+                },
+                "pageLength": 25,
+                "order": [[0, "desc"]],
+                "columnDefs": [
+                    { "orderable": false, "targets": -1 }
+                ]
             });
-
-            // Calcular total ao digitar nos campos de valor (Cadastro)
-            $('#vl_tarifa, #vl_taxa_extra, #vl_assento, #vl_taxa_embarque').on('input blur', function() {
-                calcularTotal();
+        
+            // Máscaras de input
+            aplicarMascaras();
+        
+            // Listeners de cálculo automático
+            $('#vl_tarifa, #vl_taxa_extra, #vl_assento, #vl_taxa_embarque').on('input', calcularTotal);
+            $('#vl_tarifa_edit, #vl_taxa_extra_edit, #vl_assento_edit, #vl_taxa_embarque_edit').on('input', calcularTotalEdit);
+        
+            // Carregar orçamentos no modal de cadastro
+            $('#modalCadastro').on('show.bs.modal', function() {
+                carregarOrcamentos('id_opa');
             });
-
-            // Calcular total ao digitar nos campos de valor (Edição)
-            $('#vl_tarifa_edit, #vl_taxa_extra_edit, #vl_assento_edit, #vl_taxa_embarque_edit').on('input blur', function() {
-                calcularTotalEdit();
+        
+            // Carregar orçamentos no modal de edição
+            $('#modalEdicao').on('show.bs.modal', function() {
+                carregarOrcamentos('id_opa_edit');
             });
-
-            // Limpar formulário ao fechar modal
-            $('#modalCadastro').on('hidden.bs.modal', function () {
-                $('#formCadastro')[0].reset();
-                $('#id_opa').val('');
-                $('#orcamento_display').val('');
-                $('.money-mask').val('0,00');
-                $('#vl_total_display').text('R$ 0,00');
-            });
+        
+            // Inicializar autocompletes de aeroportos
+            inicializarAutocompletes();
         });
-
-        // Função para abrir seletor de orçamento
-        function abrirSeletorOrcamento() {
+        
+        // ============================================================================
+        // INICIALIZAÇÃO DOS AUTOCOMPLETES DE AEROPORTOS
+        // ============================================================================
+        function inicializarAutocompletes() {
+            // Autocomplete para ORIGEM (modal de cadastro)
+            if (document.getElementById('origem')) {
+                window.autocompleteOrigem = new AeroportoAutocomplete(
+                    'origem',
+                    'codigo_origem',
+                    'origem-list'
+                );
+            }
+            
+            // Autocomplete para DESTINO (modal de cadastro)
+            if (document.getElementById('destino')) {
+                window.autocompleteDestino = new AeroportoAutocomplete(
+                    'destino',
+                    'codigo_destino',
+                    'destino-list'
+                );
+            }
+            
+            // Autocomplete para ORIGEM (modal de edição)
+            if (document.getElementById('origem_edit')) {
+                window.autocompleteOrigemEdit = new AeroportoAutocomplete(
+                    'origem_edit',
+                    'codigo_origem_edit',
+                    'origem-list-edit'
+                );
+            }
+            
+            // Autocomplete para DESTINO (modal de edição)
+            if (document.getElementById('destino_edit')) {
+                window.autocompleteDestinoEdit = new AeroportoAutocomplete(
+                    'destino_edit',
+                    'codigo_destino_edit',
+                    'destino-list-edit'
+                );
+            }
+        }
+        
+        // ============================================================================
+        // CARREGAR ORÇAMENTOS DISPONÍVEIS
+        // ============================================================================
+        function carregarOrcamentos(selectId) {
             $.ajax({
                 url: '/api/orcamento/passagens/disponiveis',
                 type: 'GET',
                 success: function(response) {
                     if (response.success) {
-                        var tbody = $('#tbodyOrcamentos');
-                        tbody.empty();
+                        var select = $('#' + selectId);
+                        select.empty();
+                        select.append('<option value="">Selecione...</option>');
                         
-                        response.registros.forEach(function(orcamento) {
-                            var row = '<tr>' +
-                                '<td>' + orcamento.uo + '</td>' +
-                                '<td>' + orcamento.unidade + '</td>' +
-                                '<td>' + orcamento.programa + '</td>' +
-                                '<td>' + orcamento.subitem + '</td>' +
-                                '<td>R$ ' + orcamento.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
-                                '<td>R$ ' + orcamento.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
-                                '<td><span class="badge badge-success">R$ ' + orcamento.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</span></td>' +
-                                '<td>' + orcamento.nu_empenho + '</td>' +
-                                '<td><button type="button" class="btn btn-sm btn-primary" onclick="selecionarOrcamento(' + 
-                                    orcamento.id_opa + ', \'' + orcamento.unidade + '\', \'' + orcamento.nu_empenho + '\')">Selecionar</button></td>' +
-                                '</tr>';
-                            tbody.append(row);
+                        response.registros.forEach(function(orc) {
+                            var saldo = parseFloat(orc.saldo).toFixed(2);
+                            var label = `ID ${orc.id_opa} - ${orc.unidade} - ${orc.programa} - Saldo: R$ ${saldo}`;
+                            select.append(`<option value="${orc.id_opa}">${label}</option>`);
                         });
-                        
-                        // Destruir DataTable anterior se existir
-                        if ($.fn.DataTable.isDataTable('#tabelaOrcamentos')) {
-                            $('#tabelaOrcamentos').DataTable().destroy();
-                        }
-                        
-                        // Inicializar DataTable do modal
-                        $('#tabelaOrcamentos').DataTable({
-                            language: {
-                                url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
-                            },
-                            pageLength: 10,
-                            order: [[0, 'asc']]
-                        });
-                        
-                        $('#modalSeletorOrcamento').modal('show');
-                    } else {
-                        alert('Erro ao carregar orçamentos: ' + response.error);
                     }
                 },
                 error: function(xhr) {
-                    alert('Erro ao buscar orçamentos disponíveis');
+                    console.error('Erro ao carregar orçamentos:', xhr);
+                    alert('Erro ao carregar orçamentos disponíveis');
                 }
             });
         }
-
-        // Função para selecionar orçamento
-        function selecionarOrcamento(idOpa, unidade, empenho) {
-            $('#id_opa').val(idOpa);
-            $('#orcamento_display').val(unidade + ' - ' + empenho);
-            $('#modalSeletorOrcamento').modal('hide');
+        
+        // ============================================================================
+        // MÁSCARAS DE INPUT
+        // ============================================================================
+        function aplicarMascaras() {
+            // Máscara de moeda
+            $('.money').mask('#.##0,00', {reverse: true});
+            
+            // Listeners para calcular total automaticamente
+            $('.money').on('blur', function() {
+                var id = $(this).attr('id');
+                if (id.includes('_edit')) {
+                    calcularTotalEdit();
+                } else {
+                    calcularTotal();
+                }
+            });
         }
-
-        // Função para calcular o valor total (Cadastro)
+        
+        // ============================================================================
+        // CALCULAR VALOR TOTAL (CADASTRO)
+        // ============================================================================
         function calcularTotal() {
             var tarifa = parseFloat($('#vl_tarifa').val().replace(/\./g, '').replace(',', '.')) || 0;
             var taxaExtra = parseFloat($('#vl_taxa_extra').val().replace(/\./g, '').replace(',', '.')) || 0;
@@ -1014,8 +1342,10 @@
             $('#vl_total').val(total.toFixed(2).replace('.', ','));
             $('#vl_total_display').text('R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
         }
-
-        // Função para calcular o valor total (Edição)
+        
+        // ============================================================================
+        // CALCULAR VALOR TOTAL (EDIÇÃO)
+        // ============================================================================
         function calcularTotalEdit() {
             var tarifa = parseFloat($('#vl_tarifa_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
             var taxaExtra = parseFloat($('#vl_taxa_extra_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
@@ -1027,13 +1357,27 @@
             $('#vl_total_edit').val(total.toFixed(2).replace('.', ','));
             $('#vl_total_display_edit').text('R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
         }
-
-        // Salvar nova passagem
+        
+        // ============================================================================
+        // SALVAR NOVA PASSAGEM
+        // ============================================================================
         function salvarPassagem(event) {
             event.preventDefault();
             
+            // Validar orçamento selecionado
             if (!$('#id_opa').val()) {
                 alert('Por favor, selecione um orçamento (Unidade/Programa/Empenho)');
+                return;
+            }
+            
+            // Validar aeroportos selecionados
+            if (!$('#codigo_origem').val()) {
+                alert('Por favor, selecione um aeroporto de origem válido');
+                return;
+            }
+            
+            if (!$('#codigo_destino').val()) {
+                alert('Por favor, selecione um aeroporto de destino válido');
                 return;
             }
             
@@ -1054,45 +1398,51 @@
                 }
             });
         }
-
-        // Buscar dados para edição
+        
+        // ============================================================================
+        // BUSCAR DADOS PARA EDIÇÃO (CORRIGIDO)
+        // ============================================================================
         function editarPassagem(id) {
             $.ajax({
-                url: '/passagens/buscar/' + id,
+                url: '/api/passagens/obter/' + id,
                 type: 'GET',
                 success: function(response) {
                     if (response.success) {
-                        var data = response.data;
+                        var p = response.passagem;
                         
-                        // Preencher formulário de edição
-                        $('#id_of_edit').val(data[0]);
-                        $('#id_opa_edit').val(data[1]);
-                        $('#orcamento_display_edit').val('ID OPA: ' + data[1]);
-                        $('#nu_sei_edit').val(data[3]);
-                        $('#nome_passageiro_edit').val(data[4]);
+                        // Preencher campos básicos
+                        $('#id_of_edit').val(p.id_of);
+                        $('#id_opa_edit').val(p.id_opa || '');
+                        $('#nu_sei_edit').val(p.nu_sei || '');
+                        $('#nome_passageiro_edit').val(p.nome_passageiro || '');
+                        $('#dt_emissao_edit').val(p.dt_emissao || '');
+                        $('#rota_edit').val(p.rota || '');
+                        $('#dt_embarque_edit').val(p.dt_embarque || '');
+                        $('#cia_edit').val(p.cia || '');
+                        $('#localizador_edit').val(p.localizador || '');
                         
-                        // Converter datas de dd/mm/yyyy para yyyy-mm-dd
-                        if (data[5]) {
-                            var partes = data[5].split('/');
-                            $('#dt_emissao_edit').val(partes[2] + '-' + partes[1] + '-' + partes[0]);
+                        // Preencher origem com autocomplete
+                        if (p.origem_display) {
+                            $('#origem_edit').val(p.origem_display);
+                        } else if (p.origem) {
+                            $('#origem_edit').val(p.origem);
                         }
+                        $('#codigo_origem_edit').val(p.codigo_origem || '');
                         
-                        $('#rota_edit').val(data[6]);
-                        $('#origem_edit').val(data[7]);
-                        $('#destino_edit').val(data[8]);
-                        
-                        if (data[9]) {
-                            var partes = data[9].split('/');
-                            $('#dt_embarque_edit').val(partes[2] + '-' + partes[1] + '-' + partes[0]);
+                        // Preencher destino com autocomplete
+                        if (p.destino_display) {
+                            $('#destino_edit').val(p.destino_display);
+                        } else if (p.destino) {
+                            $('#destino_edit').val(p.destino);
                         }
+                        $('#codigo_destino_edit').val(p.codigo_destino || '');
                         
-                        $('#cia_edit').val(data[10]);
-                        $('#localizador_edit').val(data[11]);
-                        $('#vl_tarifa_edit').val(data[12]);
-                        $('#vl_taxa_extra_edit').val(data[13]);
-                        $('#vl_assento_edit').val(data[14]);
-                        $('#vl_taxa_embarque_edit').val(data[15]);
-                        $('#vl_total_edit').val(data[16]);
+                        // Preencher valores financeiros
+                        $('#vl_tarifa_edit').val(formatarMoeda(p.vl_tarifa));
+                        $('#vl_taxa_extra_edit').val(formatarMoeda(p.vl_taxa_extra));
+                        $('#vl_assento_edit').val(formatarMoeda(p.vl_assento));
+                        $('#vl_taxa_embarque_edit').val(formatarMoeda(p.vl_taxa_embarque));
+                        $('#vl_total_edit').val(formatarMoeda(p.vl_total));
                         
                         // Calcular e exibir total
                         calcularTotalEdit();
@@ -1100,43 +1450,37 @@
                         // Abrir modal
                         $('#modalEdicao').modal('show');
                     } else {
-                        alert('Erro: ' + response.message);
+                        alert('Erro ao buscar dados: ' + (response.message || 'Erro desconhecido'));
                     }
                 },
                 error: function(xhr) {
+                    console.error('Erro completo:', xhr);
                     alert('Erro ao buscar dados: ' + (xhr.responseJSON ? xhr.responseJSON.message : 'Erro desconhecido'));
                 }
             });
         }
-
-        // Atualizar passagem
+        
+        // ============================================================================
+        // ATUALIZAR PASSAGEM
+        // ============================================================================
         function atualizarPassagem(event) {
             event.preventDefault();
             
-            // Converter datas de yyyy-mm-dd para dd/mm/yyyy antes de enviar
-            var dtEmissao = $('#dt_emissao_edit').val();
-            var dtEmbarque = $('#dt_embarque_edit').val();
-            
-            // Criar um FormData para manipular os dados
-            var formData = new FormData($('#formEdicao')[0]);
-            
-            // Converter as datas de volta para dd/mm/yyyy
-            if (dtEmissao) {
-                var partes = dtEmissao.split('-');
-                formData.set('dt_emissao_edit', partes[2] + '/' + partes[1] + '/' + partes[0]);
+            // Validar aeroportos selecionados
+            if (!$('#codigo_origem_edit').val()) {
+                alert('Por favor, selecione um aeroporto de origem válido');
+                return;
             }
             
-            if (dtEmbarque) {
-                var partes = dtEmbarque.split('-');
-                formData.set('dt_embarque_edit', partes[2] + '/' + partes[1] + '/' + partes[0]);
+            if (!$('#codigo_destino_edit').val()) {
+                alert('Por favor, selecione um aeroporto de destino válido');
+                return;
             }
             
             $.ajax({
                 url: '/passagens/atualizar',
                 type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
+                data: $('#formEdicao').serialize(),
                 success: function(response) {
                     if (response.success) {
                         alert('Passagem atualizada com sucesso!');
@@ -1150,8 +1494,10 @@
                 }
             });
         }
-
-        // Confirmar exclusão
+        
+        // ============================================================================
+        // CONFIRMAR EXCLUSÃO
+        // ============================================================================
         function confirmarExclusao(id) {
             if (confirm('Tem certeza que deseja excluir esta passagem?')) {
                 $.ajax({
@@ -1171,8 +1517,10 @@
                 });
             }
         }
-
-        // Aplicar filtros
+        
+        // ============================================================================
+        // APLICAR FILTROS
+        // ============================================================================
         function aplicarFiltros(event) {
             event.preventDefault();
             
@@ -1180,37 +1528,48 @@
             var dtInicio = $('#dt_inicio_filtro').val();
             var dtFim = $('#dt_fim_filtro').val();
             
-            var formData = $('#formFiltros').serialize();
+            var formData = new FormData($('#formFiltros')[0]);
             
             if (dtInicio) {
                 var partes = dtInicio.split('-');
-                formData += '&dt_inicio_filtro=' + partes[2] + '/' + partes[1] + '/' + partes[0];
+                formData.set('dt_inicio_filtro', partes[2] + '/' + partes[1] + '/' + partes[0]);
             }
             
             if (dtFim) {
                 var partes = dtFim.split('-');
-                formData += '&dt_fim_filtro=' + partes[2] + '/' + partes[1] + '/' + partes[0];
+                formData.set('dt_fim_filtro', partes[2] + '/' + partes[1] + '/' + partes[0]);
             }
             
             $.ajax({
                 url: '/passagens/filtrar',
                 type: 'POST',
                 data: formData,
+                processData: false,
+                contentType: false,
                 success: function(response) {
                     if (response.success) {
                         var table = $('#tabelaPassagens').DataTable();
                         table.clear();
                         
                         response.data.forEach(function(passagem) {
+                            // passagem[0] = ID_OF
+                            // passagem[4] = NOME_PASSAGEIRO
+                            // passagem[9] = ORIGEM_FORMATADA
+                            // passagem[10] = DESTINO_FORMATADO
+                            // passagem[6] = ROTA
+                            // passagem[5] = DT_EMISSAO_F
+                            // passagem[13] = DT_EMBARQUE_F
+                            // passagem[18] = VL_TOTAL_F
+                            
                             table.row.add([
                                 passagem[0],
                                 passagem[4],
-                                '<span class="badge badge-info">' + passagem[10] + '</span>',
-                                passagem[11],
-                                '<strong>' + passagem[6] + '</strong>',
+                                '<span class="badge badge-info">' + (passagem[9] || '-') + '</span>',
+                                '<span class="badge badge-success">' + (passagem[10] || '-') + '</span>',
+                                '<strong>' + (passagem[6] || '-') + '</strong>',
                                 passagem[5],
-                                passagem[9],
-                                'R$ ' + passagem[16],
+                                passagem[13],
+                                'R$ ' + passagem[18],
                                 '<div class="action-buttons">' +
                                 '<button class="btn btn-sm btn-warning" onclick="editarPassagem(' + passagem[0] + ')" title="Editar"><i class="fas fa-edit"></i></button> ' +
                                 '<button class="btn btn-sm btn-danger" onclick="confirmarExclusao(' + passagem[0] + ')" title="Excluir"><i class="fas fa-trash"></i></button>' +
@@ -1229,10 +1588,49 @@
                 }
             });
         }
-
-        // Limpar filtros
+        
+        // ============================================================================
+        // LIMPAR FILTROS
+        // ============================================================================
         function limparFiltros() {
             location.reload();
+        }
+        
+        // ============================================================================
+        // LIMPAR FORMULÁRIO DE CADASTRO
+        // ============================================================================
+        function limparFormularioCadastro() {
+            document.getElementById('formCadastro').reset();
+            $('#codigo_origem').val('');
+            $('#codigo_destino').val('');
+            $('#vl_total').val('0,00');
+            $('#vl_total_display').text('R$ 0,00');
+        }
+        
+        // ============================================================================
+        // FUNÇÃO AUXILIAR: FORMATAR VALOR COMO MOEDA
+        // ============================================================================
+        function formatarMoeda(valor) {
+            if (!valor) return '0,00';
+            return parseFloat(valor).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+        
+        // ============================================================================
+        // FUNÇÃO AUXILIAR: CONVERTER DATA PARA FORMATO BRASILEIRO
+        // ============================================================================
+        function formatarDataBR(data) {
+            if (!data) return '';
+            var partes = data.split('-');
+            return partes[2] + '/' + partes[1] + '/' + partes[0];
+        }
+        
+        // ============================================================================
+        // FUNÇÃO AUXILIAR: CONVERTER DATA PARA FORMATO ISO
+        // ============================================================================
+        function formatarDataISO(data) {
+            if (!data) return '';
+            var partes = data.split('/');
+            return partes[2] + '-' + partes[1] + '-' + partes[0];
         }
     </script>
 </body>
