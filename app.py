@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, make_response, redirect, url_for, flash, jsonify, send_file, session
 from flask_mail import Mail, Message
 from functools import wraps
-import os
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import uuid
@@ -10,8 +9,17 @@ from datetime import datetime, timedelta, time
 from xhtml2pdf import pisa
 from io import BytesIO
 from pytz import timezone
+import re
+import PyPDF2
+from werkzeug.utils import secure_filename
+import os
+
 
 app = Flask(__name__)
+
+# Configuração de upload (adicione no início do app.py)
+UPLOAD_FOLDER = '/tmp/uploads'
+ALLOWED_EXTENSIONS = {'pdf'}
 
 # Configuração do Flask-Mail
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')  # Substitua pelo seu servidor SMTP
@@ -7872,6 +7880,237 @@ def listar_passageiros():
             'error': str(e)
         }), 500
 		
+
+###############
+
+# Criar pasta de upload se não existir
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def extrair_dados_bilhete_modelo1(texto):
+    """Extrai dados do bilhete modelo 1 (M&A Turismo) - VERSÃO DEFINITIVA ABSOLUTA"""
+    dados = {
+        'dt_emissao': '',
+        'nu_sei': '',
+        'nome_passageiro': '',
+        'localizador': '',
+        'rota': '',
+        'origem': '',
+        'destino': '',
+        'cia': '',
+        'vl_tarifa': '',
+        'vl_taxa_extra': '',
+        'vl_total': '',
+        'dt_embarque': ''
+    }
+    
+    try:
+        texto_limpo = texto.replace('\n', ' ')
+        
+        # 1. DATA DE EMISSÃO
+        match_data = re.search(r'Data:\s*(\d{2}/\d{2}/\d{4})', texto)
+        if match_data:
+            dados['dt_emissao'] = match_data.group(1)
+        
+        # 2. Nº SEI
+        match_sei = re.search(r'\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}', texto)
+        if match_sei:
+            dados['nu_sei'] = match_sei.group(0)
+        
+        # 3. NOME DO PASSAGEIRO
+        match_nome = re.search(r'Nome\s+Sobrenome.*?([A-Z\s]+?)\s+ADT', texto, re.DOTALL)
+        if match_nome:
+            nome_bruto = match_nome.group(1).strip()
+            nome_limpo = re.sub(r'\s+Tipo\s+', ' ', nome_bruto)
+            nome_limpo = re.sub(r'\s+Sexo\s+', ' ', nome_limpo)
+            nome_limpo = re.sub(r'\s+Assentos\s+', ' ', nome_limpo)
+            nome_limpo = ' '.join(nome_limpo.split())
+            nome_limpo = re.sub(r'\s+\d+$', '', nome_limpo)
+            dados['nome_passageiro'] = capitalizar_nome(nome_limpo)
+        
+        # 4. LOCALIZADOR - MÉTODO MAIS CONFIÁVEL
+        # Busca na seção "Bilhetes" onde SEMPRE aparece limpo
+        # Padrão: Eticket | Localizador | Sistema
+        #         12345... | ABCDEF    | Gol/Latam/Azul
+        
+        match_loc = re.search(r'Eticket\s+Localizador.*?\d{10,}\s+([A-Z0-9]{5,7})\s+', texto, re.DOTALL)
+        
+        if not match_loc:
+            # Fallback método 1: com espaço antes da rota
+            match_loc = re.search(r'Localizador\s+Trecho.*?([A-Z]{5,7})\s+[A-Z]{3}-', texto, re.DOTALL)
+        
+        if not match_loc:
+            # Fallback método 2: grudado na rota
+            match_loc = re.search(r'Localizador\s+Trecho.*?([A-Z]{5,7})(?=[A-Z]{3}-)', texto, re.DOTALL)
+        
+        if match_loc:
+            dados['localizador'] = match_loc.group(1)
+        
+        # 5. ROTA
+        match_rota = re.search(
+            r'([A-Z]{3}\s*-\s*[A-Z]{3}(?:\s*/\s*[A-Z]{3}\s*-\s*[A-Z]{3})*)',
+            texto_limpo
+        )
+        
+        if match_rota:
+            rota_bruta = match_rota.group(1)
+            rota_limpa = re.sub(r'\s+', '', rota_bruta)
+            dados['rota'] = rota_limpa
+            
+            aeroportos = re.findall(r'([A-Z]{3})', dados['rota'])
+            if aeroportos:
+                dados['origem'] = aeroportos[0]
+                dados['destino'] = aeroportos[-1]
+        
+        # 6. COMPANHIA AÉREA
+        for cia in ['AZUL', 'GOL', 'LATAM']:
+            if cia in texto:
+                dados['cia'] = cia
+                break
+        
+        # 7. VALORES
+        match_valores = re.search(
+            r'Tarifa\s+Taxas\s+Total.*?R\$\s*([\d.,]+)\s*R\$\s*([\d.,]+)\s*R\$\s*([\d.,]+)',
+            texto,
+            re.DOTALL
+        )
+        if match_valores:
+            dados['vl_tarifa'] = match_valores.group(1)
+            dados['vl_taxa_extra'] = match_valores.group(2)
+            dados['vl_total'] = match_valores.group(3)
+        
+        # 8. DATA DE EMBARQUE
+        match_embarque = re.search(r'Saída.*?(\d{2}/\d{2}/\d{4})', texto, re.DOTALL)
+        if match_embarque:
+            dados['dt_embarque'] = match_embarque.group(1)
+        
+    except Exception as e:
+        print(f"Erro ao extrair dados: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    return dados
+
+
+def capitalizar_nome(nome):
+    """Converte NOME COMPLETO para Nome Completo"""
+    if not nome:
+        return nome
+    
+    nome = ' '.join(nome.split())
+    nome = re.sub(r'\bGILBER\s+TO\b', 'GILBERTO', nome, flags=re.IGNORECASE)
+    
+    minusculas = ['de', 'da', 'do', 'dos', 'das', 'e', 'a', 'o', 'as', 'os']
+    palavras = nome.lower().split()
+    resultado = []
+    
+    for i, palavra in enumerate(palavras):
+        if i == 0 or palavra not in minusculas:
+            resultado.append(palavra.capitalize())
+        else:
+            resultado.append(palavra)
+    
+    return ' '.join(resultado)
+
+
+def limpar_cia(cia_texto):
+    """Limpa o nome da companhia aérea"""
+    if not cia_texto:
+        return ''
+    
+    cia = cia_texto.strip()
+    
+    # Remove códigos IATA e caracteres extras
+    cia = re.sub(r'\s+[A-Z]{2}$', '', cia)  # Remove código de 2 letras no final
+    cia = re.sub(r'^[A-Z]{2}\s*-\s*', '', cia)  # Remove código no início
+    
+    # Padroniza nomes conhecidos
+    if 'LATAM' in cia.upper():
+        return 'LATAM'
+    elif 'GOL' in cia.upper():
+        return 'GOL'
+    elif 'AZUL' in cia.upper():
+        return 'AZUL'
+    
+    return cia.strip().upper()
+
+
+@app.route('/passagens/upload_bilhete', methods=['POST'])
+@login_required
+def passagens_upload_bilhete():
+    """Processa upload do PDF do bilhete e extrai dados - VERSÃO COM DEBUG"""
+    try:
+        if 'bilhete_pdf' not in request.files:
+            return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
+        
+        file = request.files['bilhete_pdf']
+        
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'Arquivo sem nome'}), 400
+        
+        if not allowed_file(file.filename):
+            return jsonify({'success': False, 'message': 'Apenas arquivos PDF são permitidos'}), 400
+        
+        # Salvar arquivo temporariamente
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        
+        # Extrair texto do PDF
+        texto_completo = ''
+        with open(filepath, 'rb') as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            for page in pdf_reader.pages:
+                texto_completo += page.extract_text()
+        
+        # ==== DEBUG: IMPRIMIR TEXTO EXTRAÍDO ====
+        print("=" * 80)
+        print("TEXTO EXTRAÍDO DO PDF:")
+        print("=" * 80)
+        print(texto_completo)
+        print("=" * 80)
+        
+        # Remover arquivo temporário
+        os.remove(filepath)
+        
+        # Extrair dados do bilhete
+        dados = extrair_dados_bilhete_modelo1(texto_completo)
+        
+        # ==== DEBUG: IMPRIMIR DADOS EXTRAÍDOS ====
+        print("DADOS EXTRAÍDOS:")
+        print("-" * 80)
+        for campo, valor in dados.items():
+            print(f"{campo:20} = {valor}")
+        print("=" * 80)
+        
+        # Verificar se conseguiu extrair pelo menos alguns dados
+        dados_extraidos = sum(1 for v in dados.values() if v)
+        
+        if dados_extraidos == 0:
+            return jsonify({
+                'success': False, 
+                'message': 'Não foi possível extrair dados do bilhete. Verifique se o arquivo está correto.'
+            }), 400
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{dados_extraidos} campos extraídos com sucesso!',
+            'data': dados
+        })
+    
+    except Exception as e:
+        print("ERRO:", str(e))
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False, 
+            'message': f'Erro ao processar arquivo: {str(e)}'
+        }), 500
+
+
 #######################################
 
 if __name__ == '__main__':
