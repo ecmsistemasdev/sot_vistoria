@@ -573,7 +573,7 @@
     </div>
 
     <!-- Modal Cadastro -->
-    <div class="modal fade" id="modalCadastro" tabindex="-1">
+    <div class="modal fade" id="modalCadastro" tabindex="-1" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog modal-form">
             <div class="modal-content">
                 <div class="modal-header">
@@ -587,9 +587,24 @@
                         <input type="hidden" id="id_opa" name="id_opa">
                         <input type="hidden" name="id_controle" value="0">
 
-                        <div class="info-box">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Atenção:</strong> Campos com <span style="color: #e74c3c;">*</span> são obrigatórios.
+                        <!-- UPLOAD DE BILHETE PDF -->
+                        <div class="alert alert-info" style="background-color: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px; margin-bottom: 20px;">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <i class="fas fa-file-pdf" style="color: #2196F3; margin-right: 8px;"></i>
+                                    <strong>Importar dados do bilhete:</strong>
+                                    <p style="margin: 5px 0 0 28px; font-size: 12px; color: #666;">
+                                        Faça upload do PDF do bilhete para preencher automaticamente os campos.
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-right">
+                                    <input type="file" id="bilhete_pdf" accept=".pdf" style="display: none;" onchange="processarBilhetePDF()">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('bilhete_pdf').click()">
+                                        <i class="fas fa-upload"></i> Carregar PDF
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="upload_status" style="margin-top: 10px; display: none;"></div>
                         </div>
 
                         <!-- Unidade/Programa/Empenho -->
@@ -796,7 +811,7 @@
     </div>
 
     <!-- Modal Edição - MESMO TAMANHO DO CADASTRO -->
-    <div class="modal fade" id="modalEdicao" tabindex="-1">
+    <div class="modal fade" id="modalEdicao" tabindex="-1" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog modal-form">
             <div class="modal-content">
                 <div class="modal-header">
@@ -810,11 +825,6 @@
                         <input type="hidden" id="id_of_edit" name="id_of_edit">
                         <input type="hidden" id="id_opa_edit" name="id_opa_edit">
                         <input type="hidden" name="id_controle_edit" value="0">
-
-                        <div class="info-box">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Atenção:</strong> Campos com <span style="color: #e74c3c;">*</span> são obrigatórios.
-                        </div>
 
                         <!-- Unidade/Programa/Empenho -->
                         <div class="form-group">
@@ -1817,6 +1827,40 @@
             });
         }
         
+        $('#modalCadastro').on('show.bs.modal', function() {
+            // Limpar todos os campos do formulário
+            $('#formCadastro')[0].reset();
+            
+            // Limpar campos específicos (garantia extra)
+            $('#id_opa').val('');
+            $('#orcamento_display').val('');
+            $('#nu_sei').val('');
+            $('#nome_passageiro').val('');
+            $('#dt_emissao').val('');
+            $('#origem').val('');
+            $('#codigo_origem').val('');
+            $('#destino').val('');
+            $('#codigo_destino').val('');
+            $('#rota').val('');
+            $('#dt_embarque').val('');
+            $('#cia').val('');
+            $('#localizador').val('');
+            $('#vl_tarifa').val('');
+            $('#vl_taxa_extra').val('0,00');
+            $('#vl_assento').val('0,00');
+            $('#vl_taxa_embarque').val('0,00');
+            $('#vl_total').val('0,00');
+            
+            // Limpar status de upload de PDF
+            $('#upload_status').hide();
+            $('#bilhete_pdf').val('');
+            
+            // Resetar display do valor total
+            $('#vl_total_display').text('R$ 0,00');
+            
+            console.log('Formulário limpo!');
+        });
+
         // Inicializar autocomplete ao abrir modais
         $('#modalCadastro').on('shown.bs.modal', function() {
             configurarAutocompletePassageiro('nome_passageiro');
@@ -1929,6 +1973,191 @@
             configurarDropdownCia('cia_edit', 'cia-suggestions-edit');
         });
         
+        // ============================================================================
+        // FUNÇÃO: PROCESSAR UPLOAD DE BILHETE PDF
+        // ============================================================================
+        
+        function processarBilhetePDF() {
+            const fileInput = document.getElementById('bilhete_pdf');
+            const uploadStatus = document.getElementById('upload_status');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                return;
+            }
+            
+            // Verificar se é PDF
+            if (file.type !== 'application/pdf') {
+                uploadStatus.innerHTML = '<div class="alert alert-danger alert-sm"><i class="fas fa-exclamation-circle"></i> Por favor, selecione um arquivo PDF.</div>';
+                uploadStatus.style.display = 'block';
+                fileInput.value = '';
+                return;
+            }
+            
+            // Mostrar loading
+            uploadStatus.innerHTML = '<div class="alert alert-info alert-sm"><i class="fas fa-spinner fa-spin"></i> Processando bilhete... Aguarde.</div>';
+            uploadStatus.style.display = 'block';
+            
+            // Criar FormData
+            const formData = new FormData();
+            formData.append('bilhete_pdf', file);
+            
+            // Enviar para o servidor
+            fetch('/passagens/upload_bilhete', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Sucesso - preencher campos
+                    uploadStatus.innerHTML = `<div class="alert alert-success alert-sm"><i class="fas fa-check-circle"></i> ${data.message}</div>`;
+                    
+                    // Preencher os campos do formulário
+                    preencherCampos(data.data);
+                    
+                    // Limpar input file
+                    fileInput.value = '';
+                    
+                    // Ocultar status após 3 segundos
+                    setTimeout(() => {
+                        uploadStatus.style.display = 'none';
+                    }, 3000);
+                } else {
+                    // Erro
+                    uploadStatus.innerHTML = `<div class="alert alert-danger alert-sm"><i class="fas fa-exclamation-circle"></i> ${data.message}</div>`;
+                    fileInput.value = '';
+                }
+            })
+            .catch(error => {
+                uploadStatus.innerHTML = '<div class="alert alert-danger alert-sm"><i class="fas fa-exclamation-circle"></i> Erro ao processar arquivo. Tente novamente.</div>';
+                console.error('Erro:', error);
+                fileInput.value = '';
+            });
+        }
+
+        function preencherCampos(dados) {
+            // Data de Emissão (converter de dd/mm/yyyy para yyyy-mm-dd)
+            if (dados.dt_emissao) {
+                const partes = dados.dt_emissao.split('/');
+                if (partes.length === 3) {
+                    const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+                    document.getElementById('dt_emissao').value = dataFormatada;
+                }
+            }
+            
+            // Nº SEI
+            if (dados.nu_sei) {
+                document.getElementById('nu_sei').value = dados.nu_sei;
+            }
+            
+            // Nome do Passageiro
+            if (dados.nome_passageiro) {
+                document.getElementById('nome_passageiro').value = dados.nome_passageiro;
+            }
+            
+            // Localizador
+            if (dados.localizador) {
+                document.getElementById('localizador').value = dados.localizador;
+            }
+            
+            // Rota
+            if (dados.rota) {
+                document.getElementById('rota').value = dados.rota;
+            }
+            
+            // Origem
+            if (dados.origem) {
+                document.getElementById('origem').value = dados.origem;
+                // Se tiver código separado
+                if (document.getElementById('codigo_origem')) {
+                    document.getElementById('codigo_origem').value = dados.origem;
+                }
+            }
+            
+            // Destino
+            if (dados.destino) {
+                document.getElementById('destino').value = dados.destino;
+                // Se tiver código separado
+                if (document.getElementById('codigo_destino')) {
+                    document.getElementById('codigo_destino').value = dados.destino;
+                }
+            }
+            
+            // Companhia Aérea
+            if (dados.cia) {
+                document.getElementById('cia').value = dados.cia;
+            }
+            
+            // Valores
+            if (dados.vl_tarifa) {
+                document.getElementById('vl_tarifa').value = dados.vl_tarifa;
+            }
+            
+            if (dados.vl_taxa_extra) {
+                document.getElementById('vl_taxa_embarque').value = dados.vl_taxa_extra;
+            }
+            
+            if (dados.vl_total) {
+                document.getElementById('vl_total').value = dados.vl_total;
+            }
+            
+            // Data de Embarque
+            if (dados.dt_embarque) {
+                const partes = dados.dt_embarque.split('/');
+                if (partes.length === 3) {
+                    const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+                    document.getElementById('dt_embarque').value = dataFormatada;
+                }
+            }
+            
+            // Trigger de recálculo de total se houver
+            if (typeof calcularTotal === 'function') {
+                calcularTotal();
+            }
+            
+            // Scroll suave para o topo do formulário
+            document.querySelector('.modal-body').scrollTop = 0;
+            
+            // Destacar campos preenchidos com animação
+            highlightPreenchidos();
+        }
+
+        function highlightPreenchidos() {
+            const campos = [
+                'dt_emissao', 'nu_sei', 'nome_passageiro', 'localizador',
+                'rota', 'origem', 'destino', 'cia', 'vl_tarifa',
+                'vl_taxa_embarque', 'vl_total', 'dt_embarque'
+            ];
+            
+            campos.forEach(campoId => {
+                const campo = document.getElementById(campoId);
+                if (campo && campo.value) {
+                    campo.style.transition = 'all 0.3s';
+                    campo.style.backgroundColor = '#d4edda';
+                    campo.style.borderColor = '#28a745';
+                    
+                    // Remover destaque após 2 segundos
+                    setTimeout(() => {
+                        campo.style.backgroundColor = '';
+                        campo.style.borderColor = '';
+                    }, 2000);
+                }
+            });
+        }
+
+        // CSS adicional para alertas pequenos
+        const style = document.createElement('style');
+        style.textContent = `
+            .alert-sm {
+                padding: 8px 12px;
+                margin-bottom: 0;
+                font-size: 12px;
+            }
+        `;
+        document.head.appendChild(style);
+
+
     </script>
 </body>
 </html>
