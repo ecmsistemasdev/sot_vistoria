@@ -535,7 +535,7 @@
                                 <th>Passageiro</th>
                                 <th>CIA</th>
                                 <th>Localizador</th>
-                                <th>Rota</th>
+                                <th>Trecho</th>
                                 <th>Emissão</th>
                                 <th>Embarque</th>
                                 <th>Valor Total</th>
@@ -643,7 +643,7 @@
                             <input type="text" class="form-control form-control-sm" id="nome_passageiro" name="nome_passageiro" autocomplete="off" maxlength="100" required>
                         </div>
 
-                        <!-- Origem, Destino, Rota -->
+                        <!-- Origem, Destino, Trecho -->
                         <div class="row">
                             <!-- Campo Origem com Autocomplete -->
                             <div class="col-4">
@@ -679,11 +679,11 @@
                                 </div>
                             </div>
                         
-                            <!-- Campo Rota -->
+                            <!-- Campo Trecho -->
                             <div class="col-4">
                                 <div class="form-group">
-                                    <label class="required">Rota</label>
-                                    <input type="text" class="form-control" id="rota" name="rota" style="text-transform: uppercase;" required>
+                                    <label class="required">Trechos</label>
+                                    <input type="text" class="form-control" id="trecho" name="trecho" style="text-transform: uppercase;" required>
                                 </div>
                             </div>
                         </div>
@@ -865,7 +865,7 @@
                             <input type="text" class="form-control form-control-sm" id="nome_passageiro_edit" name="nome_passageiro_edit" autocomplete="off" maxlength="100" required>
                         </div>
 
-                        <!-- Origem, Destino, Rota -->
+                        <!-- Origem, Destino, Trecho -->
                         <div class="row">
                             <!-- Campo Origem com Autocomplete (Edição) -->
                             <div class="col-4">
@@ -901,11 +901,11 @@
                                 </div>
                             </div>
                         
-                            <!-- Campo Rota (Edição) -->
+                            <!-- Campo Trecho (Edição) -->
                             <div class="col-4">
                                 <div class="form-group">
-                                    <label class="required">Rota</label>
-                                    <input type="text" class="form-control" id="rota_edit" name="rota_edit" style="text-transform: uppercase;" required>
+                                    <label class="required">Trechos</label>
+                                    <input type="text" class="form-control" id="trecho_edit" name="trecho_edit" style="text-transform: uppercase;" required>
                                 </div>
                             </div>
                         </div>
@@ -1171,9 +1171,9 @@
                 
                 this.hideList();
                 
-                // ATUALIZAR ROTA APENAS NO CAMPO DESTINO
+                // ATUALIZAR TRECHO APENAS NO CAMPO DESTINO
                 if (this.hiddenCode.id === 'codigo_destino' || this.hiddenCode.id === 'codigo_destino_edit') {
-                    atualizarRotaComDestinoselecionado(this.isEdit);
+                    atualizarTrechoComDestinoselecionado(this.isEdit);
                 }
             }
             
@@ -1198,17 +1198,17 @@
         }
         
         // ============================================================================
-        // ATUALIZAR CAMPO ROTA QUANDO DESTINO É SELECIONADO
+        // ATUALIZAR CAMPO TRECHO QUANDO DESTINO É SELECIONADO
         // ============================================================================
-        function atualizarRotaComDestinoselecionado(isEdit) {
+        function atualizarTrechoComDestinoselecionado(isEdit) {
             const sufixo = isEdit ? '_edit' : '';
             const codigoOrigem = $('#codigo_origem' + sufixo).val();
             const codigoDestino = $('#codigo_destino' + sufixo).val();
-            const campoRota = $('#rota' + sufixo);
+            const campoTrecho = $('#trecho' + sufixo);
             
-            // Atualizar rota se ambos os aeroportos foram selecionados
+            // Atualizar trecho se ambos os aeroportos foram selecionados
             if (codigoOrigem && codigoDestino) {
-                campoRota.val(codigoOrigem + '/' + codigoDestino);
+                campoTrecho.val(codigoOrigem + '/' + codigoDestino);
             }
         }
         
@@ -1518,7 +1518,7 @@
                         $('#nu_sei_edit').val(p.nu_sei || '');
                         $('#nome_passageiro_edit').val(p.nome_passageiro || '');
                         $('#dt_emissao_edit').val(p.dt_emissao || '');
-                        $('#rota_edit').val(p.rota || '');
+                        $('#trecho_edit').val(p.trecho || '');
                         $('#dt_embarque_edit').val(p.dt_embarque || '');
                         $('#cia_edit').val(p.cia || '');
                         $('#localizador_edit').val(p.localizador || '');
@@ -1841,7 +1841,7 @@
             $('#codigo_origem').val('');
             $('#destino').val('');
             $('#codigo_destino').val('');
-            $('#rota').val('');
+            $('#trecho').val('');
             $('#dt_embarque').val('');
             $('#cia').val('');
             $('#localizador').val('');
@@ -2061,9 +2061,9 @@
                 document.getElementById('localizador').value = dados.localizador;
             }
             
-            // Rota
-            if (dados.rota) {
-                document.getElementById('rota').value = dados.rota;
+            // Trecho
+            if (dados.trecho) {
+                document.getElementById('trecho').value = dados.trecho;
             }
             
             // Origem
@@ -2126,7 +2126,7 @@
         function highlightPreenchidos() {
             const campos = [
                 'dt_emissao', 'nu_sei', 'nome_passageiro', 'localizador',
-                'rota', 'origem', 'destino', 'cia', 'vl_tarifa',
+                'trecho', 'origem', 'destino', 'cia', 'vl_tarifa',
                 'vl_taxa_embarque', 'vl_total', 'dt_embarque'
             ];
             
