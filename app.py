@@ -13,6 +13,7 @@ import re
 import PyPDF2
 from werkzeug.utils import secure_filename
 import os
+import unicodedata
 
 
 app = Flask(__name__)
@@ -7883,6 +7884,46 @@ def listar_passageiros():
 
 ###############
 
+def validar_aeroportos_no_banco(codigos_possiveis, cursor):
+    """
+    Valida uma lista de códigos IATA contra a tabela AEROPORTOS
+    Retorna apenas os códigos que existem no banco
+    
+    Args:
+        codigos_possiveis: Lista de códigos de 3 letras para validar
+        cursor: Cursor do MySQL
+    
+    Returns:
+        Lista de códigos válidos (que existem no banco)
+    """
+    if not codigos_possiveis:
+        return []
+    
+    # Remove duplicatas mantendo ordem
+    codigos_unicos = []
+    for codigo in codigos_possiveis:
+        if codigo not in codigos_unicos:
+            codigos_unicos.append(codigo)
+    
+    # Monta query com placeholders
+    placeholders = ','.join(['%s'] * len(codigos_unicos))
+    query = f"""
+        SELECT CODIGO_IATA 
+        FROM AEROPORTOS 
+        WHERE CODIGO_IATA IN ({placeholders})
+        AND ATIVO = 'S'
+        ORDER BY FIELD(CODIGO_IATA, {placeholders})
+    """
+    
+    # Parâmetros: códigos duas vezes (para IN e ORDER BY FIELD)
+    params = codigos_unicos + codigos_unicos
+    
+    cursor.execute(query, params)
+    resultados = cursor.fetchall()
+    
+    # Retorna lista de códigos válidos
+    return [row[0] for row in resultados]
+
 # Criar pasta de upload se não existir
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -7890,8 +7931,113 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def extrair_dados_bilhete_modelo1(texto):
-    """Extrai dados do bilhete modelo 1 (M&A Turismo) - VERSÃO DEFINITIVA ABSOLUTA"""
+# def extrair_dados_bilhete_modelo1(texto):
+#     """Extrai dados do bilhete modelo 1 (M&A Turismo) - VERSÃO DEFINITIVA ABSOLUTA"""
+#     dados = {
+#         'dt_emissao': '',
+#         'nu_sei': '',
+#         'nome_passageiro': '',
+#         'localizador': '',
+#         'rota': '',
+#         'origem': '',
+#         'destino': '',
+#         'cia': '',
+#         'vl_tarifa': '',
+#         'vl_taxa_extra': '',
+#         'vl_total': '',
+#         'dt_embarque': ''
+#     }
+    
+#     try:
+#         texto_limpo = texto.replace('\n', ' ')
+        
+#         # 1. DATA DE EMISSÃO
+#         match_data = re.search(r'Data:\s*(\d{2}/\d{2}/\d{4})', texto)
+#         if match_data:
+#             dados['dt_emissao'] = match_data.group(1)
+        
+#         # 2. Nº SEI
+#         match_sei = re.search(r'\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}', texto)
+#         if match_sei:
+#             dados['nu_sei'] = match_sei.group(0)
+        
+#         # 3. NOME DO PASSAGEIRO
+#         match_nome = re.search(r'Nome\s+Sobrenome.*?([A-Z\s]+?)\s+ADT', texto, re.DOTALL)
+#         if match_nome:
+#             nome_bruto = match_nome.group(1).strip()
+#             nome_limpo = re.sub(r'\s+Tipo\s+', ' ', nome_bruto)
+#             nome_limpo = re.sub(r'\s+Sexo\s+', ' ', nome_limpo)
+#             nome_limpo = re.sub(r'\s+Assentos\s+', ' ', nome_limpo)
+#             nome_limpo = ' '.join(nome_limpo.split())
+#             nome_limpo = re.sub(r'\s+\d+$', '', nome_limpo)
+#             dados['nome_passageiro'] = capitalizar_nome(nome_limpo)
+        
+#         # 4. LOCALIZADOR - MÉTODO MAIS CONFIÁVEL
+#         # Busca na seção "Bilhetes" onde SEMPRE aparece limpo
+#         # Padrão: Eticket | Localizador | Sistema
+#         #         12345... | ABCDEF    | Gol/Latam/Azul
+        
+#         match_loc = re.search(r'Eticket\s+Localizador.*?\d{10,}\s+([A-Z0-9]{5,7})\s+', texto, re.DOTALL)
+        
+#         if not match_loc:
+#             # Fallback método 1: com espaço antes da rota
+#             match_loc = re.search(r'Localizador\s+Trecho.*?([A-Z]{5,7})\s+[A-Z]{3}-', texto, re.DOTALL)
+        
+#         if not match_loc:
+#             # Fallback método 2: grudado na rota
+#             match_loc = re.search(r'Localizador\s+Trecho.*?([A-Z]{5,7})(?=[A-Z]{3}-)', texto, re.DOTALL)
+        
+#         if match_loc:
+#             dados['localizador'] = match_loc.group(1)
+        
+#         # 5. ROTA
+#         match_rota = re.search(
+#             r'([A-Z]{3}\s*-\s*[A-Z]{3}(?:\s*/\s*[A-Z]{3}\s*-\s*[A-Z]{3})*)',
+#             texto_limpo
+#         )
+        
+#         if match_rota:
+#             rota_bruta = match_rota.group(1)
+#             rota_limpa = re.sub(r'\s+', '', rota_bruta)
+#             dados['rota'] = rota_limpa
+            
+#             aeroportos = re.findall(r'([A-Z]{3})', dados['rota'])
+#             if aeroportos:
+#                 dados['origem'] = aeroportos[0]
+#                 dados['destino'] = aeroportos[-1]
+        
+#         # 6. COMPANHIA AÉREA
+#         for cia in ['AZUL', 'GOL', 'LATAM']:
+#             if cia in texto:
+#                 dados['cia'] = cia
+#                 break
+        
+#         # 7. VALORES
+#         match_valores = re.search(
+#             r'Tarifa\s+Taxas\s+Total.*?R\$\s*([\d.,]+)\s*R\$\s*([\d.,]+)\s*R\$\s*([\d.,]+)',
+#             texto,
+#             re.DOTALL
+#         )
+#         if match_valores:
+#             dados['vl_tarifa'] = match_valores.group(1)
+#             dados['vl_taxa_extra'] = match_valores.group(2)
+#             dados['vl_total'] = match_valores.group(3)
+        
+#         # 8. DATA DE EMBARQUE
+#         match_embarque = re.search(r'Saída.*?(\d{2}/\d{2}/\d{4})', texto, re.DOTALL)
+#         if match_embarque:
+#             dados['dt_embarque'] = match_embarque.group(1)
+        
+#     except Exception as e:
+#         print(f"Erro ao extrair dados: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+    
+#     return dados
+
+
+def extrair_dados_bilhete_modelo1(texto, cursor):
+    """Extrai dados do bilhete modelo 1 (Wooba/M&A) - VERSÃO COM BD"""
     dados = {
         'dt_emissao': '',
         'nu_sei': '',
@@ -7931,25 +8077,12 @@ def extrair_dados_bilhete_modelo1(texto):
             nome_limpo = re.sub(r'\s+\d+$', '', nome_limpo)
             dados['nome_passageiro'] = capitalizar_nome(nome_limpo)
         
-        # 4. LOCALIZADOR - MÉTODO MAIS CONFIÁVEL
-        # Busca na seção "Bilhetes" onde SEMPRE aparece limpo
-        # Padrão: Eticket | Localizador | Sistema
-        #         12345... | ABCDEF    | Gol/Latam/Azul
-        
+        # 4. LOCALIZADOR - Busca na seção Bilhetes (mais confiável)
         match_loc = re.search(r'Eticket\s+Localizador.*?\d{10,}\s+([A-Z0-9]{5,7})\s+', texto, re.DOTALL)
-        
-        if not match_loc:
-            # Fallback método 1: com espaço antes da rota
-            match_loc = re.search(r'Localizador\s+Trecho.*?([A-Z]{5,7})\s+[A-Z]{3}-', texto, re.DOTALL)
-        
-        if not match_loc:
-            # Fallback método 2: grudado na rota
-            match_loc = re.search(r'Localizador\s+Trecho.*?([A-Z]{5,7})(?=[A-Z]{3}-)', texto, re.DOTALL)
-        
         if match_loc:
             dados['localizador'] = match_loc.group(1)
         
-        # 5. ROTA
+        # 5. ROTA - COM VALIDAÇÃO NO BANCO
         match_rota = re.search(
             r'([A-Z]{3}\s*-\s*[A-Z]{3}(?:\s*/\s*[A-Z]{3}\s*-\s*[A-Z]{3})*)',
             texto_limpo
@@ -7958,12 +8091,22 @@ def extrair_dados_bilhete_modelo1(texto):
         if match_rota:
             rota_bruta = match_rota.group(1)
             rota_limpa = re.sub(r'\s+', '', rota_bruta)
-            dados['rota'] = rota_limpa
             
-            aeroportos = re.findall(r'([A-Z]{3})', dados['rota'])
-            if aeroportos:
-                dados['origem'] = aeroportos[0]
-                dados['destino'] = aeroportos[-1]
+            # Extrai códigos da rota
+            codigos_rota = re.findall(r'([A-Z]{3})', rota_limpa)
+            
+            # VALIDA NO BANCO
+            aeroportos_validos = validar_aeroportos_no_banco(codigos_rota, cursor)
+            
+            if aeroportos_validos:
+                dados['origem'] = aeroportos_validos[0]
+                dados['destino'] = aeroportos_validos[-1]
+                
+                # Reconstrói rota com aeroportos válidos
+                trechos = []
+                for i in range(len(aeroportos_validos) - 1):
+                    trechos.append(f"{aeroportos_validos[i]}-{aeroportos_validos[i+1]}")
+                dados['rota'] = '/'.join(trechos)
         
         # 6. COMPANHIA AÉREA
         for cia in ['AZUL', 'GOL', 'LATAM']:
@@ -7988,7 +8131,254 @@ def extrair_dados_bilhete_modelo1(texto):
             dados['dt_embarque'] = match_embarque.group(1)
         
     except Exception as e:
-        print(f"Erro ao extrair dados: {str(e)}")
+        print(f"Erro ao extrair dados modelo 1: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    return dados
+
+def remover_acentos(texto):
+    """Remove acentos de um texto para comparação"""
+    if not texto:
+        return texto
+    # Normaliza para NFD (separa caracteres base de acentos)
+    nfkd = unicodedata.normalize('NFD', texto)
+    # Remove caracteres de acento (categoria Mn = Nonspacing Mark)
+    sem_acento = ''.join([c for c in nfkd if not unicodedata.combining(c)])
+    return sem_acento
+
+
+def extrair_dados_bilhete_modelo2(texto, cursor):
+    """Extrai dados do bilhete modelo 2 - Busca otimizada"""
+    dados = {
+        'dt_emissao': '',
+        'nu_sei': '',
+        'nome_passageiro': '',
+        'localizador': '',
+        'rota': '',
+        'origem': '',
+        'destino': '',
+        'cia': '',
+        'vl_tarifa': '',
+        'vl_taxa_extra': '',
+        'vl_total': '',
+        'dt_embarque': ''
+    }
+    
+    try:
+        print("=" * 80)
+        print("EXTRAINDO DADOS - MODELO 2")
+        print("=" * 80)
+        
+        # 1. LOCALIZADOR
+        match_secao = re.search(
+            r'Localizador.*?\n(.+?)(?:Emitido|Status|Passageiros)',
+            texto,
+            re.DOTALL
+        )
+        
+        if match_secao:
+            bloco_loc = match_secao.group(1)
+            bloco_limpo = re.sub(r'[-\s]+', ' ', bloco_loc)
+            codigos = re.findall(r'([A-Z0-9]{6,})', bloco_limpo)
+            
+            if len(codigos) == 1:
+                codigo = codigos[0]
+                if len(codigo) == 6:
+                    dados['localizador'] = codigo
+                elif len(codigo) > 6:
+                    dados['localizador'] = codigo[-6:]
+            elif len(codigos) >= 2:
+                for cod in codigos:
+                    if len(cod) == 6:
+                        dados['localizador'] = cod
+                        break
+                if not dados['localizador'] and codigos:
+                    dados['localizador'] = codigos[0][-6:]
+            
+            if dados['localizador']:
+                print(f"✅ Localizador: {dados['localizador']}")
+        
+        # EXTRAIR SEÇÃO VOOS
+        secao_voos = re.search(r'Voos(.*?)(?:Mochila ou bolsa|Assentos)', texto, re.DOTALL)
+        texto_voos_original = ''
+        texto_voos_limpo = ''
+        
+        if secao_voos:
+            texto_voos_original = secao_voos.group(1)
+            texto_voos_limpo = ' '.join(texto_voos_original.split())
+            
+            tem_conexao = 'Conexão em:' in texto_voos_original
+            if tem_conexao:
+                print("✈️ Conexão detectada!")
+        
+        # 2. NOME DO PASSAGEIRO
+        match_nome_emd = re.search(r'EMD.*?Passageiro.*?\n[^\n]*\n([A-Z\s]+?)\s+(?:Servico|Assento)', texto, re.DOTALL)
+        if match_nome_emd:
+            nome_completo = match_nome_emd.group(1).strip()
+            nome_completo = re.sub(r'\s*(MR|MRS)\s*', ' ', nome_completo, flags=re.IGNORECASE)
+            nome_completo = ' '.join(nome_completo.split())
+            dados['nome_passageiro'] = capitalizar_nome(nome_completo)
+            print(f"✅ Nome (EMD): {dados['nome_passageiro']}")
+        
+        if not dados['nome_passageiro']:
+            secao_bilhetes = re.search(r'Bilhetes(.*?)(?:EMD|Confirme sempre)', texto, re.DOTALL)
+            if secao_bilhetes:
+                texto_bilhetes = secao_bilhetes.group(1)
+                match_nome = re.search(r'\d{3}-\d{10}\s+[A-Z0-9]+\s+([A-Z\s/]+?)\s+\d{2}/\d{2}/\d{4}', texto_bilhetes)
+                
+                if match_nome:
+                    nome_bruto = match_nome.group(1).strip()
+                    
+                    if '/' in nome_bruto:
+                        partes = nome_bruto.split('/')
+                        sobrenome = partes[0].strip()
+                        nome = partes[1].strip() if len(partes) > 1 else ''
+                        nome = re.sub(r'\s*(MR|MRS)\s*$', '', nome, flags=re.IGNORECASE)
+                        sobrenome = re.sub(r'\s*(MR|MRS)\s*$', '', sobrenome, flags=re.IGNORECASE)
+                        nome_completo = f"{nome} {sobrenome}".strip()
+                    else:
+                        nome_completo = nome_bruto
+                    
+                    nome_completo = re.sub(r'\s*(MR|MRS)\s*', ' ', nome_completo, flags=re.IGNORECASE)
+                    nome_completo = ' '.join(nome_completo.split())
+                    dados['nome_passageiro'] = capitalizar_nome(nome_completo)
+                    print(f"✅ Nome (Bilhetes): {dados['nome_passageiro']}")
+        
+        # 3. COMPANHIA AÉREA
+        if 'LATAM' in texto.upper() or re.search(r'\bLA\s+\d{4}', texto):
+            dados['cia'] = 'LATAM'
+        elif 'GOL' in texto.upper() or re.search(r'\bG3\s+\d{4}', texto):
+            dados['cia'] = 'GOL'
+        elif 'AZUL' in texto.upper() or re.search(r'\bAD\s+\d{4}', texto):
+            dados['cia'] = 'AZUL'
+        print(f"✅ CIA: {dados['cia']}")
+        
+        # 4. ORIGEM, DESTINO e ROTA - BUSCA OTIMIZADA
+        if texto_voos_limpo:
+            print("\n🔍 INICIANDO BUSCA DE AEROPORTOS...")
+            print(f"📍 Texto voos (300 chars): {texto_voos_limpo[:300]}...")
+            
+            # Remove acentos do texto para comparação
+            texto_sem_acento = remover_acentos(texto_voos_limpo.upper())
+            print(f"📍 Texto SEM acentos: {texto_sem_acento[:300]}...\n")
+            
+            # Busca padrões que aparecem no texto (códigos de 3 letras seguidos de " - ")
+            padroes_encontrados = re.findall(r'([A-Z]{3})\s*-\s*([A-Z\s]+?)(?=\d{2}\s+[A-Z][a-z]{2}\s+\d{4}|\s+\d{2}\s+)', texto_voos_limpo)
+            
+            print(f"📍 Padrões XXX - NOME encontrados: {padroes_encontrados[:10]}\n")
+            
+            aeroportos_encontrados = []
+            
+            for codigo, cidade_bruta in padroes_encontrados:
+                # Limpa o nome da cidade
+                cidade = cidade_bruta.strip()
+                
+                # Monta padrão de busca SEM acentos
+                padrao_busca = f"{codigo} - {cidade}"
+                padrao_sem_acento = remover_acentos(padrao_busca.upper())
+                
+                print(f"🔍 Buscando: '{padrao_busca}' (sem acento: '{padrao_sem_acento}')")
+                
+                # Busca no banco (comparando SEM acentos)
+                cursor.execute("""
+                    SELECT CODIGO_IATA, CIDADE
+                    FROM AEROPORTOS
+                    WHERE CODIGO_IATA = %s
+                    AND ATIVO = 'S'
+                """, (codigo,))
+                
+                resultado = cursor.fetchone()
+                
+                if resultado:
+                    codigo_db, cidade_db = resultado
+                    nome_db = f"{codigo_db} - {cidade_db.upper()}"
+                    nome_db_sem_acento = remover_acentos(nome_db)
+                    
+                    print(f"   ✅ ENCONTRADO no banco: {nome_db}")
+                    print(f"   📊 Comparação: '{padrao_sem_acento}' vs '{nome_db_sem_acento}'")
+                    
+                    # Pega posição no texto
+                    idx = texto_sem_acento.find(codigo)
+                    aeroportos_encontrados.append((idx, codigo))
+                else:
+                    print(f"   ❌ NÃO encontrado no banco")
+            
+            print(f"\n✅ Total encontrados: {len(aeroportos_encontrados)}")
+            
+            # ORDENA pela posição
+            aeroportos_encontrados.sort(key=lambda x: x[0])
+            
+            # Remove duplicatas mantendo ordem
+            aeroportos_validos = []
+            for _, cod in aeroportos_encontrados:
+                if cod not in aeroportos_validos:
+                    aeroportos_validos.append(cod)
+            
+            print(f"✅ Aeroportos na ordem: {aeroportos_validos}\n")
+            
+            if len(aeroportos_validos) >= 2:
+                dados['origem'] = aeroportos_validos[0]
+                dados['destino'] = aeroportos_validos[-1]
+                
+                trechos = []
+                for j in range(len(aeroportos_validos) - 1):
+                    trechos.append(f"{aeroportos_validos[j]}-{aeroportos_validos[j+1]}")
+                dados['rota'] = '/'.join(trechos)
+                
+                print(f"✅ Origem: {dados['origem']}")
+                print(f"✅ Destino: {dados['destino']}")
+                print(f"✅ Rota: {dados['rota']}")
+                
+                if len(aeroportos_validos) > 2:
+                    print(f"   ✈️ Voo com {len(aeroportos_validos)-1} trechos")
+            
+            elif len(aeroportos_validos) == 1:
+                dados['origem'] = aeroportos_validos[0]
+                print(f"⚠️ Apenas 1 aeroporto: {dados['origem']}")
+        
+        # 5. DATA DE EMBARQUE
+        match_embarque = re.search(r'(\d{2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+\d{2}:\d{2}', texto)
+        if match_embarque:
+            dia = match_embarque.group(1)
+            mes_abrev = match_embarque.group(2)
+            ano = match_embarque.group(3)
+            
+            meses = {
+                'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+                'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+                'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+            }
+            
+            mes = meses.get(mes_abrev, '01')
+            dados['dt_embarque'] = f"{dia}/{mes}/{ano}"
+            print(f"✅ Data Embarque: {dados['dt_embarque']}")
+        
+        # 6. DATA DE EMISSÃO
+        match_emissao = re.search(r'Data Emissão.*?(\d{2}/\d{2}/\d{4})', texto, re.DOTALL)
+        if match_emissao:
+            dados['dt_emissao'] = match_emissao.group(1)
+            print(f"✅ Data Emissão: {dados['dt_emissao']}")
+        
+        # 7. VALORES
+        match_valores = re.search(
+            r'ADT\s*-.*?R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)',
+            texto,
+            re.DOTALL
+        )
+        
+        if match_valores:
+            dados['vl_tarifa'] = match_valores.group(1)
+            dados['vl_taxa_extra'] = match_valores.group(2)
+            dados['vl_total'] = match_valores.group(3)
+            print(f"✅ Tarifa: {dados['vl_tarifa']}")
+            print(f"✅ Taxas: {dados['vl_taxa_extra']}")
+            print(f"✅ Total: {dados['vl_total']}")
+        
+        print("=" * 80)
+        
+    except Exception as e:
+        print(f"❌ Erro ao extrair dados modelo 2: {str(e)}")
         import traceback
         traceback.print_exc()
     
@@ -8001,7 +8391,6 @@ def capitalizar_nome(nome):
         return nome
     
     nome = ' '.join(nome.split())
-    nome = re.sub(r'\bGILBER\s+TO\b', 'GILBERTO', nome, flags=re.IGNORECASE)
     
     minusculas = ['de', 'da', 'do', 'dos', 'das', 'e', 'a', 'o', 'as', 'os']
     palavras = nome.lower().split()
@@ -8038,10 +8427,19 @@ def limpar_cia(cia_texto):
     return cia.strip().upper()
 
 
+# ============================================================================
+# SISTEMA COMPLETO COM DETECÇÃO AUTOMÁTICA DE MODELO DE BILHETE
+# ============================================================================
+# Substitua a rota /passagens/upload_bilhete no seu app.py por esta versão
+
+
 @app.route('/passagens/upload_bilhete', methods=['POST'])
 @login_required
 def passagens_upload_bilhete():
-    """Processa upload do PDF do bilhete e extrai dados - VERSÃO COM DEBUG"""
+    """Processa upload do PDF do bilhete e extrai dados - VERSÃO COM BD"""
+    
+    cursor = None
+    
     try:
         if 'bilhete_pdf' not in request.files:
             return jsonify({'success': False, 'message': 'Nenhum arquivo enviado'}), 400
@@ -8066,49 +8464,63 @@ def passagens_upload_bilhete():
             for page in pdf_reader.pages:
                 texto_completo += page.extract_text()
         
-        # ==== DEBUG: IMPRIMIR TEXTO EXTRAÍDO ====
-        print("=" * 80)
-        print("TEXTO EXTRAÍDO DO PDF:")
-        print("=" * 80)
-        print(texto_completo)
-        print("=" * 80)
-        
         # Remover arquivo temporário
         os.remove(filepath)
         
-        # Extrair dados do bilhete
-        dados = extrair_dados_bilhete_modelo1(texto_completo)
+        # Criar cursor para consultas ao banco
+        cursor = mysql.connection.cursor()
         
-        # ==== DEBUG: IMPRIMIR DADOS EXTRAÍDOS ====
-        print("DADOS EXTRAÍDOS:")
-        print("-" * 80)
-        for campo, valor in dados.items():
-            print(f"{campo:20} = {valor}")
-        print("=" * 80)
+        # Detecção automática do modelo
+        modelo = identificar_modelo_bilhete(texto_completo)
+        print(f"📄 Modelo detectado: {modelo}")
         
-        # Verificar se conseguiu extrair pelo menos alguns dados
+        # Extrair dados conforme o modelo (PASSA O CURSOR!)
+        if modelo == 2:
+            dados = extrair_dados_bilhete_modelo2(texto_completo, cursor)
+        else:
+            dados = extrair_dados_bilhete_modelo1(texto_completo, cursor)
+        
+        # Fechar cursor
+        cursor.close()
+        cursor = None
+        
+        # Verificar se conseguiu extrair dados
         dados_extraidos = sum(1 for v in dados.values() if v)
         
         if dados_extraidos == 0:
             return jsonify({
                 'success': False, 
-                'message': 'Não foi possível extrair dados do bilhete. Verifique se o arquivo está correto.'
+                'message': 'Não foi possível extrair dados do bilhete.'
             }), 400
         
         return jsonify({
             'success': True, 
-            'message': f'{dados_extraidos} campos extraídos com sucesso!',
-            'data': dados
+            'message': f'{dados_extraidos} campos extraídos! (Modelo {modelo})',
+            'data': dados,
+            'modelo': modelo
         })
     
     except Exception as e:
-        print("ERRO:", str(e))
+        if cursor:
+            cursor.close()
+        
+        print(f"❌ Erro: {str(e)}")
         import traceback
         traceback.print_exc()
+        
         return jsonify({
             'success': False, 
             'message': f'Erro ao processar arquivo: {str(e)}'
         }), 500
+
+
+def identificar_modelo_bilhete(texto):
+    """Identifica automaticamente o modelo do bilhete"""
+    if 'Portal do Agente' in texto or 'Reserva Aérea - Plano de Viagem' in texto:
+        return 2
+    if 'Wooba' in texto or re.search(r'OS:\s*\d{6}', texto):
+        return 1
+    return 1  # Padrão
 
 
 #######################################
