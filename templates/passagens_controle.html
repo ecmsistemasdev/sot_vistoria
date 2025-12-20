@@ -15,17 +15,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     
     <style>
-        /* Reset e estilos base */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
+            background-color: #f5f5f5;
+            color: #333;
             font-size: 13px;
+            padding-top: 20px;
+        }
+        
+        .content-wrapper {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
         }
 
         /* Container principal */
@@ -459,31 +466,44 @@
             .action-buttons {
                 flex-direction: column;
             }
+            
+            .page-header .btn-voltar {
+                position: static;
+                display: block;
+                margin-top: 10px;
+                text-align: center;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
+    <!-- Conteúdo Principal -->
+    <div class="container-fluid content-wrapper">
         <!-- Cabeçalho -->
         <div class="page-header">
-            <h2><i class="fas fa-plane"></i> Controle de Bilhetes - Passagens Aéreas</h2>
-            <a class="btn-voltar" href="/controle_passagens_aereas">
+            <a href="/controle_passagens_aereas" class="btn-voltar">
                 <i class="fas fa-arrow-left"></i> Voltar ao Orçamento
             </a>
-            <p>Gerenciamento completo de passagens aéreas emitidas</p>
-            <div class="page-actions">
-                <button class="btn btn-success" onclick="$('#modalCadastro').modal('show')">
-                    <i class="fas fa-plus"></i> Adicionar Bilhete
-                </button>
-                <button class="btn btn-primary" onclick="$('#modalFiltros').modal('show')">
-                    <i class="fas fa-filter"></i> Filtros
-                </button>
-                <button class="btn btn-secondary" onclick="limparFiltros()">
-                    <i class="fas fa-sync"></i> Limpar Filtros
-                </button> 
+            <div>
+                <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes Emitidos</h2>
+                <p>Gerencie os bilhetes de passagens aéreas emitidas</p>
             </div>
         </div>
-    
+
+        <!-- Botões de Ação -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <button class="btn btn-primary" data-toggle="modal" data-target="#modalCadastro">
+                    <i class="fas fa-plus"></i> Adicionar Bilhete
+                </button>
+                <button class="btn btn-info" data-toggle="modal" data-target="#modalFiltros">
+                    <i class="fas fa-filter"></i> Filtros
+                </button>
+                <button class="btn btn-success" onclick="limparFiltros()">
+                    <i class="fas fa-sync"></i> Limpar Filtros
+                </button>
+            </div>
+        </div>    
         
         <!-- Card com Tabela -->
         <div class="card">
