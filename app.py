@@ -7242,7 +7242,7 @@ def passagens_controle():
                 pae.NU_SEI,
                 pae.NOME_PASSAGEIRO,
                 DATE_FORMAT(pae.DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
-                pae.ROTA,
+                pae.TRECHO,
                 pae.CODIGO_ORIGEM,
                 pae.CODIGO_DESTINO,
                 CONCAT(ao.CODIGO_IATA, ' - ', ao.CIDADE, '/', ao.UF_ESTADO) as ORIGEM_FORMATADA,
@@ -7407,7 +7407,7 @@ def obter_passagem(id_of):
                 pae.NU_SEI,
                 pae.NOME_PASSAGEIRO,
                 DATE_FORMAT(pae.DT_EMISSAO, '%%Y-%%m-%%d') as DT_EMISSAO,
-                pae.ROTA,
+                pae.TRECHO,
                 pae.CODIGO_ORIGEM,
                 pae.CODIGO_DESTINO,
                 pae.ORIGEM,
@@ -7447,7 +7447,7 @@ def obter_passagem(id_of):
             'nu_sei': row[3] or '',
             'nome_passageiro': row[4] or '',
             'dt_emissao': row[5] or '',
-            'rota': row[6] or '',
+            'trecho': row[6] or '',
             'codigo_origem': row[7] or '',
             'codigo_destino': row[8] or '',
             'origem': row[9] or '',
@@ -7491,7 +7491,7 @@ def obter_passagem(id_of):
 @login_required
 def passagens_salvar():
     """
-    Salvar nova passagem - ATUALIZADA para gravar CIA, LOCALIZADOR e ROTA em MAIÚSCULO
+    Salvar nova passagem - ATUALIZADA para gravar CIA, LOCALIZADOR e TRECHO em MAIÚSCULO
     """
     try:
         cursor = mysql.connection.cursor()
@@ -7503,8 +7503,8 @@ def passagens_salvar():
         nome_passageiro = request.form.get('nome_passageiro')
         dt_emissao = request.form.get('dt_emissao')
         
-        # FORÇAR MAIÚSCULAS nos campos CIA, LOCALIZADOR e ROTA
-        rota = request.form.get('rota', '').upper()
+        # FORÇAR MAIÚSCULAS nos campos CIA, LOCALIZADOR e TRECHO
+        trecho = request.form.get('trecho', '').upper()
         cia = request.form.get('cia', '').upper()
         localizador = request.form.get('localizador', '').upper()
         
@@ -7536,7 +7536,7 @@ def passagens_salvar():
         cursor.execute("""
             INSERT INTO PASSAGENS_AEREAS_EMITIDAS (
                 ID_OF, ID_OPA, ID_CONTROLE, NU_SEI, NOME_PASSAGEIRO, DT_EMISSAO,
-                ROTA, CODIGO_ORIGEM, CODIGO_DESTINO, ORIGEM, DESTINO, 
+                TRECHO, CODIGO_ORIGEM, CODIGO_DESTINO, ORIGEM, DESTINO, 
                 DT_EMBARQUE, CIA, LOCALIZADOR,
                 VL_TARIFA, VL_TAXA_EXTRA, VL_ASSENTO, VL_TAXA_EMBARQUE, VL_TOTAL,
                 ATIVO, USUARIO, DT_LANCAMENTO
@@ -7549,7 +7549,7 @@ def passagens_salvar():
             )
         """, (
             id_of, id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
-            rota, codigo_origem, codigo_destino, origem, destino,
+            trecho, codigo_origem, codigo_destino, origem, destino,
             dt_embarque_sql, cia, localizador,
             vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
             usuario
@@ -7573,7 +7573,7 @@ def passagens_salvar():
 @login_required
 def passagens_atualizar():
     """
-    Atualizar passagem - ATUALIZADA para gravar CIA, LOCALIZADOR e ROTA em MAIÚSCULO
+    Atualizar passagem - ATUALIZADA para gravar CIA, LOCALIZADOR e TRECHO em MAIÚSCULO
     """
     try:
         cursor = mysql.connection.cursor()
@@ -7586,8 +7586,8 @@ def passagens_atualizar():
         nome_passageiro = request.form.get('nome_passageiro_edit')
         dt_emissao = request.form.get('dt_emissao_edit')
         
-        # FORÇAR MAIÚSCULAS nos campos CIA, LOCALIZADOR e ROTA
-        rota = request.form.get('rota_edit', '').upper()
+        # FORÇAR MAIÚSCULAS nos campos CIA, LOCALIZADOR e TRECHO
+        trecho = request.form.get('trecho_edit', '').upper()
         cia = request.form.get('cia_edit', '').upper()
         localizador = request.form.get('localizador_edit', '').upper()
         
@@ -7622,7 +7622,7 @@ def passagens_atualizar():
                 NU_SEI = %s,
                 NOME_PASSAGEIRO = %s,
                 DT_EMISSAO = %s,
-                ROTA = %s,
+                TRECHO = %s,
                 CODIGO_ORIGEM = %s,
                 CODIGO_DESTINO = %s,
                 ORIGEM = %s,
@@ -7640,7 +7640,7 @@ def passagens_atualizar():
             WHERE ID_OF = %s AND ATIVO = 'S'
         """, (
             id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
-            rota, codigo_origem, codigo_destino, origem, destino,
+            trecho, codigo_origem, codigo_destino, origem, destino,
             dt_embarque_sql, cia, localizador,
             vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
             usuario, id_of
@@ -7706,7 +7706,7 @@ def passagens_filtrar():
                 pae.NU_SEI,
                 pae.NOME_PASSAGEIRO,
                 DATE_FORMAT(pae.DT_EMISSAO, '%%d/%%m/%%Y') as DT_EMISSAO_F,
-                pae.ROTA,
+                pae.TRECHO,
                 pae.CODIGO_ORIGEM,
                 pae.CODIGO_DESTINO,
                 CONCAT(ao.CODIGO_IATA, ' - ', ao.CIDADE, '/', ao.UF_ESTADO) as ORIGEM_FORMATADA,
@@ -8043,7 +8043,7 @@ def extrair_dados_bilhete_modelo1(texto, cursor):
         'nu_sei': '',
         'nome_passageiro': '',
         'localizador': '',
-        'rota': '',
+        'trecho': '',
         'origem': '',
         'destino': '',
         'cia': '',
@@ -8082,31 +8082,31 @@ def extrair_dados_bilhete_modelo1(texto, cursor):
         if match_loc:
             dados['localizador'] = match_loc.group(1)
         
-        # 5. ROTA - COM VALIDAÇÃO NO BANCO
-        match_rota = re.search(
+        # 5. TRECHO - COM VALIDAÇÃO NO BANCO
+        match_trecho = re.search(
             r'([A-Z]{3}\s*-\s*[A-Z]{3}(?:\s*/\s*[A-Z]{3}\s*-\s*[A-Z]{3})*)',
             texto_limpo
         )
         
-        if match_rota:
-            rota_bruta = match_rota.group(1)
-            rota_limpa = re.sub(r'\s+', '', rota_bruta)
+        if match_trecho:
+            trecho_bruto = match_trecho.group(1)
+            trecho_limpo = re.sub(r'\s+', '', trecho_bruto)
             
-            # Extrai códigos da rota
-            codigos_rota = re.findall(r'([A-Z]{3})', rota_limpa)
+            # Extrai códigos da trecho
+            codigos_trecho = re.findall(r'([A-Z]{3})', trecho_limpo)
             
             # VALIDA NO BANCO
-            aeroportos_validos = validar_aeroportos_no_banco(codigos_rota, cursor)
+            aeroportos_validos = validar_aeroportos_no_banco(codigos_trecho, cursor)
             
             if aeroportos_validos:
                 dados['origem'] = aeroportos_validos[0]
                 dados['destino'] = aeroportos_validos[-1]
                 
-                # Reconstrói rota com aeroportos válidos
+                # Reconstrói trecho com aeroportos válidos
                 trechos = []
                 for i in range(len(aeroportos_validos) - 1):
                     trechos.append(f"{aeroportos_validos[i]}-{aeroportos_validos[i+1]}")
-                dados['rota'] = '/'.join(trechos)
+                dados['trecho'] = '/'.join(trechos)
         
         # 6. COMPANHIA AÉREA
         for cia in ['AZUL', 'GOL', 'LATAM']:
@@ -8155,7 +8155,7 @@ def extrair_dados_bilhete_modelo2(texto, cursor):
         'nu_sei': '',
         'nome_passageiro': '',
         'localizador': '',
-        'rota': '',
+        'trecho': '',
         'origem': '',
         'destino': '',
         'cia': '',
@@ -8254,7 +8254,7 @@ def extrair_dados_bilhete_modelo2(texto, cursor):
             dados['cia'] = 'AZUL'
         print(f"✅ CIA: {dados['cia']}")
         
-        # 4. ORIGEM, DESTINO e ROTA - BUSCA OTIMIZADA
+        # 4. ORIGEM, DESTINO e TRECHO - BUSCA OTIMIZADA
         if texto_voos_limpo:
             print("\n🔍 INICIANDO BUSCA DE AEROPORTOS...")
             print(f"📍 Texto voos (300 chars): {texto_voos_limpo[:300]}...")
@@ -8324,11 +8324,11 @@ def extrair_dados_bilhete_modelo2(texto, cursor):
                 trechos = []
                 for j in range(len(aeroportos_validos) - 1):
                     trechos.append(f"{aeroportos_validos[j]}-{aeroportos_validos[j+1]}")
-                dados['rota'] = '/'.join(trechos)
+                dados['trecho'] = '/'.join(trechos)
                 
                 print(f"✅ Origem: {dados['origem']}")
                 print(f"✅ Destino: {dados['destino']}")
-                print(f"✅ Rota: {dados['rota']}")
+                print(f"✅ Trecho: {dados['trecho']}")
                 
                 if len(aeroportos_validos) > 2:
                     print(f"   ✈️ Voo com {len(aeroportos_validos)-1} trechos")
