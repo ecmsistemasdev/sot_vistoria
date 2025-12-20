@@ -337,6 +337,22 @@
             border: 2px solid #27ae60;
         }
         
+        /* Valor total inline (na mesma linha dos outros campos) */
+        .valor-total-inline {
+            font-size: 13px;
+            font-weight: bold;
+            color: #27ae60;
+            text-align: center;
+            padding: 8px 12px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            border: 2px solid #27ae60;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
         /* Autocomplete de aeroportos */
         .aeroporto-autocomplete {
             position: relative;
@@ -696,36 +712,37 @@
 
                         <!-- Valores -->
                         <div class="row">
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="form-group">
                                     <label class="required">Tarifa</label>
                                     <input type="text" class="form-control form-control-sm money-mask" id="vl_tarifa" name="vl_tarifa" value="0,00" required>
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="form-group">
                                     <label>Taxa Extra</label>
                                     <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_extra" name="vl_taxa_extra" value="0,00">
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="form-group">
                                     <label>Assento</label>
                                     <input type="text" class="form-control form-control-sm money-mask" id="vl_assento" name="vl_assento" value="0,00">
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="form-group">
                                     <label>Taxa Embarque</label>
                                     <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_embarque" name="vl_taxa_embarque" value="0,00">
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Valor Total</label>
-                            <input type="hidden" id="vl_total" name="vl_total" value="0,00">
-                            <div class="valor-total" id="vl_total_display">R$ 0,00</div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Valor Total</label>
+                                    <input type="hidden" id="vl_total" name="vl_total" value="0,00">
+                                    <div class="valor-total-inline" id="vl_total_display">R$ 0,00</div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="text-right mt-3">
@@ -923,36 +940,37 @@
 
                         <!-- Valores -->
                         <div class="row">
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="form-group">
                                     <label class="required">Tarifa</label>
                                     <input type="text" class="form-control form-control-sm money-mask" id="vl_tarifa_edit" name="vl_tarifa_edit" value="0,00" required>
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="form-group">
                                     <label>Taxa Extra</label>
                                     <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" value="0,00">
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="form-group">
                                     <label>Assento</label>
                                     <input type="text" class="form-control form-control-sm money-mask" id="vl_assento_edit" name="vl_assento_edit" value="0,00">
                                 </div>
                             </div>
-                            <div class="col-3">
+                            <div class="col">
                                 <div class="form-group">
                                     <label>Taxa Embarque</label>
                                     <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" value="0,00">
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Valor Total</label>
-                            <input type="hidden" id="vl_total_edit" name="vl_total_edit" value="0,00">
-                            <div class="valor-total" id="vl_total_display_edit">R$ 0,00</div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Valor Total</label>
+                                    <input type="hidden" id="vl_total_edit" name="vl_total_edit" value="0,00">
+                                    <div class="valor-total-inline" id="vl_total_display_edit">R$ 0,00</div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="text-right mt-3">
