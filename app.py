@@ -7952,8 +7952,285 @@ def converter_valor_br(valor_str):
     return float(valor_limpo)
 
 
+def validar_aeroportos_no_banco_sem_remover_duplicatas(codigos_possiveis, cursor):
+    """
+    Valida códigos IATA no banco MANTENDO A ORDEM E DUPLICATAS
+    Remove apenas duplicatas CONSECUTIVAS (ex: VCP VCP → VCP)
+    
+    Args:
+        codigos_possiveis: Lista de códigos ['JPR', 'VCP', 'VCP', 'POA', 'POA', 'VCP', 'VCP', 'JPR']
+        cursor: Cursor do MySQL
+    
+    Returns:
+        Lista: ['JPR', 'VCP', 'POA', 'VCP', 'JPR'] (sem duplicatas consecutivas)
+    """
+    if not codigos_possiveis:
+        return []
+    
+    # Remove duplicatas CONSECUTIVAS primeiro
+    # ['JPR', 'VCP', 'VCP', 'POA'] → ['JPR', 'VCP', 'POA']
+    codigos_sem_consecutivos = []
+    anterior = None
+    for codigo in codigos_possiveis:
+        if codigo != anterior:
+            codigos_sem_consecutivos.append(codigo)
+            anterior = codigo
+    
+    print(f"🔍 Códigos após remover consecutivos: {codigos_sem_consecutivos}")
+    
+    # Pegar códigos únicos para consultar banco (otimização)
+    codigos_unicos = list(set(codigos_sem_consecutivos))
+    
+    # Consultar banco
+    if not codigos_unicos:
+        return []
+    
+    placeholders = ','.join(['%s'] * len(codigos_unicos))
+    query = f"""
+        SELECT CODIGO_IATA 
+        FROM AEROPORTOS 
+        WHERE CODIGO_IATA IN ({placeholders})
+        AND ATIVO = 'S'
+    """
+    
+    cursor.execute(query, codigos_unicos)
+    resultados = cursor.fetchall()
+    
+    # Set de códigos válidos no banco
+    codigos_validos_set = {row[0] for row in resultados}
+    
+    # Filtrar mantendo ordem e removendo inválidos
+    aeroportos_validos = [
+        codigo for codigo in codigos_sem_consecutivos 
+        if codigo in codigos_validos_set
+    ]
+    
+    return aeroportos_validos
+
+
+def validar_aeroportos_no_banco_robusto(codigos_possiveis, cursor):
+    """
+    Valida códigos no banco MAS mantém os não encontrados se fizerem sentido
+    
+    Args:
+        codigos_possiveis: ['JPR', 'VCP', 'POA', 'VCP', 'JPR']
+        cursor: Cursor MySQL
+    
+    Returns:
+        Lista mantendo códigos válidos + códigos de 3 letras mesmo não no banco
+    """
+    if not codigos_possiveis:
+        return []
+    
+    # 1. Remove duplicatas CONSECUTIVAS
+    codigos_limpos = []
+    anterior = None
+    for codigo in codigos_possiveis:
+        if codigo != anterior:
+            codigos_limpos.append(codigo)
+            anterior = codigo
+    
+    print(f"🔍 Após remover consecutivos: {codigos_limpos}")
+    
+    # 2. Pegar únicos para consultar banco
+    codigos_unicos = list(set(codigos_limpos))
+    
+    if not codigos_unicos:
+        return []
+    
+    # 3. Consultar banco
+    placeholders = ','.join(['%s'] * len(codigos_unicos))
+    query = f"""
+        SELECT CODIGO_IATA 
+        FROM AEROPORTOS 
+        WHERE CODIGO_IATA IN ({placeholders})
+        AND ATIVO = 'S'
+    """
+    
+    cursor.execute(query, codigos_unicos)
+    resultados = cursor.fetchall()
+    
+    # Set de códigos ENCONTRADOS no banco
+    codigos_no_banco = {row[0] for row in resultados}
+    print(f"✅ Códigos encontrados no banco: {codigos_no_banco}")
+    
+    # 4. SOLUÇÃO ROBUSTA: Manter TODOS os códigos de 3 letras válidos
+    # Mesmo que não estejam no banco (pode ser aeroporto novo/regional)
+    aeroportos_validos = []
+    codigos_nao_encontrados = []
+    
+    for codigo in codigos_limpos:
+        if codigo in codigos_no_banco:
+            # Está no banco - adiciona
+            aeroportos_validos.append(codigo)
+        elif len(codigo) == 3 and codigo.isalpha() and codigo.isupper():
+            # Não está no banco MAS é um código IATA válido (3 letras)
+            # ADICIONA MESMO ASSIM com warning
+            aeroportos_validos.append(codigo)
+            codigos_nao_encontrados.append(codigo)
+    
+    if codigos_nao_encontrados:
+        print(f"⚠️ Aeroportos NÃO encontrados no banco (mas válidos): {codigos_nao_encontrados}")
+        print(f"   💡 Considere adicionar ao banco: {', '.join(codigos_nao_encontrados)}")
+    
+    return aeroportos_validos
+
+
+def detectar_origem_destino_ida_volta(aeroportos_validados):
+    """Detecta ida e volta"""
+    if not aeroportos_validados or len(aeroportos_validados) < 2:
+        return {
+            'origem': '',
+            'destino': '',
+            'ida_volta': False,
+            'ponto_medio': None
+        }
+    
+    origem = aeroportos_validados[0]
+    ultimo = aeroportos_validados[-1]
+    
+    if origem == ultimo and len(aeroportos_validados) >= 3:
+        # IDA E VOLTA
+        indice_meio = len(aeroportos_validados) // 2
+        destino = aeroportos_validados[indice_meio]
+        
+        print("✈️ IDA E VOLTA detectado!")
+        print(f"   📍 Origem: {origem}")
+        print(f"   📍 Destino (meio): {destino}")
+        
+        return {
+            'origem': origem,
+            'destino': destino,
+            'ida_volta': True,
+            'ponto_medio': destino
+        }
+    else:
+        # APENAS IDA
+        destino = aeroportos_validados[-1]
+        
+        print("✈️ Apenas IDA")
+        print(f"   📍 Origem: {origem}")
+        print(f"   📍 Destino: {destino}")
+        
+        return {
+            'origem': origem,
+            'destino': destino,
+            'ida_volta': False,
+            'ponto_medio': None
+        }
+
+
+# ============================================================================
+# EXTRAÇÃO DE LOCALIZADOR - VERSÃO FINAL LIMPA
+# ============================================================================
+
+def extrair_localizador_modelo1(texto):
+    """
+    Extrai localizador do Modelo 1
+    
+    LÓGICA:
+    1. Tenta Bilhetes (5-7 chars)
+    2. Se código em Reservas > 7 chars, IGNORA e busca em Trechos
+    3. Em Trechos: junta linhas do voo e pega últimos 6 caracteres alfabéticos
+    """
+    
+    localizador = ''
+    
+    # ====================================================================
+    # MÉTODO 1: Bilhetes (5-7 chars)
+    # ====================================================================
+    
+    match_loc = re.search(
+        r'Eticket\s+Localizador.*?\d{10,}\s+([A-Z0-9]{5,7})\s+', 
+        texto, 
+        re.DOTALL
+    )
+    
+    if match_loc:
+        localizador = match_loc.group(1)
+        print(f"✅ Localizador (Bilhetes): {localizador}")
+        return localizador
+    
+    # ====================================================================
+    # VERIFICAR: Código longo em Reservas?
+    # ====================================================================
+    
+    match_reservas_longo = re.search(
+        r'Localizador\s+Trecho.*?\n\s*([A-Z0-9]{8,})\s+',
+        texto,
+        re.DOTALL
+    )
+    
+    if match_reservas_longo:
+        codigo_longo = match_reservas_longo.group(1)
+        print(f"⚠️ Código longo em Reservas ({len(codigo_longo)} chars): {codigo_longo}")
+        print(f"   → IGNORANDO, buscando em Trechos...")
+    
+    # ====================================================================
+    # MÉTODO 2: Trechos - Últimos 6 caracteres alfabéticos
+    # ====================================================================
+    
+    print("🔍 Buscando em Trechos...")
+    
+    match_trechos = re.search(r'Trechos(.*?)Bilhetes', texto, re.DOTALL)
+    
+    if match_trechos:
+        texto_trechos = match_trechos.group(1)
+        linhas = texto_trechos.split('\n')
+        
+        # Procurar linha com código de voo e juntar linhas seguintes
+        linha_completa = ''
+        achou_voo = False
+        
+        for linha in linhas:
+            if not achou_voo:
+                # Buscar LA 3014, AD 4681, G3 1234, etc
+                if re.search(r'(LA|AD|G3)[\s-]*\d{3,4}', linha, re.IGNORECASE):
+                    achou_voo = True
+                    linha_completa = linha
+                    print(f"   ✅ Linha do voo encontrada")
+            elif achou_voo:
+                # Juntar linhas até encontrar linha vazia
+                if linha.strip() == '':
+                    break
+                else:
+                    linha_completa += ' ' + linha
+        
+        if linha_completa:
+            # Extrair TODOS os caracteres alfabéticos
+            apenas_letras = re.findall(r'[A-Z]', linha_completa)
+            
+            print(f"   📊 Total de letras na linha: {len(apenas_letras)}")
+            
+            if len(apenas_letras) >= 6:
+                # Pegar os 6 ÚLTIMOS
+                localizador = ''.join(apenas_letras[-6:])
+                print(f"   ✅ Localizador (últimos 6): {localizador}")
+                return localizador
+    
+    # ====================================================================
+    # FALLBACK (NÃO DEVERIA CHEGAR AQUI)
+    # ====================================================================
+    
+    if not localizador and match_reservas_longo:
+        codigo_longo = match_reservas_longo.group(1)
+        localizador = codigo_longo[-6:]
+        print(f"⚠️ FALLBACK - usando últimos 6 de Reservas: {localizador}")
+        print(f"   ⚠️ ISTO NÃO DEVERIA ACONTECER!")
+        return localizador
+    
+    if not localizador:
+        print("❌ Localizador NÃO encontrado")
+    
+    return localizador
+
+
+# ============================================================================
+# FUNÇÃO PRINCIPAL ATUALIZADA
+# ============================================================================
+
 def extrair_dados_bilhete_modelo1(texto, cursor):
-    """Extrai dados do bilhete modelo 1 (Wooba/M&A) - VERSÃO COM BD"""
+    """Extrai dados do bilhete modelo 1 - COM LOCALIZADOR MELHORADO"""
     dados = {
         'dt_emissao': '',
         'nu_sei': '',
@@ -7970,17 +8247,23 @@ def extrair_dados_bilhete_modelo1(texto, cursor):
     }
     
     try:
+        print("=" * 80)
+        print("EXTRAINDO DADOS - MODELO 1")
+        print("=" * 80)
+        
         texto_limpo = texto.replace('\n', ' ')
         
         # 1. DATA DE EMISSÃO
         match_data = re.search(r'Data:\s*(\d{2}/\d{2}/\d{4})', texto)
         if match_data:
             dados['dt_emissao'] = match_data.group(1)
+            print(f"✅ Data Emissão: {dados['dt_emissao']}")
         
         # 2. Nº SEI
         match_sei = re.search(r'\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}', texto)
         if match_sei:
             dados['nu_sei'] = match_sei.group(0)
+            print(f"✅ Nº SEI: {dados['nu_sei']}")
         
         # 3. NOME DO PASSAGEIRO
         match_nome = re.search(r'Nome\s+Sobrenome.*?([A-Z\s]+?)\s+ADT', texto, re.DOTALL)
@@ -7992,13 +8275,15 @@ def extrair_dados_bilhete_modelo1(texto, cursor):
             nome_limpo = ' '.join(nome_limpo.split())
             nome_limpo = re.sub(r'\s+\d+$', '', nome_limpo)
             dados['nome_passageiro'] = capitalizar_nome(nome_limpo)
+            print(f"✅ Nome: {dados['nome_passageiro']}")
         
-        # 4. LOCALIZADOR - Busca na seção Bilhetes (mais confiável)
-        match_loc = re.search(r'Eticket\s+Localizador.*?\d{10,}\s+([A-Z0-9]{5,7})\s+', texto, re.DOTALL)
-        if match_loc:
-            dados['localizador'] = match_loc.group(1)
+        # 4. LOCALIZADOR - MÉTODO MELHORADO (3 tentativas)
+        print("\n🔍 BUSCANDO LOCALIZADOR...")
+        dados['localizador'] = extrair_localizador_modelo1(texto)
         
-        # 5. TRECHO - COM VALIDAÇÃO NO BANCO
+        # 5. TRECHO (mesmo código anterior com detecção ida/volta)
+        print("\n🔍 BUSCANDO TRECHO...")
+        
         match_trecho = re.search(
             r'([A-Z]{3}\s*-\s*[A-Z]{3}(?:\s*/\s*[A-Z]{3}\s*-\s*[A-Z]{3})*)',
             texto_limpo
@@ -8006,28 +8291,44 @@ def extrair_dados_bilhete_modelo1(texto, cursor):
         
         if match_trecho:
             trecho_bruto = match_trecho.group(1)
-            trecho_limpo = re.sub(r'\s+', '', trecho_bruto)
+            print(f"📍 Trecho BRUTO: '{trecho_bruto}'")
             
-            # Extrai códigos da trecho
+            trecho_limpo = trecho_bruto.replace(' ', '')
+            print(f"📍 Trecho LIMPO: '{trecho_limpo}'")
+            
             codigos_trecho = re.findall(r'([A-Z]{3})', trecho_limpo)
+            print(f"📍 Códigos extraídos: {codigos_trecho}")
             
-            # VALIDA NO BANCO
-            aeroportos_validos = validar_aeroportos_no_banco(codigos_trecho, cursor)
+            # Validação robusta (mantém códigos mesmo não no banco)
+            aeroportos_validos = validar_aeroportos_no_banco_robusto(
+                codigos_trecho, cursor
+            )
+            print(f"✅ Aeroportos validados: {aeroportos_validos}")
             
             if aeroportos_validos:
-                dados['origem'] = aeroportos_validos[0]
-                dados['destino'] = aeroportos_validos[-1]
+                resultado = detectar_origem_destino_ida_volta(aeroportos_validos)
                 
-                # Reconstrói trecho com aeroportos válidos
+                dados['origem'] = resultado['origem']
+                dados['destino'] = resultado['destino']
+                
+                print(f"\n✅ Origem: {dados['origem']}")
+                print(f"✅ Destino: {dados['destino']}")
+                
+                if resultado['ida_volta']:
+                    print(f"✈️ IDA E VOLTA")
+                
                 trechos = []
                 for i in range(len(aeroportos_validos) - 1):
                     trechos.append(f"{aeroportos_validos[i]}-{aeroportos_validos[i+1]}")
                 dados['trecho'] = '/'.join(trechos)
+                
+                print(f"✅ Trecho: {dados['trecho']}")
         
         # 6. COMPANHIA AÉREA
         for cia in ['AZUL', 'GOL', 'LATAM']:
             if cia in texto:
                 dados['cia'] = cia
+                print(f"✅ CIA: {dados['cia']}")
                 break
         
         # 7. VALORES
@@ -8040,18 +8341,23 @@ def extrair_dados_bilhete_modelo1(texto, cursor):
             dados['vl_tarifa'] = match_valores.group(1)
             dados['vl_taxa_extra'] = match_valores.group(2)
             dados['vl_total'] = match_valores.group(3)
+            print(f"✅ Tarifa: {dados['vl_tarifa']}")
         
         # 8. DATA DE EMBARQUE
         match_embarque = re.search(r'Saída.*?(\d{2}/\d{2}/\d{4})', texto, re.DOTALL)
         if match_embarque:
             dados['dt_embarque'] = match_embarque.group(1)
+            print(f"✅ Data Embarque: {dados['dt_embarque']}")
+        
+        print("=" * 80 + "\n")
         
     except Exception as e:
-        print(f"Erro ao extrair dados modelo 1: {str(e)}")
+        print(f"❌ Erro: {str(e)}")
         import traceback
         traceback.print_exc()
     
     return dados
+
 
 def remover_acentos(texto):
     """Remove acentos de um texto para comparação"""
@@ -8656,125 +8962,6 @@ def calcular_distancia_trecho():
             'error': f'Erro interno: {str(e)}'
         }), 500
 
-
-# @app.route('/distancia_aeroportos', methods=['GET'])
-# def distancia_aeroportos():
-
-#     origem = request.args.get('origem', '').upper()
-#     destino = request.args.get('destino', '').upper()
-
-#     if origem and destino:
-#         km = airport_data.calculate_distance(origem, destino)
-#         return jsonify({'distancia_km': round(km, 2)})
-
-#     return jsonify({'erro': 'Informe origem e destino (ex: PVH,GRU)'}), 400
-
-# # ============================================================================
-# # NOVA ROTA: CALCULAR DISTÂNCIA TOTAL DO TRECHO
-# # ============================================================================
-# # Adicione esta rota no seu app.py
-
-# @app.route('/calcular_distancia_trecho', methods=['GET'])
-# @login_required
-# def calcular_distancia_trecho():
-#     """
-#     Calcula a distância total de um trecho (com ou sem conexões)
-    
-#     Exemplos:
-#     - /calcular_distancia_trecho?trecho=PVH-BSB
-#     - /calcular_distancia_trecho?trecho=POA-GRU/GRU-PVH
-    
-#     Retorna:
-#     {
-#         "success": true,
-#         "distancia_total_km": 2500.45,
-#         "trechos": [
-#             {"origem": "POA", "destino": "GRU", "distancia_km": 850.30},
-#             {"origem": "GRU", "destino": "PVH", "distancia_km": 1650.15}
-#         ]
-#     }
-#     """
-#     try:
-#         trecho_completo = request.args.get('trecho', '').strip().upper()
-        
-#         if not trecho_completo:
-#             return jsonify({
-#                 'success': False,
-#                 'error': 'Parâmetro trecho é obrigatório'
-#             }), 400
-        
-#         # Validar formato do trecho
-#         # Padrão: XXX-XXX ou XXX-XXX/XXX-XXX/XXX-XXX/...
-#         import re
-#         padrao = r'^[A-Z]{3}-[A-Z]{3}(\/[A-Z]{3}-[A-Z]{3})*$'
-        
-#         if not re.match(padrao, trecho_completo):
-#             return jsonify({
-#                 'success': False,
-#                 'error': 'Formato inválido! Use: XXX-XXX ou XXX-XXX/XXX-XXX',
-#                 'exemplo': 'PVH-BSB ou POA-GRU/GRU-PVH'
-#             }), 400
-        
-#         # Dividir trecho em segmentos
-#         # "POA-GRU/GRU-PVH" → ["POA-GRU", "GRU-PVH"]
-#         segmentos = trecho_completo.split('/')
-        
-#         distancia_total = 0.0
-#         detalhes_trechos = []
-        
-#         # Calcular distância de cada segmento
-#         for segmento in segmentos:
-#             # "POA-GRU" → ["POA", "GRU"]
-#             partes = segmento.split('-')
-            
-#             if len(partes) != 2:
-#                 return jsonify({
-#                     'success': False,
-#                     'error': f'Segmento inválido: {segmento}'
-#                 }), 400
-            
-#             origem = partes[0]
-#             destino = partes[1]
-            
-#             # Calcular distância usando a biblioteca airports
-#             try:
-#                 km = airport_data.calculate_distance(origem, destino)
-                
-#                 distancia_total += km
-                
-#                 detalhes_trechos.append({
-#                     'origem': origem,
-#                     'destino': destino,
-#                     'distancia_km': round(km, 2)
-#                 })
-                
-#             except Exception as e:
-#                 return jsonify({
-#                     'success': False,
-#                     'error': f'Erro ao calcular distância {origem}-{destino}: {str(e)}',
-#                     'detalhes': 'Verifique se os códigos IATA são válidos'
-#                 }), 400
-        
-#         # Retornar resultado
-#         return jsonify({
-#             'success': True,
-#             'trecho_completo': trecho_completo,
-#             'distancia_total_km': round(distancia_total, 2),
-#             'quantidade_trechos': len(segmentos),
-#             'trechos': detalhes_trechos
-#         })
-        
-#     except Exception as e:
-#         print(f"Erro ao calcular distância do trecho: {str(e)}")
-#         import traceback
-#         traceback.print_exc()
-        
-#         return jsonify({
-#             'success': False,
-#             'error': f'Erro interno: {str(e)}'
-#         }), 500
-
-#######################################
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
