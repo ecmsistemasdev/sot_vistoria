@@ -14,7 +14,7 @@ import PyPDF2
 from werkzeug.utils import secure_filename
 import os
 import unicodedata
-
+from airports import airport_data
 
 app = Flask(__name__)
 
@@ -7233,7 +7233,7 @@ def passagens_controle():
     try:
         cursor = mysql.connection.cursor()
         
-        # Buscar todas as passagens ativas com informações dos aeroportos
+        # ADICIONAR DISTANCIA_KM no SELECT
         cursor.execute("""
             SELECT 
                 pae.ID_OF,
@@ -7261,7 +7261,9 @@ def passagens_controle():
                 pae.VL_TAXA_EMBARQUE,
                 pae.VL_TOTAL,
                 pae.DT_EMISSAO,
-                pae.DT_EMBARQUE
+                pae.DT_EMBARQUE,
+                pae.DISTANCIA_KM,
+                FORMAT(pae.DISTANCIA_KM, 2, 'de_DE') as DISTANCIA_KM_F
             FROM PASSAGENS_AEREAS_EMITIDAS pae
             LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
             LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
@@ -7270,7 +7272,6 @@ def passagens_controle():
         """)
         passagens = cursor.fetchall()
         
-        # Buscar lista de companhias aéreas para o filtro
         cursor.execute("""
             SELECT DISTINCT CIA 
             FROM PASSAGENS_AEREAS_EMITIDAS 
@@ -7395,6 +7396,7 @@ def buscar_aeroportos():
 def obter_passagem(id_of):
     """
     Obter dados de uma passagem específica para edição
+    ATUALIZADA COM DISTANCIA_KM
     """
     try:
         cursor = mysql.connection.cursor()
@@ -7423,7 +7425,8 @@ def obter_passagem(id_of):
                 ao.CIDADE as ORIGEM_CIDADE,
                 ao.UF_ESTADO as ORIGEM_UF,
                 ad.CIDADE as DESTINO_CIDADE,
-                ad.UF_ESTADO as DESTINO_UF
+                ad.UF_ESTADO as DESTINO_UF,
+                pae.DISTANCIA_KM
             FROM PASSAGENS_AEREAS_EMITIDAS pae
             LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
             LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
@@ -7439,7 +7442,6 @@ def obter_passagem(id_of):
                 'message': 'Passagem não encontrada'
             }), 404
         
-        # Montar objeto da passagem
         passagem = {
             'id_of': row[0],
             'id_opa': row[1],
@@ -7459,15 +7461,15 @@ def obter_passagem(id_of):
             'vl_taxa_extra': float(row[15]) if row[15] else 0,
             'vl_assento': float(row[16]) if row[16] else 0,
             'vl_taxa_embarque': float(row[17]) if row[17] else 0,
-            'vl_total': float(row[18]) if row[18] else 0
+            'vl_total': float(row[18]) if row[18] else 0,
+            'distancia_km': float(row[23]) if row[23] else 0
         }
         
-        # Formatar displays de origem/destino se houver código
-        if row[7]:  # Se tem código de origem
+        if row[7]:
             uf_origem = f"/{row[20]}" if row[20] else ""
             passagem['origem_display'] = f"{row[7]} - {row[19]}{uf_origem}"
         
-        if row[8]:  # Se tem código de destino
+        if row[8]:
             uf_destino = f"/{row[22]}" if row[22] else ""
             passagem['destino_display'] = f"{row[8]} - {row[21]}{uf_destino}"
         
@@ -7524,6 +7526,7 @@ def passagens_salvar():
         vl_assento = request.form.get('vl_assento', '0').replace('.', '').replace(',', '.')
         vl_taxa_embarque = request.form.get('vl_taxa_embarque', '0').replace('.', '').replace(',', '.')
         vl_total = request.form.get('vl_total', '0').replace('.', '').replace(',', '.')
+        distancia_km = request.form.get('distancia_km', '0').replace('.', '').replace(',', '.')
         
         # As datas já vêm no formato yyyy-mm-dd do input type="date"
         dt_emissao_sql = dt_emissao if dt_emissao else None
@@ -7539,20 +7542,20 @@ def passagens_salvar():
                 TRECHO, CODIGO_ORIGEM, CODIGO_DESTINO, ORIGEM, DESTINO, 
                 DT_EMBARQUE, CIA, LOCALIZADOR,
                 VL_TARIFA, VL_TAXA_EXTRA, VL_ASSENTO, VL_TAXA_EMBARQUE, VL_TOTAL,
-                ATIVO, USUARIO, DT_LANCAMENTO
+                DISTANCIA_KM, ATIVO, USUARIO, DT_LANCAMENTO
             ) VALUES (
                 %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
                 %s, %s, %s,
                 %s, %s, %s, %s, %s,
-                'S', %s, NOW()
+                %s, 'S', %s, NOW()
             )
         """, (
             id_of, id_opa, id_controle, nu_sei, nome_passageiro, dt_emissao_sql,
             trecho, codigo_origem, codigo_destino, origem, destino,
             dt_embarque_sql, cia, localizador,
             vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
-            usuario
+            distancia_km, usuario
         ))
         
         mysql.connection.commit()
@@ -7607,7 +7610,10 @@ def passagens_atualizar():
         vl_assento = request.form.get('vl_assento_edit', '0').replace('.', '').replace(',', '.')
         vl_taxa_embarque = request.form.get('vl_taxa_embarque_edit', '0').replace('.', '').replace(',', '.')
         vl_total = request.form.get('vl_total_edit', '0').replace('.', '').replace(',', '.')
-        
+        distancia_km = request.form.get('distancia_km_edit', '0').replace('.', '').replace(',', '.')
+
+        # print(f"✅ Distancia: {distancia_km}")
+
         # As datas já vêm no formato yyyy-mm-dd do input type="date"
         dt_emissao_sql = dt_emissao if dt_emissao else None
         dt_embarque_sql = dt_embarque if dt_embarque else None
@@ -7635,6 +7641,7 @@ def passagens_atualizar():
                 VL_ASSENTO = %s,
                 VL_TAXA_EMBARQUE = %s,
                 VL_TOTAL = %s,
+                DISTANCIA_KM = %s,
                 USUARIO = %s,
                 DT_LANCAMENTO = NOW()
             WHERE ID_OF = %s AND ATIVO = 'S'
@@ -7643,7 +7650,7 @@ def passagens_atualizar():
             trecho, codigo_origem, codigo_destino, origem, destino,
             dt_embarque_sql, cia, localizador,
             vl_tarifa, vl_taxa_extra, vl_assento, vl_taxa_embarque, vl_total,
-            usuario, id_of
+            distancia_km, usuario, id_of
         ))
         
         mysql.connection.commit()
@@ -7690,14 +7697,13 @@ def passagens_filtrar():
         from datetime import datetime
         cursor = mysql.connection.cursor()
         
-        # Receber filtros - AGORA VEM NO FORMATO yyyy-mm-dd DO input type="date"
         dt_inicio = request.form.get('dt_inicio_filtro')
         dt_fim = request.form.get('dt_fim_filtro')
         cia_filtro = request.form.get('cia_filtro')
         passageiro_filtro = request.form.get('passageiro_filtro')
         localizador_filtro = request.form.get('localizador_filtro')
         
-        # Montar query dinamicamente
+        # ADICIONAR DISTANCIA_KM no SELECT
         query = """
             SELECT 
                 pae.ID_OF,
@@ -7718,7 +7724,8 @@ def passagens_filtrar():
                 FORMAT(pae.VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
                 FORMAT(pae.VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
                 FORMAT(pae.VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
-                FORMAT(pae.VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F
+                FORMAT(pae.VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F,
+                FORMAT(pae.DISTANCIA_KM, 2, 'de_DE') as DISTANCIA_KM_F
             FROM PASSAGENS_AEREAS_EMITIDAS pae
             LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
             LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
@@ -7727,7 +7734,6 @@ def passagens_filtrar():
         
         params = []
         
-        # As datas já vêm no formato yyyy-mm-dd do input type="date"
         if dt_inicio and dt_inicio.strip():
             query += " AND pae.DT_EMISSAO >= %s"
             params.append(dt_inicio)
@@ -7931,109 +7937,14 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# def extrair_dados_bilhete_modelo1(texto):
-#     """Extrai dados do bilhete modelo 1 (M&A Turismo) - VERSÃO DEFINITIVA ABSOLUTA"""
-#     dados = {
-#         'dt_emissao': '',
-#         'nu_sei': '',
-#         'nome_passageiro': '',
-#         'localizador': '',
-#         'rota': '',
-#         'origem': '',
-#         'destino': '',
-#         'cia': '',
-#         'vl_tarifa': '',
-#         'vl_taxa_extra': '',
-#         'vl_total': '',
-#         'dt_embarque': ''
-#     }
-    
-#     try:
-#         texto_limpo = texto.replace('\n', ' ')
-        
-#         # 1. DATA DE EMISSÃO
-#         match_data = re.search(r'Data:\s*(\d{2}/\d{2}/\d{4})', texto)
-#         if match_data:
-#             dados['dt_emissao'] = match_data.group(1)
-        
-#         # 2. Nº SEI
-#         match_sei = re.search(r'\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}', texto)
-#         if match_sei:
-#             dados['nu_sei'] = match_sei.group(0)
-        
-#         # 3. NOME DO PASSAGEIRO
-#         match_nome = re.search(r'Nome\s+Sobrenome.*?([A-Z\s]+?)\s+ADT', texto, re.DOTALL)
-#         if match_nome:
-#             nome_bruto = match_nome.group(1).strip()
-#             nome_limpo = re.sub(r'\s+Tipo\s+', ' ', nome_bruto)
-#             nome_limpo = re.sub(r'\s+Sexo\s+', ' ', nome_limpo)
-#             nome_limpo = re.sub(r'\s+Assentos\s+', ' ', nome_limpo)
-#             nome_limpo = ' '.join(nome_limpo.split())
-#             nome_limpo = re.sub(r'\s+\d+$', '', nome_limpo)
-#             dados['nome_passageiro'] = capitalizar_nome(nome_limpo)
-        
-#         # 4. LOCALIZADOR - MÉTODO MAIS CONFIÁVEL
-#         # Busca na seção "Bilhetes" onde SEMPRE aparece limpo
-#         # Padrão: Eticket | Localizador | Sistema
-#         #         12345... | ABCDEF    | Gol/Latam/Azul
-        
-#         match_loc = re.search(r'Eticket\s+Localizador.*?\d{10,}\s+([A-Z0-9]{5,7})\s+', texto, re.DOTALL)
-        
-#         if not match_loc:
-#             # Fallback método 1: com espaço antes da rota
-#             match_loc = re.search(r'Localizador\s+Trecho.*?([A-Z]{5,7})\s+[A-Z]{3}-', texto, re.DOTALL)
-        
-#         if not match_loc:
-#             # Fallback método 2: grudado na rota
-#             match_loc = re.search(r'Localizador\s+Trecho.*?([A-Z]{5,7})(?=[A-Z]{3}-)', texto, re.DOTALL)
-        
-#         if match_loc:
-#             dados['localizador'] = match_loc.group(1)
-        
-#         # 5. ROTA
-#         match_rota = re.search(
-#             r'([A-Z]{3}\s*-\s*[A-Z]{3}(?:\s*/\s*[A-Z]{3}\s*-\s*[A-Z]{3})*)',
-#             texto_limpo
-#         )
-        
-#         if match_rota:
-#             rota_bruta = match_rota.group(1)
-#             rota_limpa = re.sub(r'\s+', '', rota_bruta)
-#             dados['rota'] = rota_limpa
-            
-#             aeroportos = re.findall(r'([A-Z]{3})', dados['rota'])
-#             if aeroportos:
-#                 dados['origem'] = aeroportos[0]
-#                 dados['destino'] = aeroportos[-1]
-        
-#         # 6. COMPANHIA AÉREA
-#         for cia in ['AZUL', 'GOL', 'LATAM']:
-#             if cia in texto:
-#                 dados['cia'] = cia
-#                 break
-        
-#         # 7. VALORES
-#         match_valores = re.search(
-#             r'Tarifa\s+Taxas\s+Total.*?R\$\s*([\d.,]+)\s*R\$\s*([\d.,]+)\s*R\$\s*([\d.,]+)',
-#             texto,
-#             re.DOTALL
-#         )
-#         if match_valores:
-#             dados['vl_tarifa'] = match_valores.group(1)
-#             dados['vl_taxa_extra'] = match_valores.group(2)
-#             dados['vl_total'] = match_valores.group(3)
-        
-#         # 8. DATA DE EMBARQUE
-#         match_embarque = re.search(r'Saída.*?(\d{2}/\d{2}/\d{4})', texto, re.DOTALL)
-#         if match_embarque:
-#             dados['dt_embarque'] = match_embarque.group(1)
-        
-#     except Exception as e:
-#         print(f"Erro ao extrair dados: {str(e)}")
-#         import traceback
-#         traceback.print_exc()
-    
-#     return dados
+
+def converter_valor_br(valor_str):
+    """Converte valor brasileiro (1.234,56) para float"""
+    if not valor_str:
+        return 0.0
+    # Remove pontos (milhares) e troca vírgula por ponto
+    valor_limpo = valor_str.replace('.', '').replace(',', '.')
+    return float(valor_limpo)
 
 
 def extrair_dados_bilhete_modelo1(texto, cursor):
@@ -8161,6 +8072,7 @@ def extrair_dados_bilhete_modelo2(texto, cursor):
         'cia': '',
         'vl_tarifa': '',
         'vl_taxa_extra': '',
+        'vl_assento': '',
         'vl_total': '',
         'dt_embarque': ''
     }
@@ -8360,7 +8272,20 @@ def extrair_dados_bilhete_modelo2(texto, cursor):
             dados['dt_emissao'] = match_emissao.group(1)
             print(f"✅ Data Emissão: {dados['dt_emissao']}")
         
-        # 7. VALORES
+
+        # 7. VALORES - CORRIGIDO
+        # Primeiro detecta se tem EMD/Assento
+        tem_emd_assento = False
+        valor_assento = '0,00'
+        
+        # Busca seção EMD
+        match_emd = re.search(r'EMD.*?Assento.*?BRL\s+([\d.,]+)', texto, re.DOTALL)
+        if match_emd:
+            valor_assento = match_emd.group(1)
+            tem_emd_assento = True
+            print(f"✈️ EMD de assento encontrado: R$ {valor_assento}")
+        
+        # Busca valores na linha ADT
         match_valores = re.search(
             r'ADT\s*-.*?R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)',
             texto,
@@ -8368,11 +8293,34 @@ def extrair_dados_bilhete_modelo2(texto, cursor):
         )
         
         if match_valores:
-            dados['vl_tarifa'] = match_valores.group(1)
-            dados['vl_taxa_extra'] = match_valores.group(2)
-            dados['vl_total'] = match_valores.group(3)
+            tarifa_str = match_valores.group(1)
+            taxas_str = match_valores.group(2)
+            terceiro_valor_str = match_valores.group(3)
+            
+            dados['vl_tarifa'] = tarifa_str
+            dados['vl_taxa_extra'] = taxas_str
+            
+            if tem_emd_assento:
+                # Tem EMD: terceiro valor é ASSENTO, total = soma
+                dados['vl_assento'] = terceiro_valor_str
+                
+                # CALCULA TOTAL (converte para float e soma)
+                tarifa = converter_valor_br(tarifa_str)
+                taxas = converter_valor_br(taxas_str)
+                assento = converter_valor_br(terceiro_valor_str)
+                total = tarifa + taxas + assento
+                
+                # Formata de volta para padrão brasileiro
+                dados['vl_total'] = f"{total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                
+            else:
+                # SEM EMD: terceiro valor JÁ É O TOTAL
+                dados['vl_assento'] = '0,00'
+                dados['vl_total'] = terceiro_valor_str
+            
             print(f"✅ Tarifa: {dados['vl_tarifa']}")
             print(f"✅ Taxas: {dados['vl_taxa_extra']}")
+            print(f"✅ Assento: {dados['vl_assento']}")
             print(f"✅ Total: {dados['vl_total']}")
         
         print("=" * 80)
@@ -8522,6 +8470,123 @@ def identificar_modelo_bilhete(texto):
         return 1
     return 1  # Padrão
 
+
+@app.route('/distancia_aeroportos', methods=['GET'])
+def distancia_aeroportos():
+
+    origem = request.args.get('origem', '').upper()
+    destino = request.args.get('destino', '').upper()
+
+    if origem and destino:
+        km = airport_data.calculate_distance(origem, destino)
+        return jsonify({'distancia_km': round(km, 2)})
+
+    return jsonify({'erro': 'Informe origem e destino (ex: PVH,GRU)'}), 400
+
+# ============================================================================
+# NOVA ROTA: CALCULAR DISTÂNCIA TOTAL DO TRECHO
+# ============================================================================
+# Adicione esta rota no seu app.py
+
+@app.route('/calcular_distancia_trecho', methods=['GET'])
+@login_required
+def calcular_distancia_trecho():
+    """
+    Calcula a distância total de um trecho (com ou sem conexões)
+    
+    Exemplos:
+    - /calcular_distancia_trecho?trecho=PVH-BSB
+    - /calcular_distancia_trecho?trecho=POA-GRU/GRU-PVH
+    
+    Retorna:
+    {
+        "success": true,
+        "distancia_total_km": 2500.45,
+        "trechos": [
+            {"origem": "POA", "destino": "GRU", "distancia_km": 850.30},
+            {"origem": "GRU", "destino": "PVH", "distancia_km": 1650.15}
+        ]
+    }
+    """
+    try:
+        trecho_completo = request.args.get('trecho', '').strip().upper()
+        
+        if not trecho_completo:
+            return jsonify({
+                'success': False,
+                'error': 'Parâmetro trecho é obrigatório'
+            }), 400
+        
+        # Validar formato do trecho
+        # Padrão: XXX-XXX ou XXX-XXX/XXX-XXX/XXX-XXX/...
+        import re
+        padrao = r'^[A-Z]{3}-[A-Z]{3}(\/[A-Z]{3}-[A-Z]{3})*$'
+        
+        if not re.match(padrao, trecho_completo):
+            return jsonify({
+                'success': False,
+                'error': 'Formato inválido! Use: XXX-XXX ou XXX-XXX/XXX-XXX',
+                'exemplo': 'PVH-BSB ou POA-GRU/GRU-PVH'
+            }), 400
+        
+        # Dividir trecho em segmentos
+        # "POA-GRU/GRU-PVH" → ["POA-GRU", "GRU-PVH"]
+        segmentos = trecho_completo.split('/')
+        
+        distancia_total = 0.0
+        detalhes_trechos = []
+        
+        # Calcular distância de cada segmento
+        for segmento in segmentos:
+            # "POA-GRU" → ["POA", "GRU"]
+            partes = segmento.split('-')
+            
+            if len(partes) != 2:
+                return jsonify({
+                    'success': False,
+                    'error': f'Segmento inválido: {segmento}'
+                }), 400
+            
+            origem = partes[0]
+            destino = partes[1]
+            
+            # Calcular distância usando a biblioteca airports
+            try:
+                km = airport_data.calculate_distance(origem, destino)
+                
+                distancia_total += km
+                
+                detalhes_trechos.append({
+                    'origem': origem,
+                    'destino': destino,
+                    'distancia_km': round(km, 2)
+                })
+                
+            except Exception as e:
+                return jsonify({
+                    'success': False,
+                    'error': f'Erro ao calcular distância {origem}-{destino}: {str(e)}',
+                    'detalhes': 'Verifique se os códigos IATA são válidos'
+                }), 400
+        
+        # Retornar resultado
+        return jsonify({
+            'success': True,
+            'trecho_completo': trecho_completo,
+            'distancia_total_km': round(distancia_total, 2),
+            'quantidade_trechos': len(segmentos),
+            'trechos': detalhes_trechos
+        })
+        
+    except Exception as e:
+        print(f"Erro ao calcular distância do trecho: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }), 500
 
 #######################################
 
