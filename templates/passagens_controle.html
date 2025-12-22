@@ -2118,9 +2118,12 @@
                 document.getElementById('localizador').value = dados.localizador;
             }
             
-            // Trecho
+            // Trecho - AGORA COM VALIDAÇÃO E CÁLCULO AUTOMÁTICO
             if (dados.trecho) {
                 document.getElementById('trecho').value = dados.trecho;
+                
+                // NOVO: Validar e calcular distância automaticamente
+                validarECalcularDistancia(dados.trecho);
             }
             
             // Origem
@@ -2155,10 +2158,6 @@
                 document.getElementById('vl_taxa_embarque').value = dados.vl_taxa_extra;
             }
             
-            if (dados.vl_assento) {
-                document.getElementById('vl_assento').value = dados.vl_assento;
-            }
-            
             if (dados.vl_total) {
                 document.getElementById('vl_total').value = dados.vl_total;
             }
@@ -2184,11 +2183,48 @@
             highlightPreenchidos();
         }
 
+        async function validarECalcularDistancia(trecho) {
+            /**
+             * Valida trecho e calcula distância automaticamente
+             * Usada ao fazer upload de PDF
+             */
+            if (!trecho) return;
+            
+            console.log(`📏 Upload PDF - Validando trecho: ${trecho}`);
+            
+            // Validar formato
+            const validacao = validarFormatoTrecho(trecho);
+            
+            if (!validacao.valido) {
+                console.warn(`⚠️ Trecho inválido: ${validacao.erro}`);
+                aplicarValidacaoVisualTrecho('trecho', false, validacao.erro);
+                controlarBotaoSalvar(false);
+                return;
+            }
+            
+            // Aplicar validação visual
+            aplicarValidacaoVisualTrecho('trecho', true);
+            
+            // Calcular distância
+            console.log(`📏 Calculando distância: ${trecho}`);
+            const resultado = await calcularDistanciaTrecho(trecho);
+            
+            if (resultado.sucesso) {
+                atualizarCampoDistancia('distancia_km', resultado.distancia_km);
+                console.log(`✅ Distância calculada automaticamente: ${resultado.distancia_km} km`);
+            } else {
+                console.warn(`⚠️ Não foi possível calcular distância: ${resultado.erro}`);
+            }
+            
+            // Habilitar botão salvar
+            controlarBotaoSalvar(true);
+        }
+
         function highlightPreenchidos() {
             const campos = [
                 'dt_emissao', 'nu_sei', 'nome_passageiro', 'localizador',
                 'trecho', 'origem', 'destino', 'cia', 'vl_tarifa',
-                'vl_taxa_embarque', 'vl_total', 'dt_embarque'
+                'vl_taxa_embarque', 'vl_total', 'dt_embarque', 'distancia_km'  // ← ADICIONADO
             ];
             
             campos.forEach(campoId => {
@@ -2406,7 +2442,10 @@
             
             console.log('✅ Validação de trecho inicializada');
         }
-        
+
+
+
+
     </script>
 </body>
 </html>
