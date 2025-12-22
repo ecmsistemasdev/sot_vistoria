@@ -25,4 +25,5 @@ boto3==1.37.15
 botocore==1.37.15
 xhtml2pdf==0.2.11
 PyPDF2==3.0.1
-airports-py==0.1.0
+airports==3.0.0
+
