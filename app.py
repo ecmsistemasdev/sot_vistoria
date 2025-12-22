@@ -14,9 +14,14 @@ import PyPDF2
 from werkzeug.utils import secure_filename
 import os
 import unicodedata
-from airports import airport_data
+import airportsdata
+from math import radians, cos, sin, asin, sqrt
+
 
 app = Flask(__name__)
+
+# Carregar dados dos aeroportos
+airports = airportsdata.load('IATA')  # Carrega por código IATA
 
 # Configuração de upload (adicione no início do app.py)
 UPLOAD_FOLDER = '/tmp/uploads'
@@ -8471,23 +8476,80 @@ def identificar_modelo_bilhete(texto):
     return 1  # Padrão
 
 
+# ============================================================================
+# FUNÇÃO AUXILIAR: CALCULAR DISTÂNCIA ENTRE AEROPORTOS
+# ============================================================================
+def calcular_distancia_aeroportos(codigo_origem, codigo_destino):
+    """
+    Calcula distância entre dois aeroportos usando fórmula Haversine
+    
+    Args:
+        codigo_origem: Código IATA do aeroporto de origem (ex: 'PVH')
+        codigo_destino: Código IATA do aeroporto de destino (ex: 'BSB')
+    
+    Returns:
+        Distância em quilômetros (float)
+    """
+    try:
+        # Buscar coordenadas dos aeroportos
+        origem = airports.get(codigo_origem.upper())
+        destino = airports.get(codigo_destino.upper())
+        
+        if not origem or not destino:
+            raise ValueError(f"Aeroporto não encontrado: {codigo_origem} ou {codigo_destino}")
+        
+        # Coordenadas (latitude e longitude)
+        lat1, lon1 = origem['lat'], origem['lon']
+        lat2, lon2 = destino['lat'], destino['lon']
+        
+        # Fórmula de Haversine para calcular distância entre dois pontos na Terra
+        lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+        
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * asin(sqrt(a))
+        
+        # Raio da Terra em quilômetros
+        raio_terra_km = 6371
+        
+        distancia_km = raio_terra_km * c
+        
+        return round(distancia_km, 2)
+        
+    except Exception as e:
+        print(f"Erro ao calcular distância {codigo_origem}-{codigo_destino}: {str(e)}")
+        raise
+
+
+# ============================================================================
+# ROTA 1: DISTÂNCIA SIMPLES ENTRE DOIS AEROPORTOS
+# ============================================================================
 @app.route('/distancia_aeroportos', methods=['GET'])
 def distancia_aeroportos():
-
+    """
+    Calcula distância entre dois aeroportos
+    Exemplo: /distancia_aeroportos?origem=PVH&destino=BSB
+    """
     origem = request.args.get('origem', '').upper()
     destino = request.args.get('destino', '').upper()
 
     if origem and destino:
-        km = airport_data.calculate_distance(origem, destino)
-        return jsonify({'distancia_km': round(km, 2)})
+        try:
+            km = calcular_distancia_aeroportos(origem, destino)
+            return jsonify({'distancia_km': km})
+        except ValueError as e:
+            return jsonify({'erro': str(e)}), 404
+        except Exception as e:
+            return jsonify({'erro': f'Erro ao calcular: {str(e)}'}), 500
 
-    return jsonify({'erro': 'Informe origem e destino (ex: PVH,GRU)'}), 400
+    return jsonify({'erro': 'Informe origem e destino (ex: ?origem=PVH&destino=GRU)'}), 400
+
 
 # ============================================================================
-# NOVA ROTA: CALCULAR DISTÂNCIA TOTAL DO TRECHO
+# ROTA 2: CALCULAR DISTÂNCIA TOTAL DO TRECHO (COM CONEXÕES)
 # ============================================================================
-# Adicione esta rota no seu app.py
-
 @app.route('/calcular_distancia_trecho', methods=['GET'])
 @login_required
 def calcular_distancia_trecho():
@@ -8550,23 +8612,29 @@ def calcular_distancia_trecho():
             origem = partes[0]
             destino = partes[1]
             
-            # Calcular distância usando a biblioteca airports
+            # Calcular distância usando a função auxiliar
             try:
-                km = airport_data.calculate_distance(origem, destino)
+                km = calcular_distancia_aeroportos(origem, destino)
                 
                 distancia_total += km
                 
                 detalhes_trechos.append({
                     'origem': origem,
                     'destino': destino,
-                    'distancia_km': round(km, 2)
+                    'distancia_km': km
                 })
                 
+            except ValueError as e:
+                return jsonify({
+                    'success': False,
+                    'error': f'Aeroporto não encontrado: {origem} ou {destino}',
+                    'detalhes': 'Verifique se os códigos IATA são válidos'
+                }), 404
             except Exception as e:
                 return jsonify({
                     'success': False,
                     'error': f'Erro ao calcular distância {origem}-{destino}: {str(e)}',
-                    'detalhes': 'Verifique se os códigos IATA são válidos'
+                    'detalhes': 'Erro interno ao calcular'
                 }), 400
         
         # Retornar resultado
@@ -8587,6 +8655,124 @@ def calcular_distancia_trecho():
             'success': False,
             'error': f'Erro interno: {str(e)}'
         }), 500
+
+
+# @app.route('/distancia_aeroportos', methods=['GET'])
+# def distancia_aeroportos():
+
+#     origem = request.args.get('origem', '').upper()
+#     destino = request.args.get('destino', '').upper()
+
+#     if origem and destino:
+#         km = airport_data.calculate_distance(origem, destino)
+#         return jsonify({'distancia_km': round(km, 2)})
+
+#     return jsonify({'erro': 'Informe origem e destino (ex: PVH,GRU)'}), 400
+
+# # ============================================================================
+# # NOVA ROTA: CALCULAR DISTÂNCIA TOTAL DO TRECHO
+# # ============================================================================
+# # Adicione esta rota no seu app.py
+
+# @app.route('/calcular_distancia_trecho', methods=['GET'])
+# @login_required
+# def calcular_distancia_trecho():
+#     """
+#     Calcula a distância total de um trecho (com ou sem conexões)
+    
+#     Exemplos:
+#     - /calcular_distancia_trecho?trecho=PVH-BSB
+#     - /calcular_distancia_trecho?trecho=POA-GRU/GRU-PVH
+    
+#     Retorna:
+#     {
+#         "success": true,
+#         "distancia_total_km": 2500.45,
+#         "trechos": [
+#             {"origem": "POA", "destino": "GRU", "distancia_km": 850.30},
+#             {"origem": "GRU", "destino": "PVH", "distancia_km": 1650.15}
+#         ]
+#     }
+#     """
+#     try:
+#         trecho_completo = request.args.get('trecho', '').strip().upper()
+        
+#         if not trecho_completo:
+#             return jsonify({
+#                 'success': False,
+#                 'error': 'Parâmetro trecho é obrigatório'
+#             }), 400
+        
+#         # Validar formato do trecho
+#         # Padrão: XXX-XXX ou XXX-XXX/XXX-XXX/XXX-XXX/...
+#         import re
+#         padrao = r'^[A-Z]{3}-[A-Z]{3}(\/[A-Z]{3}-[A-Z]{3})*$'
+        
+#         if not re.match(padrao, trecho_completo):
+#             return jsonify({
+#                 'success': False,
+#                 'error': 'Formato inválido! Use: XXX-XXX ou XXX-XXX/XXX-XXX',
+#                 'exemplo': 'PVH-BSB ou POA-GRU/GRU-PVH'
+#             }), 400
+        
+#         # Dividir trecho em segmentos
+#         # "POA-GRU/GRU-PVH" → ["POA-GRU", "GRU-PVH"]
+#         segmentos = trecho_completo.split('/')
+        
+#         distancia_total = 0.0
+#         detalhes_trechos = []
+        
+#         # Calcular distância de cada segmento
+#         for segmento in segmentos:
+#             # "POA-GRU" → ["POA", "GRU"]
+#             partes = segmento.split('-')
+            
+#             if len(partes) != 2:
+#                 return jsonify({
+#                     'success': False,
+#                     'error': f'Segmento inválido: {segmento}'
+#                 }), 400
+            
+#             origem = partes[0]
+#             destino = partes[1]
+            
+#             # Calcular distância usando a biblioteca airports
+#             try:
+#                 km = airport_data.calculate_distance(origem, destino)
+                
+#                 distancia_total += km
+                
+#                 detalhes_trechos.append({
+#                     'origem': origem,
+#                     'destino': destino,
+#                     'distancia_km': round(km, 2)
+#                 })
+                
+#             except Exception as e:
+#                 return jsonify({
+#                     'success': False,
+#                     'error': f'Erro ao calcular distância {origem}-{destino}: {str(e)}',
+#                     'detalhes': 'Verifique se os códigos IATA são válidos'
+#                 }), 400
+        
+#         # Retornar resultado
+#         return jsonify({
+#             'success': True,
+#             'trecho_completo': trecho_completo,
+#             'distancia_total_km': round(distancia_total, 2),
+#             'quantidade_trechos': len(segmentos),
+#             'trechos': detalhes_trechos
+#         })
+        
+#     except Exception as e:
+#         print(f"Erro ao calcular distância do trecho: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+        
+#         return jsonify({
+#             'success': False,
+#             'error': f'Erro interno: {str(e)}'
+#         }), 500
 
 #######################################
 
