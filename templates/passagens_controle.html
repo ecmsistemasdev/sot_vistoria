@@ -547,7 +547,8 @@
                             <tr>
                                 <td>{{ p[0] }}</td>
                                 <td>{{ p[4] }}</td>
-                                <td><span class="badge badge-info">{{ p[12] }}</span></td>
+                                <td>{{ p[12] }}</td>
+                                <!-- <td><span class="badge badge-info">{{ p[12] }}</span></td> -->
                                 <td>{{ p[13] }}</td>
                                 <td><strong>{{ p[6] }}</strong></td>
                                 <td>{{ p[5] }}</td>
@@ -2093,7 +2094,45 @@
             });
         }
 
-        function preencherCampos(dados) {
+        async function buscarEPreencherAeroporto(codigo, campoVisivel, campoOculto) {
+            /**
+             * Busca dados do aeroporto no banco e preenche o campo com formato completo
+             * Ex: PVH → PVH - Porto Velho/RO
+             */
+            
+            if (!codigo || codigo.length !== 3) {
+                console.warn(`Código inválido: ${codigo}`);
+                return;
+            }
+            
+            try {
+                console.log(`🔍 Buscando dados do aeroporto: ${codigo}`);
+                
+                const response = await fetch(`/api/aeroportos/buscar?termo=${encodeURIComponent(codigo)}`);
+                const data = await response.json();
+                
+                if (data.success && data.aeroportos.length > 0) {
+                    const aeroporto = data.aeroportos[0];
+                    const uf = aeroporto.uf ? `/${aeroporto.uf}` : '';
+                    const displayCompleto = `${aeroporto.codigo_iata} - ${aeroporto.cidade}${uf}`;
+                    
+                    document.getElementById(campoVisivel).value = displayCompleto;
+                    document.getElementById(campoOculto).value = aeroporto.codigo_iata;
+                    
+                    console.log(`✅ Aeroporto preenchido: ${displayCompleto}`);
+                } else {
+                    console.warn(`⚠️ Aeroporto ${codigo} não encontrado no banco`);
+                    document.getElementById(campoVisivel).value = codigo;
+                    document.getElementById(campoOculto).value = codigo;
+                }
+            } catch (error) {
+                console.error(`❌ Erro ao buscar aeroporto ${codigo}:`, error);
+                document.getElementById(campoVisivel).value = codigo;
+                document.getElementById(campoOculto).value = codigo;
+            }
+        }
+
+        async function preencherCampos(dados) {
             // Data de Emissão (converter de dd/mm/yyyy para yyyy-mm-dd)
             if (dados.dt_emissao) {
                 const partes = dados.dt_emissao.split('/');
@@ -2118,30 +2157,20 @@
                 document.getElementById('localizador').value = dados.localizador;
             }
             
-            // Trecho - AGORA COM VALIDAÇÃO E CÁLCULO AUTOMÁTICO
+            // Trecho - COM VALIDAÇÃO E CÁLCULO AUTOMÁTICO
             if (dados.trecho) {
                 document.getElementById('trecho').value = dados.trecho;
-                
-                // NOVO: Validar e calcular distância automaticamente
                 validarECalcularDistancia(dados.trecho);
             }
             
-            // Origem
+            // Origem - BUSCAR DADOS COMPLETOS DO AEROPORTO
             if (dados.origem) {
-                document.getElementById('origem').value = dados.origem;
-                // Se tiver código separado
-                if (document.getElementById('codigo_origem')) {
-                    document.getElementById('codigo_origem').value = dados.origem;
-                }
+                await buscarEPreencherAeroporto(dados.origem, 'origem', 'codigo_origem');
             }
             
-            // Destino
+            // Destino - BUSCAR DADOS COMPLETOS DO AEROPORTO
             if (dados.destino) {
-                document.getElementById('destino').value = dados.destino;
-                // Se tiver código separado
-                if (document.getElementById('codigo_destino')) {
-                    document.getElementById('codigo_destino').value = dados.destino;
-                }
+                await buscarEPreencherAeroporto(dados.destino, 'destino', 'codigo_destino');
             }
             
             // Companhia Aérea
@@ -2192,6 +2221,39 @@
             
             console.log(`📏 Upload PDF - Validando trecho: ${trecho}`);
             
+            const validacao = validarFormatoTrecho(trecho);
+            
+            if (!validacao.valido) {
+                console.warn(`⚠️ Trecho inválido: ${validacao.erro}`);
+                aplicarValidacaoVisualTrecho('trecho', false, validacao.erro);
+                controlarBotaoSalvar(false);
+                return;
+            }
+            
+            aplicarValidacaoVisualTrecho('trecho', true);
+            
+            console.log(`📏 Calculando distância: ${trecho}`);
+            const resultado = await calcularDistanciaTrecho(trecho);
+            
+            if (resultado.sucesso) {
+                atualizarCampoDistancia('distancia_km', resultado.distancia_km);
+                console.log(`✅ Distância calculada automaticamente: ${resultado.distancia_km} km`);
+            } else {
+                console.warn(`⚠️ Não foi possível calcular distância: ${resultado.erro}`);
+            }
+            
+            controlarBotaoSalvar(true);
+        }
+
+        async function validarECalcularDistancia(trecho) {
+            /**
+             * Valida trecho e calcula distância automaticamente
+             * Usada ao fazer upload de PDF
+             */
+            if (!trecho) return;
+            
+            console.log(`📏 Upload PDF - Validando trecho: ${trecho}`);
+            
             // Validar formato
             const validacao = validarFormatoTrecho(trecho);
             
@@ -2224,7 +2286,7 @@
             const campos = [
                 'dt_emissao', 'nu_sei', 'nome_passageiro', 'localizador',
                 'trecho', 'origem', 'destino', 'cia', 'vl_tarifa',
-                'vl_taxa_embarque', 'vl_total', 'dt_embarque', 'distancia_km'  // ← ADICIONADO
+                'vl_taxa_embarque', 'vl_total', 'dt_embarque', 'distancia_km'
             ];
             
             campos.forEach(campoId => {
@@ -2234,7 +2296,6 @@
                     campo.style.backgroundColor = '#d4edda';
                     campo.style.borderColor = '#28a745';
                     
-                    // Remover destaque após 2 segundos
                     setTimeout(() => {
                         campo.style.backgroundColor = '';
                         campo.style.borderColor = '';
@@ -2442,9 +2503,6 @@
             
             console.log('✅ Validação de trecho inicializada');
         }
-
-
-
 
     </script>
 </body>
