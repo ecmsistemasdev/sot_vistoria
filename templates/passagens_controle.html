@@ -582,7 +582,7 @@
                         <span>&times;</span>
                     </button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body">                    
                     <form id="formCadastro" onsubmit="salvarPassagem(event)">
                         <input type="hidden" id="id_opa" name="id_opa">
                         <input type="hidden" name="id_controle" value="0">
@@ -620,30 +620,35 @@
                             </div>
                         </div>
 
-                        <!-- Nº SEI e Data Emissão -->
+                        <!-- LINHA 1: Nº SEI, Data Emissão, Data Embarque -->
                         <div class="row">
-                            <div class="col-7">
+                            <div class="col-6"> 
                                 <div class="form-group">
                                     <label>Nº SEI</label>
                                     <input type="text" class="form-control sei-mask" id="nu_sei" name="nu_sei" placeholder="0000000-00.0000.0.00.0000">
                                 </div>
                             </div>
-                            <div class="col-5">
+                            <div class="col-3">
                                 <div class="form-group">
                                     <label class="required">Data Emissão</label>
                                     <input type="date" class="form-control" id="dt_emissao" name="dt_emissao" required>
                                 </div>
                             </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label class="required">Data Embarque</label>
+                                    <input type="date" class="form-control" id="dt_embarque" name="dt_embarque" required>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Nome do Passageiro -->
+                        <!-- LINHA 2: Nome do Passageiro -->
                         <div class="form-group">
                             <label class="required">Nome do Passageiro</label>
-                            <!-- <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" maxlength="100" required> -->
-                            <input type="text" class="form-control form-control-sm" id="nome_passageiro" name="nome_passageiro" autocomplete="off" maxlength="100" required>
+                            <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" autocomplete="off" maxlength="100" required>
                         </div>
 
-                        <!-- Origem, Destino, Trecho -->
+                        <!-- LINHA 3: Origem, Destino, Trecho -->
                         <div class="row">
                             <!-- Campo Origem com Autocomplete -->
                             <div class="col-4">
@@ -681,37 +686,30 @@
                         
                             <!-- Campo Trecho -->
                             <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Trechos</label>
-                                    <input type="text" class="form-control" id="trecho" name="trecho" style="text-transform: uppercase;" required>
-                                </div>
+                                <label for="trecho" class="form-label">Trecho <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                    class="form-control" 
+                                    id="trecho" 
+                                    name="trecho" 
+                                    placeholder="Ex: PVH-BSB ou POA-GRU/GRU-PVH"
+                                    maxlength="100"
+                                    required>
+                                <small class="form-text" style="font-size: 0.69rem; color: #6c757d;">
+                                    📋 Formato: <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">XXX-XXX</code> ou <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">XXX-XXX/XXX-XXX</code>
+                                </small>
                             </div>
                         </div>
 
-                        <!-- Data Embarque, CIA, Localizador -->
+                        <!-- LINHA 4: CIA Aérea, Localizador, Distância (Km) -->
                         <div class="row">
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Data Embarque</label>
-                                    <input type="date" class="form-control" id="dt_embarque" name="dt_embarque" required>
-                                </div>
-                            </div>
-                            <div class="col-4">
+                            <div class="col-4">     
                                 <div class="form-group">
                                     <label class="required">Cia Aérea</label>
-                                    <div style="position: relative;">
-                                        <input type="text" class="form-control form-control-sm" id="cia" name="cia" maxlength="10"
-                                               autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
+                                    <div style="position: relative;"> 
+                                        <input type="text" class="form-control" id="cia" name="cia" maxlength="10"
+                                            autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
                                         <div id="cia-suggestions" class="cia-suggestions" style="display: none;"></div>
                                     </div>
-                                    <!--
-                                    <input type="text" class="form-control form-control-sm" id="cia" name="cia" maxlength="10" autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
-                                    <datalist id="cia-list">
-                                        <option value="AZUL">
-                                        <option value="GOL">
-                                        <option value="LATAM">
-                                    </datalist>
-                                    -->
                                 </div>
                             </div>
                             <div class="col-4">
@@ -720,35 +718,47 @@
                                     <input type="text" class="form-control" id="localizador" name="localizador" maxlength="10" style="text-transform: uppercase;">
                                 </div>
                             </div>
+                            <div class="col-4">
+                                <label for="distancia_km" class="form-label">Distância (km)</label>
+                                <input type="text" 
+                                    class="form-control" 
+                                    id="distancia_km" 
+                                    name="distancia_km" 
+                                    placeholder="0,00"
+                                    readonly>
+                                <small class="form-text text-muted" style="font-size: 0.69rem;">
+                                    <i class="fas fa-calculator"></i> Calculado automaticamente
+                                </small>
+                            </div>
                         </div>
 
                         <hr>
                         <h6 style="font-size: 13px; margin-bottom: 10px;"><i class="fas fa-dollar-sign"></i> Valores</h6>
 
-                        <!-- Valores -->
+                        <!-- VALORES -->
                         <div class="row">
                             <div class="col">
                                 <div class="form-group">
                                     <label class="required">Tarifa</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_tarifa" name="vl_tarifa" value="0,00" required>
+                                    <input type="text" class="form-control money-mask" id="vl_tarifa" name="vl_tarifa" value="0,00" required>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-group">
                                     <label>Taxa Extra</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_extra" name="vl_taxa_extra" value="0,00">
+                                    <input type="text" class="form-control money-mask" id="vl_taxa_extra" name="vl_taxa_extra" value="0,00">
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-group">
                                     <label>Assento</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_assento" name="vl_assento" value="0,00">
+                                    <input type="text" class="form-control money-mask" id="vl_assento" name="vl_assento" value="0,00">
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-group">
                                     <label>Taxa Embarque</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_embarque" name="vl_taxa_embarque" value="0,00">
+                                    <input type="text" class="form-control money-mask" id="vl_taxa_embarque" name="vl_taxa_embarque" value="0,00">
                                 </div>
                             </div>
                             <div class="col">
@@ -769,6 +779,7 @@
                             </button>
                         </div>
                     </form>
+
                 </div>
             </div>
         </div>
@@ -842,30 +853,35 @@
                             </small>
                         </div>
 
-                        <!-- Nº SEI e Data Emissão -->
+                        <!-- LINHA 1: Nº SEI, Data Emissão, Data Embarque -->
                         <div class="row">
-                            <div class="col-7">
+                            <div class="col-6">
                                 <div class="form-group">
                                     <label>Nº SEI</label>
                                     <input type="text" class="form-control sei-mask" id="nu_sei_edit" name="nu_sei_edit" placeholder="0000000-00.0000.0.00.0000">
                                 </div>
                             </div>
-                            <div class="col-5">
+                            <div class="col-3">
                                 <div class="form-group">
                                     <label class="required">Data Emissão</label>
                                     <input type="date" class="form-control" id="dt_emissao_edit" name="dt_emissao_edit" required>
                                 </div>
                             </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label class="required">Data Embarque</label>
+                                    <input type="date" class="form-control" id="dt_embarque_edit" name="dt_embarque_edit" required>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Nome do Passageiro -->
+                        <!-- LINHA 2: Nome do Passageiro -->
                         <div class="form-group">
                             <label class="required">Nome do Passageiro</label>
-                            <!-- <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" maxlength="100" required> -->
-                            <input type="text" class="form-control form-control-sm" id="nome_passageiro_edit" name="nome_passageiro_edit" autocomplete="off" maxlength="100" required>
+                            <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" autocomplete="off" maxlength="100" required>
                         </div>
 
-                        <!-- Origem, Destino, Trecho -->
+                        <!-- LINHA 3: Origem, Destino, Trecho -->
                         <div class="row">
                             <!-- Campo Origem com Autocomplete (Edição) -->
                             <div class="col-4">
@@ -903,38 +919,30 @@
                         
                             <!-- Campo Trecho (Edição) -->
                             <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Trechos</label>
-                                    <input type="text" class="form-control" id="trecho_edit" name="trecho_edit" style="text-transform: uppercase;" required>
-                                </div>
+                                <label for="trecho_edit" class="form-label">Trecho <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                    class="form-control" 
+                                    id="trecho_edit" 
+                                    name="trecho_edit" 
+                                    placeholder="Ex: PVH-BSB ou POA-GRU/GRU-PVH"
+                                    maxlength="100"
+                                    required>
+                                <small class="form-text" style="font-size: 0.69rem; color: #6c757d;">
+                                    📋 Formato: <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">XXX-XXX</code> ou <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">XXX-XXX/XXX-XXX</code>
+                                </small>
                             </div>
                         </div>
 
-                        <!-- Data Embarque, CIA, Localizador -->
+                        <!-- LINHA 4: CIA Aérea, Localizador, Distância (Km) -->
                         <div class="row">
-                            <div class="col-4">
-                                <div class="form-group">
-                                    <label class="required">Data Embarque</label>
-                                    <input type="date" class="form-control" id="dt_embarque_edit" name="dt_embarque_edit" required>
-                                </div>
-                            </div>
                             <div class="col-4">
                                 <div class="form-group">
                                     <label class="required">Cia Aérea</label>
                                     <div style="position: relative;">
-                                        <input type="text" class="form-control form-control-sm" id="cia_edit" name="cia_edit" maxlength="10" 
-                                               autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
+                                        <input type="text" class="form-control" id="cia_edit" name="cia_edit" maxlength="10" 
+                                            autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
                                         <div id="cia-suggestions-edit" class="cia-suggestions" style="display: none;"></div>
                                     </div>
-                                    
-                                    <!--
-                                    <input type="text" class="form-control form-control-sm" id="cia_edit" name="cia_edit" maxlength="10" autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
-                                    <datalist id="cia-list-edit">
-                                        <option value="AZUL">
-                                        <option value="GOL">
-                                        <option value="LATAM">
-                                    </datalist>
-                                    -->
                                 </div>
                             </div>
                             <div class="col-4">
@@ -943,35 +951,47 @@
                                     <input type="text" class="form-control" id="localizador_edit" name="localizador_edit" maxlength="10" style="text-transform: uppercase;">
                                 </div>
                             </div>
+                            <div class="col-4">
+                                <label for="distancia_km_edit" class="form-label">Distância (km)</label>
+                                <input type="text" 
+                                    class="form-control" 
+                                    id="distancia_km_edit" 
+                                    name="distancia_km_edit" 
+                                    placeholder="0,00"
+                                    readonly>
+                                <small class="form-text text-muted" style="font-size: 0.69rem;">
+                                    <i class="fas fa-calculator"></i> Calculado automaticamente
+                                </small>
+                            </div>
                         </div>
 
                         <hr>
                         <h6 style="font-size: 13px; margin-bottom: 10px;"><i class="fas fa-dollar-sign"></i> Valores</h6>
 
-                        <!-- Valores -->
+                        <!-- VALORES -->
                         <div class="row">
                             <div class="col">
                                 <div class="form-group">
                                     <label class="required">Tarifa</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_tarifa_edit" name="vl_tarifa_edit" value="0,00" required>
+                                    <input type="text" class="form-control money-mask" id="vl_tarifa_edit" name="vl_tarifa_edit" value="0,00" required>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-group">
                                     <label>Taxa Extra</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" value="0,00">
+                                    <input type="text" class="form-control money-mask" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" value="0,00">
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-group">
                                     <label>Assento</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_assento_edit" name="vl_assento_edit" value="0,00">
+                                    <input type="text" class="form-control money-mask" id="vl_assento_edit" name="vl_assento_edit" value="0,00">
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="form-group">
                                     <label>Taxa Embarque</label>
-                                    <input type="text" class="form-control form-control-sm money-mask" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" value="0,00">
+                                    <input type="text" class="form-control money-mask" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" value="0,00">
                                 </div>
                             </div>
                             <div class="col">
@@ -1200,15 +1220,30 @@
         // ============================================================================
         // ATUALIZAR CAMPO TRECHO QUANDO DESTINO É SELECIONADO
         // ============================================================================
-        function atualizarTrechoComDestinoselecionado(isEdit) {
+        async function atualizarTrechoComDestinoselecionado(isEdit) {
             const sufixo = isEdit ? '_edit' : '';
             const codigoOrigem = $('#codigo_origem' + sufixo).val();
             const codigoDestino = $('#codigo_destino' + sufixo).val();
             const campoTrecho = $('#trecho' + sufixo);
             
-            // Atualizar trecho se ambos os aeroportos foram selecionados
             if (codigoOrigem && codigoDestino) {
-                campoTrecho.val(codigoOrigem + '/' + codigoDestino);
+                const trecho = codigoOrigem + '-' + codigoDestino;
+                campoTrecho.val(trecho);
+                
+                // NOVO: Validar e calcular distância automaticamente
+                aplicarValidacaoVisualTrecho('trecho' + sufixo, true);
+                
+                const resultado = await calcularDistanciaTrecho(trecho);
+                if (resultado.sucesso) {
+                    atualizarCampoDistancia('distancia_km' + sufixo, resultado.distancia_km);
+                    console.log(`✅ Distância ${trecho}: ${resultado.distancia_km} km`);
+                }
+                
+                if (isEdit) {
+                    controlarBotaoAtualizar(true);
+                } else {
+                    controlarBotaoSalvar(true);
+                }
             }
         }
         
@@ -1237,6 +1272,9 @@
         
             // Inicializar autocompletes de aeroportos
             inicializarAutocompletes();
+
+            // Inicializar validação de trecho
+            inicializarValidacaoTrecho();
         });
         
         // ============================================================================
@@ -1545,7 +1583,8 @@
                         $('#vl_assento_edit').val(formatarMoeda(p.vl_assento));
                         $('#vl_taxa_embarque_edit').val(formatarMoeda(p.vl_taxa_embarque));
                         $('#vl_total_edit').val(formatarMoeda(p.vl_total));
-                        
+                        $('#distancia_km_edit').val(p.distancia_km || '0');
+
                         // Calcular e exibir total
                         calcularTotalEdit();
                         
@@ -1609,18 +1648,32 @@
             // Validar aeroportos selecionados
             if (!$('#codigo_origem_edit').val()) {
                 alert('Por favor, selecione um aeroporto de origem válido');
-                return;
+                return false;
             }
             
             if (!$('#codigo_destino_edit').val()) {
                 alert('Por favor, selecione um aeroporto de destino válido');
-                return;
+                return false;
             }
+            
+            // Obter dados do formulário
+            var formData = $('#formEdicao').serialize();
+            
+            // Adicionar distancia_km manualmente (readonly não é enviado por serialize)
+            var distanciaValor = $('#distancia_km_edit').val() || '0';
+            console.log('🔍 Distância original:', distanciaValor);
+            
+            // Converter formato BR para formato padrão
+            var distanciaKm = distanciaValor.replace(/\./g, '').replace(',', '.');
+            console.log('🔍 Distância convertida:', distanciaKm);
+            
+            formData += '&distancia_km_edit=' + encodeURIComponent(distanciaKm);
+            console.log('📤 Enviando distancia_km_edit:', distanciaKm);
             
             $.ajax({
                 url: '/passagens/atualizar',
                 type: 'POST',
-                data: $('#formEdicao').serialize(),
+                data: formData,
                 success: function(response) {
                     if (response.success) {
                         alert('Passagem atualizada com sucesso!');
@@ -1630,9 +1683,12 @@
                     }
                 },
                 error: function(xhr) {
+                    console.error('Erro na requisição:', xhr);
                     alert('Erro ao atualizar passagem');
                 }
             });
+            
+            return false;
         }
         
         // ============================================================================
@@ -1850,7 +1906,8 @@
             $('#vl_assento').val('0,00');
             $('#vl_taxa_embarque').val('0,00');
             $('#vl_total').val('0,00');
-            
+            $('#distancia_km').val('0');
+
             // Limpar status de upload de PDF
             $('#upload_status').hide();
             $('#bilhete_pdf').val('');
@@ -2098,6 +2155,10 @@
                 document.getElementById('vl_taxa_embarque').value = dados.vl_taxa_extra;
             }
             
+            if (dados.vl_assento) {
+                document.getElementById('vl_assento').value = dados.vl_assento;
+            }
+            
             if (dados.vl_total) {
                 document.getElementById('vl_total').value = dados.vl_total;
             }
@@ -2157,7 +2218,195 @@
         `;
         document.head.appendChild(style);
 
+        function validarFormatoTrecho(trecho) {
+            if (!trecho || trecho.trim() === '') {
+                return { valido: false, erro: 'Trecho não pode estar vazio' };
+            }
+            
+            trecho = trecho.trim().toUpperCase();
+            const regex = /^[A-Z]{3}-[A-Z]{3}(\/[A-Z]{3}-[A-Z]{3})*$/;
+            
+            if (!regex.test(trecho)) {
+                return { valido: false, erro: 'Formato inválido! Use: XXX-XXX ou XXX-XXX/XXX-XXX' };
+            }
+            
+            return { valido: true, trecho: trecho };
+        }
 
+        function aplicarValidacaoVisualTrecho(campoId, valido, mensagemErro = '') {
+            const campo = document.getElementById(campoId);
+            if (!campo) return;
+            
+            const feedbackId = `${campoId}_feedback`;
+            campo.classList.remove('is-valid', 'is-invalid');
+            
+            let feedbackExistente = document.getElementById(feedbackId);
+            if (feedbackExistente) feedbackExistente.remove();
+            
+            if (valido) {
+                campo.classList.add('is-valid');
+            } else {
+                campo.classList.add('is-invalid');
+                const feedback = document.createElement('div');
+                feedback.id = feedbackId;
+                feedback.className = 'invalid-feedback';
+                feedback.style.display = 'block';
+                feedback.textContent = mensagemErro;
+                campo.parentNode.appendChild(feedback);
+            }
+        }
+
+        async function calcularDistanciaTrecho(trecho) {
+            try {
+                const response = await fetch(`/calcular_distancia_trecho?trecho=${encodeURIComponent(trecho)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    return { sucesso: true, distancia_km: data.distancia_total_km, trechos: data.trechos };
+                } else {
+                    return { sucesso: false, erro: data.error || 'Erro ao calcular distância' };
+                }
+            } catch (error) {
+                console.error('Erro ao calcular distância:', error);
+                return { sucesso: false, erro: 'Erro de conexão' };
+            }
+        }
+
+        function atualizarCampoDistancia(campoDistanciaId, distanciaKm) {
+            const campo = document.getElementById(campoDistanciaId);
+            if (campo) {
+                const valorFormatado = distanciaKm.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                campo.value = valorFormatado;
+            }
+        }
+
+        function controlarBotaoSalvar(habilitar) {
+            const btnSalvar = document.querySelector('#modalCadastro .btn-primary');
+            if (btnSalvar) {
+                btnSalvar.disabled = !habilitar;
+                btnSalvar.style.opacity = habilitar ? '1' : '0.5';
+                btnSalvar.style.cursor = habilitar ? 'pointer' : 'not-allowed';
+            }
+        }
+
+        function controlarBotaoAtualizar(habilitar) {
+            const btnAtualizar = document.querySelector('#modalEdicao .btn-primary');
+            if (btnAtualizar) {
+                btnAtualizar.disabled = !habilitar;
+                btnAtualizar.style.opacity = habilitar ? '1' : '0.5';
+                btnAtualizar.style.cursor = habilitar ? 'pointer' : 'not-allowed';
+            }
+        }
+
+        function inicializarValidacaoTrecho() {
+            // MODAL DE CADASTRO
+            const campoTrecho = document.getElementById('trecho');
+            if (campoTrecho) {
+                campoTrecho.addEventListener('blur', async function() {
+                    const valor = this.value.trim().toUpperCase();
+                    
+                    if (!valor) {
+                        aplicarValidacaoVisualTrecho('trecho', false, 'Trecho é obrigatório');
+                        controlarBotaoSalvar(false);
+                        return;
+                    }
+                    
+                    const validacao = validarFormatoTrecho(valor);
+                    
+                    if (!validacao.valido) {
+                        aplicarValidacaoVisualTrecho('trecho', false, validacao.erro);
+                        controlarBotaoSalvar(false);
+                        return;
+                    }
+                    
+                    this.value = validacao.trecho;
+                    aplicarValidacaoVisualTrecho('trecho', true);
+                    
+                    console.log(`📏 Calculando distância: ${validacao.trecho}`);
+                    const resultado = await calcularDistanciaTrecho(validacao.trecho);
+                    
+                    if (resultado.sucesso) {
+                        atualizarCampoDistancia('distancia_km', resultado.distancia_km);
+                        console.log(`✅ Distância: ${resultado.distancia_km} km`);
+                    }
+                    
+                    controlarBotaoSalvar(true);
+                });
+                
+                campoTrecho.addEventListener('keyup', function() {
+                    const valor = this.value.trim().toUpperCase();
+                    if (!valor) {
+                        campoTrecho.classList.remove('is-valid', 'is-invalid');
+                        return;
+                    }
+                    
+                    const validacao = validarFormatoTrecho(valor);
+                    if (validacao.valido) {
+                        campoTrecho.classList.remove('is-invalid');
+                        campoTrecho.classList.add('is-valid');
+                    } else {
+                        campoTrecho.classList.remove('is-valid');
+                        campoTrecho.classList.add('is-invalid');
+                    }
+                });
+            }
+            
+            // MODAL DE EDIÇÃO
+            const campoTrechoEdit = document.getElementById('trecho_edit');
+            if (campoTrechoEdit) {
+                campoTrechoEdit.addEventListener('blur', async function() {
+                    const valor = this.value.trim().toUpperCase();
+                    
+                    if (!valor) {
+                        aplicarValidacaoVisualTrecho('trecho_edit', false, 'Trecho é obrigatório');
+                        controlarBotaoAtualizar(false);
+                        return;
+                    }
+                    
+                    const validacao = validarFormatoTrecho(valor);
+                    
+                    if (!validacao.valido) {
+                        aplicarValidacaoVisualTrecho('trecho_edit', false, validacao.erro);
+                        controlarBotaoAtualizar(false);
+                        return;
+                    }
+                    
+                    this.value = validacao.trecho;
+                    aplicarValidacaoVisualTrecho('trecho_edit', true);
+                    
+                    const resultado = await calcularDistanciaTrecho(validacao.trecho);
+                    
+                    if (resultado.sucesso) {
+                        atualizarCampoDistancia('distancia_km_edit', resultado.distancia_km);
+                    }
+                    
+                    controlarBotaoAtualizar(true);
+                });
+                
+                campoTrechoEdit.addEventListener('keyup', function() {
+                    const valor = this.value.trim().toUpperCase();
+                    if (!valor) {
+                        campoTrechoEdit.classList.remove('is-valid', 'is-invalid');
+                        return;
+                    }
+                    
+                    const validacao = validarFormatoTrecho(valor);
+                    if (validacao.valido) {
+                        campoTrechoEdit.classList.remove('is-invalid');
+                        campoTrechoEdit.classList.add('is-valid');
+                    } else {
+                        campoTrechoEdit.classList.remove('is-valid');
+                        campoTrechoEdit.classList.add('is-invalid');
+                    }
+                });
+            }
+            
+            console.log('✅ Validação de trecho inicializada');
+        }
+        
     </script>
 </body>
 </html>
