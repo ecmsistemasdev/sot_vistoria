@@ -8076,48 +8076,23 @@ def validar_aeroportos_no_banco_robusto(codigos_possiveis, cursor):
     return aeroportos_validos
 
 
-def detectar_origem_destino_ida_volta(aeroportos_validados):
-    """Detecta ida e volta"""
-    if not aeroportos_validados or len(aeroportos_validados) < 2:
-        return {
-            'origem': '',
-            'destino': '',
-            'ida_volta': False,
-            'ponto_medio': None
-        }
+# def detectar_origem_destino_ida_volta(aeroportos_validados):
+#     """Mesma função"""
+#     if not aeroportos_validados or len(aeroportos_validados) < 2:
+#         return {'origem': '', 'destino': '', 'ida_volta': False}
     
-    origem = aeroportos_validados[0]
-    ultimo = aeroportos_validados[-1]
+#     origem = aeroportos_validados[0]
+#     ultimo = aeroportos_validados[-1]
     
-    if origem == ultimo and len(aeroportos_validados) >= 3:
-        # IDA E VOLTA
-        indice_meio = len(aeroportos_validados) // 2
-        destino = aeroportos_validados[indice_meio]
-        
-        print("✈️ IDA E VOLTA detectado!")
-        print(f"   📍 Origem: {origem}")
-        print(f"   📍 Destino (meio): {destino}")
-        
-        return {
-            'origem': origem,
-            'destino': destino,
-            'ida_volta': True,
-            'ponto_medio': destino
-        }
-    else:
-        # APENAS IDA
-        destino = aeroportos_validados[-1]
-        
-        print("✈️ Apenas IDA")
-        print(f"   📍 Origem: {origem}")
-        print(f"   📍 Destino: {destino}")
-        
-        return {
-            'origem': origem,
-            'destino': destino,
-            'ida_volta': False,
-            'ponto_medio': None
-        }
+#     if origem == ultimo and len(aeroportos_validados) >= 3:
+#         indice_meio = len(aeroportos_validados) // 2
+#         destino = aeroportos_validados[indice_meio]
+#         print("✈️ IDA E VOLTA detectado!")
+#         return {'origem': origem, 'destino': destino, 'ida_volta': True}
+#     else:
+#         destino = aeroportos_validados[-1]
+#         print("✈️ Apenas IDA")
+#         return {'origem': origem, 'destino': destino, 'ida_volta': False}
 
 
 # ============================================================================
@@ -8370,8 +8345,130 @@ def remover_acentos(texto):
     return sem_acento
 
 
-def extrair_dados_bilhete_modelo2(texto, cursor):
-    """Extrai dados do bilhete modelo 2 - Busca otimizada"""
+def extrair_trechos_modelo2_ida_volta(texto, cursor):
+    """
+    Extrai trechos do Modelo 2 com detecção de IDA E VOLTA
+    
+    LÓGICA:
+    - Se linha seguinte tem "Conexão em:" → continuação do mesmo sentido
+    - Se linha seguinte TEM voo MAS NÃO tem "Conexão em:" → início da VOLTA
+    """
+    
+    print("\n🔍 EXTRAINDO TRECHOS COM DETECÇÃO DE VOLTA...")
+    
+    # Extrair seção Voos
+    match_voos = re.search(
+        r'Voos(.*?)(?:Mochila ou bolsa|Assentos|Valores|Bilhetes|$)', 
+        texto, 
+        re.DOTALL
+    )
+    
+    if not match_voos:
+        print("❌ Seção Voos não encontrada!")
+        return []
+    
+    texto_voos = match_voos.group(1)
+    
+    # Remover acentos para facilitar busca
+    texto_voos_sem_acento = remover_acentos(texto_voos)
+    
+    print(f"📄 Texto voos (primeiros 200): {texto_voos_sem_acento[:200]}...")
+    
+    # Extrair TODAS as linhas de voo
+    # Padrão: XXX - CIDADE ... XXX - CIDADE (origem e destino na mesma linha)
+    padrao_linha_voo = r'([A-Z]{3})\s*-\s*([A-Z\s]+?)\s+\d{2}\s+\w{3}\s+\d{4}.*?([A-Z]{3})\s*-\s*([A-Z\s]+?)\s+\d{2}\s+\w{3}\s+\d{4}'
+    
+    linhas_voo = re.finditer(padrao_linha_voo, texto_voos_sem_acento)
+    
+    trechos_info = []
+    posicoes = []
+    
+    for match in linhas_voo:
+        origem_cod = match.group(1).strip()
+        origem_cidade = match.group(2).strip()
+        destino_cod = match.group(3).strip()
+        destino_cidade = match.group(4).strip()
+        
+        # Correção POR → PVH
+        if origem_cod == 'POR':
+            origem_cod = 'PVH'
+        if destino_cod == 'POR':
+            destino_cod = 'PVH'
+        
+        posicao_inicio = match.start()
+        posicoes.append(posicao_inicio)
+        
+        trechos_info.append({
+            'origem': origem_cod,
+            'destino': destino_cod,
+            'posicao': posicao_inicio
+        })
+        
+        print(f"   📍 Voo encontrado: {origem_cod}-{destino_cod}")
+    
+    if not trechos_info:
+        print("❌ Nenhum voo encontrado!")
+        return []
+    
+    print(f"\n📊 Total de voos: {len(trechos_info)}")
+    
+    # Agora detectar onde está a VOLTA
+    # Procurar por cada voo se tem "Conexão em:" entre ele e o próximo
+    
+    codigos_finais = []
+    
+    for i, trecho in enumerate(trechos_info):
+        # Adicionar origem (se ainda não foi adicionada)
+        if not codigos_finais or codigos_finais[-1] != trecho['origem']:
+            codigos_finais.append(trecho['origem'])
+        
+        # Adicionar destino
+        codigos_finais.append(trecho['destino'])
+        
+        # Verificar se tem "Conexão em:" entre este voo e o próximo
+        if i + 1 < len(trechos_info):
+            pos_atual = trecho['posicao']
+            pos_proxima = trechos_info[i + 1]['posicao']
+            
+            # Texto entre os dois voos
+            texto_entre = texto_voos_sem_acento[pos_atual:pos_proxima]
+            
+            tem_conexao = 'CONEXAO EM:' in texto_entre or 'CONEXÃO EM:' in texto_entre
+            
+            if tem_conexao:
+                print(f"   ✅ Conexão detectada após {trecho['origem']}-{trecho['destino']}")
+            else:
+                print(f"   🔄 SEM conexão após {trecho['origem']}-{trecho['destino']} → Próximo é VOLTA")
+    
+    print(f"\n📍 Códigos na ordem: {codigos_finais}")
+    
+    return codigos_finais
+    
+
+def validar_aeroportos_no_banco_modelo2(codigos_possiveis, cursor):
+    """Mesma função"""
+    if not codigos_possiveis:
+        return []
+    
+    # Remove consecutivos
+    codigos_limpos = []
+    anterior = None
+    for codigo in codigos_possiveis:
+        if codigo != anterior:
+            codigos_limpos.append(codigo)
+            anterior = codigo
+    
+    print(f"🔍 Após remover consecutivos: {codigos_limpos}")
+    
+    # Consulta banco (implementar)
+    # Por enquanto retorna todos como válidos
+    return codigos_limpos
+
+
+def extrair_dados_bilhete_modelo2_completo(texto, cursor):
+    """
+    Extrai dados do Modelo 2 - VERSÃO COMPLETA COM IDA E VOLTA
+    """
     dados = {
         'dt_emissao': '',
         'nu_sei': '',
@@ -8383,28 +8480,160 @@ def extrair_dados_bilhete_modelo2(texto, cursor):
         'cia': '',
         'vl_tarifa': '',
         'vl_taxa_extra': '',
-        'vl_assento': '',
         'vl_total': '',
         'dt_embarque': ''
     }
     
     try:
         print("=" * 80)
-        print("EXTRAINDO DADOS - MODELO 2")
+        print("EXTRAINDO DADOS - MODELO 2 (VERSÃO COMPLETA)")
         print("=" * 80)
         
-        # 1. LOCALIZADOR
-        match_secao = re.search(
+        # 1. DATA DE EMISSÃO
+        match_data = re.search(r'Data Emissão\s*(\d{2}/\d{2}/\d{4})', texto)
+        if not match_data:
+            match_data = re.search(r'(\d{2}/\d{2}/\d{4})', texto)
+        if match_data:
+            dados['dt_emissao'] = match_data.group(1)
+            print(f"✅ Data Emissão: {dados['dt_emissao']}")
+        
+        # 2. Nº SEI
+        match_sei = re.search(r'(\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})', texto)
+        if match_sei:
+            dados['nu_sei'] = match_sei.group(1)
+            print(f"✅ Nº SEI: {dados['nu_sei']}")
+        
+        # 3. NOME DO PASSAGEIRO
+        match_nome = re.search(r'Sobrenome\s+Nome.*?\n.*?([A-ZÀ-Ú]+)\s+([A-ZÀ-Ú\s]+?)\s+(?:Masculino|Feminino)', texto, re.DOTALL)
+        if match_nome:
+            sobrenome = match_nome.group(1).strip()
+            nome = match_nome.group(2).strip()
+            nome_completo = f"{nome} {sobrenome}"
+            dados['nome_passageiro'] = capitalizar_nome(nome_completo)
+            print(f"✅ Nome: {dados['nome_passageiro']}")
+        
+        # 4. LOCALIZADOR
+        match_loc = re.search(r'Localizador.*?\n([A-Z0-9]{5,7})', texto, re.DOTALL)
+        if match_loc:
+            dados['localizador'] = match_loc.group(1)
+            print(f"✅ Localizador: {dados['localizador']}")
+        
+        # 5. TRECHOS - NOVA LÓGICA COM DETECÇÃO DE VOLTA
+        codigos_ordem, (trechos_ida, trechos_volta) = extrair_trechos_modelo2_completo(texto, cursor)
+        
+        if codigos_ordem:
+            # Validar no banco
+            aeroportos_validos = validar_aeroportos_no_banco_modelo2(codigos_ordem, cursor)
+            
+            print(f"\n✅ Aeroportos validados: {aeroportos_validos}")
+            
+            if aeroportos_validos:
+                # Detectar origem/destino
+                resultado = detectar_origem_destino_ida_volta(aeroportos_validos)
+                
+                dados['origem'] = resultado['origem']
+                dados['destino'] = resultado['destino']
+                
+                print(f"\n✅ Origem: {dados['origem']}")
+                print(f"✅ Destino: {dados['destino']}")
+                
+                if resultado['ida_volta']:
+                    print(f"✈️ Tipo: IDA E VOLTA")
+                else:
+                    print(f"✈️ Tipo: APENAS IDA")
+                
+                # Reconstrói trecho COMPLETO
+                trechos = []
+                for i in range(len(aeroportos_validos) - 1):
+                    trechos.append(f"{aeroportos_validos[i]}-{aeroportos_validos[i+1]}")
+                dados['trecho'] = '/'.join(trechos)
+                
+                print(f"✅ Trecho: {dados['trecho']}")
+                print(f"   📊 Total de segmentos: {len(trechos)}")
+        
+        # 6. CIA
+        if 'LATAM' in texto:
+            dados['cia'] = 'LATAM'
+        elif 'AZUL' in texto or 'Azul' in texto:
+            dados['cia'] = 'AZUL'
+        elif 'GOL' in texto:
+            dados['cia'] = 'GOL'
+        
+        if dados['cia']:
+            print(f"✅ CIA: {dados['cia']}")
+        
+        # 7. VALORES
+        match_tarifa = re.search(r'R\$\s*([\d.,]+)', texto)
+        if match_tarifa:
+            dados['vl_tarifa'] = match_tarifa.group(1)
+            print(f"✅ Tarifa: {dados['vl_tarifa']}")
+        
+        # Taxas (segundo valor)
+        valores = re.findall(r'R\$\s*([\d.,]+)', texto)
+        if len(valores) >= 2:
+            dados['vl_taxa_extra'] = valores[1]
+            print(f"✅ Taxas: {dados['vl_taxa_extra']}")
+        
+        if len(valores) >= 3:
+            dados['vl_total'] = valores[2]
+            print(f"✅ Total: {dados['vl_total']}")
+        
+        # 8. DATA DE EMBARQUE (primeira data do voo)
+        if trechos_ida:
+            # Buscar data no texto perto do primeiro trecho
+            match_data_voo = re.search(r'(\d{2}\s+\w{3}\s+\d{4})', texto)
+            if match_data_voo:
+                # Converter "08 Nov 2025" para "08/11/2025"
+                data_str = match_data_voo.group(1)
+                print(f"✅ Data embarque (raw): {data_str}")
+                # Implementar conversão se necessário
+        
+        print("=" * 80 + "\n")
+        
+    except Exception as e:
+        print(f"❌ Erro: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    return dados
+
+
+def extrair_dados_bilhete_modelo2(texto, cursor):
+    """
+    Extrai dados do bilhete Modelo 2 (Portal) - VERSÃO FINAL
+    COM DETECÇÃO DE IDA E VOLTA
+    """
+    dados = {
+        'dt_emissao': '',
+        'nu_sei': '',
+        'nome_passageiro': '',
+        'localizador': '',
+        'trecho': '',
+        'origem': '',
+        'destino': '',
+        'cia': '',
+        'vl_tarifa': '',
+        'vl_taxa_extra': '',
+        'vl_total': '',
+        'dt_embarque': ''
+    }
+    
+    try:
+        print("=" * 80)
+        print("EXTRAINDO DADOS - MODELO 2 (VERSÃO FINAL COM IDA/VOLTA)")
+        print("=" * 80)
+                
+       # 1. LOCALIZADOR
+        match_loc = re.search(
             r'Localizador.*?\n(.+?)(?:Emitido|Status|Passageiros)',
             texto,
             re.DOTALL
         )
-        
-        if match_secao:
-            bloco_loc = match_secao.group(1)
+        if match_loc:
+            bloco_loc = match_loc.group(1)
             bloco_limpo = re.sub(r'[-\s]+', ' ', bloco_loc)
             codigos = re.findall(r'([A-Z0-9]{6,})', bloco_limpo)
-            
+           
             if len(codigos) == 1:
                 codigo = codigos[0]
                 if len(codigo) == 6:
@@ -8418,231 +8647,131 @@ def extrair_dados_bilhete_modelo2(texto, cursor):
                         break
                 if not dados['localizador'] and codigos:
                     dados['localizador'] = codigos[0][-6:]
-            
+           
             if dados['localizador']:
                 print(f"✅ Localizador: {dados['localizador']}")
-        
-        # EXTRAIR SEÇÃO VOOS
-        secao_voos = re.search(r'Voos(.*?)(?:Mochila ou bolsa|Assentos)', texto, re.DOTALL)
-        texto_voos_original = ''
-        texto_voos_limpo = ''
-        
-        if secao_voos:
-            texto_voos_original = secao_voos.group(1)
-            texto_voos_limpo = ' '.join(texto_voos_original.split())
-            
-            tem_conexao = 'Conexão em:' in texto_voos_original
-            if tem_conexao:
-                print("✈️ Conexão detectada!")
-        
-        # 2. NOME DO PASSAGEIRO
-        match_nome_emd = re.search(r'EMD.*?Passageiro.*?\n[^\n]*\n([A-Z\s]+?)\s+(?:Servico|Assento)', texto, re.DOTALL)
-        if match_nome_emd:
-            nome_completo = match_nome_emd.group(1).strip()
-            nome_completo = re.sub(r'\s*(MR|MRS)\s*', ' ', nome_completo, flags=re.IGNORECASE)
-            nome_completo = ' '.join(nome_completo.split())
+
+        # 2. NOME
+        match_nome = re.search(
+            r'Sobrenome\s+Nome.*?\n.*?([A-Z]+)\s+([A-Z\s]+?)\s+(?:Masculino|Feminino)',
+            texto,
+            re.DOTALL
+        )
+        if match_nome:
+            sobrenome = match_nome.group(1).strip()
+            nome = match_nome.group(2).strip()
+            nome_completo = f"{nome} {sobrenome}"
             dados['nome_passageiro'] = capitalizar_nome(nome_completo)
-            print(f"✅ Nome (EMD): {dados['nome_passageiro']}")
+            print(f"✅ Nome: {dados['nome_passageiro']}")
         
-        if not dados['nome_passageiro']:
-            secao_bilhetes = re.search(r'Bilhetes(.*?)(?:EMD|Confirme sempre)', texto, re.DOTALL)
-            if secao_bilhetes:
-                texto_bilhetes = secao_bilhetes.group(1)
-                match_nome = re.search(r'\d{3}-\d{10}\s+[A-Z0-9]+\s+([A-Z\s/]+?)\s+\d{2}/\d{2}/\d{4}', texto_bilhetes)
-                
-                if match_nome:
-                    nome_bruto = match_nome.group(1).strip()
-                    
-                    if '/' in nome_bruto:
-                        partes = nome_bruto.split('/')
-                        sobrenome = partes[0].strip()
-                        nome = partes[1].strip() if len(partes) > 1 else ''
-                        nome = re.sub(r'\s*(MR|MRS)\s*$', '', nome, flags=re.IGNORECASE)
-                        sobrenome = re.sub(r'\s*(MR|MRS)\s*$', '', sobrenome, flags=re.IGNORECASE)
-                        nome_completo = f"{nome} {sobrenome}".strip()
-                    else:
-                        nome_completo = nome_bruto
-                    
-                    nome_completo = re.sub(r'\s*(MR|MRS)\s*', ' ', nome_completo, flags=re.IGNORECASE)
-                    nome_completo = ' '.join(nome_completo.split())
-                    dados['nome_passageiro'] = capitalizar_nome(nome_completo)
-                    print(f"✅ Nome (Bilhetes): {dados['nome_passageiro']}")
-        
-        # 3. COMPANHIA AÉREA
-        if 'LATAM' in texto.upper() or re.search(r'\bLA\s+\d{4}', texto):
+        # 3. CIA
+        if 'LATAM' in texto or 'Latam' in texto:
             dados['cia'] = 'LATAM'
-        elif 'GOL' in texto.upper() or re.search(r'\bG3\s+\d{4}', texto):
-            dados['cia'] = 'GOL'
-        elif 'AZUL' in texto.upper() or re.search(r'\bAD\s+\d{4}', texto):
+        elif 'AZUL' in texto or 'Azul' in texto:
             dados['cia'] = 'AZUL'
-        print(f"✅ CIA: {dados['cia']}")
+        elif 'GOL' in texto:
+            dados['cia'] = 'GOL'
         
-        # 4. ORIGEM, DESTINO e TRECHO - BUSCA OTIMIZADA
-        if texto_voos_limpo:
-            print("\n🔍 INICIANDO BUSCA DE AEROPORTOS...")
-            print(f"📍 Texto voos (300 chars): {texto_voos_limpo[:300]}...")
+        if dados['cia']:
+            print(f"✅ CIA: {dados['cia']}")
+        
+        # 4. TRECHOS - NOVA LÓGICA
+        codigos_ordem = extrair_trechos_modelo2_ida_volta(texto, cursor)
+        
+        if codigos_ordem:
+            # Remover duplicatas CONSECUTIVAS
+            codigos_limpos = []
+            anterior = None
+            for cod in codigos_ordem:
+                if cod != anterior:
+                    codigos_limpos.append(cod)
+                    anterior = cod
             
-            # Remove acentos do texto para comparação
-            texto_sem_acento = remover_acentos(texto_voos_limpo.upper())
-            print(f"📍 Texto SEM acentos: {texto_sem_acento[:300]}...\n")
+            print(f"📍 Após remover consecutivos: {codigos_limpos}")
             
-            # Busca padrões que aparecem no texto (códigos de 3 letras seguidos de " - ")
-            padroes_encontrados = re.findall(r'([A-Z]{3})\s*-\s*([A-Z\s]+?)(?=\d{2}\s+[A-Z][a-z]{2}\s+\d{4}|\s+\d{2}\s+)', texto_voos_limpo)
-            
-            print(f"📍 Padrões XXX - NOME encontrados: {padroes_encontrados[:10]}\n")
-            
-            aeroportos_encontrados = []
-            
-            for codigo, cidade_bruta in padroes_encontrados:
-                # Limpa o nome da cidade
-                cidade = cidade_bruta.strip()
+            # Detectar origem/destino
+            if len(codigos_limpos) >= 2:
+                resultado = detectar_origem_destino_ida_volta(codigos_limpos)
                 
-                # Monta padrão de busca SEM acentos
-                padrao_busca = f"{codigo} - {cidade}"
-                padrao_sem_acento = remover_acentos(padrao_busca.upper())
+                dados['origem'] = resultado['origem']
+                dados['destino'] = resultado['destino']
                 
-                print(f"🔍 Buscando: '{padrao_busca}' (sem acento: '{padrao_sem_acento}')")
+                print(f"\n✅ Origem: {dados['origem']}")
+                print(f"✅ Destino: {dados['destino']}")
                 
-                # Busca no banco (comparando SEM acentos)
-                cursor.execute("""
-                    SELECT CODIGO_IATA, CIDADE
-                    FROM AEROPORTOS
-                    WHERE CODIGO_IATA = %s
-                    AND ATIVO = 'S'
-                """, (codigo,))
+                if resultado['ida_volta']:
+                    print(f"✈️ IDA E VOLTA detectado!")
                 
-                resultado = cursor.fetchone()
-                
-                if resultado:
-                    codigo_db, cidade_db = resultado
-                    nome_db = f"{codigo_db} - {cidade_db.upper()}"
-                    nome_db_sem_acento = remover_acentos(nome_db)
-                    
-                    print(f"   ✅ ENCONTRADO no banco: {nome_db}")
-                    print(f"   📊 Comparação: '{padrao_sem_acento}' vs '{nome_db_sem_acento}'")
-                    
-                    # Pega posição no texto
-                    idx = texto_sem_acento.find(codigo)
-                    aeroportos_encontrados.append((idx, codigo))
-                else:
-                    print(f"   ❌ NÃO encontrado no banco")
-            
-            print(f"\n✅ Total encontrados: {len(aeroportos_encontrados)}")
-            
-            # ORDENA pela posição
-            aeroportos_encontrados.sort(key=lambda x: x[0])
-            
-            # Remove duplicatas mantendo ordem
-            aeroportos_validos = []
-            for _, cod in aeroportos_encontrados:
-                if cod not in aeroportos_validos:
-                    aeroportos_validos.append(cod)
-            
-            print(f"✅ Aeroportos na ordem: {aeroportos_validos}\n")
-            
-            if len(aeroportos_validos) >= 2:
-                dados['origem'] = aeroportos_validos[0]
-                dados['destino'] = aeroportos_validos[-1]
-                
+                # Reconstrói trecho
                 trechos = []
-                for j in range(len(aeroportos_validos) - 1):
-                    trechos.append(f"{aeroportos_validos[j]}-{aeroportos_validos[j+1]}")
+                for i in range(len(codigos_limpos) - 1):
+                    trechos.append(f"{codigos_limpos[i]}-{codigos_limpos[i+1]}")
                 dados['trecho'] = '/'.join(trechos)
                 
-                print(f"✅ Origem: {dados['origem']}")
-                print(f"✅ Destino: {dados['destino']}")
                 print(f"✅ Trecho: {dados['trecho']}")
-                
-                if len(aeroportos_validos) > 2:
-                    print(f"   ✈️ Voo com {len(aeroportos_validos)-1} trechos")
-            
-            elif len(aeroportos_validos) == 1:
-                dados['origem'] = aeroportos_validos[0]
-                print(f"⚠️ Apenas 1 aeroporto: {dados['origem']}")
         
-        # 5. DATA DE EMBARQUE
-        match_embarque = re.search(r'(\d{2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+\d{2}:\d{2}', texto)
-        if match_embarque:
-            dia = match_embarque.group(1)
-            mes_abrev = match_embarque.group(2)
-            ano = match_embarque.group(3)
+        # 5. DATA EMBARQUE
+        match_data_voo = re.search(r'(\d{2})\s+(\w{3})\s+(\d{4})', texto)
+        if match_data_voo:
+            dia = match_data_voo.group(1)
+            mes_texto = match_data_voo.group(2).upper()
+            ano = match_data_voo.group(3)
             
             meses = {
-                'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
-                'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
-                'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+                'JAN': '01', 'FEV': '02', 'MAR': '03', 'ABR': '04',
+                'MAI': '05', 'JUN': '06', 'JUL': '07', 'AGO': '08',
+                'SET': '09', 'OUT': '10', 'NOV': '11', 'DEZ': '12'
             }
             
-            mes = meses.get(mes_abrev, '01')
+            mes = meses.get(mes_texto[:3], '01')
             dados['dt_embarque'] = f"{dia}/{mes}/{ano}"
             print(f"✅ Data Embarque: {dados['dt_embarque']}")
         
-        # 6. DATA DE EMISSÃO
-        match_emissao = re.search(r'Data Emissão.*?(\d{2}/\d{2}/\d{4})', texto, re.DOTALL)
+        # 6. DATA EMISSÃO
+        match_emissao = re.search(r'Data Emissão\s*(\d{2}/\d{2}/\d{4})', texto)
+        if not match_emissao:
+            match_emissao = re.search(r'(\d{2}/\d{2}/\d{4})', texto)
         if match_emissao:
             dados['dt_emissao'] = match_emissao.group(1)
             print(f"✅ Data Emissão: {dados['dt_emissao']}")
         
-
-        # 7. VALORES - CORRIGIDO
-        # Primeiro detecta se tem EMD/Assento
-        tem_emd_assento = False
-        valor_assento = '0,00'
-        
-        # Busca seção EMD
-        match_emd = re.search(r'EMD.*?Assento.*?BRL\s+([\d.,]+)', texto, re.DOTALL)
-        if match_emd:
-            valor_assento = match_emd.group(1)
-            tem_emd_assento = True
-            print(f"✈️ EMD de assento encontrado: R$ {valor_assento}")
-        
-        # Busca valores na linha ADT
-        match_valores = re.search(
-            r'ADT\s*-.*?R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)\s+R\$\s*([\d.,]+)',
-            texto,
-            re.DOTALL
-        )
-        
-        if match_valores:
-            tarifa_str = match_valores.group(1)
-            taxas_str = match_valores.group(2)
-            terceiro_valor_str = match_valores.group(3)
-            
-            dados['vl_tarifa'] = tarifa_str
-            dados['vl_taxa_extra'] = taxas_str
-            
-            if tem_emd_assento:
-                # Tem EMD: terceiro valor é ASSENTO, total = soma
-                dados['vl_assento'] = terceiro_valor_str
-                
-                # CALCULA TOTAL (converte para float e soma)
-                tarifa = converter_valor_br(tarifa_str)
-                taxas = converter_valor_br(taxas_str)
-                assento = converter_valor_br(terceiro_valor_str)
-                total = tarifa + taxas + assento
-                
-                # Formata de volta para padrão brasileiro
-                dados['vl_total'] = f"{total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-                
-            else:
-                # SEM EMD: terceiro valor JÁ É O TOTAL
-                dados['vl_assento'] = '0,00'
-                dados['vl_total'] = terceiro_valor_str
+        # 7. VALORES
+        valores = re.findall(r'R\$\s*([\d.,]+)', texto)
+        if len(valores) >= 3:
+            dados['vl_tarifa'] = valores[0]
+            dados['vl_taxa_extra'] = valores[1]
+            dados['vl_total'] = valores[2]
             
             print(f"✅ Tarifa: {dados['vl_tarifa']}")
             print(f"✅ Taxas: {dados['vl_taxa_extra']}")
-            print(f"✅ Assento: {dados['vl_assento']}")
             print(f"✅ Total: {dados['vl_total']}")
         
-        print("=" * 80)
+        print("=" * 80 + "\n")
         
     except Exception as e:
-        print(f"❌ Erro ao extrair dados modelo 2: {str(e)}")
+        print(f"❌ Erro: {str(e)}")
         import traceback
         traceback.print_exc()
     
     return dados
 
+
+def detectar_origem_destino_ida_volta(aeroportos_validados):
+    """Detecta ida e volta"""
+    if not aeroportos_validados or len(aeroportos_validados) < 2:
+        return {'origem': '', 'destino': '', 'ida_volta': False}
+    
+    origem = aeroportos_validados[0]
+    ultimo = aeroportos_validados[-1]
+    
+    if origem == ultimo and len(aeroportos_validados) >= 3:
+        indice_meio = len(aeroportos_validados) // 2
+        destino = aeroportos_validados[indice_meio]
+        return {'origem': origem, 'destino': destino, 'ida_volta': True}
+    else:
+        destino = aeroportos_validados[-1]
+        return {'origem': origem, 'destino': destino, 'ida_volta': False}
+    
 
 def capitalizar_nome(nome):
     """Converte NOME COMPLETO para Nome Completo"""
