@@ -5216,7 +5216,7 @@ def buscar_dados_agenda():
                    '' AS NU_TELEFONE, 
                    'Não Cadastrado' as TIPO_CADASTRO
             FROM AGENDA_DEMANDAS
-            WHERE AND ID_TIPODEMANDA != 8
+            WHERE ID_TIPODEMANDA != 8
 			  AND DT_INICIO <= %s 
               AND DT_FIM >= %s
               AND ID_MOTORISTA = 0
