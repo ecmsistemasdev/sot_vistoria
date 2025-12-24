@@ -5162,6 +5162,24 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
+        # 1.1 Lista de Motoristas ADMINISTRATIVO
+        cursor.execute("""
+            SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
+            FROM CAD_MOTORISTA
+            WHERE TIPO_CADASTRO = 'Administrativo'
+            AND ATIVO = 'S'
+            ORDER BY ORDEM_LISTA, NM_MOTORISTA
+        """)
+        motoristas_administrativo = []
+        for r in cursor.fetchall():
+            motoristas_administrativo.append({
+                'id': r[0], 
+                'nome': r[1], 
+                'cad': r[2] if len(r) > 2 else '', 
+                'telefone': r[3] if len(r) > 3 else '', 
+                'tipo': r[4] if len(r) > 4 else ''
+            })          
+        
         # 1.1 TODOS os Motoristas Ativos (para select na edição/outros)
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
@@ -5337,6 +5355,7 @@ def buscar_dados_agenda():
 
         return jsonify({
             'motoristas': motoristas,
+            'motoristas_administrativo': motoristas_administrativo,
             'outros_motoristas': outros_motoristas,
             'todos_motoristas': todos_motoristas,
             'demandas': demandas,
