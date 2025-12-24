@@ -1048,19 +1048,21 @@
         /* Tooltip para veículo */
         .tooltip-veiculo {
             position: absolute;
-            background: rgba(0, 0, 0, 0.75); /* Aumentada transparência de 0.9 para 0.75 */
+            background: rgba(0, 0, 0, 0.85); /* Mais opaco para melhor leitura */
             color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
+            padding: 10px 14px;
+            border-radius: 6px;
             font-size: 12px;
-            font-weight: normal; /* Alterado de 500 para normal */
+            font-weight: normal;
             z-index: 1000;
             pointer-events: none;
-            white-space: nowrap;
+            white-space: pre-line; /* ✅ Permite quebra de linha */
+            max-width: 350px; /* ✅ Limita largura para OBS longos */
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             opacity: 0;
             transition: opacity 0.2s;
-            line-height: 1.4; /* Adicionado para melhor espaçamento entre linhas */
+            line-height: 1.5;
+            word-wrap: break-word; /* ✅ Quebra palavras longas */
         }
         
         .tooltip-veiculo.visible {
@@ -2945,7 +2947,6 @@
             if (!demanda) return;
             
             const veiculo = obterVeiculoDemanda(idDemanda);
-            if (!veiculo) return;
             
             if (!tooltipVeiculo) {
                 tooltipVeiculo = document.getElementById('tooltipVeiculo');
@@ -2964,13 +2965,28 @@
                 periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')} a ${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
             }
             
-            // Duas linhas: veículo e período
-            tooltipVeiculo.innerHTML = `🚗 ${veiculo}<br>${periodoFormatado}`;
+            // Montar conteúdo do tooltip
+            let conteudoHTML = '';
+            
+            // Adicionar veículo (se tiver)
+            if (veiculo) {
+                conteudoHTML += `🚗 ${veiculo}<br>`;
+            }
+            
+            // ✅ SEMPRE adicionar período
+            conteudoHTML += `📅 ${periodoFormatado}`;
+            
+            // ✅ ADICIONAR OBS se tiver
+            if (demanda.obs && demanda.obs.trim() !== '') {
+                conteudoHTML += `<br>📝 ${demanda.obs}`;
+            }
+            
+            tooltipVeiculo.innerHTML = conteudoHTML;
             tooltipVeiculo.classList.add('visible');
             
             posicionarTooltip(event);
         }
-        
+
         // Função para mostrar tooltip apenas com período (para veículos e alocados)
         function mostrarTooltipPeriodo(event, idDemanda) {
             const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
@@ -2983,7 +2999,6 @@
             // Formatar período
             const dataInicio = new Date(demanda.dt_inicio + 'T00:00:00');
             const dataFim = new Date(demanda.dt_fim + 'T00:00:00');
-            // const destino = new demanda.destino;
             
             let periodoFormatado;
             if (demanda.dt_inicio === demanda.dt_fim) {
@@ -2994,14 +3009,88 @@
                 periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')} a ${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
             }
             
-            // Apenas o período
-            // tooltipVeiculo.innerHTML = periodoFormatado;
-            tooltipVeiculo.innerHTML = `${periodoFormatado}<br>${demanda.destino}`;
+            // Montar conteúdo
+            let conteudoHTML = `📅 ${periodoFormatado}`;
             
+            // Adicionar destino se tiver
+            if (demanda.destino && demanda.destino.trim() !== '') {
+                conteudoHTML += `<br>📍 ${demanda.destino}`;
+            }
+            
+            // ✅ ADICIONAR OBS se tiver
+            if (demanda.obs && demanda.obs.trim() !== '') {
+                conteudoHTML += `<br>📝 ${demanda.obs}`;
+            }
+            
+            tooltipVeiculo.innerHTML = conteudoHTML;
             tooltipVeiculo.classList.add('visible');
             
             posicionarTooltip(event);
-        }        
+        }
+
+
+        // function mostrarTooltipVeiculo(event, idDemanda) {
+        //     const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
+        //     if (!demanda) return;
+            
+        //     const veiculo = obterVeiculoDemanda(idDemanda);
+        //     if (!veiculo) return;
+            
+        //     if (!tooltipVeiculo) {
+        //         tooltipVeiculo = document.getElementById('tooltipVeiculo');
+        //     }
+            
+        //     // Formatar período
+        //     const dataInicio = new Date(demanda.dt_inicio + 'T00:00:00');
+        //     const dataFim = new Date(demanda.dt_fim + 'T00:00:00');
+            
+        //     let periodoFormatado;
+        //     if (demanda.dt_inicio === demanda.dt_fim) {
+        //         // Data única
+        //         periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')}/${dataInicio.getFullYear()}`;
+        //     } else {
+        //         // Período
+        //         periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')} a ${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
+        //     }
+            
+        //     // Duas linhas: veículo e período
+        //     tooltipVeiculo.innerHTML = `🚗 ${veiculo}<br>${periodoFormatado}`;
+        //     tooltipVeiculo.classList.add('visible');
+            
+        //     posicionarTooltip(event);
+        // }
+        
+        // Função para mostrar tooltip apenas com período (para veículos e alocados)
+        // function mostrarTooltipPeriodo(event, idDemanda) {
+        //     const demanda = dadosAgenda.demandas.find(d => d.id === idDemanda);
+        //     if (!demanda) return;
+            
+        //     if (!tooltipVeiculo) {
+        //         tooltipVeiculo = document.getElementById('tooltipVeiculo');
+        //     }
+            
+        //     // Formatar período
+        //     const dataInicio = new Date(demanda.dt_inicio + 'T00:00:00');
+        //     const dataFim = new Date(demanda.dt_fim + 'T00:00:00');
+        //     // const destino = new demanda.destino;
+            
+        //     let periodoFormatado;
+        //     if (demanda.dt_inicio === demanda.dt_fim) {
+        //         // Data única
+        //         periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')}/${dataInicio.getFullYear()}`;
+        //     } else {
+        //         // Período
+        //         periodoFormatado = `${dataInicio.getDate().toString().padStart(2, '0')}/${(dataInicio.getMonth() + 1).toString().padStart(2, '0')} a ${dataFim.getDate().toString().padStart(2, '0')}/${(dataFim.getMonth() + 1).toString().padStart(2, '0')}/${dataFim.getFullYear()}`;
+        //     }
+            
+        //     // Apenas o período
+        //     // tooltipVeiculo.innerHTML = periodoFormatado;
+        //     tooltipVeiculo.innerHTML = `${periodoFormatado}<br>${demanda.destino}`;
+            
+        //     tooltipVeiculo.classList.add('visible');
+            
+        //     posicionarTooltip(event);
+        // }        
         
         // Função para posicionar tooltip com detecção de limites
         function posicionarTooltip(event) {
@@ -5266,6 +5355,23 @@
             return dias;
         }
         
+        // Função para encurtar nome do solicitante (mantém apenas 2 primeiros nomes)
+        function encurtarNomeSolicitante(nomeCompleto) {
+            if (!nomeCompleto || nomeCompleto.trim() === '') {
+                return '';
+            }
+            
+            const partes = nomeCompleto.trim().split(/\s+/); // Split por espaços
+            
+            // Se tem 2 ou menos nomes, retorna completo
+            if (partes.length <= 2) {
+                return nomeCompleto;
+            }
+            
+            // Se tem mais de 2 nomes, retorna apenas os 2 primeiros
+            return `${partes[0]} ${partes[1]}`;
+        }
+
         function renderizarSecaoMotoristas(dias) {
             let html = '<div class="agenda-section">';
             html += `
@@ -5376,13 +5482,15 @@
                             }
                             else if (demanda.horario) {
                                 // Qualquer tipo com horário definido
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                             else {
                                 // Padrão para outros tipos
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div><strong>${demanda.destino || ''}</strong></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
@@ -5536,12 +5644,14 @@
                                 }
                             }
                             else if (demanda.horario) {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                             else {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div><strong>${demanda.destino || ''}</strong></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
@@ -5709,12 +5819,14 @@
                                 }
                             }
                             else if (demanda.horario) {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                             else {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''}</div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
@@ -7978,12 +8090,14 @@
                                 }
                             }
                             else if (demanda.horario) {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                             else {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div><strong>${demanda.destino || ''}</strong></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
@@ -8100,12 +8214,14 @@
                                 }
                             }
                             else if (demanda.horario) {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                             else {
-                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
+                                html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div><strong>${demanda.destino || ''}</strong></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
