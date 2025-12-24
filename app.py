@@ -5198,13 +5198,15 @@ def buscar_dados_agenda():
             })
 
         # 1.2 Outros Motoristas (NÃO SEGEOP) com demandas no período + Não Cadastrados
+		# Alteração: Não exibir demanda na lista de outros motoristas quando a demanda for 'id=8 - Cedência'
         query_outros = """
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
                    m.NU_TELEFONE, m.TIPO_CADASTRO
             FROM CAD_MOTORISTA m
             INNER JOIN AGENDA_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado')
-              AND m.ATIVO = 'S'
+              AND ae.ID_TIPODEMANDA != 8
+			  AND m.ATIVO = 'S'
               AND ae.DT_INICIO <= %s 
               AND ae.DT_FIM >= %s
             UNION 
@@ -5214,7 +5216,8 @@ def buscar_dados_agenda():
                    '' AS NU_TELEFONE, 
                    'Não Cadastrado' as TIPO_CADASTRO
             FROM AGENDA_DEMANDAS
-            WHERE DT_INICIO <= %s 
+            WHERE AND ID_TIPODEMANDA != 8
+			  AND DT_INICIO <= %s 
               AND DT_FIM >= %s
               AND ID_MOTORISTA = 0
               AND NC_MOTORISTA IS NOT NULL
