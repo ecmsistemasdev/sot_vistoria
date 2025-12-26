@@ -892,6 +892,7 @@
 
         /* Cursor especial quando Ctrl está pressionado - APENAS nas seções permitidas */
         .modo-selecao-ativo .agenda-section:first-child .empty-cell,
+        .modo-selecao-ativo .agenda-section:nth-child(2) .empty-cell,
         .modo-selecao-ativo .agenda-section:nth-child(3) .empty-cell {
             cursor: crosshair !important;
         }            
@@ -2013,7 +2014,10 @@
                             <!-- Radio Buttons -->
                             <div class="motorista-inline-filter" id="motoristaFilter">
                                 <label>
-                                    <input type="radio" name="tipoMotorista" value="segeop" checked> SEGEOP
+                                    <input type="radio" name="tipoMotorista" value="segeop" checked> Motorista Segeop
+                                </label>
+                                <label>
+                                    <input type="radio" name="tipoMotorista" value="administrativo"> Administrativo
                                 </label>
                                 <label>
                                     <input type="radio" name="tipoMotorista" value="todos"> Todos
@@ -2472,8 +2476,11 @@
         let semanaAtual = 0;
         let dadosAgenda = null;
         let motoristas = [];
-        let motoristasAdministrativo = [];        
+        let motoristasAdministrativo = [];
+        let outrosMotoristas = [];        
+        // let todosMotoristas = [];
         let veiculos = [];
+        let veiculosExtras = [];
         let tiposDemanda = [];
         let tiposVeiculo = [];
         let veiculoSelecionadoOriginal = null;
@@ -2482,9 +2489,7 @@
         let contextoAbertura = null; // 'motorista', 'veiculo' ou null
         let feriadosPeriodo = [];
         let scrollPosition = 0;
-        let veiculosExtras = [];
         let listaVeiculosExpandida = false;
-        let outrosMotoristas = [];
         let tooltipVeiculo = null; // Variável para controlar o tooltip
         // ========== VARIÁVEIS GLOBAIS PARA LOCAÇÃO ==========
         let dadosVinculoLocacao = null;
@@ -5563,14 +5568,14 @@
                             // Renderizar célula vazia com rowspan
                             if (feriado) {
                                 if (linhaIndex === 0 && demandasDia.length === 0) {
-                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this)">${feriado.descricao}</td>`;
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this, 'administrativo')">${feriado.descricao}</td>`;
                                 } else {
                                     html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
                                 }
                             } else {
                                 const weekendClass = isWeekend ? 'weekend-empty' : '';
                                 if (linhaIndex === 0 && demandasDia.length === 0) {
-                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this)"></td>`;
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this, 'administrativo')"></td>`;
                                 } else {
                                     html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
                                 }
@@ -5720,14 +5725,14 @@
                             
                             if (feriado) {
                                 if (linhaIndex === 0 && demandasDia.length === 0) {
-                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this)">${feriado.descricao}</td>`;
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this, 'administrativo')">${feriado.descricao}</td>`;
                                 } else {
                                     html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
                                 }
                             } else {
                                 const weekendClass = isWeekend ? 'weekend-empty' : '';
                                 if (linhaIndex === 0 && demandasDia.length === 0) {
-                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this)"></td>`;
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this, 'administrativo')"></td>`;
                                 } else {
                                     html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
                                 }
@@ -5990,7 +5995,7 @@
             return true; // Intervalo completamente vazio (pode ter feriados sem demanda)
         }            
 
-        async function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula) {
+        async function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula, secao = null) {
             event.stopPropagation();
             
             // Se Ctrl NÃO está pressionado, comportamento normal
@@ -6081,7 +6086,7 @@
                 
                 // Se passou pelas validações, abrir modal normalmente
                 if (idMotorista) {
-                    abrirModalNovoComData(data, idMotorista);
+                    abrirModalNovoComData(data, idMotorista, secao);
                 } else if (idVeiculo) {
                     abrirModalNovoComVeiculo(data, idVeiculo);
                 }
@@ -6140,7 +6145,7 @@
                 setTimeout(() => {
                     // Abrir modal com as datas preenchidas
                     if (idMotorista) {
-                        abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista, null);
+                        abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista, null, secao);
                     } else if (idVeiculo) {
                         abrirModalNovoComIntervalo(dtInicio, dtFim, null, idVeiculo);
                     }
@@ -6568,12 +6573,27 @@
             document.getElementById('modal').style.display = 'block';
         }
         
-        async function abrirModalNovoComData(data, idMotorista = null) {
+        async function abrirModalNovoComData(data, idMotorista = null, secao = null) {
             contextoAbertura = 'motorista'; // Definir ANTES
             await abrirModalNovo();
             await preencherSelectTiposDemanda(); // Carregar depois que contexto está definido
             document.getElementById('dtInicio').value = data;
             document.getElementById('dtFim').value = data;
+            
+            // Detectar se é seção Administrativo e bloquear outros radios
+            if (secao === 'administrativo') {
+                const radios = document.querySelectorAll('input[name="tipoMotorista"]');
+                radios.forEach(radio => {
+                    if (radio.value === 'administrativo') {
+                        radio.checked = true;
+                        radio.disabled = false;
+                    } else {
+                        radio.disabled = true;
+                    }
+                });
+                preencherSelectMotoristas('administrativo');
+            }
+            
             if (idMotorista) {
                 document.getElementById('idMotorista').value = idMotorista;
             }
@@ -6610,7 +6630,7 @@
             }
         }
         
-        async function abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista = null, idVeiculo = null) {
+        async function abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista = null, idVeiculo = null, secao = null) {
             if (idMotorista) {
                 contextoAbertura = 'motorista';
                 await abrirModalNovo();
@@ -6618,6 +6638,21 @@
                 
                 document.getElementById('dtInicio').value = dtInicio;
                 document.getElementById('dtFim').value = dtFim;
+                
+                // Detectar se é seção Administrativo e bloquear outros radios
+                if (secao === 'administrativo') {
+                    const radios = document.querySelectorAll('input[name="tipoMotorista"]');
+                    radios.forEach(radio => {
+                        if (radio.value === 'administrativo') {
+                            radio.checked = true;
+                            radio.disabled = false;
+                        } else {
+                            radio.disabled = true;
+                        }
+                    });
+                    preencherSelectMotoristas('administrativo');
+                }
+                
                 document.getElementById('idMotorista').value = idMotorista;
                 
             } else if (idVeiculo) {
@@ -6882,7 +6917,7 @@
         function preencherSelectMotoristas(tipo = 'segeop') {
             const select = document.getElementById('idMotorista');
             select.innerHTML = '<option value="">Selecione...</option>';
-        
+
             let motoristasFiltrados = motoristas;
             
             if (tipo === 'segeop') {
@@ -6890,6 +6925,9 @@
                 motoristasFiltrados = motoristas.filter(m => 
                     m.tipo === 'Motorista Atendimento' || m.tipo === 'Terceirizado'
                 );
+            } else if (tipo === 'administrativo') {
+                // Motoristas Administrativos - NOVO
+                motoristasFiltrados = motoristasAdministrativo;
             } else if (tipo === 'outros') {
                 // Outros motoristas ativos, exceto SEGEOP
                 motoristasFiltrados = dadosAgenda.todos_motoristas.filter(m => 
