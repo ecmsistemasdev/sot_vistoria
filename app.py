@@ -5144,12 +5144,12 @@ def buscar_dados_agenda():
 
         cursor = mysql.connection.cursor()
 
-        # 1. Lista de Motoristas SEGEOP
+        # 1. Lista de Motoristas SEGEOP (SEM Administrativo)
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM CAD_MOTORISTA
             WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado')
-              AND ATIVO = 'S'
+            AND ATIVO = 'S'
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
         """)
         motoristas = []
@@ -5162,7 +5162,7 @@ def buscar_dados_agenda():
                 'tipo': r[4] if len(r) > 4 else ''
             })
 
-        # 1.1 Lista de Motoristas ADMINISTRATIVO
+        # 1.1 Lista de Motoristas ADMINISTRATIVO (NOVO)
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM CAD_MOTORISTA
@@ -5201,27 +5201,27 @@ def buscar_dados_agenda():
 		# Alteração: Não exibir demanda na lista de outros motoristas quando a demanda for 'id=8 - Cedência'
         query_outros = """
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
-                   m.NU_TELEFONE, m.TIPO_CADASTRO
+                m.NU_TELEFONE, m.TIPO_CADASTRO
             FROM CAD_MOTORISTA m
             INNER JOIN AGENDA_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
-            WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado')
-              AND ae.ID_TIPODEMANDA != 8
-			  AND m.ATIVO = 'S'
-              AND ae.DT_INICIO <= %s 
-              AND ae.DT_FIM >= %s
+            WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado','Administrativo')
+            AND ae.ID_TIPODEMANDA != 8
+            AND m.ATIVO = 'S'
+            AND ae.DT_INICIO <= %s 
+            AND ae.DT_FIM >= %s
             UNION 
             SELECT DISTINCT 0 as ID_MOTORISTA, 
-                   CONCAT(NC_MOTORISTA, ' (Não Cadastrado)') as NM_MOTORISTA, 
-                   '' AS CAD_MOTORISTA, 
-                   '' AS NU_TELEFONE, 
-                   'Não Cadastrado' as TIPO_CADASTRO
+                CONCAT(NC_MOTORISTA, ' (Não Cadastrado)') as NM_MOTORISTA, 
+                '' AS CAD_MOTORISTA, 
+                '' AS NU_TELEFONE, 
+                'Não Cadastrado' as TIPO_CADASTRO
             FROM AGENDA_DEMANDAS
             WHERE ID_TIPODEMANDA != 8
-			  AND DT_INICIO <= %s 
-              AND DT_FIM >= %s
-              AND ID_MOTORISTA = 0
-              AND NC_MOTORISTA IS NOT NULL
-              AND NC_MOTORISTA != ''
+            AND DT_INICIO <= %s 
+            AND DT_FIM >= %s
+            AND ID_MOTORISTA = 0
+            AND NC_MOTORISTA IS NOT NULL
+            AND NC_MOTORISTA != ''
             ORDER BY NM_MOTORISTA
         """
         
@@ -5373,6 +5373,7 @@ def buscar_dados_agenda():
         return jsonify({
             'error': str(e), 
             'motoristas': [],
+            'motoristas_administrativo': [],  # NOVO
             'outros_motoristas': [],
             'todos_motoristas': [],
             'demandas': [], 
