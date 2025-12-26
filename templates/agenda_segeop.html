@@ -3189,11 +3189,32 @@
             }
             
             // Event listeners para datas (atualizar lista expandida)
+            // ✅ VALIDAÇÃO AUTOMÁTICA DE DATAS
             const dtInicio = document.getElementById('dtInicio');
             const dtFim = document.getElementById('dtFim');
-            
+
             if (dtInicio && dtFim) {
+                // Quando alterar Data Início
                 dtInicio.addEventListener('change', function() {
+                    const dataInicio = this.value;
+                    const dataFim = dtFim.value;
+                    
+                    if (!dataFim) {
+                        // Se Data Fim está vazia, preencher com mesma data
+                        dtFim.value = dataInicio;
+                    } else if (dataFim < dataInicio) {
+                        // Se Data Fim for anterior, corrigir e alertar
+                        dtFim.value = dataInicio;
+                        mostrarAlerta(
+                            '⚠️ <strong>Data Fim não pode ser anterior à Data Início!</strong><br><br>' +
+                            'A Data Fim foi ajustada automaticamente para: <strong>' + 
+                            new Date(dataInicio + 'T00:00:00').toLocaleDateString('pt-BR') + '</strong>',
+                            '⚠️ Atenção',
+                            '#ffc107'
+                        );
+                    }
+                    
+                    // Atualizar lista de veículos se aplicável
                     const expandirCheckbox = document.getElementById('expandirVeiculos');
                     const idTipoVeiculo = document.getElementById('idTipoVeiculo').value;
                     
@@ -3202,7 +3223,24 @@
                     }
                 });
                 
+                // Quando alterar Data Fim
                 dtFim.addEventListener('change', function() {
+                    const dataInicio = dtInicio.value;
+                    const dataFim = this.value;
+                    
+                    if (dataInicio && dataFim < dataInicio) {
+                        // Se Data Fim for anterior, corrigir e alertar
+                        this.value = dataInicio;
+                        mostrarAlerta(
+                            '⚠️ <strong>Data Fim não pode ser anterior à Data Início!</strong><br><br>' +
+                            'A Data Fim foi ajustada automaticamente para: <strong>' + 
+                            new Date(dataInicio + 'T00:00:00').toLocaleDateString('pt-BR') + '</strong>',
+                            '⚠️ Atenção',
+                            '#ffc107'
+                        );
+                    }
+                    
+                    // Atualizar lista de veículos se aplicável
                     const expandirCheckbox = document.getElementById('expandirVeiculos');
                     const idTipoVeiculo = document.getElementById('idTipoVeiculo').value;
                     
