@@ -7921,11 +7921,19 @@
             tabelaClone.style.cssText = `
                 width: 100%;
                 border-collapse: collapse;
-                border: 1px solid #bbb;
-                border-width: 1px;
+                border: 0.33px solid #bbb;
                 table-layout: auto;
                 font-size: 11px;
             `;
+
+            // tabelaClone.style.cssText = `
+            //     width: 100%;
+            //     border-collapse: collapse;
+            //     border: 1px solid #bbb;
+            //     border-width: 1px;
+            //     table-layout: auto;
+            //     font-size: 11px;
+            // `;
             
             // Fixar colunas N. e Nome no cabeçalho
             const thsClonados = tabelaClone.querySelectorAll('thead th');
@@ -7934,8 +7942,7 @@
                     background: #e8e8e8;
                     padding: 4px 2px;
                     text-align: center;
-                    border: 1px solid #bbb;
-                    border-width: 1px;
+                    border: 0.33px solid #bbb; 
                     font-size: 10px;
                     font-weight: 600;
                     line-height: 1;
@@ -7979,8 +7986,7 @@
                     // Coluna N.
                     td.style.cssText = `
                         background: ${bgColor};
-                        border: 1px solid #bbb;
-                        border-width: 1px;
+                        border: 0.33px solid #bbb;
                         padding: 2px 1px;
                         vertical-align: top;
                         font-size: 9px;
@@ -7996,8 +8002,7 @@
                     // Coluna Nome
                     td.style.cssText = `
                         background: ${bgColor};
-                        border: 1px solid #bbb;
-                        border-width: 1px;
+                        border: 0.33px solid #bbb;
                         padding: 2px 4px;
                         vertical-align: top;
                         font-size: 9px;
@@ -8014,8 +8019,7 @@
                     // Células dos dias (col-dia) - 120px
                     td.style.cssText = `
                         background: ${bgColor};
-                        border: 1px solid #bbb;
-                        border-width: 1px;
+                        border: 0.33px solid #bbb;
                         padding: 2px 8px;
                         vertical-align: top;
                         font-size: 9px;
