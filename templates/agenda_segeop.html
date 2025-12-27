@@ -7942,22 +7942,28 @@
                 `;
                 
                 if (index === 0) {
+                    // Coluna N.
                     th.style.cssText = styleBase + `
                         width: 28px;
                         min-width: 28px;
                         max-width: 28px;
                     `;
                 } else if (index === 1) {
+                    // Coluna Nome
                     th.style.cssText = styleBase + `
                         width: 140px;
                         min-width: 140px;
                         max-width: 140px;
                     `;
                 } else {
+                    // ========== ALTERAÇÃO AQUI: Colunas dos dias (col-dia) ==========
                     th.style.cssText = styleBase + `
                         padding: 4px 8px;
                         white-space: normal;
                         word-wrap: break-word;
+                        width: 100px;
+                        min-width: 100px;
+                        max-width: 100px;
                     `;
                 }
             });
@@ -7970,6 +7976,7 @@
                 const bgColor = computedStyle.backgroundColor;
                 
                 if (classes.includes('col-numero')) {
+                    // Coluna N.
                     td.style.cssText = `
                         background: ${bgColor};
                         border: 1px solid #bbb;
@@ -7986,6 +7993,7 @@
                         max-width: 28px;
                     `;
                 } else if (classes.includes('col-nome')) {
+                    // Coluna Nome
                     td.style.cssText = `
                         background: ${bgColor};
                         border: 1px solid #bbb;
@@ -8003,6 +8011,7 @@
                         max-width: 140px;
                     `;
                 } else {
+                    // ========== ALTERAÇÃO AQUI: Células dos dias (col-dia) ==========
                     td.style.cssText = `
                         background: ${bgColor};
                         border: 1px solid #bbb;
@@ -8014,6 +8023,9 @@
                         min-height: 18px;
                         white-space: normal;
                         word-wrap: break-word;
+                        width: 100px;
+                        min-width: 100px;
+                        max-width: 100px;
                     `;
                 }
             });
