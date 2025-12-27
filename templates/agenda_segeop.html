@@ -2008,7 +2008,7 @@
                     <!-- Linha 4: Motorista (GroupBox Estilo Delphi) -->
                     <div class="group-box">
                         <div class="group-box-legend">
-                            <span id="labelMotorista">Motorista <span class="required">*</span></span>
+                            <span id="labelMotorista">Motorista/Servidor <span class="required">*</span></span>
                         </div>
                         <div class="group-box-content">
                             <!-- Radio Buttons -->
@@ -4884,18 +4884,8 @@
         
         function aplicarRegrasTipoDemanda() {
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
+            const config = tiposDemandaConfig[idTipoDemanda] || {};
             
-            if (!idTipoDemanda) return;
-            
-            // Buscar configuração do tipo selecionado
-            const config = tiposDemandaConfig[idTipoDemanda];
-            
-            if (!config) {
-                console.error('Configuração não encontrada para tipo demanda:', idTipoDemanda);
-                return;
-            }
-            
-            // Elementos do formulário
             const motorista = document.getElementById('idMotorista');
             const tipoVeiculo = document.getElementById('idTipoVeiculo');
             const veiculo = document.getElementById('idVeiculo');
@@ -4903,6 +4893,7 @@
             const solicitante = document.getElementById('solicitante');
             const destino = document.getElementById('destino');
             const divSolicitado = document.getElementById('divSolicitado');
+            const divExpandirVeiculos = document.getElementById('divExpandirVeiculos');
             
             // Labels
             const labelTipoVeiculo = document.getElementById('labelTipoVeiculo');
@@ -4915,7 +4906,8 @@
             // ========== RESETAR TUDO PRIMEIRO ==========
             motorista.disabled = false;
             tipoVeiculo.disabled = false;
-            veiculo.disabled = false;
+            // ← ALTERAÇÃO AQUI: NÃO resetar veiculo.disabled = false
+            // O select veículo deve permanecer bloqueado até que aplicarRegrasTipoVeiculo() seja chamado
             setor.disabled = false;
             solicitante.disabled = false;
             destino.disabled = false;
@@ -5019,7 +5011,14 @@
             if (config.exibir_checkbox_solicitado) {
                 divSolicitado.style.display = 'block';
             }
+            
+            // ========== NOVA ADIÇÃO: Ocultar checkbox Expandir Veículos se bloquear veículo ==========
+            if (config.bloquear_veiculo) {
+                divExpandirVeiculos.style.display = 'none';
+                document.getElementById('expandirVeiculos').checked = false;
+            }
         }
+
                 
         function aplicarRegrasTipoVeiculo() {
             const idTipoVeiculo = parseInt(document.getElementById('idTipoVeiculo').value);
@@ -5078,29 +5077,42 @@
                 // Tipo diferente de 1 e não é 7, 8, 9: bloqueia veículo
                 veiculo.disabled = true;
                 veiculo.value = '';
+                
             } else {
-                // Tipo 1: habilita e carrega veículos disponíveis
-                veiculo.disabled = false;
+                // ========== ALTERAÇÃO AQUI: Tipo 1 (Oficial) ==========
+                // Verificar se o tipo de demanda bloqueia veículo
+                const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
+                const configTipoDemanda = tiposDemandaConfig[idTipoDemanda];
                 
-                // MOSTRAR checkbox de expandir veículos
-                divExpandirVeiculos.style.display = 'block';
-                
-                const dtInicio = document.getElementById('dtInicio').value;
-                const dtFim = document.getElementById('dtFim').value;
-                
-                if (dtInicio && dtFim) {
-                    // Se tem datas, carrega veículos disponíveis
-                    if (listaVeiculosExpandida) {
-                        toggleExpandirVeiculos();
-                    } else {
-                        atualizarVeiculosDisponiveis();
-                    }
+                // Se tipo de demanda bloqueia veículo, NÃO desbloqueia mesmo sendo tipo veículo 1
+                if (configTipoDemanda && configTipoDemanda.bloquear_veiculo) {
+                    veiculo.disabled = true;
+                    veiculo.value = '';
+                    divExpandirVeiculos.style.display = 'none';
                 } else {
-                    // Se não tem datas, carrega todos os veículos ou padrão
-                    if (listaVeiculosExpandida) {
-                        toggleExpandirVeiculos();
+                    // Se tipo de demanda NÃO bloqueia veículo, desbloqueia normalmente
+                    veiculo.disabled = false;
+                    
+                    // MOSTRAR checkbox de expandir veículos
+                    divExpandirVeiculos.style.display = 'block';
+                    
+                    const dtInicio = document.getElementById('dtInicio').value;
+                    const dtFim = document.getElementById('dtFim').value;
+                    
+                    if (dtInicio && dtFim) {
+                        // Se tem datas, carrega veículos disponíveis
+                        if (listaVeiculosExpandida) {
+                            toggleExpandirVeiculos();
+                        } else {
+                            atualizarVeiculosDisponiveis();
+                        }
                     } else {
-                        preencherSelectVeiculos();
+                        // Se não tem datas, carrega todos os veículos ou padrão
+                        if (listaVeiculosExpandida) {
+                            toggleExpandirVeiculos();
+                        } else {
+                            preencherSelectVeiculos();
+                        }
                     }
                 }
             }
