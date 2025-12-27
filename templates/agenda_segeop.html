@@ -7894,7 +7894,7 @@
                 // Capturar com html2canvas DIRETO no elemento visível
                 const canvas = await html2canvas(conteudo, {
                     backgroundColor: '#ffffff',
-                    scale: 2,  // Scale 2 para boa qualidade sem exageros
+                    scale: 3,  // Scale 2 para boa qualidade sem exageros
                     logging: false,
                     useCORS: true,
                     allowTaint: true,
@@ -7914,8 +7914,7 @@
                         esconderSpinner();
                         
                         mostrarAlerta(
-                            '✅ <strong>Imagem copiada com sucesso!</strong><br><br>' +
-                            'Cole (Ctrl+V) no aplicativo desejado (Word, Excel, etc.)',
+                            '✅ <strong>Imagem copiada com sucesso!</strong><br><br>',
                             '✅ Sucesso',
                             '#28a745'
                         );
