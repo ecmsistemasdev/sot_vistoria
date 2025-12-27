@@ -7897,7 +7897,7 @@
                     return;
                 }
                 
-                // Criar container temporário que vai conter CLONES com estilos preservados
+                // Criar container temporário
                 const containerTemp = document.createElement('div');
                 containerTemp.style.cssText = `
                     position: absolute;
@@ -7905,25 +7905,25 @@
                     top: 0;
                     background: white;
                     padding: 10px;
+                    transform: scale(2);
+                    transform-origin: top left;
                 `;
                 
                 // Clonar título se existir
                 if (tituloSecao) {
                     const tituloClone = tituloSecao.cloneNode(true);
-                    // Copiar estilos computados do título
                     const estilosTitulo = window.getComputedStyle(tituloSecao);
                     tituloClone.style.cssText = estilosTitulo.cssText;
                     containerTemp.appendChild(tituloClone);
                 }
                 
-                // Clonar tabela PRESERVANDO todos os estilos computados
+                // Clonar tabela preservando estilos
                 const tabelaClone = tabela.cloneNode(true);
                 
                 // Função para copiar estilos computados recursivamente
                 function copiarEstilosComputados(elementoOriginal, elementoClone) {
                     const estilosComputados = window.getComputedStyle(elementoOriginal);
                     
-                    // Copiar todos os estilos computados importantes
                     const estilosImportantes = [
                         'background-color', 'color', 'font-size', 'font-weight', 'font-family',
                         'padding', 'margin', 'border', 'border-color', 'border-width', 'border-style',
@@ -7952,10 +7952,10 @@
                     }
                 }
                 
-                // Copiar estilos da tabela e todos os elementos internos
+                // Copiar estilos da tabela e elementos internos
                 copiarEstilosComputados(tabela, tabelaClone);
                 
-                // Forçar table-layout e border-collapse da tabela original
+                // Forçar propriedades da tabela
                 const estilosTabela = window.getComputedStyle(tabela);
                 tabelaClone.style.tableLayout = estilosTabela.tableLayout;
                 tabelaClone.style.borderCollapse = estilosTabela.borderCollapse;
@@ -7964,19 +7964,19 @@
                 containerTemp.appendChild(tabelaClone);
                 document.body.appendChild(containerTemp);
                 
-                // Aguardar renderização completa
+                // Aguardar renderização
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
-                // Capturar com html2canvas
+                // Capturar com html2canvas usando scale: 1
                 const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
-                    scale: 3.5,  // Scale 2 para boa qualidade
+                    scale: 1,  // Scale 1 porque já escalamos o container com transform
                     logging: false,
                     useCORS: true,
                     allowTaint: true,
                     imageTimeout: 0,
-                    windowWidth: containerTemp.scrollWidth,
-                    windowHeight: containerTemp.scrollHeight
+                    windowWidth: containerTemp.scrollWidth * 2,  // Multiplicar por 2 devido ao transform
+                    windowHeight: containerTemp.scrollHeight * 2
                 });
                 
                 // Remover container temporário
@@ -7985,7 +7985,6 @@
                 // ===== TENTAR COPIAR PARA CLIPBOARD =====
                 canvas.toBlob(async (blob) => {
                     try {
-                        // Tentar usando Clipboard API moderna
                         await navigator.clipboard.write([
                             new ClipboardItem({ 'image/png': blob })
                         ]);
@@ -7993,7 +7992,8 @@
                         esconderSpinner();
                         
                         mostrarAlerta(
-                            '✅ <strong>Imagem copiada com sucesso!</strong><br>',
+                            '✅ <strong>Imagem copiada com sucesso!</strong><br><br>' +
+                            'Cole (Ctrl+V) no aplicativo desejado (Word, Excel, etc.)',
                             '✅ Sucesso',
                             '#28a745'
                         );
@@ -8039,9 +8039,6 @@
                 );
             }
         }
-
-
-
 
         // Função para copiar como imagem (usando html2canvas se disponível)
         // async function copiarComoImagem() {
