@@ -7846,394 +7846,511 @@
             document.getElementById('modalVisualizacao').style.display = 'none';
         }
 
-
-        // Função para copiar como imagem (usando html2canvas se disponível)
-    async function copiarComoImagem() {
-        const conteudo = document.getElementById('conteudoVisualizacao');
-        
-        // Verificar se html2canvas está disponível
-        if (typeof html2canvas === 'undefined') {
-            mostrarAlerta(
-                'Para usar este recurso, é necessário incluir a biblioteca html2canvas.<br><br>' +
-                'Por enquanto, você pode usar a tecla Print Screen para capturar a tela.',
-                'ℹ️ Informação',
-                '#1a73e8'
-            );
-            return;
-        }
-        
-        // ===== VERIFICAR PERMISSÃO DA CLIPBOARD API =====
-        try {
-            const permissionStatus = await navigator.permissions.query({ name: 'clipboard-write' });
+        async function copiarComoImagem() {
+            const conteudo = document.getElementById('conteudoVisualizacao');
             
-            if (permissionStatus.state === 'denied') {
+            // Verificar se html2canvas está disponível
+            if (typeof html2canvas === 'undefined') {
                 mostrarAlerta(
-                    '❌ <strong>Permissão Negada</strong><br><br>' +
-                    'Seu navegador bloqueou o acesso à área de transferência.<br><br>' +
-                    '<strong>Solução:</strong><br>' +
-                    '1. Clique no ícone de <strong>cadeado/informação</strong> na barra de endereço<br>' +
-                    '2. Permita o acesso à <strong>Área de transferência</strong><br>' +
-                    '3. Recarregue a página e tente novamente<br><br>' +
-                    '<em>Ou use Print Screen manualmente.</em>',
-                    '⚠️ Acesso Bloqueado',
-                    '#dc3545'
+                    'Para usar este recurso, é necessário incluir a biblioteca html2canvas.<br><br>' +
+                    'Por enquanto, você pode usar a tecla Print Screen para capturar a tela.',
+                    'ℹ️ Informação',
+                    '#1a73e8'
                 );
                 return;
             }
-        } catch (permError) {
-            console.warn('Não foi possível verificar permissão da clipboard:', permError);
-            // Continuar mesmo assim (alguns navegadores não suportam permissions query)
-        }
-        
-        try {
-            mostrarSpinner();
             
-            // Encontrar a tabela dentro do conteúdo
-            const tabela = conteudo.querySelector('table');
-            const tituloSecao = conteudo.querySelector('.section-title-compacto');
+            // ===== VERIFICAR PERMISSÃO DA CLIPBOARD API =====
+            try {
+                const permissionStatus = await navigator.permissions.query({ name: 'clipboard-write' });
+                
+                if (permissionStatus.state === 'denied') {
+                    mostrarAlerta(
+                        '❌ <strong>Permissão Negada</strong><br><br>' +
+                        'Seu navegador bloqueou o acesso à área de transferência.<br><br>' +
+                        '<strong>Solução:</strong><br>' +
+                        '1. Clique no ícone de <strong>cadeado/informação</strong> na barra de endereço<br>' +
+                        '2. Permita o acesso à <strong>Área de transferência</strong><br>' +
+                        '3. Recarregue a página e tente novamente<br><br>' +
+                        '<em>Ou use Print Screen manualmente.</em>',
+                        '⚠️ Acesso Bloqueado',
+                        '#dc3545'
+                    );
+                    return;
+                }
+            } catch (permError) {
+                console.warn('Não foi possível verificar permissão da clipboard:', permError);
+            }
             
-            if (!tabela) {
+            try {
+                mostrarSpinner();
+                
+                // ========== CAPTURAR DIRETAMENTE O CONTEÚDO VISÍVEL ==========
+                // Não clonar, não modificar estilos - capturar como está!
+                
+                // Aguardar um momento para garantir renderização
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Capturar com html2canvas DIRETO no elemento visível
+                const canvas = await html2canvas(conteudo, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,  // Scale 2 para boa qualidade sem exageros
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    imageTimeout: 0,
+                    scrollY: -window.scrollY,
+                    scrollX: -window.scrollX
+                });
+                
+                // ===== TENTAR COPIAR PARA CLIPBOARD =====
+                canvas.toBlob(async (blob) => {
+                    try {
+                        // Tentar usando Clipboard API moderna
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
+                        
+                        esconderSpinner();
+                        
+                        mostrarAlerta(
+                            '✅ <strong>Imagem copiada com sucesso!</strong><br><br>' +
+                            'Cole (Ctrl+V) no aplicativo desejado (Word, Excel, etc.)',
+                            '✅ Sucesso',
+                            '#28a745'
+                        );
+                        
+                    } catch (clipboardError) {
+                        esconderSpinner();
+                        
+                        console.error('Erro ao copiar para clipboard:', clipboardError);
+                        
+                        // ===== FALLBACK: DOWNLOAD AUTOMÁTICO =====
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `agenda_${new Date().getTime()}.png`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        
+                        mostrarAlerta(
+                            '⚠️ <strong>Não foi possível copiar automaticamente</strong><br><br>' +
+                            '✅ A imagem foi <strong>baixada automaticamente</strong><br><br>' +
+                            '<strong>Motivo:</strong> Seu navegador bloqueou o acesso à área de transferência.<br><br>' +
+                            '<strong>Solução alternativa:</strong><br>' +
+                            '1. Localize o arquivo PNG baixado<br>' +
+                            '2. Abra a imagem<br>' +
+                            '3. Copie manualmente (Ctrl+C) e cole onde desejar<br><br>' +
+                            '<em>Ou permita o acesso à área de transferência nas configurações do navegador.</em>',
+                            'ℹ️ Download Realizado',
+                            '#1a73e8'
+                        );
+                    }
+                }, 'image/png');
+                
+            } catch (error) {
                 esconderSpinner();
-                mostrarAlerta('Nenhuma tabela encontrada para capturar!', '⚠️ Aviso', '#ffc107');
-                return;
+                console.error('Erro geral ao gerar imagem:', error);
+                mostrarAlerta(
+                    '❌ Erro ao gerar imagem.<br><br>' +
+                    'Tente novamente ou use Print Screen manualmente.',
+                    '⚠️ Erro',
+                    '#dc3545'
+                );
             }
-            
-            // Criar container temporário
-            const containerTemp = document.createElement('div');
-            
-            containerTemp.style.cssText = `
-                background: white; 
-                padding: 10px; 
-                box-sizing: border-box;
-                position: absolute;
-                left: -9999px;
-                top: 0;
-            `;
-            
-            if (tituloSecao) {
-                const tituloClone = tituloSecao.cloneNode(true);
-                containerTemp.appendChild(tituloClone);
-            }
-            
-            const tabelaClone = tabela.cloneNode(true);
-            
-            // Aplicar estilos na tabela
-
-            tabelaClone.style.cssText = `
-                width: 100%;
-                border-collapse: separate;
-                border-spacing: 0;
-                border: 1px solid #bbb;
-                table-layout: auto;
-                font-size: 11px;
-            `;
-
-            // tabelaClone.style.cssText = `
-            //     width: 100%;
-            //     border-collapse: collapse;
-            //     border: 0.33px solid #bbb;
-            //     table-layout: auto;
-            //     font-size: 11px;
-            // `;
-
-            // tabelaClone.style.cssText = `
-            //     width: 100%;
-            //     border-collapse: collapse;
-            //     border: 1px solid #bbb;
-            //     border-width: 1px;
-            //     table-layout: auto;
-            //     font-size: 11px;
-            // `;
-            
-            // Fixar colunas N. e Nome no cabeçalho
-            const thsClonados = tabelaClone.querySelectorAll('thead th');
-            thsClonados.forEach((th, index) => {
-                const styleBase = `
-                    background: #e8e8e8;
-                    padding: 4px 2px;
-                    text-align: center;
-                    border-right: 1px solid #bbb;
-                    border-bottom: 1px solid #bbb;
-                    font-size: 10px;
-                    font-weight: 600;
-                    line-height: 1;
-                `;
-                
-                if (index === 0) {
-                    // Coluna N. - primeira coluna também tem borda esquerda
-                    th.style.cssText = styleBase + `
-                        border-left: 1px solid #bbb;
-                        width: 28px;
-                        min-width: 28px;
-                        max-width: 28px;
-                    `;
-                } else if (index === 1) {
-                    // Coluna Nome
-                    th.style.cssText = styleBase + `
-                        width: 140px;
-                        min-width: 140px;
-                        max-width: 140px;
-                    `;
-                } else {
-                    // Colunas dos dias (col-dia)
-                    th.style.cssText = styleBase + `
-                        padding: 2px 4px;
-                        white-space: normal;
-                        word-wrap: break-word;
-                        width: 130px;
-                        min-width: 135px;
-                        max-width: 135px;
-                    `;
-                }
-            });
-
-
-            // const thsClonados = tabelaClone.querySelectorAll('thead th');
-            // thsClonados.forEach((th, index) => {
-            //     const styleBase = `
-            //         background: #e8e8e8;
-            //         padding: 4px 2px;
-            //         text-align: center;
-            //         border: 0.33px solid #bbb; 
-            //         font-size: 10px;
-            //         font-weight: 600;
-            //         line-height: 1;
-            //     `;
-                
-            //     if (index === 0) {
-            //         // Coluna N.
-            //         th.style.cssText = styleBase + `
-            //             width: 28px;
-            //             min-width: 28px;
-            //             max-width: 28px;
-            //         `;
-            //     } else if (index === 1) {
-            //         // Coluna Nome
-            //         th.style.cssText = styleBase + `
-            //             width: 140px;
-            //             min-width: 140px;
-            //             max-width: 140px;
-            //         `;
-            //     } else {
-            //         // Colunas dos dias (col-dia) - 120px
-            //         th.style.cssText = styleBase + `
-            //             padding: 2px 4px;
-            //             white-space: normal;
-            //             word-wrap: break-word;
-            //             width: 130px;
-            //             min-width: 135px;
-            //             max-width: 135px;
-            //         `;
-            //     }
-            // });
-            
-
-            // Aplicar estilos em células do tbody mantendo cores
-            const tdsClonados = tabelaClone.querySelectorAll('tbody td');
-            tdsClonados.forEach((td) => {
-                const classes = td.className;
-                const computedStyle = window.getComputedStyle(td);
-                const bgColor = computedStyle.backgroundColor;
-                
-                // Base de borda: apenas direita e baixo (para evitar duplicação)
-                const borderBase = `
-                    border-right: 1px solid #bbb;
-                    border-bottom: 1px solid #bbb;
-                `;
-                
-                if (classes.includes('col-numero')) {
-                    // Coluna N. - primeira coluna também tem borda esquerda
-                    td.style.cssText = `
-                        background: ${bgColor};
-                        ${borderBase}
-                        border-left: 1px solid #bbb;
-                        padding: 2px 1px;
-                        vertical-align: top;
-                        font-size: 9px;
-                        line-height: 1;
-                        min-height: 18px;
-                        font-weight: 600;
-                        text-align: center;
-                        width: 28px;
-                        min-width: 28px;
-                        max-width: 28px;
-                    `;
-                } else if (classes.includes('col-nome')) {
-                    // Coluna Nome
-                    td.style.cssText = `
-                        background: ${bgColor};
-                        ${borderBase}
-                        padding: 2px 4px;
-                        vertical-align: top;
-                        font-size: 9px;
-                        line-height: 1;
-                        min-height: 18px;
-                        font-weight: 600;
-                        word-wrap: break-word;
-                        white-space: normal;
-                        width: 140px;
-                        min-width: 140px;
-                        max-width: 140px;
-                    `;
-                } else {
-                    // Células dos dias (col-dia)
-                    td.style.cssText = `
-                        background: ${bgColor};
-                        ${borderBase}
-                        padding: 2px 8px;
-                        vertical-align: top;
-                        font-size: 9px;
-                        line-height: 1;
-                        min-height: 18px;
-                        white-space: normal;
-                        word-wrap: break-word;
-                        width: 130px;
-                        min-width: 135px;
-                        max-width: 135px;
-                    `;
-                }
-            });
-
-
-            // const tdsClonados = tabelaClone.querySelectorAll('tbody td');
-            // tdsClonados.forEach((td) => {
-            //     const classes = td.className;
-            //     const computedStyle = window.getComputedStyle(td);
-            //     const bgColor = computedStyle.backgroundColor;
-                
-            //     if (classes.includes('col-numero')) {
-            //         // Coluna N.
-            //         td.style.cssText = `
-            //             background: ${bgColor};
-            //             border: 0.33px solid #bbb;
-            //             padding: 2px 1px;
-            //             vertical-align: top;
-            //             font-size: 9px;
-            //             line-height: 1;
-            //             min-height: 18px;
-            //             font-weight: 600;
-            //             text-align: center;
-            //             width: 28px;
-            //             min-width: 28px;
-            //             max-width: 28px;
-            //         `;
-            //     } else if (classes.includes('col-nome')) {
-            //         // Coluna Nome
-            //         td.style.cssText = `
-            //             background: ${bgColor};
-            //             border: 0.33px solid #bbb;
-            //             padding: 2px 4px;
-            //             vertical-align: top;
-            //             font-size: 9px;
-            //             line-height: 1;
-            //             min-height: 18px;
-            //             font-weight: 600;
-            //             word-wrap: break-word;
-            //             white-space: normal;
-            //             width: 140px;
-            //             min-width: 140px;
-            //             max-width: 140px;
-            //         `;
-            //     } else {
-            //         // Células dos dias (col-dia) - 120px
-            //         td.style.cssText = `
-            //             background: ${bgColor};
-            //             border: 0.33px solid #bbb;
-            //             padding: 2px 8px;
-            //             vertical-align: top;
-            //             font-size: 9px;
-            //             line-height: 1;
-            //             min-height: 18px;
-            //             white-space: normal;
-            //             word-wrap: break-word;
-            //             width: 130px;
-            //             min-width: 135px;
-            //             max-width: 135px;
-            //         `;
-            //     }
-            // });
-            
-            containerTemp.appendChild(tabelaClone);
-            document.body.appendChild(containerTemp);
-            
-            // Aguardar renderização completa
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Capturar com html2canvas
-            const canvas = await html2canvas(containerTemp, {
-                backgroundColor: '#ffffff',
-                scale: 3,
-                logging: false,
-                useCORS: true,
-                allowTaint: true,
-                imageTimeout: 0
-            });
-            
-            // Remover container temporário
-            document.body.removeChild(containerTemp);
-            
-            // ===== TENTAR COPIAR PARA CLIPBOARD =====
-            canvas.toBlob(async (blob) => {
-                try {
-                    // Tentar usando Clipboard API moderna
-                    await navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                    ]);
-                    
-                    esconderSpinner();
-                    
-                    mostrarAlerta(
-                        '✅ <strong>Imagem copiada com sucesso!</strong><br><br>',
-                        '✅ Sucesso',
-                        '#28a745'
-                    );
-                    
-                } catch (clipboardError) {
-                    esconderSpinner();
-                    
-                    console.error('Erro ao copiar para clipboard:', clipboardError);
-                    
-                    // ===== FALLBACK: DOWNLOAD AUTOMÁTICO =====
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `agenda_${new Date().getTime()}.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    
-                    mostrarAlerta(
-                        '⚠️ <strong>Não foi possível copiar automaticamente</strong><br><br>' +
-                        '✅ A imagem foi <strong>baixada automaticamente</strong><br><br>' +
-                        '<strong>Motivo:</strong> Seu navegador bloqueou o acesso à área de transferência.<br><br>' +
-                        '<strong>Solução alternativa:</strong><br>' +
-                        '1. Localize o arquivo PNG baixado<br>' +
-                        '2. Abra a imagem<br>' +
-                        '3. Copie manualmente (Ctrl+C) e cole onde desejar<br><br>' +
-                        '<em>Ou permita o acesso à área de transferência nas configurações do navegador.</em>',
-                        'ℹ️ Download Realizado',
-                        '#1a73e8'
-                    );
-                }
-            }, 'image/png');
-            
-        } catch (error) {
-            esconderSpinner();
-            console.error('Erro geral ao gerar imagem:', error);
-            
-            mostrarAlerta(
-                '❌ <strong>Erro ao processar imagem</strong><br><br>' +
-                `<strong>Detalhes:</strong> ${error.message}<br><br>` +
-                '<strong>Tente:</strong><br>' +
-                '1. Recarregar a página (F5)<br>' +
-                '2. Usar outro navegador (Chrome recomendado)<br>' +
-                '3. Usar Print Screen manualmente',
-                '⚠️ Erro',
-                '#dc3545'
-            );
         }
-    }        
+
+
+
+        // Função para copiar como imagem (usando html2canvas se disponível)
+        // async function copiarComoImagem() {
+        //     const conteudo = document.getElementById('conteudoVisualizacao');
+            
+        //     // Verificar se html2canvas está disponível
+        //     if (typeof html2canvas === 'undefined') {
+        //         mostrarAlerta(
+        //             'Para usar este recurso, é necessário incluir a biblioteca html2canvas.<br><br>' +
+        //             'Por enquanto, você pode usar a tecla Print Screen para capturar a tela.',
+        //             'ℹ️ Informação',
+        //             '#1a73e8'
+        //         );
+        //         return;
+        //     }
+            
+        //     // ===== VERIFICAR PERMISSÃO DA CLIPBOARD API =====
+        //     try {
+        //         const permissionStatus = await navigator.permissions.query({ name: 'clipboard-write' });
+                
+        //         if (permissionStatus.state === 'denied') {
+        //             mostrarAlerta(
+        //                 '❌ <strong>Permissão Negada</strong><br><br>' +
+        //                 'Seu navegador bloqueou o acesso à área de transferência.<br><br>' +
+        //                 '<strong>Solução:</strong><br>' +
+        //                 '1. Clique no ícone de <strong>cadeado/informação</strong> na barra de endereço<br>' +
+        //                 '2. Permita o acesso à <strong>Área de transferência</strong><br>' +
+        //                 '3. Recarregue a página e tente novamente<br><br>' +
+        //                 '<em>Ou use Print Screen manualmente.</em>',
+        //                 '⚠️ Acesso Bloqueado',
+        //                 '#dc3545'
+        //             );
+        //             return;
+        //         }
+        //     } catch (permError) {
+        //         console.warn('Não foi possível verificar permissão da clipboard:', permError);
+        //         // Continuar mesmo assim (alguns navegadores não suportam permissions query)
+        //     }
+            
+        //     try {
+        //         mostrarSpinner();
+                
+        //         // Encontrar a tabela dentro do conteúdo
+        //         const tabela = conteudo.querySelector('table');
+        //         const tituloSecao = conteudo.querySelector('.section-title-compacto');
+                
+        //         if (!tabela) {
+        //             esconderSpinner();
+        //             mostrarAlerta('Nenhuma tabela encontrada para capturar!', '⚠️ Aviso', '#ffc107');
+        //             return;
+        //         }
+                
+        //         // Criar container temporário
+        //         const containerTemp = document.createElement('div');
+                
+        //         containerTemp.style.cssText = `
+        //             background: white; 
+        //             padding: 10px; 
+        //             box-sizing: border-box;
+        //             position: absolute;
+        //             left: -9999px;
+        //             top: 0;
+        //         `;
+                
+        //         if (tituloSecao) {
+        //             const tituloClone = tituloSecao.cloneNode(true);
+        //             containerTemp.appendChild(tituloClone);
+        //         }
+                
+        //         const tabelaClone = tabela.cloneNode(true);
+                
+        //         // Aplicar estilos na tabela
+
+        //         tabelaClone.style.cssText = `
+        //             width: 100%;
+        //             border-collapse: separate;
+        //             border-spacing: 0;
+        //             border: 1px solid #bbb;
+        //             table-layout: auto;
+        //             font-size: 11px;
+        //         `;
+
+        //         // tabelaClone.style.cssText = `
+        //         //     width: 100%;
+        //         //     border-collapse: collapse;
+        //         //     border: 0.33px solid #bbb;
+        //         //     table-layout: auto;
+        //         //     font-size: 11px;
+        //         // `;
+
+        //         // tabelaClone.style.cssText = `
+        //         //     width: 100%;
+        //         //     border-collapse: collapse;
+        //         //     border: 1px solid #bbb;
+        //         //     border-width: 1px;
+        //         //     table-layout: auto;
+        //         //     font-size: 11px;
+        //         // `;
+                
+        //         // Fixar colunas N. e Nome no cabeçalho
+        //         const thsClonados = tabelaClone.querySelectorAll('thead th');
+        //         thsClonados.forEach((th, index) => {
+        //             const styleBase = `
+        //                 background: #e8e8e8;
+        //                 padding: 4px 2px;
+        //                 text-align: center;
+        //                 border-right: 1px solid #bbb;
+        //                 border-bottom: 1px solid #bbb;
+        //                 font-size: 10px;
+        //                 font-weight: 600;
+        //                 line-height: 1;
+        //             `;
+                    
+        //             if (index === 0) {
+        //                 // Coluna N. - primeira coluna também tem borda esquerda
+        //                 th.style.cssText = styleBase + `
+        //                     border-left: 1px solid #bbb;
+        //                     width: 28px;
+        //                     min-width: 28px;
+        //                     max-width: 28px;
+        //                 `;
+        //             } else if (index === 1) {
+        //                 // Coluna Nome
+        //                 th.style.cssText = styleBase + `
+        //                     width: 140px;
+        //                     min-width: 140px;
+        //                     max-width: 140px;
+        //                 `;
+        //             } else {
+        //                 // Colunas dos dias (col-dia)
+        //                 th.style.cssText = styleBase + `
+        //                     padding: 2px 4px;
+        //                     white-space: normal;
+        //                     word-wrap: break-word;
+        //                     width: 130px;
+        //                     min-width: 135px;
+        //                     max-width: 135px;
+        //                 `;
+        //             }
+        //         });
+
+
+        //         // const thsClonados = tabelaClone.querySelectorAll('thead th');
+        //         // thsClonados.forEach((th, index) => {
+        //         //     const styleBase = `
+        //         //         background: #e8e8e8;
+        //         //         padding: 4px 2px;
+        //         //         text-align: center;
+        //         //         border: 0.33px solid #bbb; 
+        //         //         font-size: 10px;
+        //         //         font-weight: 600;
+        //         //         line-height: 1;
+        //         //     `;
+                    
+        //         //     if (index === 0) {
+        //         //         // Coluna N.
+        //         //         th.style.cssText = styleBase + `
+        //         //             width: 28px;
+        //         //             min-width: 28px;
+        //         //             max-width: 28px;
+        //         //         `;
+        //         //     } else if (index === 1) {
+        //         //         // Coluna Nome
+        //         //         th.style.cssText = styleBase + `
+        //         //             width: 140px;
+        //         //             min-width: 140px;
+        //         //             max-width: 140px;
+        //         //         `;
+        //         //     } else {
+        //         //         // Colunas dos dias (col-dia) - 120px
+        //         //         th.style.cssText = styleBase + `
+        //         //             padding: 2px 4px;
+        //         //             white-space: normal;
+        //         //             word-wrap: break-word;
+        //         //             width: 130px;
+        //         //             min-width: 135px;
+        //         //             max-width: 135px;
+        //         //         `;
+        //         //     }
+        //         // });
+                
+
+        //         // Aplicar estilos em células do tbody mantendo cores
+        //         const tdsClonados = tabelaClone.querySelectorAll('tbody td');
+        //         tdsClonados.forEach((td) => {
+        //             const classes = td.className;
+        //             const computedStyle = window.getComputedStyle(td);
+        //             const bgColor = computedStyle.backgroundColor;
+                    
+        //             // Base de borda: apenas direita e baixo (para evitar duplicação)
+        //             const borderBase = `
+        //                 border-right: 1px solid #bbb;
+        //                 border-bottom: 1px solid #bbb;
+        //             `;
+                    
+        //             if (classes.includes('col-numero')) {
+        //                 // Coluna N. - primeira coluna também tem borda esquerda
+        //                 td.style.cssText = `
+        //                     background: ${bgColor};
+        //                     ${borderBase}
+        //                     border-left: 1px solid #bbb;
+        //                     padding: 2px 1px;
+        //                     vertical-align: top;
+        //                     font-size: 9px;
+        //                     line-height: 1;
+        //                     min-height: 18px;
+        //                     font-weight: 600;
+        //                     text-align: center;
+        //                     width: 28px;
+        //                     min-width: 28px;
+        //                     max-width: 28px;
+        //                 `;
+        //             } else if (classes.includes('col-nome')) {
+        //                 // Coluna Nome
+        //                 td.style.cssText = `
+        //                     background: ${bgColor};
+        //                     ${borderBase}
+        //                     padding: 2px 4px;
+        //                     vertical-align: top;
+        //                     font-size: 9px;
+        //                     line-height: 1;
+        //                     min-height: 18px;
+        //                     font-weight: 600;
+        //                     word-wrap: break-word;
+        //                     white-space: normal;
+        //                     width: 140px;
+        //                     min-width: 140px;
+        //                     max-width: 140px;
+        //                 `;
+        //             } else {
+        //                 // Células dos dias (col-dia)
+        //                 td.style.cssText = `
+        //                     background: ${bgColor};
+        //                     ${borderBase}
+        //                     padding: 2px 8px;
+        //                     vertical-align: top;
+        //                     font-size: 9px;
+        //                     line-height: 1;
+        //                     min-height: 18px;
+        //                     white-space: normal;
+        //                     word-wrap: break-word;
+        //                     width: 130px;
+        //                     min-width: 135px;
+        //                     max-width: 135px;
+        //                 `;
+        //             }
+        //         });
+
+
+        //         // const tdsClonados = tabelaClone.querySelectorAll('tbody td');
+        //         // tdsClonados.forEach((td) => {
+        //         //     const classes = td.className;
+        //         //     const computedStyle = window.getComputedStyle(td);
+        //         //     const bgColor = computedStyle.backgroundColor;
+                    
+        //         //     if (classes.includes('col-numero')) {
+        //         //         // Coluna N.
+        //         //         td.style.cssText = `
+        //         //             background: ${bgColor};
+        //         //             border: 0.33px solid #bbb;
+        //         //             padding: 2px 1px;
+        //         //             vertical-align: top;
+        //         //             font-size: 9px;
+        //         //             line-height: 1;
+        //         //             min-height: 18px;
+        //         //             font-weight: 600;
+        //         //             text-align: center;
+        //         //             width: 28px;
+        //         //             min-width: 28px;
+        //         //             max-width: 28px;
+        //         //         `;
+        //         //     } else if (classes.includes('col-nome')) {
+        //         //         // Coluna Nome
+        //         //         td.style.cssText = `
+        //         //             background: ${bgColor};
+        //         //             border: 0.33px solid #bbb;
+        //         //             padding: 2px 4px;
+        //         //             vertical-align: top;
+        //         //             font-size: 9px;
+        //         //             line-height: 1;
+        //         //             min-height: 18px;
+        //         //             font-weight: 600;
+        //         //             word-wrap: break-word;
+        //         //             white-space: normal;
+        //         //             width: 140px;
+        //         //             min-width: 140px;
+        //         //             max-width: 140px;
+        //         //         `;
+        //         //     } else {
+        //         //         // Células dos dias (col-dia) - 120px
+        //         //         td.style.cssText = `
+        //         //             background: ${bgColor};
+        //         //             border: 0.33px solid #bbb;
+        //         //             padding: 2px 8px;
+        //         //             vertical-align: top;
+        //         //             font-size: 9px;
+        //         //             line-height: 1;
+        //         //             min-height: 18px;
+        //         //             white-space: normal;
+        //         //             word-wrap: break-word;
+        //         //             width: 130px;
+        //         //             min-width: 135px;
+        //         //             max-width: 135px;
+        //         //         `;
+        //         //     }
+        //         // });
+                
+        //         containerTemp.appendChild(tabelaClone);
+        //         document.body.appendChild(containerTemp);
+                
+        //         // Aguardar renderização completa
+        //         await new Promise(resolve => setTimeout(resolve, 500));
+                
+        //         // Capturar com html2canvas
+        //         const canvas = await html2canvas(containerTemp, {
+        //             backgroundColor: '#ffffff',
+        //             scale: 3,
+        //             logging: false,
+        //             useCORS: true,
+        //             allowTaint: true,
+        //             imageTimeout: 0
+        //         });
+                
+        //         // Remover container temporário
+        //         document.body.removeChild(containerTemp);
+                
+        //         // ===== TENTAR COPIAR PARA CLIPBOARD =====
+        //         canvas.toBlob(async (blob) => {
+        //             try {
+        //                 // Tentar usando Clipboard API moderna
+        //                 await navigator.clipboard.write([
+        //                     new ClipboardItem({ 'image/png': blob })
+        //                 ]);
+                        
+        //                 esconderSpinner();
+                        
+        //                 mostrarAlerta(
+        //                     '✅ <strong>Imagem copiada com sucesso!</strong><br><br>',
+        //                     '✅ Sucesso',
+        //                     '#28a745'
+        //                 );
+                        
+        //             } catch (clipboardError) {
+        //                 esconderSpinner();
+                        
+        //                 console.error('Erro ao copiar para clipboard:', clipboardError);
+                        
+        //                 // ===== FALLBACK: DOWNLOAD AUTOMÁTICO =====
+        //                 const url = URL.createObjectURL(blob);
+        //                 const link = document.createElement('a');
+        //                 link.href = url;
+        //                 link.download = `agenda_${new Date().getTime()}.png`;
+        //                 document.body.appendChild(link);
+        //                 link.click();
+        //                 document.body.removeChild(link);
+        //                 URL.revokeObjectURL(url);
+                        
+        //                 mostrarAlerta(
+        //                     '⚠️ <strong>Não foi possível copiar automaticamente</strong><br><br>' +
+        //                     '✅ A imagem foi <strong>baixada automaticamente</strong><br><br>' +
+        //                     '<strong>Motivo:</strong> Seu navegador bloqueou o acesso à área de transferência.<br><br>' +
+        //                     '<strong>Solução alternativa:</strong><br>' +
+        //                     '1. Localize o arquivo PNG baixado<br>' +
+        //                     '2. Abra a imagem<br>' +
+        //                     '3. Copie manualmente (Ctrl+C) e cole onde desejar<br><br>' +
+        //                     '<em>Ou permita o acesso à área de transferência nas configurações do navegador.</em>',
+        //                     'ℹ️ Download Realizado',
+        //                     '#1a73e8'
+        //                 );
+        //             }
+        //         }, 'image/png');
+                
+        //     } catch (error) {
+        //         esconderSpinner();
+        //         console.error('Erro geral ao gerar imagem:', error);
+                
+        //         mostrarAlerta(
+        //             '❌ <strong>Erro ao processar imagem</strong><br><br>' +
+        //             `<strong>Detalhes:</strong> ${error.message}<br><br>` +
+        //             '<strong>Tente:</strong><br>' +
+        //             '1. Recarregar a página (F5)<br>' +
+        //             '2. Usar outro navegador (Chrome recomendado)<br>' +
+        //             '3. Usar Print Screen manualmente',
+        //             '⚠️ Erro',
+        //             '#dc3545'
+        //         );
+        //     }
+        // }        
         
         // Renderização compacta para visualização
         function renderizarSecaoMotoristasCompacta(dias) {
