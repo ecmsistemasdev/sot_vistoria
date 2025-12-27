@@ -7885,23 +7885,102 @@
             try {
                 mostrarSpinner();
                 
-                // ========== CAPTURAR DIRETAMENTE O CONTEÚDO VISÍVEL ==========
-                // Não clonar, não modificar estilos - capturar como está!
+                // ========== CAPTURAR TABELA COMPLETA SEM MODIFICAR ESTILOS ==========
                 
-                // Aguardar um momento para garantir renderização
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // Encontrar a tabela e o título
+                const tabela = conteudo.querySelector('table');
+                const tituloSecao = conteudo.querySelector('.section-title-compacto');
                 
-                // Capturar com html2canvas DIRETO no elemento visível
-                const canvas = await html2canvas(conteudo, {
+                if (!tabela) {
+                    esconderSpinner();
+                    mostrarAlerta('Nenhuma tabela encontrada para capturar!', '⚠️ Aviso', '#ffc107');
+                    return;
+                }
+                
+                // Criar container temporário que vai conter CLONES com estilos preservados
+                const containerTemp = document.createElement('div');
+                containerTemp.style.cssText = `
+                    position: absolute;
+                    left: -9999px;
+                    top: 0;
+                    background: white;
+                    padding: 10px;
+                `;
+                
+                // Clonar título se existir
+                if (tituloSecao) {
+                    const tituloClone = tituloSecao.cloneNode(true);
+                    // Copiar estilos computados do título
+                    const estilosTitulo = window.getComputedStyle(tituloSecao);
+                    tituloClone.style.cssText = estilosTitulo.cssText;
+                    containerTemp.appendChild(tituloClone);
+                }
+                
+                // Clonar tabela PRESERVANDO todos os estilos computados
+                const tabelaClone = tabela.cloneNode(true);
+                
+                // Função para copiar estilos computados recursivamente
+                function copiarEstilosComputados(elementoOriginal, elementoClone) {
+                    const estilosComputados = window.getComputedStyle(elementoOriginal);
+                    
+                    // Copiar todos os estilos computados importantes
+                    const estilosImportantes = [
+                        'background-color', 'color', 'font-size', 'font-weight', 'font-family',
+                        'padding', 'margin', 'border', 'border-color', 'border-width', 'border-style',
+                        'text-align', 'vertical-align', 'line-height', 'width', 'height',
+                        'min-width', 'max-width', 'min-height', 'max-height'
+                    ];
+                    
+                    let cssText = '';
+                    estilosImportantes.forEach(prop => {
+                        const valor = estilosComputados.getPropertyValue(prop);
+                        if (valor) {
+                            cssText += `${prop}: ${valor}; `;
+                        }
+                    });
+                    
+                    elementoClone.style.cssText += cssText;
+                    
+                    // Copiar estilos dos filhos recursivamente
+                    const filhosOriginais = elementoOriginal.children;
+                    const filhosClone = elementoClone.children;
+                    
+                    for (let i = 0; i < filhosOriginais.length; i++) {
+                        if (filhosClone[i]) {
+                            copiarEstilosComputados(filhosOriginais[i], filhosClone[i]);
+                        }
+                    }
+                }
+                
+                // Copiar estilos da tabela e todos os elementos internos
+                copiarEstilosComputados(tabela, tabelaClone);
+                
+                // Forçar table-layout e border-collapse da tabela original
+                const estilosTabela = window.getComputedStyle(tabela);
+                tabelaClone.style.tableLayout = estilosTabela.tableLayout;
+                tabelaClone.style.borderCollapse = estilosTabela.borderCollapse;
+                tabelaClone.style.borderSpacing = estilosTabela.borderSpacing;
+                
+                containerTemp.appendChild(tabelaClone);
+                document.body.appendChild(containerTemp);
+                
+                // Aguardar renderização completa
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Capturar com html2canvas
+                const canvas = await html2canvas(containerTemp, {
                     backgroundColor: '#ffffff',
-                    scale: 3,  // Scale 2 para boa qualidade sem exageros
+                    scale: 3,  // Scale 2 para boa qualidade
                     logging: false,
                     useCORS: true,
                     allowTaint: true,
                     imageTimeout: 0,
-                    scrollY: -window.scrollY,
-                    scrollX: -window.scrollX
+                    windowWidth: containerTemp.scrollWidth,
+                    windowHeight: containerTemp.scrollHeight
                 });
+                
+                // Remover container temporário
+                document.body.removeChild(containerTemp);
                 
                 // ===== TENTAR COPIAR PARA CLIPBOARD =====
                 canvas.toBlob(async (blob) => {
@@ -7914,7 +7993,7 @@
                         esconderSpinner();
                         
                         mostrarAlerta(
-                            '✅ <strong>Imagem copiada com sucesso!</strong><br><br>',
+                            '✅ <strong>Imagem copiada com sucesso!</strong><br>',
                             '✅ Sucesso',
                             '#28a745'
                         );
@@ -7960,6 +8039,7 @@
                 );
             }
         }
+
 
 
 
