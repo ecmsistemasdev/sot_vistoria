@@ -1686,6 +1686,61 @@
             border: 3px solid rgba(255, 255, 255, 0.5);
         }
 
+        /* Estilos do contador regressivo */
+        .countdown-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 15px;
+        }
+        
+        .countdown-text {
+            font-size: 13px;
+            color: #fff;
+            font-weight: 500;
+        }
+        
+        .countdown-timer {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            min-width: 35px;
+            text-align: center;
+        }
+        
+        .countdown-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .countdown-btn {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1976d2;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .countdown-btn:hover {
+            background: #fff;
+            transform: translateY(-1px);
+        }
+        
+        .countdown-btn.btn-cancel {
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+        }
+        
+        .countdown-btn.btn-cancel:hover {
+            background: #f44336;
+        }
+        
         /* ========== GROUPBOX ESTILO DELPHI ========== */
         .group-box {
             border: 1px solid #c0c0c0;
@@ -2526,7 +2581,10 @@
         let ultimoCheckTimestamp = null;
         let intervaloVerificacao = null;
         let notificacaoAtiva = false;
-
+        // Variáveis para controle do contador regressivo
+        let countdownInterval = null;
+        let countdownSeconds = 15;
+        let countdownActive = false;
 
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
@@ -4620,6 +4678,11 @@
                 
                 // ===== SCROLL PARA O TOPO PARA GARANTIR QUE O USUÁRIO VEJA =====
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // ===== INICIA O CONTADOR REGRESSIVO =====
+                if (!countdownActive) {
+                    startUpdateCountdown();
+                }
             } else {
                 console.error('❌ Elemento updateNotification NÃO encontrado!');
             }
@@ -4630,8 +4693,107 @@
             const notificacao = document.getElementById('updateNotification');
             notificacao.style.display = 'none';
             notificacaoAtiva = false;
+            
+            // Para o contador se estiver ativo
+            stopUpdateCountdown();
         }
 
+        // Inicia o contador regressivo de atualização
+        function startUpdateCountdown() {
+            // Verifica se o form de demandas está aberto
+            const formDemandas = document.getElementById('formDemandas');
+            const isFormOpen = formDemandas && formDemandas.style.display === 'block';
+
+            // Para o contador se estiver ativo
+            if (countdownActive) {
+                stopUpdateCountdown();
+                console.log('⏸️ Contador pausado - Form de demandas aberto');
+            }
+                        
+            // Se o form estiver aberto, não inicia o contador
+            if (isFormOpen) {
+                console.log('⏸️ Form de demandas aberto. Contador não iniciado.');
+                return;
+            }
+            
+            // Inicializa o contador
+            countdownSeconds = 15;
+            countdownActive = true;
+            
+            console.log('⏱️ Iniciando contador regressivo de 15 segundos...');
+            
+            // Atualiza a interface com o contador
+            updateCountdownDisplay();
+            
+            // Inicia o intervalo
+            countdownInterval = setInterval(() => {
+                countdownSeconds--;
+                updateCountdownDisplay();
+                
+                if (countdownSeconds <= 0) {
+                    console.log('⏰ Contador zerou! Atualizando automaticamente...');
+                    stopUpdateCountdown();
+                    // Atualiza a página automaticamente
+                    atualizarAgoraPelaNotificacao();
+                }
+            }, 1000);
+        }
+        
+        // Atualiza a exibição do contador na interface
+        function updateCountdownDisplay() {
+            const notificationBar = document.getElementById('updateNotification');
+            if (!notificationBar) return;
+            
+            // Verifica se já existe o container do contador
+            let countdownContainer = notificationBar.querySelector('.countdown-container');
+            
+            if (!countdownContainer) {
+                // Cria o container do contador
+                countdownContainer = document.createElement('div');
+                countdownContainer.className = 'countdown-container';
+                countdownContainer.innerHTML = `
+                    <span class="countdown-text">Atualizando em:</span>
+                    <span class="countdown-timer">${countdownSeconds}s</span>
+                    <div class="countdown-actions">
+                        <button class="countdown-btn btn-cancel" onclick="stopUpdateCountdown()">Cancelar</button>
+                        <button class="countdown-btn" onclick="atualizarAgoraPelaNotificacao()">Atualizar Agora</button>
+                    </div>
+                `;
+                
+                // Adiciona o contador dentro do .update-content
+                const updateContent = notificationBar.querySelector('.update-content');
+                if (updateContent) {
+                    updateContent.appendChild(countdownContainer);
+                }
+            } else {
+                // Atualiza apenas o número
+                const timerElement = countdownContainer.querySelector('.countdown-timer');
+                if (timerElement) {
+                    timerElement.textContent = `${countdownSeconds}s`;
+                }
+            }
+        }
+        
+        // Para o contador regressivo
+        function stopUpdateCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+                console.log('⏹️ Contador interrompido pelo usuário.');
+            }
+            countdownActive = false;
+            countdownSeconds = 15;
+            
+            // Remove o container do contador da interface
+            const notificationBar = document.getElementById('updateNotification');
+            if (notificationBar) {
+                const countdownContainer = notificationBar.querySelector('.countdown-container');
+                if (countdownContainer) {
+                    countdownContainer.remove();
+                }
+            }
+        }
+        
         // Atualizar agora pela notificação
         async function atualizarAgoraPelaNotificacao() {
             esconderNotificacaoAtualizacao();
@@ -4641,6 +4803,7 @@
 
         // Dispensar notificação (continuar vendo dados antigos)
         function dispensarNotificacao() {
+            stopUpdateCountdown(); // Para o contador antes de esconder
             esconderNotificacaoAtualizacao();
             // ultimoCheckTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
         }
