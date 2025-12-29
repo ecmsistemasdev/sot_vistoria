@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
-    <title>SOT - Cadastro de Motoristas</title>
+    <title>SOT - Cadastro de Motoristas/Servidores Adm</title>
     <!-- Bootstrap CSS (CARREGAR APENAS UMA VEZ) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -413,7 +413,7 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-12 text-center mb-3">
-                        <h2>Cadastro de Motoristas</h2>
+                        <h2>Cadastro de Motoristas/Servidores Adm</h2>
                     </div>
                 </div>
 
@@ -463,7 +463,7 @@
                     <form id="cadastroForm">
                         <input type="hidden" id="idMotorista" name="id_motorista">
                         <div class="form-title text-center">
-                            <h5>Cadastro de Motorista</h5>
+                            <h5>Cadastro</h5>
                         </div>
 
                         <div class="row">
@@ -970,7 +970,7 @@
                 .then(response => response.json())
                 .then(result => {
                     if (result.sucesso) {
-                        alert('Motorista salvo com sucesso!');
+                        alert('Cadastro realizado com sucesso!');
                         $('#secaoCadastro, #formFooter').hide();
                         $('#secaoPesquisa, #secaoTabela, #secaoTabelaBotoes, #mainFooter').show();
                         carregarMotoristas();
@@ -1068,6 +1068,7 @@
     </script>
 </body>
 </html>
+
 
 
 
