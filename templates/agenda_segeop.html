@@ -5606,14 +5606,14 @@
                             // Renderizar célula vazia com rowspan
                             if (feriado) {
                                 if (linhaIndex === 0 && demandasDia.length === 0) {
-                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this, 'administrativo')">${feriado.descricao}</td>`;
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this, 'motoristas')">${feriado.descricao}</td>`;
                                 } else {
                                     html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
                                 }
                             } else {
                                 const weekendClass = isWeekend ? 'weekend-empty' : '';
                                 if (linhaIndex === 0 && demandasDia.length === 0) {
-                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this, 'administrativo')"></td>`;
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="handleClickCelulaVazia(event, '${dia.data}', ${m.id}, null, this, 'motoristas')"></td>`;
                                 } else {
                                     html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
                                 }
@@ -5938,14 +5938,14 @@
                             
                             if (feriado) {
                                 if (linhaIndex === 0 && demandasDia.length === 0) {
-                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})">${feriado.descricao}</td>`;
+                                    html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id}, 'outros')">${feriado.descricao}</td>`;
                                 } else {
                                     html += `<td class="cell-feriado col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}>${feriado.descricao}</td>`;
                                 }
                             } else {
                                 const weekendClass = isWeekend ? 'weekend-empty' : '';
                                 if (linhaIndex === 0 && demandasDia.length === 0) {
-                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id})"></td>`;
+                                    html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalNovoComData('${dia.data}', ${m.id}, 'outros')"></td>`;
                                 } else {
                                     html += `<td class="empty-cell ${weekendClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''}></td>`;
                                 }
@@ -6597,8 +6597,14 @@
             
             // Mostrar filtro e definir SEGEOP como padrão
             document.getElementById('motoristaFilter').style.display = 'flex';
-            document.querySelector('input[name="tipoMotorista"][value="segeop"]').checked = true;
-            
+            const radios = document.querySelectorAll('input[name="tipoMotorista"]');
+            radios.forEach(radio => {
+                radio.disabled = false;  // DESBLOQUEAR todos os radios
+                if (radio.value === 'segeop') {
+                    radio.checked = true;  // Selecionar SEGEOP por padrão
+                }
+            });
+                    
             // Ocultar checkbox Solicitado
             document.getElementById('divSolicitado').style.display = 'none';
             document.getElementById('solicitado').checked = false;
@@ -6638,7 +6644,7 @@
             
             document.getElementById('modal').style.display = 'block';
         }
-        
+                
         async function abrirModalNovoComData(data, idMotorista = null, secao = null) {
             contextoAbertura = 'motorista'; // Definir ANTES
             await abrirModalNovo();
@@ -6646,19 +6652,46 @@
             document.getElementById('dtInicio').value = data;
             document.getElementById('dtFim').value = data;
             
-            // Detectar se é seção Administrativo e bloquear outros radios
-            if (secao === 'administrativo') {
-                const radios = document.querySelectorAll('input[name="tipoMotorista"]');
+            // ========== CORREÇÃO: BLOQUEAR RADIOS BASEADO NA SEÇÃO ==========
+            const radios = document.querySelectorAll('input[name="tipoMotorista"]');
+            
+            // Detectar seção SEGEOP - MOTORISTAS
+            if (secao === 'motoristas' || secao === null) {
+                radios.forEach(radio => {
+                    if (radio.value === 'segeop') {
+                        radio.checked = true;
+                        radio.disabled = true;  // Bloquear todos os 3 radios
+                    } else {
+                        radio.disabled = true;  // Bloquear todos os 3 radios
+                    }
+                });
+                preencherSelectMotoristas('segeop');
+            }
+            // Detectar seção OUTROS MOTORISTAS
+            else if (secao === 'outros') {
+                radios.forEach(radio => {
+                    if (radio.value === 'todos') {
+                        radio.checked = true;
+                        radio.disabled = true;  // Bloquear todos os 3 radios
+                    } else {
+                        radio.disabled = true;  // Bloquear todos os 3 radios
+                    }
+                });
+                preencherSelectMotoristas('todos');
+            }
+            // Detectar seção SEGEOP - ADMINISTRATIVO
+            else if (secao === 'administrativo') {
                 radios.forEach(radio => {
                     if (radio.value === 'administrativo') {
                         radio.checked = true;
-                        radio.disabled = false;
+                        radio.disabled = true;  // Bloquear todos os 3 radios
                     } else {
-                        radio.disabled = true;
+                        radio.disabled = true;  // Bloquear todos os 3 radios
                     }
                 });
                 preencherSelectMotoristas('administrativo');
             }
+            // ========== FIM DA CORREÇÃO ==========
             
             if (idMotorista) {
                 document.getElementById('idMotorista').value = idMotorista;
@@ -6705,19 +6738,46 @@
                 document.getElementById('dtInicio').value = dtInicio;
                 document.getElementById('dtFim').value = dtFim;
                 
-                // Detectar se é seção Administrativo e bloquear outros radios
-                if (secao === 'administrativo') {
-                    const radios = document.querySelectorAll('input[name="tipoMotorista"]');
+                // ========== CORREÇÃO: BLOQUEAR RADIOS BASEADO NA SEÇÃO ==========
+                const radios = document.querySelectorAll('input[name="tipoMotorista"]');
+                
+                // Detectar seção SEGEOP - MOTORISTAS
+                if (secao === 'motoristas' || secao === null) {
+                    radios.forEach(radio => {
+                        if (radio.value === 'segeop') {
+                            radio.checked = true;
+                            radio.disabled = true;  // Bloquear todos os 3 radios
+                        } else {
+                            radio.disabled = true;  // Bloquear todos os 3 radios
+                        }
+                    });
+                    preencherSelectMotoristas('segeop');
+                }
+                // Detectar seção OUTROS MOTORISTAS
+                else if (secao === 'outros') {
+                    radios.forEach(radio => {
+                        if (radio.value === 'todos') {
+                            radio.checked = true;
+                            radio.disabled = true;  // Bloquear todos os 3 radios
+                        } else {
+                            radio.disabled = true;  // Bloquear todos os 3 radios
+                        }
+                    });
+                    preencherSelectMotoristas('todos');
+                }
+                // Detectar seção SEGEOP - ADMINISTRATIVO
+                else if (secao === 'administrativo') {
                     radios.forEach(radio => {
                         if (radio.value === 'administrativo') {
                             radio.checked = true;
-                            radio.disabled = false;
+                            radio.disabled = true;  // Bloquear todos os 3 radios
                         } else {
-                            radio.disabled = true;
+                            radio.disabled = true;  // Bloquear todos os 3 radios
                         }
                     });
                     preencherSelectMotoristas('administrativo');
                 }
+                // ========== FIM DA CORREÇÃO ==========
                 
                 document.getElementById('idMotorista').value = idMotorista;
                 
