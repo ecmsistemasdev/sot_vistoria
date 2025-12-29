@@ -5427,6 +5427,32 @@
             return `${partes[0]} ${partes[1]}`;
         }
 
+        function abreviarNomeMotorista(nomeCompleto) {
+            if (!nomeCompleto || nomeCompleto.trim() === '') {
+                return '';
+            }
+            
+            const partes = nomeCompleto.trim().split(/\s+/);
+            
+            // Se tem 2 ou menos nomes, retorna completo
+            if (partes.length <= 2) {
+                return nomeCompleto;
+            }
+            
+            // Partículas que devem ser incluídas
+            const particulas = ['de', 'da', 'do', 'das', 'dos'];
+            
+            // Se o segundo nome é uma partícula, incluir o terceiro nome também
+            if (particulas.includes(partes[1].toLowerCase())) {
+                return partes.length >= 3 
+                    ? `${partes[0]} ${partes[1]} ${partes[2]}`
+                    : nomeCompleto;
+            }
+            
+            // Se não tem partícula no segundo nome, retorna os 2 primeiros
+            return `${partes[0]} ${partes[1]}`;
+        }
+        
         function renderizarSecaoMotoristas(dias) {
             let html = '<div class="agenda-section">';
             html += `
@@ -6267,19 +6293,35 @@
                             const isCedencia = tipoConfig && tipoConfig.setor_obrigatorio && !tipoConfig.bloquear_setor;
                             const exibeDestinoVeiculo = tipoConfig && tipoConfig.exibir_destino_veiculo;  // ⭐ NOVO
                             
+                            // if (bloqueiaSetorSolicitante) {
+                            //     html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}</div>`;
+                            //     if (demanda.id_motorista === 0 && demanda.nc_motorista) {
+                            //         html += `<div class="cell-divider"></div>`;
+                            //         html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                            //     } else if (demanda.nm_motorista) {
+                            //         html += `<div class="cell-divider"></div>`;
+                            //         html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                            //     }
+                            //     if (demanda.destino) {
+                            //         html += `<div><strong>${demanda.destino}</strong></div>`;
+                            //     }
+                            // }
+                            
                             if (bloqueiaSetorSolicitante) {
                                 html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}</div>`;
                                 if (demanda.id_motorista === 0 && demanda.nc_motorista) {
                                     html += `<div class="cell-divider"></div>`;
-                                    html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                                    const nomeAbreviado = abreviarNomeMotorista(demanda.nc_motorista);
+                                    html += `<div><strong title="${demanda.nc_motorista}">${nomeAbreviado}</strong></div>`;
                                 } else if (demanda.nm_motorista) {
                                     html += `<div class="cell-divider"></div>`;
-                                    html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                                    const nomeAbreviado = abreviarNomeMotorista(demanda.nm_motorista);
+                                    html += `<div><strong title="${demanda.nm_motorista}">${nomeAbreviado}</strong></div>`;
                                 }
                                 if (demanda.destino) {
                                     html += `<div><strong>${demanda.destino}</strong></div>`;
                                 }
-                            }
+                            }    
                             else if (isCedencia) {
                                 html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}<strong>${' - ' + demanda.setor || ''}</strong></div>`;
                                 if (demanda.nu_sei) {
@@ -6287,7 +6329,9 @@
                                 }
                             }
                             else if (demanda.horario) {
-                                html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                                const nomeAbreviado = abreviarNomeMotorista(demanda.nm_motorista || '');
+                                html += `<div><strong title="${demanda.nm_motorista || ''}">${nomeAbreviado}</strong></div>`;                                
+                                // html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                                 // ⭐ NOVO: Exibir destino se configurado
                                 if (exibeDestinoVeiculo && demanda.destino) {
                                     html += `<div style="font-size: 10px; color: #666;">${demanda.destino}</div>`;
@@ -6302,7 +6346,9 @@
                                 }
                             }
                             else {
-                                html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
+                                const nomeAbreviado = abreviarNomeMotorista(demanda.nm_motorista || '');
+                                html += `<div><strong title="${demanda.nm_motorista || ''}">${nomeAbreviado}</strong></div>`;
+                                // html += `<div><strong>${demanda.nm_motorista || ''}</strong></div>`;
                                 // ⭐ NOVO: Exibir destino se configurado
                                 if (exibeDestinoVeiculo && demanda.destino) {
                                     html += `<div style="font-size: 10px; color: #666;">${demanda.destino}</div>`;
@@ -6497,10 +6543,18 @@
                             // Para outros tipos: mostrar motorista (nome ou NC) e setor
                             // ========== TRATAR MOTORISTA NÃO CADASTRADO (nc_motorista) ==========
                             if (demanda.id_motorista === 0 && demanda.nc_motorista) {
-                                html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                                const nomeAbreviado = abreviarNomeMotorista(demanda.nc_motorista);
+                                html += `<div><strong title="${demanda.nc_motorista}">${nomeAbreviado}</strong></div>`;
                             } else if (demanda.nm_motorista) {
-                                html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
-                            }
+                                const nomeAbreviado = abreviarNomeMotorista(demanda.nm_motorista);
+                                html += `<div><strong title="${demanda.nm_motorista}">${nomeAbreviado}</strong></div>`;
+                            }                            
+                            
+                            // if (demanda.id_motorista === 0 && demanda.nc_motorista) {
+                            //     html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
+                            // } else if (demanda.nm_motorista) {
+                            //     html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
+                            // }
                             
                             if (demanda.setor) {
                                 html += `<div>${demanda.setor}</div>`;
