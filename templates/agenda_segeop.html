@@ -4473,7 +4473,7 @@
                 if (idDemandaParaDiarias && temVinculoDiariasAtivo) {
                     // É email de DIÁRIAS
                     formData.append('tipo_email', 'diarias');
-                    formData.append('id_item_fornecedor', '0');
+                    formData.append('id_item_fornecedor', idItem);
                 } else {
                     // É email de LOCAÇÃO
                     formData.append('tipo_email', 'locacao');
