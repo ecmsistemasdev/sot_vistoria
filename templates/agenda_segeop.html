@@ -2729,13 +2729,15 @@
                 // Preencher campos do modal
                 document.getElementById('email_id_demanda').value = idDemandaParaDiarias || '';
                 document.getElementById('email_destinatario').value = dadosVinculoDiarias.email_fornecedor;
-
+        
                 // ===== BUSCAR IDITEM DA DIÁRIA EXISTENTE =====
+                let iditemDiaria = 0;
                 try {
                     const resVerificarDiaria = await fetch(`/api/verificar_diaria_solicitada?id_ad=${idDemandaParaDiarias}`);
                     const resultDiaria = await resVerificarDiaria.json();
                     
                     if (resultDiaria.tem_diaria) {
+                        iditemDiaria = resultDiaria.iditem;
                         document.getElementById('email_iditem').value = resultDiaria.iditem;
                         // console.log('IDITEM preenchido:', resultDiaria.iditem);
                     } else {
@@ -2747,8 +2749,8 @@
                     document.getElementById('email_iditem').value = '0';
                 }
                 
-                // Assunto
-                const assunto = `TJRO - Viagem motorista ${nomeMotorista} ${periodoAssunto}`;
+                // ===== CORREÇÃO: Assunto com formato correto =====
+                const assunto = `TJRO - Solicitação ${iditemDiaria} - Viagem motorista ${nomeMotorista} - ${periodoAssunto}`;
                 document.getElementById('email_assunto').value = assunto;
                 
                 // ===== FORMATAR PERÍODO PARA EXIBIÇÃO =====
@@ -2778,14 +2780,14 @@
                 
                 // ===== CORPO DO EMAIL =====
                 const corpoHtml = `
-        <p>Prezados,</p>
-
+        <p>Prezados(as),</p>
+        
         <p>&nbsp;</p>
-
+        
         <p>Informamos à Vossa Senhoria que o funcionário <strong>${nomeMotorista}</strong> foi designado para deslocamento conforme informações abaixo:</p>
-
+        
         <p>&nbsp;</p>
-
+        
         <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0; border: 1px solid #000;">
             ${dadosDemanda.nu_sei ? `<tr>
                 <td style="background: #f0f0f0; font-weight: bold; width: 20%; border: 1px solid #000;">Processo:</td>
@@ -2804,21 +2806,21 @@
                 <td style="border: 1px solid #000;"> ${dadosDemanda.destino}</td>
             </tr>` : ''}
         </table>
-
+        
         <p>&nbsp;</p>
-
+        
         <p>Solicitamos observar o disposto no item 11.10 - Das Diárias, constante no Contrato 13/2025, bem como prazo para pagamento da diária de no mínimo 24 (vinte e quatro) horas antes da viagem.</p>
-
+        
         <p>&nbsp;</p>
-
+        
         <p><strong>Favor confirmar o recebimento do e-mail.</strong></p>
-
+        
         <p>&nbsp;</p>
-
+        
         <p>Atenciosamente,</p>
-
+        
         <p>&nbsp;</p>
-
+        
         <p><strong>${await obterNomeUsuario()}</strong><br>
         Tribunal de Justiça do Estado de Rondônia - TJRO<br>
         Seção de Gestão Operacional do Transporte - SEGEOP<br>
@@ -5764,14 +5766,12 @@
                             }
                             else if (demanda.horario) {
                                 // Qualquer tipo com horário definido
-                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                                 html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div>${demanda.destino || ''} <span class="demanda-horario">(${demanda.horario})</span></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
                             }
                             else {
                                 // Padrão para outros tipos
-                                // html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + demanda.solicitante + ')' : ''}</div>`;
                                 html += `<div><strong>${demanda.setor || ''}</strong>${demanda.solicitante ? ' (' + encurtarNomeSolicitante(demanda.solicitante) + ')' : ''}</div>`;
                                 html += `<div><strong>${demanda.destino || ''}</strong></div>`;
                                 html += `<div>${demanda.nu_sei || ''}</div>`;
@@ -5785,6 +5785,19 @@
                             
                             if (deveMostrarAvisoVeiculo) {
                                 html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
+                            }
+                            
+                            // ===== NOVO: Exibir aviso "DIÁRIA NÃO SOLICITADA" para viagens de terceirizados =====
+                            const ehViagem = demanda.id_tipodemanda === 2;
+                            const ehTerceirizado = m.tipo === 'Terceirizado';
+                            
+                            if (ehViagem && ehTerceirizado && dadosAgenda.diarias_terceirizados) {
+                                // Verificar se tem diária e se FL_EMAIL = 'N'
+                                const diaria = dadosAgenda.diarias_terceirizados.find(d => d.id_ad === demanda.id);
+                                
+                                if (diaria && diaria.fl_email === 'N') {
+                                    html += '<div class="diaria-nao-solicitada">(DIÁRIA NÃO SOLICITADA)</div>';
+                                }
                             }
                             
                             html += '</div></td>';
