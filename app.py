@@ -5463,6 +5463,154 @@ def registrar_alteracao_agenda(tipo_operacao='UPDATE'):
         if cursor:
             cursor.close()
 
+def calcular_quantidade_diarias(dt_inicio, dt_fim):
+    """
+    Calcula a quantidade de diárias baseado nas datas de início e fim
+    - Mesmo dia: 0.5
+    - Cada dia adicional: +1.0
+    
+    Exemplos:
+    - 04/01 a 04/01 = 0.5
+    - 04/01 a 05/01 = 1.5
+    - 04/01 a 06/01 = 2.5
+    """
+    try:
+        # Converter strings para date se necessário
+        if isinstance(dt_inicio, str):
+            dt_inicio = datetime.strptime(dt_inicio, '%Y-%m-%d').date()
+        if isinstance(dt_fim, str):
+            dt_fim = datetime.strptime(dt_fim, '%Y-%m-%d').date()
+        
+        # Calcular diferença de dias
+        dias_diff = (dt_fim - dt_inicio).days
+        
+        # Aplicar regra: 0.5 + (dias_diff * 1.0)
+        qt_diarias = 0.5 + (dias_diff * 1.0)
+        
+        return qt_diarias
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao calcular diárias: {str(e)}")
+        return 0.5  # Valor padrão em caso de erro
+		
+def gerenciar_diaria_motorista_atendimento(id_ad, id_tipodemanda, id_motorista, dt_inicio, dt_fim, operacao='INSERT'):
+    """
+    Gerencia registro de diária para Motorista Atendimento
+    
+    Parâmetros:
+    - id_ad: ID da demanda
+    - id_tipodemanda: Tipo da demanda (deve ser 2 = Viagem)
+    - id_motorista: ID do motorista
+    - dt_inicio: Data de início
+    - dt_fim: Data de fim
+    - operacao: 'INSERT', 'UPDATE' ou 'DELETE'
+    
+    Regra: Apenas para ID_TIPODEMANDA=2 (Viagem) e TIPO_CADASTRO='Motorista Atendimento'
+    """
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # ===== VALIDAR SE DEVE PROCESSAR =====
+        
+        # 1. Verificar se é tipo Viagem (ID=2)
+        if int(id_tipodemanda) != 2:
+            app.logger.info(f"Diária não processada - Tipo demanda {id_tipodemanda} não é Viagem")
+            return None
+        
+        # 2. Verificar se motorista existe e é do tipo "Motorista Atendimento"
+        if not id_motorista or int(id_motorista) == 0:
+            app.logger.info("Diária não processada - Motorista não cadastrado")
+            return None
+        
+        cursor.execute("""
+            SELECT ID_MOTORISTA, TIPO_CADASTRO
+            FROM CAD_MOTORISTA
+            WHERE ID_MOTORISTA = %s
+              AND TIPO_CADASTRO = 'Motorista Atendimento'
+              AND ATIVO = 'S'
+        """, (id_motorista,))
+        
+        motorista = cursor.fetchone()
+        
+        if not motorista:
+            app.logger.info(f"Diária não processada - Motorista {id_motorista} não é 'Motorista Atendimento'")
+            return None
+        
+        # ===== PROCESSAR OPERAÇÃO =====
+        
+        if operacao == 'DELETE':
+            # Excluir registro de diária
+            cursor.execute("""
+                DELETE FROM DIARIAS_MOTORISTAS 
+                WHERE ID_AD = %s
+            """, (id_ad,))
+            
+            linhas_afetadas = cursor.rowcount
+            app.logger.info(f"Diária excluída - ID_AD: {id_ad} - Linhas: {linhas_afetadas}")
+            return None
+        
+        elif operacao == 'INSERT':
+            # Calcular quantidade de diárias
+            qt_diarias = calcular_quantidade_diarias(dt_inicio, dt_fim)
+            
+            # Inserir novo registro
+            cursor.execute("""
+                INSERT INTO DIARIAS_MOTORISTAS 
+                (ID_AD, ID_MOTORISTA, QT_DIARIAS, DT_REGISTRO)
+                VALUES (%s, %s, %s, NOW())
+            """, (id_ad, id_motorista, qt_diarias))
+            
+            iditem = cursor.lastrowid
+            app.logger.info(f"✅ Diária criada - IDITEM: {iditem} - QT: {qt_diarias}")
+            return iditem
+        
+        elif operacao == 'UPDATE':
+            # Verificar se já existe registro
+            cursor.execute("""
+                SELECT IDITEM FROM DIARIAS_MOTORISTAS 
+                WHERE ID_AD = %s
+            """, (id_ad,))
+            
+            registro_existente = cursor.fetchone()
+            
+            if registro_existente:
+                # Atualizar registro existente
+                qt_diarias = calcular_quantidade_diarias(dt_inicio, dt_fim)
+                
+                cursor.execute("""
+                    UPDATE DIARIAS_MOTORISTAS 
+                    SET ID_MOTORISTA = %s,
+                        QT_DIARIAS = %s,
+                        DT_REGISTRO = NOW()
+                    WHERE ID_AD = %s
+                """, (id_motorista, qt_diarias, id_ad))
+                
+                app.logger.info(f"✅ Diária atualizada - ID_AD: {id_ad} - QT: {qt_diarias}")
+                return registro_existente[0]
+            else:
+                # Se não existe, criar novo
+                qt_diarias = calcular_quantidade_diarias(dt_inicio, dt_fim)
+                
+                cursor.execute("""
+                    INSERT INTO DIARIAS_MOTORISTAS 
+                    (ID_AD, ID_MOTORISTA, QT_DIARIAS, DT_REGISTRO)
+                    VALUES (%s, %s, %s, NOW())
+                """, (id_ad, id_motorista, qt_diarias))
+                
+                iditem = cursor.lastrowid
+                app.logger.info(f"✅ Diária criada (no update) - IDITEM: {iditem} - QT: {qt_diarias}")
+                return iditem
+        
+        return None
+        
+    except Exception as e:
+        app.logger.error(f"❌ Erro ao gerenciar diária motorista: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 # API: Buscar veículos disponíveis para um período específico (COM VALIDAÇÃO DE PERÍODO)
 @app.route('/api/agenda/veiculos-disponiveis', methods=['GET'])
 @login_required
@@ -5562,10 +5710,11 @@ def buscar_veiculos_disponiveis():
             cursor.close()
 
 
-# API: Criar nova demanda (MODIFICADA)
+# API: Criar nova demanda (MODIFICADA COM DIÁRIAS MOTORISTA ATENDIMENTO)
 @app.route('/api/agenda/demanda', methods=['POST'])
 @login_required
 def criar_demanda():
+    cursor = None
     try:
         data = request.get_json()
         cursor = mysql.connection.cursor()
@@ -5576,6 +5725,7 @@ def criar_demanda():
         # ========== VALIDAÇÃO DE CONFLITOS ANTES DE INSERIR ==========
         id_motorista = data.get('id_motorista')
         id_veiculo = data.get('id_veiculo')
+        id_tipodemanda = data['id_tipodemanda']
         dt_inicio = data['dt_inicio']
         dt_fim = data['dt_fim']
         horario = data.get('horario')
@@ -5596,7 +5746,7 @@ def criar_demanda():
                 return jsonify({
                     'success': False,
                     'error': 'Este motorista já possui demanda(s) neste período. Por favor, atualize a página e tente novamente.'
-                }), 409  # HTTP 409 Conflict
+                }), 409
         
         # 2. Validar conflito de VEÍCULO (apenas se NÃO tiver horário)
         if id_veiculo and not tem_horario:
@@ -5614,7 +5764,7 @@ def criar_demanda():
                 return jsonify({
                     'success': False,
                     'error': 'Este veículo já possui demanda(s) SEM horário neste período. Por favor, atualize a página e tente novamente.'
-                }), 409  # HTTP 409 Conflict
+                }), 409
         
         # ========== CONVERTER HORÁRIO ==========
         if tem_horario:
@@ -5633,7 +5783,7 @@ def criar_demanda():
             data.get('id_motorista'), 
             data.get('id_tipoveiculo'), 
             data.get('id_veiculo'),
-            data['id_tipodemanda'], 
+            id_tipodemanda, 
             dt_inicio, 
             dt_fim,
             data.get('setor'), 
@@ -5650,6 +5800,18 @@ def criar_demanda():
         
         mysql.connection.commit()
         id_ad = cursor.lastrowid
+        
+        # ========== NOVO: GERENCIAR DIÁRIA MOTORISTA ATENDIMENTO ==========
+        gerenciar_diaria_motorista_atendimento(
+            id_ad=id_ad,
+            id_tipodemanda=id_tipodemanda,
+            id_motorista=id_motorista,
+            dt_inicio=dt_inicio,
+            dt_fim=dt_fim,
+            operacao='INSERT'
+        )
+        
+        mysql.connection.commit()
         cursor.close()
         
         registrar_alteracao_agenda('INSERT')
@@ -5657,16 +5819,21 @@ def criar_demanda():
         return jsonify({'success': True, 'id': id_ad})
         
     except Exception as e:
-        mysql.connection.rollback()
+        if cursor:
+            mysql.connection.rollback()
         print(f"Erro ao criar demanda: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
-# API: Atualizar demanda (MODIFICADA)
+# API: Atualizar demanda (MODIFICADA COM DIÁRIAS MOTORISTA ATENDIMENTO)
 @app.route('/api/agenda/demanda/<int:id_ad>', methods=['PUT'])
 @login_required
 def atualizar_demanda(id_ad):
+    cursor = None
     try:
         data = request.get_json()
         cursor = mysql.connection.cursor()
@@ -5674,12 +5841,29 @@ def atualizar_demanda(id_ad):
         # Obter ID do usuário da sessão
         usuario = session.get('usuario_login')
         
+        # ===== BUSCAR DADOS ANTIGOS ANTES DE ATUALIZAR =====
+        cursor.execute("""
+            SELECT ID_TIPODEMANDA, ID_MOTORISTA
+            FROM AGENDA_DEMANDAS
+            WHERE ID_AD = %s
+        """, (id_ad,))
+        
+        dados_antigos = cursor.fetchone()
+        id_tipodemanda_antigo = dados_antigos[0] if dados_antigos else None
+        id_motorista_antigo = dados_antigos[1] if dados_antigos else None
+        
         # Converter horário para formato TIME ou NULL
         horario = data.get('horario')
         if horario and horario.strip():
             horario_value = horario + ':00'
         else:
             horario_value = None
+        
+        # ===== ATUALIZAR DEMANDA =====
+        id_tipodemanda_novo = data['id_tipodemanda']
+        id_motorista_novo = data.get('id_motorista')
+        dt_inicio = data['dt_inicio']
+        dt_fim = data['dt_fim']
         
         cursor.execute("""
             UPDATE AGENDA_DEMANDAS 
@@ -5690,12 +5874,12 @@ def atualizar_demanda(id_ad):
                 NC_MOTORISTA = %s, USUARIO = %s
             WHERE ID_AD = %s
         """, (
-            data.get('id_motorista'), 
+            id_motorista_novo, 
             data.get('id_tipoveiculo'), 
             data.get('id_veiculo'),
-            data['id_tipodemanda'], 
-            data['dt_inicio'], 
-            data['dt_fim'],
+            id_tipodemanda_novo, 
+            dt_inicio, 
+            dt_fim,
             data.get('setor'), 
             data.get('solicitante'), 
             data.get('destino'), 
@@ -5709,26 +5893,19 @@ def atualizar_demanda(id_ad):
             id_ad
         ))
 
-        # ===== NOVO: VERIFICAR SE PRECISA EXCLUIR DIÁRIA =====
-        # Se demanda tinha diária mas agora não tem mais vínculo, excluir
+        # ===== GERENCIAR DIÁRIAS TERCEIRIZADOS (LÓGICA EXISTENTE) =====
         cursor.execute("""
             SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
         """, (id_ad,))
         
-        diaria_existente = cursor.fetchone()
+        diaria_terceirizado = cursor.fetchone()
         
-        if diaria_existente:
-            # Verificar se ainda tem vínculo válido
-            id_tipo_demanda_novo = data.get('id_tipodemanda')
-            id_motorista_novo = data.get('id_motorista')
-            
+        if diaria_terceirizado:
             precisa_excluir = False
             
-            # Se mudou tipo de demanda e não é mais viagem (ID=2)
-            if id_tipo_demanda_novo != 2:
+            if id_tipodemanda_novo != 2:
                 precisa_excluir = True
             
-            # Se mudou motorista, verificar se novo motorista é terceirizado
             if id_motorista_novo and int(id_motorista_novo) > 0:
                 cursor.execute("""
                     SELECT m.ID_MOTORISTA
@@ -5751,6 +5928,28 @@ def atualizar_demanda(id_ad):
                     DELETE FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
                 """, (id_ad,))
         
+        # ===== NOVO: GERENCIAR DIÁRIAS MOTORISTA ATENDIMENTO =====
+        
+        # Verificar se mudou de tipo ou motorista que invalide a diária
+        mudou_tipo = id_tipodemanda_antigo != id_tipodemanda_novo
+        mudou_motorista = id_motorista_antigo != id_motorista_novo
+        
+        if mudou_tipo or mudou_motorista:
+            # Se mudou, excluir diária antiga
+            cursor.execute("""
+                DELETE FROM DIARIAS_MOTORISTAS WHERE ID_AD = %s
+            """, (id_ad,))
+        
+        # Criar ou atualizar diária se aplicável
+        gerenciar_diaria_motorista_atendimento(
+            id_ad=id_ad,
+            id_tipodemanda=id_tipodemanda_novo,
+            id_motorista=id_motorista_novo,
+            dt_inicio=dt_inicio,
+            dt_fim=dt_fim,
+            operacao='UPDATE'
+        )
+        
         mysql.connection.commit()
         cursor.close()
         
@@ -5759,25 +5958,42 @@ def atualizar_demanda(id_ad):
         return jsonify({'success': True})
     
     except Exception as e:
-        mysql.connection.rollback()
+        if cursor:
+            mysql.connection.rollback()
         print(f"Erro ao atualizar demanda: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
 		
 		
-# API: Excluir demanda
+# API: Excluir demanda (COM LOG DE DIÁRIAS)
 @app.route('/api/agenda/demanda/<int:id_ad>', methods=['DELETE'])
 @login_required
 def excluir_demanda(id_ad):
+    cursor = None
     try:
         cursor = mysql.connection.cursor()
         
-        # Primeiro deleta as tabelas dependentes (com FK)
+        # Log: Verificar se tem diárias antes de excluir
+        cursor.execute("SELECT COUNT(*) FROM DIARIAS_MOTORISTAS WHERE ID_AD = %s", (id_ad,))
+        tem_diaria_motorista = cursor.fetchone()[0] > 0
+        
+        cursor.execute("SELECT COUNT(*) FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s", (id_ad,))
+        tem_diaria_terceirizado = cursor.fetchone()[0] > 0
+        
+        if tem_diaria_motorista:
+            app.logger.info(f"Excluindo demanda {id_ad} com diária de motorista atendimento")
+        if tem_diaria_terceirizado:
+            app.logger.info(f"Excluindo demanda {id_ad} com diária de terceirizado")
+        
+        # Deleta tabelas dependentes (CASCADE já deleta DIARIAS_MOTORISTAS)
         cursor.execute("DELETE FROM EMAIL_OUTRAS_LOCACOES WHERE ID_AD = %s", (id_ad,))
         cursor.execute("DELETE FROM CONTROLE_LOCACAO_ITENS WHERE ID_AD = %s", (id_ad,))
         
-        # Por último deleta a tabela principal
+        # Deleta a demanda (CASCADE vai deletar DIARIAS_MOTORISTAS e DIARIAS_TERCEIRIZADOS se houver FK)
         cursor.execute("DELETE FROM AGENDA_DEMANDAS WHERE ID_AD = %s", (id_ad,))
         
         mysql.connection.commit()
@@ -5788,8 +6004,14 @@ def excluir_demanda(id_ad):
         return jsonify({'success': True})
 
     except Exception as e:
-        mysql.connection.rollback()
+        if cursor:
+            mysql.connection.rollback()
+        app.logger.error(f"Erro ao excluir demanda: {str(e)}")
         return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+			
 
 # API: Buscar tipos de demanda
 @app.route('/api/agenda/tipos-demanda', methods=['GET'])
