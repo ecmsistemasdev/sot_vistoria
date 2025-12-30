@@ -2780,22 +2780,22 @@
 
         <p>&nbsp;</p>
 
-        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0;">
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0; border: 1px solid #000;">
             ${dadosDemanda.nu_sei ? `<tr>
-                <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Processo:</td>
-                <td> ${dadosDemanda.nu_sei}</td>
+                <td style="background: #f0f0f0; font-weight: bold; width: 20%; border: 1px solid #000;">Processo:</td>
+                <td style="border: 1px solid #000;"> ${dadosDemanda.nu_sei}</td>
             </tr>` : ''}
             <tr>
-                <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Período:</td>
-                <td> ${periodoExibicao}</td>
+                <td style="background: #f0f0f0; font-weight: bold; width: 20%; border: 1px solid #000;">Período:</td>
+                <td style="border: 1px solid #000;"> ${periodoExibicao}</td>
             </tr>
             <tr>
-                <td style="background: #f0f0f0; font-weight: bold;">Diárias:</td>
-                <td> ${diariasConcatenadas}</td>
+                <td style="background: #f0f0f0; font-weight: bold; border: 1px solid #000;">Diárias:</td>
+                <td style="border: 1px solid #000;"> ${diariasConcatenadas}</td>
             </tr>
             ${dadosDemanda.destino ? `<tr>
-                <td style="background: #f0f0f0; font-weight: bold;">Destino:</td>
-                <td> ${dadosDemanda.destino}</td>
+                <td style="background: #f0f0f0; font-weight: bold; border: 1px solid #000;">Destino:</td>
+                <td style="border: 1px solid #000;"> ${dadosDemanda.destino}</td>
             </tr>` : ''}
         </table>
 
@@ -4312,30 +4312,30 @@
 
         <p>Solicito locação de veículo conforme informações abaixo:</p>
 
-        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0;">
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 5px 0; border: 1px solid #000;">
             <tr>
-                <td style="background: #f0f0f0; font-weight: bold; width: 20%;">Período:</td>
-                <td> ${dataInicioFormatada} a ${dataFimFormatada}</td>
+                <td style="background: #f0f0f0; font-weight: bold; width: 20%; border: 1px solid #000;">Período:</td>
+                <td style="border: 1px solid #000;"> ${dataInicioFormatada} a ${dataFimFormatada}</td>
             </tr>
             <tr>
-                <td style="background: #f0f0f0; font-weight: bold;">Horário de Saída:</td>
-                <td> ${horarioSaida}</td>
+                <td style="background: #f0f0f0; font-weight: bold; border: 1px solid #000;">Horário de Saída:</td>
+                <td style="border: 1px solid #000;"> ${horarioSaida}</td>
             </tr>
             <tr>
-                <td style="background: #f0f0f0; font-weight: bold;">Local de Saída:</td>
-                <td></td>
+                <td style="background: #f0f0f0; font-weight: bold; border: 1px solid #000;">Local de Saída:</td>
+                <td style="border: 1px solid #000;"></td>
             </tr>                
             <tr>
-                <td style="background: #f0f0f0; font-weight: bold;">Tipo de Veículo:</td>
-                <td> ${descricaoVeiculo}</td>
+                <td style="background: #f0f0f0; font-weight: bold; border: 1px solid #000;">Tipo de Veículo:</td>
+                <td style="border: 1px solid #000;"> ${descricaoVeiculo}</td>
             </tr>
             ${dadosDemanda.destino ? `<tr>
-                <td style="background: #f0f0f0; font-weight: bold;">Destino:</td>
-                <td> ${dadosDemanda.destino}</td>
+                <td style="background: #f0f0f0; font-weight: bold; border: 1px solid #000;">Destino:</td>
+                <td style="border: 1px solid #000;"> ${dadosDemanda.destino}</td>
             </tr>` : ''}
             ${dadosDemanda.nu_sei ? `<tr>
-                <td style="background: #f0f0f0; font-weight: bold;">Nº Processo:</td>
-                <td> ${dadosDemanda.nu_sei}</td>
+                <td style="background: #f0f0f0; font-weight: bold; border: 1px solid #000;">Nº Processo:</td>
+                <td style="border: 1px solid #000;"> ${dadosDemanda.nu_sei}</td>
             </tr>` : ''}
         </table>
 
