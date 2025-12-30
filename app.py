@@ -5311,6 +5311,25 @@ def buscar_dados_agenda():
                 'nc_motorista': r[20] or ''
             })
 
+        # 2.1 NOVO: Buscar dados das diárias terceirizadas
+        cursor.execute("""
+            SELECT 
+                dt.IDITEM,
+                dt.ID_AD,
+                dt.FL_EMAIL
+            FROM DIARIAS_TERCEIRIZADOS dt
+            INNER JOIN AGENDA_DEMANDAS ad ON ad.ID_AD = dt.ID_AD
+            WHERE ad.DT_INICIO <= %s AND ad.DT_FIM >= %s
+        """, (fim, inicio))
+        
+        diarias_terceirizados = []
+        for r in cursor.fetchall():
+            diarias_terceirizados.append({
+                'iditem': r[0],
+                'id_ad': r[1],
+                'fl_email': r[2] or 'N'
+            })
+		
         # 3. Lista de Veículos PADRÃO (COM VALIDAÇÃO DE PERÍODO)
         cursor.execute("""
 			SELECT v.ID_VEICULO, 
@@ -5362,6 +5381,7 @@ def buscar_dados_agenda():
             'outros_motoristas': outros_motoristas,
             'todos_motoristas': todos_motoristas,
             'demandas': demandas,
+			'diarias_terceirizados': diarias_terceirizados,
             'veiculos': veiculos,
             'veiculos_extras': veiculos_extras
         })
@@ -5377,6 +5397,7 @@ def buscar_dados_agenda():
             'outros_motoristas': [],
             'todos_motoristas': [],
             'demandas': [], 
+			'diarias_terceirizados': [],
             'veiculos': [],
             'veiculos_extras': []
         }), 500
