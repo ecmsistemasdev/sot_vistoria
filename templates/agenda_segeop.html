@@ -227,12 +227,6 @@
             background: linear-gradient(to bottom, #c7a3e7, #d9bef0) !important;
         }
 
-        /*
-        .agenda-table td:hover {
-            background: #f8f9fa !important;
-        }
-        */
-
         /* SUBSTITUIR a regra existente */
         .agenda-table td:hover {
             filter: brightness(1.1) !important; /* Clareia 10% mantendo a cor */
@@ -287,40 +281,6 @@
             font-size: 10px;
         }
 
-        /* Cores por tipo de demanda */
-        /*
-        .tipo-1 { 
-            background: linear-gradient(to bottom, #5fa1df, #8dbde8);
-        }
-        .tipo-2 { 
-            background: linear-gradient(to bottom, #79f183, #9ff7a7);
-        }
-        .tipo-3 { 
-            background: linear-gradient(to bottom, #f8c295, #fad4b3);
-        }
-        .tipo-4, .tipo-5 { 
-            background: linear-gradient(to bottom, #f8c295, #fad4b3);
-        }
-        .tipo-6, .tipo-7, .tipo-8 { 
-            background: linear-gradient(to bottom, #f3f183, #f7f5a7);
-            font-weight: bold;
-        }
-        .tipo-9 { 
-            background: linear-gradient(to bottom, #ff5d5d, #fca5a5) !important;
-            font-weight: bold;
-        }
-        .tipo-10 { 
-            background: linear-gradient(to bottom, hsl(320, 1%, 61%), hsl(330, 7%, 84%)) !important;
-            font-weight: bold;
-        }
-        .tipo-11 { 
-            background: linear-gradient(to bottom, #ffb3d9, #ffd9ec);
-        }        
-        .tipo-12 { 
-            background: linear-gradient(to bottom, #ff5d5d, #fca5a5) !important;
-            font-weight: bold;
-        }
-        */
         .empty-cell {
             background: #fafafa;
         }
@@ -364,14 +324,6 @@
         }
 
         .btn-primary:hover { background: #1557b0; }
-
-        /* .footer-divider {
-            width: 1px;
-            height: 40px;
-            background: #c0c0c0;
-            margin: 0 10px;
-            align-self: center;
-        } */
 
         /* TABS NAVEGAÇÃO ESTILO EXCEL */
         .week-tabs-wrapper {
@@ -493,10 +445,6 @@
             left: 0;
             right: 0;
             height: 2px;
-            /* background: #ffffff; 
-            background: #fc7e08; 
-            background: #ffff33;  
-            background: #1fc909; */
             background: #5aadb8;
         }
 
@@ -741,22 +689,6 @@
             padding: 40px;
             color: #666;
         }
-
-        /* .header-icon {
-            cursor: pointer;
-            font-size: 20px;
-            opacity: 0.85;
-            transition: opacity 0.2s, transform 0.2s;
-            margin-left: auto;
-            padding: 5px 10px;
-            text-decoration: none;
-            color: white;
-        }
-
-        .header-icon:hover {
-            opacity: 1;
-            transform: scale(1.1);
-        } */
 
         .feriados-container {
             padding: 20px;
@@ -1122,40 +1054,6 @@
             font-size: 14px;
             font-weight: 500;
         }
-        
-        /*
-        .tooltip-veiculo::before {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 5px solid rgba(0, 0, 0, 0.9);
-        }   
-        */
-
-        /* Estilos adicionais para o formulário de locação */
-
-        /* #statusCNH {
-            text-align: center;
-            font-size: 14px;
-        }
-        
-        #statusCNH.tem-cnh {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        #statusCNH.sem-cnh {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        } */
         
         .input-group-text {
             background: #e9ecef;
@@ -2833,7 +2731,7 @@
                     
                     if (resultDiaria.tem_diaria) {
                         document.getElementById('email_iditem').value = resultDiaria.iditem;
-                        console.log('IDITEM preenchido:', resultDiaria.iditem);
+                        // console.log('IDITEM preenchido:', resultDiaria.iditem);
                     } else {
                         document.getElementById('email_iditem').value = '0';
                         console.warn('Nenhuma diária encontrada para ID_AD:', idDemandaParaDiarias);
@@ -4521,7 +4419,7 @@
                         method: 'DELETE'
                     });
                     
-                    console.log(`Registro de locação ID_ITEM ${idItemLocacaoFornecedor} excluído automaticamente`);
+                    // console.log(`Registro de locação ID_ITEM ${idItemLocacaoFornecedor} excluído automaticamente`);
                 } catch (error) {
                     console.error('Erro ao excluir registro de locação:', error);
                 }
@@ -4675,7 +4573,7 @@
                 .then(result => {
                     // Usar o timestamp do servidor como inicial
                     ultimoCheckTimestamp = result.last_update;
-                    console.log('🚀 Verificação iniciada - Timestamp inicial:', ultimoCheckTimestamp);
+                    // console.log('🚀 Verificação iniciada - Timestamp inicial:', ultimoCheckTimestamp);
                 })
                 .catch(error => {
                     console.error('❌ Erro ao obter timestamp inicial:', error);
@@ -4695,7 +4593,7 @@
                 await verificarAtualizacoesDisponiveis();
             }, 5000);
             
-            console.log('✅ Intervalo de verificação criado');
+            // console.log('✅ Intervalo de verificação criado');
         }
 
 
@@ -4718,7 +4616,7 @@
         async function verificarAtualizacoesDisponiveis() {
             // Não verificar se já há notificação ativa
             if (notificacaoAtiva) {
-                console.log('⏸️ Notificação já está ativa');
+                // console.log('⏸️ Notificação já está ativa');
                 return;
             }
             
@@ -4730,7 +4628,7 @@
             if (modalDemanda.style.display === 'block' || 
                 modalLocacao.style.display === 'block' || 
                 modalEmail.style.display === 'block') {
-                console.log('⏸️ Modal aberto - não verifica');
+                // console.log('⏸️ Modal aberto - não verifica');
                 return;
             }
             
@@ -4745,8 +4643,8 @@
                 
                 const result = await res.json();
                 
-                console.log('📅 Último check:', ultimoCheckTimestamp);
-                console.log('📦 Resposta:', result);
+                // console.log('📅 Último check:', ultimoCheckTimestamp);
+                // console.log('📦 Resposta:', result);
                 
                 if (result.has_updates) {
                     // ===== VERIFICAR SE A ATUALIZAÇÃO É DE OUTRO USUÁRIO =====
@@ -4758,7 +4656,7 @@
                         
                         // Se a diferença é menor que 5 segundos, provavelmente é nossa própria ação
                         if (diferencaTempo < 5000 && diferencaTempo >= 0) {
-                            console.log('🔕 Atualização própria detectada - NÃO mostra notificação');
+                            // console.log('🔕 Atualização própria detectada - NÃO mostra notificação');
                             ultimoCheckTimestamp = result.last_update;
                             timestampUltimaAcaoLocal = null; // Limpa o timestamp
                             return;
@@ -4766,14 +4664,14 @@
                     }
                     
                     // É uma atualização de outro usuário - MOSTRA NOTIFICAÇÃO
-                    console.log('🔔 ATUALIZAÇÃO DE OUTRO USUÁRIO - MOSTRANDO NOTIFICAÇÃO!');
+                    // console.log('🔔 ATUALIZAÇÃO DE OUTRO USUÁRIO - MOSTRANDO NOTIFICAÇÃO!');
                     ultimoCheckTimestamp = result.last_update;
                     mostrarNotificacaoAtualizacao();
                 } else {
                     // Atualiza o timestamp mesmo sem updates
                     if (result.last_update) {
                         ultimoCheckTimestamp = result.last_update;
-                        console.log('📅 Timestamp atualizado:', ultimoCheckTimestamp);
+                        // console.log('📅 Timestamp atualizado:', ultimoCheckTimestamp);
                     }
                 }
                 
@@ -4785,7 +4683,7 @@
         // Marca que o usuário atual fez uma ação (salvar, excluir, etc)
         function marcarAcaoLocal() {
             timestampUltimaAcaoLocal = new Date();
-            console.log('✏️ Ação local marcada:', timestampUltimaAcaoLocal);
+            // console.log('✏️ Ação local marcada:', timestampUltimaAcaoLocal);
         }
 
         // Mostrar notificação
@@ -4804,7 +4702,7 @@
                 notificacaoAtiva = true;
                 
                 // ===== DEBUG =====
-                console.log('✅ Notificação ativada!');
+                // console.log('✅ Notificação ativada!');
                 
                 // ===== SCROLL PARA O TOPO PARA GARANTIR QUE O USUÁRIO VEJA =====
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4837,12 +4735,12 @@
             // Para o contador se estiver ativo
             if (countdownActive) {
                 stopUpdateCountdown();
-                console.log('⏸️ Contador pausado - Form de demandas aberto');
+                // console.log('⏸️ Contador pausado - Form de demandas aberto');
             }
                         
             // Se o form estiver aberto, não inicia o contador
             if (isFormOpen) {
-                console.log('⏸️ Form de demandas aberto. Contador não iniciado.');
+                // console.log('⏸️ Form de demandas aberto. Contador não iniciado.');
                 return;
             }
             
@@ -4850,7 +4748,7 @@
             countdownSeconds = 15;
             countdownActive = true;
             
-            console.log('⏱️ Iniciando contador regressivo de 15 segundos...');
+            // console.log('⏱️ Iniciando contador regressivo de 15 segundos...');
             
             // Atualiza a interface com o contador
             updateCountdownDisplay();
@@ -4861,7 +4759,7 @@
                 updateCountdownDisplay();
                 
                 if (countdownSeconds <= 0) {
-                    console.log('⏰ Contador zerou! Atualizando automaticamente...');
+                    // console.log('⏰ Contador zerou! Atualizando automaticamente...');
                     stopUpdateCountdown();
                     // Atualiza a página automaticamente
                     atualizarAgoraPelaNotificacao();
@@ -4913,7 +4811,7 @@
             if (countdownInterval) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
-                console.log('⏹️ Contador interrompido pelo usuário.');
+                // console.log('⏹️ Contador interrompido pelo usuário.');
             }
             countdownActive = false;
             countdownSeconds = 15;
@@ -6590,20 +6488,6 @@
                             const isCedencia = tipoConfig && tipoConfig.setor_obrigatorio && !tipoConfig.bloquear_setor;
                             const exibeDestinoVeiculo = tipoConfig && tipoConfig.exibir_destino_veiculo;  // ⭐ NOVO
                             
-                            // if (bloqueiaSetorSolicitante) {
-                            //     html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}</div>`;
-                            //     if (demanda.id_motorista === 0 && demanda.nc_motorista) {
-                            //         html += `<div class="cell-divider"></div>`;
-                            //         html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
-                            //     } else if (demanda.nm_motorista) {
-                            //         html += `<div class="cell-divider"></div>`;
-                            //         html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
-                            //     }
-                            //     if (demanda.destino) {
-                            //         html += `<div><strong>${demanda.destino}</strong></div>`;
-                            //     }
-                            // }
-                            
                             if (bloqueiaSetorSolicitante) {
                                 html += `<div>${demanda.de_tipodemanda || tipoConfig.descricao}</div>`;
                                 if (demanda.id_motorista === 0 && demanda.nc_motorista) {
@@ -6847,11 +6731,6 @@
                                 html += `<div><strong title="${demanda.nm_motorista}">${nomeAbreviado}</strong></div>`;
                             }                            
                             
-                            // if (demanda.id_motorista === 0 && demanda.nc_motorista) {
-                            //     html += `<div><strong>${demanda.nc_motorista}</strong></div>`;
-                            // } else if (demanda.nm_motorista) {
-                            //     html += `<div><strong>${demanda.nm_motorista}</strong></div>`;
-                            // }
                             
                             if (demanda.setor) {
                                 html += `<div>${demanda.setor}</div>`;
@@ -7607,11 +7486,6 @@
                             '#ffc107'
                         );
                         
-                        // Atualizar agenda automaticamente
-                        // setTimeout(async () => {
-                        //     await atualizarAgendaManual();
-                        // }, 2000);
-                        
                         return;
                     }
 
@@ -7649,11 +7523,11 @@
                     const idTipoDemandaSalvo = parseInt(dados.id_tipodemanda);
                     const idMotoristaSalvo = dados.id_motorista;
 
-                    console.log('=== DEBUG VERIFICAÇÃO DIÁRIAS ===');
-                    console.log('ID_TIPO_DEMANDA:', idTipoDemandaSalvo);
-                    console.log('ID_MOTORISTA:', idMotoristaSalvo);
-                    console.log('temVinculoDiariasAtivo:', temVinculoDiariasAtivo);
-                    console.log('dadosVinculoDiarias:', dadosVinculoDiarias);
+                    // console.log('=== DEBUG VERIFICAÇÃO DIÁRIAS ===');
+                    // console.log('ID_TIPO_DEMANDA:', idTipoDemandaSalvo);
+                    // console.log('ID_MOTORISTA:', idMotoristaSalvo);
+                    // console.log('temVinculoDiariasAtivo:', temVinculoDiariasAtivo);
+                    // console.log('dadosVinculoDiarias:', dadosVinculoDiarias);
 
                     // Verificar se é tipo Viagem (ID=2) e tem motorista válido
                     if (idTipoDemandaSalvo === 2 && idMotoristaSalvo && parseInt(idMotoristaSalvo) > 0) {
@@ -7664,12 +7538,12 @@
                                 const resVerificarDiarias = await fetch(urlVerificarDiarias);
                                 const resultadoDiarias = await resVerificarDiarias.json();
                                 
-                                console.log('Resultado verificação diárias:', resultadoDiarias);
+                                // console.log('Resultado verificação diárias:', resultadoDiarias);
                                 
                                 if (resultadoDiarias.tem_vinculo) {
                                     temVinculoDiariasAtivo = true;
                                     dadosVinculoDiarias = resultadoDiarias;
-                                    console.log('✅ Vínculo de diárias encontrado!');
+                                    // console.log('✅ Vínculo de diárias encontrado!');
                                 }
                             } catch (error) {
                                 console.error('Erro ao verificar vínculo de diárias:', error);
@@ -7678,13 +7552,13 @@
                         
                         // Agora processar se tem vínculo ativo
                         if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
-                            console.log('➡️ Processando salvamento de diária...');
+                            // console.log('➡️ Processando salvamento de diária...');
                             
                             // ===== SALVAR REGISTRO DE DIÁRIA ANTES DE PERGUNTAR =====
                             try {
                                 const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
                                 
-                                console.log('Diárias calculadas:', diarias);
+                                // console.log('Diárias calculadas:', diarias);
                                 
                                 const dadosSalvarDiaria = {
                                     id_ad: demandaIdVinculos,
@@ -7695,7 +7569,7 @@
                                     vl_total: diarias.total_diarias * dadosVinculoDiarias.vl_diaria
                                 };
                                 
-                                console.log('Dados para salvar diária:', dadosSalvarDiaria);
+                                // console.log('Dados para salvar diária:', dadosSalvarDiaria);
                                 
                                 const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
                                     method: 'POST',
@@ -7705,7 +7579,7 @@
                                 
                                 const resultSalvarDiaria = await resSalvarDiaria.json();
                                 
-                                console.log('Resultado salvamento diária:', resultSalvarDiaria);
+                                // console.log('Resultado salvamento diária:', resultSalvarDiaria);
                                 
                                 if (resultSalvarDiaria.success) {
                                     temDiarias = true;
@@ -7715,7 +7589,7 @@
                                     // IMPORTANTE: Guardar no campo oculto do modal de email
                                     document.getElementById('email_iditem').value = idItemDiariaSalvo;
                                     
-                                    console.log('✅ Diária salva com sucesso! IDITEM:', idItemDiariaSalvo);
+                                    // console.log('✅ Diária salva com sucesso! IDITEM:', idItemDiariaSalvo);
                                 } else {
                                     console.error('❌ Erro ao salvar diária:', resultSalvarDiaria.erro);
                                 }
@@ -7735,13 +7609,13 @@
                             const resVerificarLocacao = await fetch(urlVerificarLocacao);
                             const resultadoLocacao = await resVerificarLocacao.json();
                             
-                            console.log('Resultado verificação locação:', resultadoLocacao);
+                            // console.log('Resultado verificação locação:', resultadoLocacao);
                             
                             if (resultadoLocacao.tem_vinculo) {
                                 temLocacao = true;
                                 dadosVinculoLocacao = resultadoLocacao;
                                 idDemandaParaLocacao = demandaIdVinculos;
-                                console.log('✅ Vínculo de locação encontrado!');
+                                //cconsole.log('✅ Vínculo de locação encontrado!');
                             }
                         } catch (error) {
                             console.error('Erro ao verificar locação:', error);
@@ -7863,9 +7737,9 @@
                         }
                     }
 
-                    console.log('=== RESUMO DOS VÍNCULOS ===');
-                    console.log('temDiarias:', temDiarias);
-                    console.log('temLocacao:', temLocacao);
+                    // console.log('=== RESUMO DOS VÍNCULOS ===');
+                    // console.log('temDiarias:', temDiarias);
+                    // console.log('temLocacao:', temLocacao);
 
                     // ===== PROCESSAR VÍNCULOS EM SEQUÊNCIA =====
                     if (temDiarias || temLocacao) {
@@ -7875,12 +7749,12 @@
                             locacao: temLocacao
                         };
                         
-                        console.log('➡️ Iniciando fluxo de vínculos...');
+                        // console.log('➡️ Iniciando fluxo de vínculos...');
                         
                         // Iniciar processamento sequencial
                         await processarVinculosSequencial();
                     } else {
-                        console.log('ℹ️ Sem vínculos - recarregando agenda');
+                        // console.log('ℹ️ Sem vínculos - recarregando agenda');
             
                         esconderSpinnerVinculos();
 
@@ -8453,398 +8327,7 @@
                     '#dc3545'
                 );
             }
-        }
-
-
-
-
-        // Função para copiar como imagem (usando html2canvas se disponível)
-        // async function copiarComoImagem() {
-        //     const conteudo = document.getElementById('conteudoVisualizacao');
-            
-        //     // Verificar se html2canvas está disponível
-        //     if (typeof html2canvas === 'undefined') {
-        //         mostrarAlerta(
-        //             'Para usar este recurso, é necessário incluir a biblioteca html2canvas.<br><br>' +
-        //             'Por enquanto, você pode usar a tecla Print Screen para capturar a tela.',
-        //             'ℹ️ Informação',
-        //             '#1a73e8'
-        //         );
-        //         return;
-        //     }
-            
-        //     // ===== VERIFICAR PERMISSÃO DA CLIPBOARD API =====
-        //     try {
-        //         const permissionStatus = await navigator.permissions.query({ name: 'clipboard-write' });
-                
-        //         if (permissionStatus.state === 'denied') {
-        //             mostrarAlerta(
-        //                 '❌ <strong>Permissão Negada</strong><br><br>' +
-        //                 'Seu navegador bloqueou o acesso à área de transferência.<br><br>' +
-        //                 '<strong>Solução:</strong><br>' +
-        //                 '1. Clique no ícone de <strong>cadeado/informação</strong> na barra de endereço<br>' +
-        //                 '2. Permita o acesso à <strong>Área de transferência</strong><br>' +
-        //                 '3. Recarregue a página e tente novamente<br><br>' +
-        //                 '<em>Ou use Print Screen manualmente.</em>',
-        //                 '⚠️ Acesso Bloqueado',
-        //                 '#dc3545'
-        //             );
-        //             return;
-        //         }
-        //     } catch (permError) {
-        //         console.warn('Não foi possível verificar permissão da clipboard:', permError);
-        //         // Continuar mesmo assim (alguns navegadores não suportam permissions query)
-        //     }
-            
-        //     try {
-        //         mostrarSpinner();
-                
-        //         // Encontrar a tabela dentro do conteúdo
-        //         const tabela = conteudo.querySelector('table');
-        //         const tituloSecao = conteudo.querySelector('.section-title-compacto');
-                
-        //         if (!tabela) {
-        //             esconderSpinner();
-        //             mostrarAlerta('Nenhuma tabela encontrada para capturar!', '⚠️ Aviso', '#ffc107');
-        //             return;
-        //         }
-                
-        //         // Criar container temporário
-        //         const containerTemp = document.createElement('div');
-                
-        //         containerTemp.style.cssText = `
-        //             background: white; 
-        //             padding: 10px; 
-        //             box-sizing: border-box;
-        //             position: absolute;
-        //             left: -9999px;
-        //             top: 0;
-        //         `;
-                
-        //         if (tituloSecao) {
-        //             const tituloClone = tituloSecao.cloneNode(true);
-        //             containerTemp.appendChild(tituloClone);
-        //         }
-                
-        //         const tabelaClone = tabela.cloneNode(true);
-                
-        //         // Aplicar estilos na tabela
-
-        //         tabelaClone.style.cssText = `
-        //             width: 100%;
-        //             border-collapse: separate;
-        //             border-spacing: 0;
-        //             border: 1px solid #bbb;
-        //             table-layout: auto;
-        //             font-size: 11px;
-        //         `;
-
-        //         // tabelaClone.style.cssText = `
-        //         //     width: 100%;
-        //         //     border-collapse: collapse;
-        //         //     border: 0.33px solid #bbb;
-        //         //     table-layout: auto;
-        //         //     font-size: 11px;
-        //         // `;
-
-        //         // tabelaClone.style.cssText = `
-        //         //     width: 100%;
-        //         //     border-collapse: collapse;
-        //         //     border: 1px solid #bbb;
-        //         //     border-width: 1px;
-        //         //     table-layout: auto;
-        //         //     font-size: 11px;
-        //         // `;
-                
-        //         // Fixar colunas N. e Nome no cabeçalho
-        //         const thsClonados = tabelaClone.querySelectorAll('thead th');
-        //         thsClonados.forEach((th, index) => {
-        //             const styleBase = `
-        //                 background: #e8e8e8;
-        //                 padding: 4px 2px;
-        //                 text-align: center;
-        //                 border-right: 1px solid #bbb;
-        //                 border-bottom: 1px solid #bbb;
-        //                 font-size: 10px;
-        //                 font-weight: 600;
-        //                 line-height: 1;
-        //             `;
-                    
-        //             if (index === 0) {
-        //                 // Coluna N. - primeira coluna também tem borda esquerda
-        //                 th.style.cssText = styleBase + `
-        //                     border-left: 1px solid #bbb;
-        //                     width: 28px;
-        //                     min-width: 28px;
-        //                     max-width: 28px;
-        //                 `;
-        //             } else if (index === 1) {
-        //                 // Coluna Nome
-        //                 th.style.cssText = styleBase + `
-        //                     width: 140px;
-        //                     min-width: 140px;
-        //                     max-width: 140px;
-        //                 `;
-        //             } else {
-        //                 // Colunas dos dias (col-dia)
-        //                 th.style.cssText = styleBase + `
-        //                     padding: 2px 4px;
-        //                     white-space: normal;
-        //                     word-wrap: break-word;
-        //                     width: 130px;
-        //                     min-width: 135px;
-        //                     max-width: 135px;
-        //                 `;
-        //             }
-        //         });
-
-
-        //         // const thsClonados = tabelaClone.querySelectorAll('thead th');
-        //         // thsClonados.forEach((th, index) => {
-        //         //     const styleBase = `
-        //         //         background: #e8e8e8;
-        //         //         padding: 4px 2px;
-        //         //         text-align: center;
-        //         //         border: 0.33px solid #bbb; 
-        //         //         font-size: 10px;
-        //         //         font-weight: 600;
-        //         //         line-height: 1;
-        //         //     `;
-                    
-        //         //     if (index === 0) {
-        //         //         // Coluna N.
-        //         //         th.style.cssText = styleBase + `
-        //         //             width: 28px;
-        //         //             min-width: 28px;
-        //         //             max-width: 28px;
-        //         //         `;
-        //         //     } else if (index === 1) {
-        //         //         // Coluna Nome
-        //         //         th.style.cssText = styleBase + `
-        //         //             width: 140px;
-        //         //             min-width: 140px;
-        //         //             max-width: 140px;
-        //         //         `;
-        //         //     } else {
-        //         //         // Colunas dos dias (col-dia) - 120px
-        //         //         th.style.cssText = styleBase + `
-        //         //             padding: 2px 4px;
-        //         //             white-space: normal;
-        //         //             word-wrap: break-word;
-        //         //             width: 130px;
-        //         //             min-width: 135px;
-        //         //             max-width: 135px;
-        //         //         `;
-        //         //     }
-        //         // });
-                
-
-        //         // Aplicar estilos em células do tbody mantendo cores
-        //         const tdsClonados = tabelaClone.querySelectorAll('tbody td');
-        //         tdsClonados.forEach((td) => {
-        //             const classes = td.className;
-        //             const computedStyle = window.getComputedStyle(td);
-        //             const bgColor = computedStyle.backgroundColor;
-                    
-        //             // Base de borda: apenas direita e baixo (para evitar duplicação)
-        //             const borderBase = `
-        //                 border-right: 1px solid #bbb;
-        //                 border-bottom: 1px solid #bbb;
-        //             `;
-                    
-        //             if (classes.includes('col-numero')) {
-        //                 // Coluna N. - primeira coluna também tem borda esquerda
-        //                 td.style.cssText = `
-        //                     background: ${bgColor};
-        //                     ${borderBase}
-        //                     border-left: 1px solid #bbb;
-        //                     padding: 2px 1px;
-        //                     vertical-align: top;
-        //                     font-size: 9px;
-        //                     line-height: 1;
-        //                     min-height: 18px;
-        //                     font-weight: 600;
-        //                     text-align: center;
-        //                     width: 28px;
-        //                     min-width: 28px;
-        //                     max-width: 28px;
-        //                 `;
-        //             } else if (classes.includes('col-nome')) {
-        //                 // Coluna Nome
-        //                 td.style.cssText = `
-        //                     background: ${bgColor};
-        //                     ${borderBase}
-        //                     padding: 2px 4px;
-        //                     vertical-align: top;
-        //                     font-size: 9px;
-        //                     line-height: 1;
-        //                     min-height: 18px;
-        //                     font-weight: 600;
-        //                     word-wrap: break-word;
-        //                     white-space: normal;
-        //                     width: 140px;
-        //                     min-width: 140px;
-        //                     max-width: 140px;
-        //                 `;
-        //             } else {
-        //                 // Células dos dias (col-dia)
-        //                 td.style.cssText = `
-        //                     background: ${bgColor};
-        //                     ${borderBase}
-        //                     padding: 2px 8px;
-        //                     vertical-align: top;
-        //                     font-size: 9px;
-        //                     line-height: 1;
-        //                     min-height: 18px;
-        //                     white-space: normal;
-        //                     word-wrap: break-word;
-        //                     width: 130px;
-        //                     min-width: 135px;
-        //                     max-width: 135px;
-        //                 `;
-        //             }
-        //         });
-
-
-        //         // const tdsClonados = tabelaClone.querySelectorAll('tbody td');
-        //         // tdsClonados.forEach((td) => {
-        //         //     const classes = td.className;
-        //         //     const computedStyle = window.getComputedStyle(td);
-        //         //     const bgColor = computedStyle.backgroundColor;
-                    
-        //         //     if (classes.includes('col-numero')) {
-        //         //         // Coluna N.
-        //         //         td.style.cssText = `
-        //         //             background: ${bgColor};
-        //         //             border: 0.33px solid #bbb;
-        //         //             padding: 2px 1px;
-        //         //             vertical-align: top;
-        //         //             font-size: 9px;
-        //         //             line-height: 1;
-        //         //             min-height: 18px;
-        //         //             font-weight: 600;
-        //         //             text-align: center;
-        //         //             width: 28px;
-        //         //             min-width: 28px;
-        //         //             max-width: 28px;
-        //         //         `;
-        //         //     } else if (classes.includes('col-nome')) {
-        //         //         // Coluna Nome
-        //         //         td.style.cssText = `
-        //         //             background: ${bgColor};
-        //         //             border: 0.33px solid #bbb;
-        //         //             padding: 2px 4px;
-        //         //             vertical-align: top;
-        //         //             font-size: 9px;
-        //         //             line-height: 1;
-        //         //             min-height: 18px;
-        //         //             font-weight: 600;
-        //         //             word-wrap: break-word;
-        //         //             white-space: normal;
-        //         //             width: 140px;
-        //         //             min-width: 140px;
-        //         //             max-width: 140px;
-        //         //         `;
-        //         //     } else {
-        //         //         // Células dos dias (col-dia) - 120px
-        //         //         td.style.cssText = `
-        //         //             background: ${bgColor};
-        //         //             border: 0.33px solid #bbb;
-        //         //             padding: 2px 8px;
-        //         //             vertical-align: top;
-        //         //             font-size: 9px;
-        //         //             line-height: 1;
-        //         //             min-height: 18px;
-        //         //             white-space: normal;
-        //         //             word-wrap: break-word;
-        //         //             width: 130px;
-        //         //             min-width: 135px;
-        //         //             max-width: 135px;
-        //         //         `;
-        //         //     }
-        //         // });
-                
-        //         containerTemp.appendChild(tabelaClone);
-        //         document.body.appendChild(containerTemp);
-                
-        //         // Aguardar renderização completa
-        //         await new Promise(resolve => setTimeout(resolve, 500));
-                
-        //         // Capturar com html2canvas
-        //         const canvas = await html2canvas(containerTemp, {
-        //             backgroundColor: '#ffffff',
-        //             scale: 3,
-        //             logging: false,
-        //             useCORS: true,
-        //             allowTaint: true,
-        //             imageTimeout: 0
-        //         });
-                
-        //         // Remover container temporário
-        //         document.body.removeChild(containerTemp);
-                
-        //         // ===== TENTAR COPIAR PARA CLIPBOARD =====
-        //         canvas.toBlob(async (blob) => {
-        //             try {
-        //                 // Tentar usando Clipboard API moderna
-        //                 await navigator.clipboard.write([
-        //                     new ClipboardItem({ 'image/png': blob })
-        //                 ]);
-                        
-        //                 esconderSpinner();
-                        
-        //                 mostrarAlerta(
-        //                     '✅ <strong>Imagem copiada com sucesso!</strong><br><br>',
-        //                     '✅ Sucesso',
-        //                     '#28a745'
-        //                 );
-                        
-        //             } catch (clipboardError) {
-        //                 esconderSpinner();
-                        
-        //                 console.error('Erro ao copiar para clipboard:', clipboardError);
-                        
-        //                 // ===== FALLBACK: DOWNLOAD AUTOMÁTICO =====
-        //                 const url = URL.createObjectURL(blob);
-        //                 const link = document.createElement('a');
-        //                 link.href = url;
-        //                 link.download = `agenda_${new Date().getTime()}.png`;
-        //                 document.body.appendChild(link);
-        //                 link.click();
-        //                 document.body.removeChild(link);
-        //                 URL.revokeObjectURL(url);
-                        
-        //                 mostrarAlerta(
-        //                     '⚠️ <strong>Não foi possível copiar automaticamente</strong><br><br>' +
-        //                     '✅ A imagem foi <strong>baixada automaticamente</strong><br><br>' +
-        //                     '<strong>Motivo:</strong> Seu navegador bloqueou o acesso à área de transferência.<br><br>' +
-        //                     '<strong>Solução alternativa:</strong><br>' +
-        //                     '1. Localize o arquivo PNG baixado<br>' +
-        //                     '2. Abra a imagem<br>' +
-        //                     '3. Copie manualmente (Ctrl+C) e cole onde desejar<br><br>' +
-        //                     '<em>Ou permita o acesso à área de transferência nas configurações do navegador.</em>',
-        //                     'ℹ️ Download Realizado',
-        //                     '#1a73e8'
-        //                 );
-        //             }
-        //         }, 'image/png');
-                
-        //     } catch (error) {
-        //         esconderSpinner();
-        //         console.error('Erro geral ao gerar imagem:', error);
-                
-        //         mostrarAlerta(
-        //             '❌ <strong>Erro ao processar imagem</strong><br><br>' +
-        //             `<strong>Detalhes:</strong> ${error.message}<br><br>` +
-        //             '<strong>Tente:</strong><br>' +
-        //             '1. Recarregar a página (F5)<br>' +
-        //             '2. Usar outro navegador (Chrome recomendado)<br>' +
-        //             '3. Usar Print Screen manualmente',
-        //             '⚠️ Erro',
-        //             '#dc3545'
-        //         );
-        //     }
-        // }        
+        }        
         
         // Renderização compacta para visualização
         function renderizarSecaoMotoristasCompacta(dias) {
@@ -9095,8 +8578,7 @@
             html += '</tbody></table>';
             return html;
         }        
-        
-        
+         
         //renderizarSecaoMotoristasCompleta() - COMPLETA (Para Visualização)**
         function renderizarSecaoMotoristasCompleta(dias, titulo) {
             let html = '<div class="agenda-section">';
