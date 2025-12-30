@@ -2688,6 +2688,10 @@
         let countdownSeconds = 15;
         let countdownActive = false;
 
+        // Controle de atualizações próprias vs. de outros usuários
+        let atualizacaoPropriaEmAndamento = false;
+        let timestampUltimaAcaoLocal = null;
+
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
             if (!idTipoVeiculo) {
@@ -4744,20 +4748,44 @@
                 console.log('📅 Último check:', ultimoCheckTimestamp);
                 console.log('📦 Resposta:', result);
                 
-                // ===== ALTERADO: Sempre atualizar timestamp =====
-                if (result.last_update) {
-                    ultimoCheckTimestamp = result.last_update;
-                    console.log('📅 Timestamp atualizado:', ultimoCheckTimestamp);
-                }
-                
                 if (result.has_updates) {
-                    console.log('🔔 ATUALIZAÇÕES DETECTADAS - MOSTRANDO NOTIFICAÇÃO!');
+                    // ===== VERIFICAR SE A ATUALIZAÇÃO É DE OUTRO USUÁRIO =====
+                    const timestampAtualizado = new Date(result.last_update);
+                    
+                    // Se temos um timestamp de ação local recente (últimos 5 segundos)
+                    if (timestampUltimaAcaoLocal) {
+                        const diferencaTempo = timestampAtualizado - timestampUltimaAcaoLocal;
+                        
+                        // Se a diferença é menor que 5 segundos, provavelmente é nossa própria ação
+                        if (diferencaTempo < 5000 && diferencaTempo >= 0) {
+                            console.log('🔕 Atualização própria detectada - NÃO mostra notificação');
+                            ultimoCheckTimestamp = result.last_update;
+                            timestampUltimaAcaoLocal = null; // Limpa o timestamp
+                            return;
+                        }
+                    }
+                    
+                    // É uma atualização de outro usuário - MOSTRA NOTIFICAÇÃO
+                    console.log('🔔 ATUALIZAÇÃO DE OUTRO USUÁRIO - MOSTRANDO NOTIFICAÇÃO!');
+                    ultimoCheckTimestamp = result.last_update;
                     mostrarNotificacaoAtualizacao();
+                } else {
+                    // Atualiza o timestamp mesmo sem updates
+                    if (result.last_update) {
+                        ultimoCheckTimestamp = result.last_update;
+                        console.log('📅 Timestamp atualizado:', ultimoCheckTimestamp);
+                    }
                 }
                 
             } catch (error) {
                 console.error('❌ Erro ao verificar atualizações:', error);
             }
+        }
+
+        // Marca que o usuário atual fez uma ação (salvar, excluir, etc)
+        function marcarAcaoLocal() {
+            timestampUltimaAcaoLocal = new Date();
+            console.log('✏️ Ação local marcada:', timestampUltimaAcaoLocal);
         }
 
         // Mostrar notificação
@@ -7548,6 +7576,7 @@
                     const result = await res.json();
                     
                     if (result.success || result.id) {
+                        marcarAcaoLocal();
                         fecharModal();
                         await carregarSemanas();
                         await carregarAgenda();
@@ -7594,6 +7623,7 @@
                     demandaIdVinculos = resultSalvar.id;
                     dadosDemandaParaVinculos = dados;
                     
+                    marcarAcaoLocal();
                     // Fechar modal principal
                     fecharModal();
 
@@ -7947,6 +7977,7 @@
                                             esconderSpinner();
                                             
                                             if (result.success) {
+                                                marcarAcaoLocal();
                                                 fecharModal();
                                                 
                                                 await carregarSemanas();
@@ -7979,6 +8010,7 @@
                         esconderSpinner();
                         
                         if (result.success) {
+                            marcarAcaoLocal();
                             fecharModal();
                             
                             await carregarSemanas();
