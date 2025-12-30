@@ -6749,24 +6749,29 @@ def enviar_email_fornecedor():
         tz_manaus = timezone('America/Manaus')
         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
-        # ===== CORREÇÃO: TRATAMENTO POR TIPO DE EMAIL =====
+        # ===== CORREÇÃO: TRATAMENTO CORRETO POR TIPO DE EMAIL =====
         if tipo_email == 'diarias':
             # ===== EMAIL DE DIÁRIAS =====
             
-            # Buscar IDITEM da tabela DIARIAS_TERCEIRIZADOS
-            cursor.execute("""
-                SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS 
-                WHERE ID_AD = %s
-            """, (id_demanda,))
+            # ===== CORREÇÃO: USAR O IDITEM RECEBIDO =====
+            if not id_item_fornecedor or id_item_fornecedor == '0':
+                # Se não recebeu IDITEM, buscar da tabela
+                cursor.execute("""
+                    SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS 
+                    WHERE ID_AD = %s
+                """, (id_demanda,))
+                
+                resultado_diaria = cursor.fetchone()
+                
+                if not resultado_diaria:
+                    app.logger.error(f"ERRO: Nenhuma diária encontrada para ID_AD={id_demanda}")
+                    return jsonify({'erro': 'Registro de diária não encontrado'}), 400
+                
+                iditem_diaria = resultado_diaria[0]
+            else:
+                iditem_diaria = int(id_item_fornecedor)
             
-            resultado_diaria = cursor.fetchone()
-            
-            if not resultado_diaria:
-                app.logger.error(f"ERRO: Nenhuma diária encontrada para ID_AD={id_demanda}")
-                return jsonify({'erro': 'Registro de diária não encontrado'}), 400
-            
-            iditem_diaria = resultado_diaria[0]
-            app.logger.info(f"IDITEM encontrado: {iditem_diaria}")
+            app.logger.info(f"✅ IDITEM que será usado: {iditem_diaria}")
             
             # 1. Inserir em EMAIL_DIARIAS
             cursor.execute("""
@@ -6783,7 +6788,7 @@ def enviar_email_fornecedor():
             ))
             
             id_email = cursor.lastrowid
-            app.logger.info(f"Email registrado em EMAIL_DIARIAS - ID_EMAIL: {id_email}")
+            app.logger.info(f"✅ Email registrado em EMAIL_DIARIAS - ID_EMAIL: {id_email}")
             
             # 2. Atualizar FL_EMAIL na DIARIAS_TERCEIRIZADOS
             cursor.execute("""
@@ -6795,9 +6800,22 @@ def enviar_email_fornecedor():
             linhas_afetadas = cursor.rowcount
             
             if linhas_afetadas > 0:
-                app.logger.info(f"✅ FL_EMAIL atualizado - IDITEM: {iditem_diaria}")
+                app.logger.info(f"✅ FL_EMAIL atualizado com sucesso - IDITEM: {iditem_diaria}")
             else:
                 app.logger.warning(f"⚠️ Nenhuma linha atualizada para IDITEM: {iditem_diaria}")
+                
+                # DEBUG: Verificar se o registro existe
+                cursor.execute("""
+                    SELECT IDITEM, ID_AD, FL_EMAIL 
+                    FROM DIARIAS_TERCEIRIZADOS 
+                    WHERE IDITEM = %s
+                """, (iditem_diaria,))
+                
+                registro = cursor.fetchone()
+                if registro:
+                    app.logger.warning(f"⚠️ Registro existe: IDITEM={registro[0]}, ID_AD={registro[1]}, FL_EMAIL={registro[2]}")
+                else:
+                    app.logger.error(f"❌ Registro NÃO EXISTE com IDITEM={iditem_diaria}")
         
         else:
             # ===== EMAIL DE LOCAÇÃO =====
