@@ -332,12 +332,12 @@ const AgendaWebSocket = (() => {
             background: rgba(80, 80, 80, 0.9);
             color: white;
             border-left: 4px solid rgba(255, 255, 255, 0.3);
-            padding: 12px 16px;
+            padding: 10px 14px;
             margin-bottom: 10px;
             border-radius: 4px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.25);
             animation: slideIn 0.3s ease-out;
-            font-size: 14px;
+            font-size: 12px;
             backdrop-filter: blur(10px);
         `;
         
@@ -351,7 +351,7 @@ const AgendaWebSocket = (() => {
         setTimeout(() => {
             notif.style.animation = 'slideOut 0.3s ease-out';
             setTimeout(() => notif.remove(), 300);
-        }, 2500);
+        }, 1200);
     }
     
     // API Pública
