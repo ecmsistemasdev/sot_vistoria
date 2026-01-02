@@ -5538,13 +5538,21 @@
             const semana = semanas[semanaAtual];
             const inicio = semana.inicio;
             const fim = semana.fim;
+
+            // Carregar locações primeiro
+            await carregarLocacoes();            
             
             const response = await fetch(`/api/agenda/dados?inicio=${inicio}&fim=${fim}`);
             if (!response.ok) throw new Error('Erro ao carregar dados');
             
             dadosAgenda = await response.json();
             
-            // Atualizar variáveis globais
+            // ===== ATUALIZAR TODAS AS VARIÁVEIS GLOBAIS =====
+            motoristas = dadosAgenda.motoristas || [];
+            outrosMotoristas = dadosAgenda.outros_motoristas || [];
+            motoristasAdministrativo = dadosAgenda.motoristas_administrativo || [];
+            veiculos = dadosAgenda.veiculos || [];
+            veiculosExtras = dadosAgenda.veiculos_extras || [];
             window.demandas = dadosAgenda.demandas || [];
             window.diarias_terceirizados = dadosAgenda.diarias_terceirizados || [];
             
@@ -6888,13 +6896,14 @@
                             // Para tipos "especiais": verificar se foi solicitado
                             corClass = demanda.solicitado === 'S' ? 'tipo-solicitado' : '';
                         } else {
-                            // Para outros tipos: verificar se existe locação
-                            const temLocacao = locacoesAtivas.some(loc => 
+                            // Para outros tipos: verificar se existe locação COM EMAIL ENVIADO
+                            const locacaoComEmail = locacoesAtivas.find(loc => 
                                 loc.id_motorista === demanda.id_motorista &&
                                 loc.data_inicio <= dia.data &&
-                                loc.data_fim >= dia.data
+                                loc.data_fim >= dia.data &&
+                                loc.fl_email === 'S'
                             );
-                            corClass = temLocacao ? 'tipo-locacao' : '';
+                            corClass = locacaoComEmail ? 'tipo-locacao' : '';
                         }
                         
                         const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
@@ -7691,16 +7700,21 @@
 
                     // ===== MANTIDO: Recarregar semanas apenas para criar =====
                     await carregarSemanas();
-                    
+
                     // Encontrar índice da semana da data inicial da demanda
                     const indiceSemana = encontrarSemanaDaData(dados.dt_inicio);
-                    
+
                     if (indiceSemana !== -1) {
                         semanaAtual = indiceSemana;
                         renderizarAbas();
                     }
 
                     mostrarSpinnerVinculos();
+
+                    // ===== ATUALIZAR AGENDA IMEDIATAMENTE (DEMANDA JÁ FOI CRIADA!) =====
+                    await carregarAgenda();
+
+                    esconderSpinnerVinculos();
                     
                     // ===== VERIFICAR TODOS OS VÍNCULOS =====
                     let temDiarias = false;
@@ -7796,12 +7810,10 @@
                                 dadosVinculoFornecedor = resultadoFornecedor;
                                 idDemandaParaEmailFornecedor = demandaIdVinculos;
                                 
-                                esconderSpinnerVinculos();
-                                
-                                // ===== ATUALIZAR AGENDA PRIMEIRO (DEMANDA JÁ FOI CRIADA!) =====
-                                await carregarAgenda();
-                                
-                                // ===== DEPOIS PERGUNTAR SE QUER ENVIAR EMAIL =====
+                                // esconderSpinnerVinculos();
+
+                                // ===== PERGUNTAR SE QUER ENVIAR EMAIL =====
+                                // (WebSocket já atualizou todos os usuários automaticamente)
                                 mostrarConfirmacao(
                                     '📧 Esta demanda possui vínculo com locação.<br><br>Deseja enviar e-mail de solicitação desta locação?',
                                     async function(respostaEmail) {
