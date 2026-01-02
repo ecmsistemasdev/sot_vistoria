@@ -273,8 +273,8 @@ const AgendaWebSocket = (() => {
             ind.id = 'ws-status';
             ind.style.cssText = `
                 position: fixed;
-                bottom: 20px;
-                right: 20px;
+                top: 20px;
+                left: 20px;
                 width: 12px;
                 height: 12px;
                 border-radius: 50%;
@@ -286,7 +286,7 @@ const AgendaWebSocket = (() => {
         }
         
         ind.style.backgroundColor = conectado ? '#10b981' : '#ef4444';
-        ind.title = conectado ? '✅ WebSocket conectado' : '❌ Desconectado';
+        ind.title = conectado ? '✅ conectado' : '❌ Desconectado';
     }
     
     /**
