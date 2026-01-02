@@ -1866,10 +1866,20 @@
                 right: 8px;
             }
         }
+
+        @keyframes flash-update {
+            0% { background-color: rgba(255, 255, 0, 0); }
+            50% { background-color: rgba(255, 255, 0, 0.3); }
+            100% { background-color: rgba(255, 255, 0, 0); }
+        }
+
     </style>
 
     <!-- Biblioteca para copiar como imagem (OPCIONAL) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- ===== NOVO: Socket.IO Client para WebSocket ===== -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" crossorigin="anonymous"></script>
 
 </head>
 <body>
@@ -3912,7 +3922,7 @@
                             });
                         }
                     }, 100);
-                    
+                     
                 } else {
                     // ===== NÃO TEM DIÁRIA SALVA - CRIAR E MOSTRAR BOTÃO =====
                     
@@ -4498,7 +4508,8 @@
                 
                 mostrarSpinner();
                 
-                const response = await fetch('/api/enviar_email_fornecedor', {
+                // ===== MUDANÇA: Trocar /api/ por /api/v2/ =====
+                const response = await fetch('/api/v2/enviar_email_fornecedor', {
                     method: 'POST',
                     body: formData
                 });
@@ -4528,6 +4539,9 @@
                         '#28a745'
                     );
                     
+                    // ===== REMOVIDO: await carregarAgenda() =====
+                    // O WebSocket vai atualizar automaticamente!
+                    
                 } else {
                     mostrarAlerta('Erro ao enviar e-mail: ' + (resultado.erro || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                 }
@@ -4538,6 +4552,7 @@
                 mostrarAlerta('Erro ao enviar e-mail: ' + error.message, '❌ Erro', '#dc3545');
             }
         }
+
 
 
         async function init() {
@@ -4700,12 +4715,26 @@
             
             if (notificacao) {
                 // ===== FORÇAR VISIBILIDADE =====
-                notificacao.style.display = 'block';
-                notificacao.style.position = 'fixed';
-                notificacao.style.top = '80px';
-                notificacao.style.left = '50%';
-                notificacao.style.transform = 'translateX(-50%)';
-                notificacao.style.zIndex = '10000';
+                // notificacao.style.display = 'block';
+                // notificacao.style.position = 'fixed';
+                // notificacao.style.top = '80px';
+                // notificacao.style.left = '50%';
+                // notificacao.style.transform = 'translateX(-50%)';
+                // notificacao.style.zIndex = '10000';
+                
+                notificacao.style.cssText = `
+                    background: rgba(100, 100, 100, 0.85);
+                    color: white;
+                    border-left: 4px solid rgba(255, 255, 255, 0.3);
+                    padding: 12px 16px;
+                    margin-bottom: 10px;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+                    animation: slideIn 0.3s ease-out;
+                    font-size: 14px;
+                    backdrop-filter: blur(10px);
+                `;
+        
                 
                 notificacaoAtiva = true;
                 
@@ -5412,6 +5441,116 @@
             inicializarDestaqueLinha();
         }
         
+        /**
+         * Processa alteração recebida via WebSocket
+         * Chamado automaticamente quando outro usuário faz alteração
+         */
+        function processarAlteracaoWebSocket(alteracao) {
+            console.log('[WebSocket] 📡 Alteração recebida:', alteracao);
+            
+            const { tipo, entidade, id_ad, dados, usuario } = alteracao;
+            
+            // Não ignorar mais - atualizar para TODOS (incluindo quem fez a alteração)
+            const usuarioAtual = '{{ session.usuario_login }}';
+            // if (usuario === usuarioAtual) {
+            //     console.log('[WebSocket] ⏭️ Ignorando própria alteração');
+            //     return;
+            // }
+            
+            if (entidade === 'DEMANDA') {
+                if (tipo === 'INSERT') {
+                    console.log('[WebSocket] ➕ Nova demanda detectada');
+                    recarregarAgendaComAnimacao();
+                    
+                } else if (tipo === 'UPDATE') {
+                    console.log('[WebSocket] ✏️ Demanda atualizada');
+                    recarregarAgendaComAnimacao();
+                    
+                } else if (tipo === 'DELETE') {
+                    console.log('[WebSocket] 🗑️ Demanda removida');
+                    recarregarAgendaComAnimacao();
+                }
+            } else if (entidade === 'DIARIA_TERCEIRIZADO') {
+                console.log('[WebSocket] 💼 Diária terceirizado atualizada');
+                recarregarAgendaComAnimacao();
+            } else if (entidade === 'LOCACAO_FORNECEDOR') {
+                console.log('[WebSocket] 🚗 Locação fornecedor atualizada');
+                recarregarAgendaComAnimacao();
+            }
+        }
+
+        /**
+         * Recarrega agenda com animação suave
+         * Evita reload completo da página
+         */
+        async function recarregarAgendaComAnimacao() {
+            try {
+                console.log('[WebSocket] 🔄 Recarregando agenda...');
+                
+                // Opcional: Adicionar indicador visual
+                const wrapper = document.getElementById('agendaWrapper');
+                if (!wrapper) return;
+                
+                // Salvar posição do scroll
+                const scrollPos = window.pageYOffset;
+                                
+                // Recarregar dados da agenda (sua função existente)
+                await carregarDadosAgenda();
+
+                // Aguardar um tick para garantir atualização
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+                // Renderizar novamente
+                renderizarAgenda();
+
+                // Debug: Verificar se diárias foram carregadas
+                console.log('[WebSocket] Diárias carregadas:', dadosAgenda.diarias_terceirizados?.length || 0);
+                
+                // Restaurar posição do scroll
+                window.scrollTo(0, scrollPos);
+                
+                // Adicionar flash visual em células novas/alteradas
+                setTimeout(() => {
+                    const todasCelulas = document.querySelectorAll('.agenda-table td[onclick]');
+                    todasCelulas.forEach(celula => {
+                        celula.style.animation = 'flash-update 0.6s ease-in-out';
+                    });
+                    
+                    setTimeout(() => {
+                        todasCelulas.forEach(celula => {
+                            celula.style.animation = '';
+                        });
+                    }, 600);
+                }, 100);
+                
+                console.log('[WebSocket] ✅ Agenda recarregada com sucesso');
+                
+            } catch (error) {
+                console.error('[WebSocket] ❌ Erro ao recarregar agenda:', error);
+            }
+        }
+
+        /**
+         * Carrega apenas os dados da agenda sem renderizar
+         * (Sua função existente, garantindo que ela existe)
+         */
+        async function carregarDadosAgenda() {
+            const semana = semanas[semanaAtual];
+            const inicio = semana.inicio;
+            const fim = semana.fim;
+            
+            const response = await fetch(`/api/agenda/dados?inicio=${inicio}&fim=${fim}`);
+            if (!response.ok) throw new Error('Erro ao carregar dados');
+            
+            dadosAgenda = await response.json();
+            
+            // Atualizar variáveis globais
+            window.demandas = dadosAgenda.demandas || [];
+            window.diarias_terceirizados = dadosAgenda.diarias_terceirizados || [];
+            
+            return dadosAgenda;
+        }
+
         async function carregarAgenda() {
             const wrapper = document.getElementById('agendaWrapper');
             wrapper.innerHTML = '<div class="loading">⏳ Carregando agenda...</div>';
@@ -5428,10 +5567,33 @@
                 veiculos = dadosAgenda.veiculos;
                 veiculosExtras = dadosAgenda.veiculos_extras || [];
                 
+                // ===== NOVO: Armazenar dados globalmente para WebSocket =====
+                window.demandas = dadosAgenda.demandas;
+                window.diarias_terceirizados = dadosAgenda.diarias_terceirizados || [];
+                
                 document.getElementById('semanaAtual').textContent = semana.label;
                 
                 renderizarAgenda();
                 inicializarDestaqueLinha();
+                
+                // ===== NOVO: Inicializar WebSocket APÓS carregar dados =====
+                // if (typeof AgendaWebSocket !== 'undefined') {
+                //     AgendaWebSocket.init('{{ session.usuario_login }}');
+                //     console.log('✅ WebSocket inicializado');
+                // }
+                
+                if (typeof AgendaWebSocket !== 'undefined') {
+                    // Registrar callback
+                    AgendaWebSocket.onAlteracaoRecebida = processarAlteracaoWebSocket;
+                    
+                    // Inicializar
+                    AgendaWebSocket.init('{{ session.usuario_login }}');
+                    
+                    console.log('✅ WebSocket inicializado com callback');
+                } else {
+                    console.error('❌ Módulo AgendaWebSocket não carregado');
+                }
+
             } catch (error) {
                 wrapper.innerHTML = '<div class="loading">❌ Erro ao carregar agenda</div>';
                 console.error('Erro:', error);
@@ -5790,10 +5952,19 @@
                             // ===== NOVO: Exibir aviso "DIÁRIA NÃO SOLICITADA" para viagens de terceirizados =====
                             const ehViagem = demanda.id_tipodemanda === 2;
                             const ehTerceirizado = m.tipo === 'Terceirizado';
-                            
+
                             if (ehViagem && ehTerceirizado && dadosAgenda.diarias_terceirizados) {
                                 // Verificar se tem diária e se FL_EMAIL = 'N'
-                                const diaria = dadosAgenda.diarias_terceirizados.find(d => d.id_ad === demanda.id);
+                                const diaria = dadosAgenda.diarias_terceirizados.find(d => 
+                                    parseInt(d.id_ad) === parseInt(demanda.id)
+                                );
+                                
+                                // Debug (pode remover depois)
+                                if (ehViagem && ehTerceirizado) {
+                                    console.log('[Diária] Verificando demanda:', demanda.id, 
+                                                'Diária encontrada:', diaria, 
+                                                'Total diárias:', dadosAgenda.diarias_terceirizados.length);
+                                }
                                 
                                 if (diaria && diaria.fl_email === 'N') {
                                     html += '<div class="diaria-nao-solicitada">(DIÁRIA NÃO SOLICITADA)</div>';
@@ -7370,7 +7541,6 @@
             }
         }
 
-
         async function salvarDemanda() {
             const idAd = document.getElementById('idAd').value;
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
@@ -7464,8 +7634,9 @@
                 let demandaIdRetornado = null;
                 
                 if (idAd) {
-                    // ========== EDIÇÃO - NÃO VERIFICA LOCAÇÃO ==========
-                    res = await fetch(`/api/agenda/demanda/${idAd}`, {
+                    // ========== EDIÇÃO ==========
+                    // ===== MUDANÇA: Trocar /api/ por /api/v2/ =====
+                    res = await fetch(`/api/v2/agenda/demanda/${idAd}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(dados)
@@ -7476,9 +7647,8 @@
                     if (result.success || result.id) {
                         marcarAcaoLocal();
                         fecharModal();
-                        await carregarSemanas();
-                        await carregarAgenda();
-                        inicializarDestaqueLinha();
+                        // ===== REMOVIDO: await carregarSemanas() e await carregarAgenda() =====
+                        // O WebSocket vai atualizar automaticamente!
                     } else {
                         mostrarAlerta('Erro ao salvar: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                     }
@@ -7486,8 +7656,8 @@
                 } else {
                     // ========== NOVA DEMANDA ==========
                     
-                    // ===== SALVAR DEMANDA PRIMEIRO =====
-                    const resSalvar = await fetch('/api/agenda/demanda', {
+                    // ===== MUDANÇA: Trocar /api/ por /api/v2/ =====
+                    const resSalvar = await fetch('/api/v2/agenda/demanda', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(dados)
@@ -7517,17 +7687,17 @@
                     dadosDemandaParaVinculos = dados;
                     
                     marcarAcaoLocal();
-                    // Fechar modal principal
                     fecharModal();
 
-                    await carregarSemanas(); // Recarregar lista de semanas (pode ter semanas novas)
+                    // ===== MANTIDO: Recarregar semanas apenas para criar =====
+                    await carregarSemanas();
                     
                     // Encontrar índice da semana da data inicial da demanda
                     const indiceSemana = encontrarSemanaDaData(dados.dt_inicio);
                     
                     if (indiceSemana !== -1) {
                         semanaAtual = indiceSemana;
-                        renderizarAbas(); // Atualizar as abas visualmente
+                        renderizarAbas();
                     }
 
                     mostrarSpinnerVinculos();
@@ -7538,46 +7708,29 @@
                     let idItemDiariaSalvo = null;
 
                     // 1. Verificar Diárias de Motorista Terceirizado
-                    // IMPORTANTE: Verificar ANTES de processar se as variáveis globais foram setadas
                     const idTipoDemandaSalvo = parseInt(dados.id_tipodemanda);
                     const idMotoristaSalvo = dados.id_motorista;
 
-                    // console.log('=== DEBUG VERIFICAÇÃO DIÁRIAS ===');
-                    // console.log('ID_TIPO_DEMANDA:', idTipoDemandaSalvo);
-                    // console.log('ID_MOTORISTA:', idMotoristaSalvo);
-                    // console.log('temVinculoDiariasAtivo:', temVinculoDiariasAtivo);
-                    // console.log('dadosVinculoDiarias:', dadosVinculoDiarias);
-
                     // Verificar se é tipo Viagem (ID=2) e tem motorista válido
                     if (idTipoDemandaSalvo === 2 && idMotoristaSalvo && parseInt(idMotoristaSalvo) > 0) {
-                        // Se ainda não verificou o vínculo, verificar agora
                         if (!temVinculoDiariasAtivo) {
                             try {
                                 const urlVerificarDiarias = `/api/verificar_vinculo_diarias?id_motorista=${idMotoristaSalvo}`;
                                 const resVerificarDiarias = await fetch(urlVerificarDiarias);
                                 const resultadoDiarias = await resVerificarDiarias.json();
                                 
-                                // console.log('Resultado verificação diárias:', resultadoDiarias);
-                                
                                 if (resultadoDiarias.tem_vinculo) {
                                     temVinculoDiariasAtivo = true;
                                     dadosVinculoDiarias = resultadoDiarias;
-                                    // console.log('✅ Vínculo de diárias encontrado!');
                                 }
                             } catch (error) {
                                 console.error('Erro ao verificar vínculo de diárias:', error);
                             }
                         }
                         
-                        // Agora processar se tem vínculo ativo
                         if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
-                            // console.log('➡️ Processando salvamento de diária...');
-                            
-                            // ===== SALVAR REGISTRO DE DIÁRIA ANTES DE PERGUNTAR =====
                             try {
                                 const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
-                                
-                                // console.log('Diárias calculadas:', diarias);
                                 
                                 const dadosSalvarDiaria = {
                                     id_ad: demandaIdVinculos,
@@ -7588,8 +7741,6 @@
                                     vl_total: diarias.total_diarias * dadosVinculoDiarias.vl_diaria
                                 };
                                 
-                                // console.log('Dados para salvar diária:', dadosSalvarDiaria);
-                                
                                 const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -7598,96 +7749,42 @@
                                 
                                 const resultSalvarDiaria = await resSalvarDiaria.json();
                                 
-                                // console.log('Resultado salvamento diária:', resultSalvarDiaria);
-                                
-                                if (resultSalvarDiaria.success) {
+                                if (resultSalvarDiaria.success && resultSalvarDiaria.iditem) {
                                     temDiarias = true;
-                                    idDemandaParaDiarias = demandaIdVinculos;
                                     idItemDiariaSalvo = resultSalvarDiaria.iditem;
-                                    
-                                    // IMPORTANTE: Guardar no campo oculto do modal de email
-                                    document.getElementById('email_iditem').value = idItemDiariaSalvo;
-                                    
-                                    // console.log('✅ Diária salva com sucesso! IDITEM:', idItemDiariaSalvo);
-                                } else {
-                                    console.error('❌ Erro ao salvar diária:', resultSalvarDiaria.erro);
+
+                                    console.log('[Diária] ✅ Salva:', {
+                                        id_ad: demandaIdVinculos,
+                                        iditem: resultSalvarDiaria.iditem,
+                                        id_motorista: dados.id_motorista
+                                    });
+
                                 }
-                                
                             } catch (errorDiaria) {
-                                console.error('❌ Erro ao salvar diária:', errorDiaria);
+                                console.error('Erro ao salvar diária:', errorDiaria);
                             }
-                        } else {
-                            console.log('ℹ️ Não tem vínculo de diárias ativo');
                         }
                     }
 
-                    // 2. Verificar Locação de Veículo
+                    // 2. Verificar Locação com Fornecedor
+                    // 2. Verificar Locação de Veículo (COM MOTORISTA)
                     if (dados.id_tipoveiculo && idMotoristaSalvo && parseInt(idMotoristaSalvo) > 0) {
                         try {
                             const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${idMotoristaSalvo}`;
                             const resVerificarLocacao = await fetch(urlVerificarLocacao);
                             const resultadoLocacao = await resVerificarLocacao.json();
                             
-                            // console.log('Resultado verificação locação:', resultadoLocacao);
-                            
                             if (resultadoLocacao.tem_vinculo) {
                                 temLocacao = true;
                                 dadosVinculoLocacao = resultadoLocacao;
                                 idDemandaParaLocacao = demandaIdVinculos;
-                                //cconsole.log('✅ Vínculo de locação encontrado!');
                             }
                         } catch (error) {
                             console.error('Erro ao verificar locação:', error);
                         }
                     }
 
-                    // ===== ADICIONAR ESTE BLOCO APÓS A VERIFICAÇÃO DE LOCAÇÃO =====
-
-                    // 2. Verificar Diárias de Motorista Terceirizado
-                    if (dados.id_tipodemanda == 2 && dados.id_motorista && parseInt(dados.id_motorista) > 0) {
-                        try {
-                            const urlVerificarDiarias = `/api/verificar_vinculo_diarias?id_motorista=${dados.id_motorista}`;
-                            const resVerificarDiarias = await fetch(urlVerificarDiarias);
-                            const resultadoDiarias = await resVerificarDiarias.json();
-                            
-                            if (resultadoDiarias.tem_vinculo) {
-                                // ===== SALVAR REGISTRO DE DIÁRIA IMEDIATAMENTE =====
-                                const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
-                                
-                                const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        id_ad: demandaIdVinculos,
-                                        id_fornecedor: resultadoDiarias.id_fornecedor,
-                                        id_motorista: dados.id_motorista,
-                                        qt_diarias: diarias.total_diarias,
-                                        vl_diaria: resultadoDiarias.vl_diaria,
-                                        vl_total: diarias.total_diarias * resultadoDiarias.vl_diaria
-                                    })
-                                });
-                                
-                                const resultSalvarDiaria = await resSalvarDiaria.json();
-                                
-                                if (resultSalvarDiaria.success) {
-                                    temDiarias = true;
-                                    dadosVinculoDiarias = resultadoDiarias;
-                                    idDemandaParaDiarias = demandaIdVinculos;
-                                    
-                                    // Armazenar IDITEM no campo oculto do modal de email
-                                    document.getElementById('email_iditem').value = resultSalvarDiaria.iditem;
-                                    
-                                    app.logger.info(`✅ Diária salva automaticamente - IDITEM: ${resultSalvarDiaria.iditem}`);
-                                } else {
-                                    console.error('Erro ao salvar diária:', resultSalvarDiaria.erro);
-                                }
-                            }
-                        } catch (errorDiaria) {
-                            console.error('Erro ao verificar/salvar diária:', errorDiaria);
-                        }
-                    }
-
-                    // 3. Verificar Fornecedor (se não tem locação)
+                    // 3. Verificar Fornecedor (se não tem locação com motorista)
                     if (!temLocacao && dados.id_tipoveiculo) {
                         try {
                             const urlVerificarFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${dados.id_tipoveiculo}`;
@@ -7695,10 +7792,16 @@
                             const resultadoFornecedor = await resVerificarFornecedor.json();
                             
                             if (resultadoFornecedor.tem_vinculo) {
+
                                 dadosVinculoFornecedor = resultadoFornecedor;
                                 idDemandaParaEmailFornecedor = demandaIdVinculos;
                                 
-                                // Para fornecedor, perguntar imediatamente
+                                esconderSpinnerVinculos();
+                                
+                                // ===== ATUALIZAR AGENDA PRIMEIRO (DEMANDA JÁ FOI CRIADA!) =====
+                                await carregarAgenda();
+                                
+                                // ===== DEPOIS PERGUNTAR SE QUER ENVIAR EMAIL =====
                                 mostrarConfirmacao(
                                     '📧 Esta demanda possui vínculo com locação.<br><br>Deseja enviar e-mail de solicitação desta locação?',
                                     async function(respostaEmail) {
@@ -7717,7 +7820,19 @@
                                                 esconderSpinner();
                                                 
                                                 if (resultLocacao.success && resultLocacao.id_item) {
+                                                    // Guardar ID_ITEM
                                                     idItemLocacaoFornecedor = resultLocacao.id_item;
+                                                    
+                                                    // Guardar dados do fornecedor vindos do backend
+                                                    if (resultLocacao.dados) {
+                                                        dadosVinculoFornecedor = {
+                                                            email_fornecedor: resultLocacao.dados.EMAIL_FORNECEDOR,
+                                                            nome_fornecedor: resultLocacao.dados.NM_FORNECEDOR,
+                                                            de_tipoveiculo: resultLocacao.dados.DE_TIPOVEICULO
+                                                        };
+                                                    }
+                                                    
+                                                    // Abrir modal de email
                                                     await abrirModalEmailFornecedor(dados);
                                                 } else {
                                                     mostrarAlerta(
@@ -7725,9 +7840,6 @@
                                                         '⚠️ Aviso',
                                                         '#ffc107'
                                                     );
-                                                    await carregarSemanas();
-                                                    await carregarAgenda();
-                                                    inicializarDestaqueLinha();
                                                 }
                                             } catch (errorLocacao) {
                                                 esconderSpinner();
@@ -7737,60 +7849,98 @@
                                                     '⚠️ Aviso',
                                                     '#ffc107'
                                                 );
-                                                await carregarSemanas();
-                                                await carregarAgenda();
-                                                inicializarDestaqueLinha();
                                             }
-                                        } else {
-                                            await carregarSemanas();
-                                            await carregarAgenda();
-                                            inicializarDestaqueLinha();
                                         }
                                     },
                                     '📧 Enviar E-mail?'
                                 );
+                                
+                                // RETORNAR aqui para não continuar
                                 return;
                             }
-                        } catch (errorFornecedor) {
-                            console.error('Erro ao verificar fornecedor:', errorFornecedor);
+                        } catch (error) {
+                            console.error('Erro ao verificar fornecedor:', error);
                         }
                     }
 
-                    // console.log('=== RESUMO DOS VÍNCULOS ===');
-                    // console.log('temDiarias:', temDiarias);
-                    // console.log('temLocacao:', temLocacao);
+                    // 4. Segunda verificação de Diárias (compatibilidade)
+                    if (dados.id_tipodemanda == 2 && dados.id_motorista && parseInt(dados.id_motorista) > 0 && !temDiarias) {
+                        try {
+                            const urlVerificarDiarias = `/api/verificar_vinculo_diarias?id_motorista=${dados.id_motorista}`;
+                            const resVerificarDiarias = await fetch(urlVerificarDiarias);
+                            const resultadoDiarias = await resVerificarDiarias.json();
+                            
+                            if (resultadoDiarias.tem_vinculo) {
+                                const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
+                                
+                                const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        id_ad: demandaIdVinculos,
+                                        id_fornecedor: resultadoDiarias.id_fornecedor,
+                                        id_motorista: dados.id_motorista,
+                                        qt_diarias: diarias.total_diarias,
+                                        vl_diaria: resultadoDiarias.vl_diaria,
+                                        vl_total: diarias.total_diarias * resultadoDiarias.vl_diaria
+                                    })
+                                });
+                                
+                                const resultSalvarDiaria = await resSalvarDiaria.json();
+                                
+                                if (resultSalvarDiaria.success && resultSalvarDiaria.iditem) {
+                                    temDiarias = true;
+                                    dadosVinculoDiarias = resultadoDiarias;
+                                    idDemandaParaDiarias = demandaIdVinculos;
+                                    idItemDiariaSalvo = resultSalvarDiaria.iditem;
+                                    
+                                    // Armazenar IDITEM no campo oculto
+                                    document.getElementById('email_iditem').value = idItemDiariaSalvo;
+                                }
+                            }
+                        } catch (errorDiaria) {
+                            console.error('Erro ao verificar/salvar diária:', errorDiaria);
+                        }
+                    }
 
-                    // ===== PROCESSAR VÍNCULOS EM SEQUÊNCIA =====
-                    if (temDiarias || temLocacao) {
-                        fluxoVinculosAtivo = true;
-                        vinculosPendentes = {
-                            diarias: temDiarias,
-                            locacao: temLocacao
-                        };
-                        
-                        // console.log('➡️ Iniciando fluxo de vínculos...');
-                        
-                        // Iniciar processamento sequencial
-                        await processarVinculosSequencial();
-                    } else {
-                        // console.log('ℹ️ Sem vínculos - recarregando agenda');
-            
-                        esconderSpinnerVinculos();
+                    esconderSpinnerVinculos();
 
-                        // Sem vínculos - apenas recarregar
-                        await carregarSemanas();
-                        await carregarAgenda();
-                        inicializarDestaqueLinha();
+                    // 5. Perguntas finais ao usuário
+                    if (temLocacao) {
+                        mostrarConfirmacao(
+                            '📧 Esta demanda está vinculada a uma locação de veículo.<br><br>Deseja enviar e-mail de solicitação?',
+                            async function(resposta) {
+                                if (resposta) {
+                                    await abrirModalEmailLocacao();
+                                }
+                            },
+                            '📧 Enviar E-mail de Locação?'
+                        );
+                    } else if (temDiarias) {
+                        mostrarConfirmacao(
+                            '💰 Esta demanda gerou diárias de motorista terceirizado.<br><br>Deseja enviar e-mail de solicitação?',
+                            async function(resposta) {
+                                if (resposta) {
+                                    // Guardar IDs
+                                    idDemandaParaDiarias = demandaIdVinculos;
+                                    
+                                    // Guardar ID_ITEM no campo oculto
+                                    if (idItemDiariaSalvo) {
+                                        document.getElementById('email_iditem').value = idItemDiariaSalvo;
+                                    }
+                                    
+                                    // Abrir modal (IGUAL AO OLD - usa dadosDemandaParaVinculos)
+                                    await abrirModalEmailDiarias(dadosDemandaParaVinculos);
+                                }
+                            },
+                            '📧 Enviar E-mail de Diárias?'
+                        );
                     }
                 }
                 
             } catch (error) {
-                console.error('Erro:', error);
-
-                esconderSpinner();
-                esconderSpinnerVinculos();
-
                 mostrarAlerta('Erro ao salvar demanda!', '❌ Erro', '#dc3545');
+                console.error('Erro:', error);
             }
         }
         
@@ -7851,7 +8001,7 @@
                                                 throw new Error(errorData.erro || 'Erro ao excluir locação vinculada');
                                             }
                                             
-                                            // ===== NOVO: EXCLUIR DIÁRIA SE EXISTIR =====
+                                            // Excluir diária se existir
                                             try {
                                                 await fetch(`/api/excluir_diaria_terceirizado/${idAd}`, {
                                                     method: 'DELETE'
@@ -7860,8 +8010,8 @@
                                                 console.log('Nenhuma diária para excluir ou erro:', errorDiaria);
                                             }
 
-                                            // Excluir demanda
-                                            const res = await fetch(`/api/agenda/demanda/${idAd}`, {
+                                            // ===== MUDANÇA: Trocar /api/ por /api/v2/ =====
+                                            const res = await fetch(`/api/v2/agenda/demanda/${idAd}`, {
                                                 method: 'DELETE'
                                             });
 
@@ -7873,11 +8023,10 @@
                                                 marcarAcaoLocal();
                                                 fecharModal();
                                                 
+                                                // ===== MANTIDO: Recarregar após excluir =====
                                                 await carregarSemanas();
                                                 await carregarLocacoes();
-                                                await carregarAgenda();
-                                                
-                                                // mostrarAlerta('Demanda e locação vinculada excluídas com sucesso!', '✅ Sucesso', '#28a745');
+                                                // await carregarAgenda(); // ← WebSocket vai atualizar
                                             } else {
                                                 mostrarAlerta('Erro ao excluir demanda: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                                             }
@@ -7894,7 +8043,8 @@
                             }
                         }
                         
-                        const res = await fetch(`/api/agenda/demanda/${idAd}`, {
+                        // ===== MUDANÇA: Trocar /api/ por /api/v2/ =====
+                        const res = await fetch(`/api/v2/agenda/demanda/${idAd}`, {
                             method: 'DELETE'
                         });
                         
@@ -7906,11 +8056,10 @@
                             marcarAcaoLocal();
                             fecharModal();
                             
+                            // ===== MANTIDO: Recarregar após excluir =====
                             await carregarSemanas();
                             await carregarLocacoes();
-                            await carregarAgenda();
-                            
-                            // mostrarAlerta('Demanda excluída com sucesso!', '✅ Sucesso', '#28a745');
+                            // await carregarAgenda(); // ← WebSocket vai atualizar
                         } else {
                             mostrarAlerta('Erro ao excluir: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
                         }
@@ -8742,5 +8891,9 @@
         init();
         
     </script>
+
+    <!-- ===== NOVO: Módulo WebSocket de sincronização ===== -->
+    <script src="/static/js/agenda-websocket.js"></script>
+
 </body>
 </html>
