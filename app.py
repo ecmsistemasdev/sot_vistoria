@@ -1,63 +1,341 @@
-from flask import Flask, render_template, request, make_response, redirect, url_for, flash, jsonify, send_file, session
-from flask_mail import Mail, Message
-from functools import wraps
-from flask_mysqldb import MySQL
-import MySQLdb.cursors
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+============================================================
+SISTEMA DE OPERAÇÕES DE TRANSPORTE - TJRO
+============================================================
+Versão: 2.0 (com WebSocket em tempo real usando Threading)
+============================================================
+"""
+
+# ============================================================
+# IMPORTS - BIBLIOTECAS PYTHON PADRÃO
+# ============================================================
+import os
+import json
 import uuid
 import base64
-from datetime import datetime, timedelta, time
-from xhtml2pdf import pisa
-from io import BytesIO
-from pytz import timezone
 import re
-import PyPDF2
-from werkzeug.utils import secure_filename
-import os
 import unicodedata
-import airportsdata
+from io import BytesIO
+from datetime import datetime, timedelta, time
 from math import radians, cos, sin, asin, sqrt
+from functools import wraps
+
+# ============================================================
+# IMPORTS - BIBLIOTECAS EXTERNAS
+# ============================================================
+# Threading é mais estável para desenvolvimento com debug=True
+# NÃO precisa de monkey.patch_all()
+
+from flask import (
+    Flask, 
+    render_template, 
+    request, 
+    make_response, 
+    redirect, 
+    url_for, 
+    flash, 
+    jsonify, 
+    send_file, 
+    session
+)
+from flask_mysqldb import MySQL
+import MySQLdb.cursors
+
+from flask_mail import Mail, Message
+
+from flask_socketio import (
+    SocketIO, 
+    emit, 
+    join_room, 
+    leave_room
+)
+
+from werkzeug.utils import secure_filename
+from xhtml2pdf import pisa
+from pytz import timezone
+import PyPDF2
+import airportsdata
 
 
+# ============================================================
+# INICIALIZAÇÃO DO FLASK
+# ============================================================
 app = Flask(__name__)
 
-# Carregar dados dos aeroportos
-airports = airportsdata.load('IATA')  # Carrega por código IATA
 
-# Configuração de upload (adicione no início do app.py)
+# ============================================================
+# CONFIGURAÇÕES DO SISTEMA
+# ============================================================
+
+# Segurança
+app.secret_key = os.getenv('SECRET_KEY')
+
+# Upload de arquivos
 UPLOAD_FOLDER = '/tmp/uploads'
 ALLOWED_EXTENSIONS = {'pdf'}
 
-# Configuração do Flask-Mail
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')  # Substitua pelo seu servidor SMTP
-app.config['MAIL_PORT'] = os.getenv('MAIL_PORT') 
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME') 
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD') 
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
-app.config['MAIL_USE_TLS'] = True 
-app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_MAX_EMAILS'] = None
-app.config['MAIL_TIMEOUT'] = 10  # segundos
-mail = Mail(app)
 
-# Configuração do MySQL
+# ============================================================
+# CONFIGURAÇÃO DO BANCO DE DADOS (MySQL)
+# ============================================================
 app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST')
 app.config['MYSQL_USER'] = os.getenv('MYSQL_USER')
 app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD')
 app.config['MYSQL_DB'] = os.getenv('MYSQL_DB')
 app.config['MYSQL_CHARSET'] = 'utf8mb4'
+
 mysql = MySQL(app)
 
-# Configuração para segurança
-app.secret_key = os.getenv('SECRET_KEY')
+
+# ============================================================
+# CONFIGURAÇÃO DO EMAIL (Flask-Mail)
+# ============================================================
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = os.getenv('MAIL_PORT')
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_MAX_EMAILS'] = None
+app.config['MAIL_TIMEOUT'] = 10  # segundos
+
+mail = Mail(app)
+
+
+# ============================================================
+# CONFIGURAÇÃO DO WEBSOCKET (Flask-SocketIO com Threading)
+# ============================================================
+# Threading é mais estável para desenvolvimento com debug=True
+# Em produção, pode trocar para 'gevent' se necessário
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="*", 
+    async_mode='threading',  # ✅ Threading = estável + debug funciona!
+    ping_timeout=60,
+    ping_interval=25,
+    logger=True,            # Ver logs para debug
+    engineio_logger=False   # Reduzir verbosidade
+)
+
+
+# ============================================================
+# DADOS EXTERNOS
+# ============================================================
+# Carregar dados dos aeroportos (código IATA)
+airports = airportsdata.load('IATA')
+
+
+# ============================================================
+# VARIÁVEIS GLOBAIS DO WEBSOCKET
+# ============================================================
+# Store de conexões ativas (WebSocket)
+usuarios_conectados = {}  # {sid: {'usuario': 'login', 'nome': 'Nome Completo'}}
+
+
+# ============================================================
+# DECORADORES E FUNÇÕES AUXILIARES
+# ============================================================
 
 def login_required(f):
+    """
+    Decorador para proteger rotas que exigem autenticação
+    Redireciona para login se usuário não estiver autenticado
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'usuario_logado' not in session:
+        if 'usuario_login' not in session:
+            flash('Você precisa estar logado para acessar esta página.', 'warning')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
+
+def authenticated_only(f):
+    """
+    Decorador para proteger eventos WebSocket
+    Rejeita conexões não autenticadas
+    """
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if not session.get('usuario_login'):
+            return False
+        return f(*args, **kwargs)
+    return wrapped
+
+
+# ============================================================
+# FUNÇÕES AUXILIARES - WEBSOCKET
+# ============================================================
+
+def emitir_alteracao_demanda(tipo_operacao, id_ad, dados_demanda=None):
+    """
+    Emite alteração de demanda para todos os clientes conectados via WebSocket
+    
+    Args:
+        tipo_operacao (str): 'INSERT', 'UPDATE', 'DELETE'
+        id_ad (int): ID da demanda
+        dados_demanda (dict, optional): Dados completos da demanda
+    """
+    try:
+        usuario_atual = session.get('usuario_login', '')
+        
+        payload = {
+            'tipo': tipo_operacao,
+            'entidade': 'DEMANDA',
+            'id_ad': id_ad,
+            'usuario': usuario_atual,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        if dados_demanda:
+            payload['dados'] = dados_demanda
+        
+        # ===== CORREÇÃO: Remover skip_sid (não existe em rotas HTTP) =====
+        socketio.emit('alteracao_agenda', payload, room='agenda')
+        # Emite para TODOS na sala, incluindo quem fez a alteração
+        # O frontend vai ignorar suas próprias alterações
+        
+        print(f"📡 WebSocket: Emitido {tipo_operacao} - ID_AD: {id_ad} por {usuario_atual}")
+        
+    except Exception as e:
+        print(f"❌ Erro ao emitir alteração WebSocket: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+
+def emitir_alteracao_diaria_terceirizado(tipo_operacao, iditem, id_ad, fl_email=None):
+    """
+    Emite alteração de diária de terceirizado via WebSocket
+    
+    Args:
+        tipo_operacao (str): 'INSERT', 'UPDATE', 'DELETE'
+        iditem (int): ID do item de diária
+        id_ad (int): ID da demanda
+        fl_email (str, optional): Flag de email ('S' ou 'N')
+    """
+    try:
+        usuario_atual = session.get('usuario_login', '')
+        
+        payload = {
+            'tipo': tipo_operacao,
+            'entidade': 'DIARIA_TERCEIRIZADO',
+            'iditem': iditem,
+            'id_ad': id_ad,
+            'usuario': usuario_atual,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        if fl_email is not None:
+            payload['fl_email'] = fl_email
+        
+        # ===== CORREÇÃO: Remover skip_sid =====
+        socketio.emit('alteracao_agenda', payload, room='agenda')
+        
+        print(f"📡 WebSocket: Emitido {tipo_operacao} DIÁRIA - IDITEM: {iditem}")
+        
+    except Exception as e:
+        print(f"❌ Erro ao emitir alteração de diária: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+
+# ============================================================
+# FUNÇÕES AUXILIARES - UTILITÁRIOS
+# ============================================================
+
+def allowed_file(filename):
+    """Verifica se extensão do arquivo é permitida"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def calcular_distancia_haversine(lat1, lon1, lat2, lon2):
+    """
+    Calcula distância entre dois pontos geográficos usando fórmula de Haversine
+    
+    Args:
+        lat1, lon1: Latitude e longitude do ponto 1
+        lat2, lon2: Latitude e longitude do ponto 2
+    
+    Returns:
+        float: Distância em quilômetros
+    """
+    # Converter de graus para radianos
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    
+    # Fórmula de Haversine
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    
+    # Raio da Terra em km
+    r = 6371
+    
+    return c * r
+
+
+# ============================================================
+# EVENTOS WEBSOCKET - CONEXÃO/DESCONEXÃO
+# ============================================================
+
+@socketio.on('connect')
+def handle_connect():
+    """Cliente se conecta ao WebSocket"""
+    usuario_login = session.get('usuario_login')
+    usuario_nome = session.get('usuario_nome', 'Usuário')
+    
+    if not usuario_login:
+        print("⚠️  WebSocket: Conexão rejeitada - usuário não autenticado")
+        return False  # Rejeitar conexão não autenticada
+    
+    # Armazenar conexão
+    usuarios_conectados[request.sid] = {
+        'usuario': usuario_login,
+        'nome': usuario_nome,
+        'connected_at': datetime.now().isoformat()
+    }
+    
+    # Entrar na sala 'agenda' (todos os usuários da agenda ficam nesta sala)
+    join_room('agenda')
+    
+    print(f"✅ WebSocket conectado: {usuario_nome} ({usuario_login}) - SID: {request.sid}")
+    
+    # Notificar outros usuários
+    emit('usuario_conectou', {
+        'usuario': usuario_nome,
+        'total_conectados': len(usuarios_conectados)
+    }, room='agenda', skip_sid=request.sid)
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Cliente se desconecta do WebSocket"""
+    if request.sid in usuarios_conectados:
+        usuario_info = usuarios_conectados[request.sid]
+        leave_room('agenda')
+        del usuarios_conectados[request.sid]
+        
+        print(f"❌ WebSocket desconectado: {usuario_info['nome']} - SID: {request.sid}")
+        
+        # Notificar outros usuários
+        emit('usuario_desconectou', {
+            'usuario': usuario_info['nome'],
+            'total_conectados': len(usuarios_conectados)
+        }, room='agenda')
+
+
+@socketio.on('ping')
+@authenticated_only
+def handle_ping():
+    """Responde ao ping do cliente (keepalive)"""
+    emit('pong', {'timestamp': datetime.now().isoformat()})
+
+
+###################################
 
 # Decorator para verificar permissão de acesso
 def verificar_permissao(url_pagina, nivel_minimo='L'):
@@ -2800,6 +3078,7 @@ def obter_usuario_logado():
 def salvar_diaria_terceirizado():
     """
     Salva ou atualiza registro de diária de motorista terceirizado
+    IDITEM é obtido manualmente via SELECT MAX(IDITEM) + 1
     """
     cursor = None
     try:
@@ -2812,14 +3091,11 @@ def salvar_diaria_terceirizado():
         vl_diaria = data.get('vl_diaria')
         vl_total = data.get('vl_total')
         
-        # ===== LOG DE DEBUG =====
         app.logger.info(f"=== SALVAR DIÁRIA TERCEIRIZADO ===")
         app.logger.info(f"ID_AD: {id_ad}")
         app.logger.info(f"ID_FORNECEDOR: {id_fornecedor}")
         app.logger.info(f"ID_MOTORISTA: {id_motorista}")
         app.logger.info(f"QT_DIARIAS: {qt_diarias}")
-        app.logger.info(f"VL_DIARIA: {vl_diaria}")
-        app.logger.info(f"VL_TOTAL: {vl_total}")
         
         if not all([id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total]):
             app.logger.error("Dados incompletos")
@@ -2849,20 +3125,49 @@ def salvar_diaria_terceirizado():
             """, (id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total, id_ad))
             
             iditem = registro_existente[0]
-        else:
-            # INSERIR novo registro
-            app.logger.info("Inserindo novo registro")
             
+        else:
+            # ===== OBTER PRÓXIMO IDITEM MANUALMENTE =====
+            cursor.execute("SELECT MAX(IDITEM) FROM DIARIAS_TERCEIRIZADOS")
+            resultado = cursor.fetchone()
+            
+            if resultado and resultado[0]:
+                iditem = resultado[0] + 1
+            else:
+                iditem = 1  # Primeira diária
+            
+            app.logger.info(f"Próximo IDITEM: {iditem}")
+            
+            # INSERIR novo registro com IDITEM manual
             cursor.execute("""
                 INSERT INTO DIARIAS_TERCEIRIZADOS
-                (ID_AD, ID_FORNECEDOR, ID_MOTORISTA, QT_DIARIAS, VL_DIARIA, VL_TOTAL, FL_EMAIL)
-                VALUES (%s, %s, %s, %s, %s, %s, 'N')
-            """, (id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total))
+                (IDITEM, ID_AD, ID_FORNECEDOR, ID_MOTORISTA, QT_DIARIAS, VL_DIARIA, VL_TOTAL, FL_EMAIL)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'N')
+            """, (iditem, id_ad, id_fornecedor, id_motorista, qt_diarias, vl_diaria, vl_total))
             
-            iditem = cursor.lastrowid
             app.logger.info(f"Novo registro inserido - IDITEM: {iditem}")
         
         mysql.connection.commit()
+        
+        # ===== EMITIR WEBSOCKET =====
+        usuario_atual = session.get('usuario_login', '')
+        
+        try:
+            payload = {
+                'tipo': 'INSERT' if not registro_existente else 'UPDATE',
+                'entidade': 'DIARIA_TERCEIRIZADO',
+                'iditem': iditem,
+                'id_ad': id_ad,
+                'usuario': usuario_atual,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            socketio.emit('alteracao_agenda', payload, room='agenda')
+            
+            print(f"📡 WebSocket: {payload['tipo']} DIARIA_TERCEIRIZADO - IDITEM: {iditem}")
+            
+        except Exception as e:
+            print(f"❌ Erro ao emitir WebSocket: {str(e)}")
         
         app.logger.info(f"✅ Diária salva com sucesso - IDITEM: {iditem}")
         
@@ -2882,6 +3187,7 @@ def salvar_diaria_terceirizado():
     finally:
         if cursor:
             cursor.close()
+
 			
 @app.route('/api/excluir_diaria_terceirizado/<int:id_ad>', methods=['DELETE'])
 @login_required
@@ -6655,6 +6961,7 @@ def agenda_busca_setor():
 def criar_locacao_fornecedor():
     """
     Cria registro na CONTROLE_LOCACAO_ITENS para locação com fornecedor
+    COM emissão WebSocket
     """
     try:
         data = request.get_json()
@@ -6663,18 +6970,38 @@ def criar_locacao_fornecedor():
         if not id_demanda:
             return jsonify({'erro': 'ID da demanda não informado'}), 400
         
+        # Criar registro (função existente)
         id_item = criar_registro_locacao_fornecedor(id_demanda)
         
-        if id_item:
-            return jsonify({
-                'success': True,
+        if not id_item:
+            return jsonify({'erro': 'Erro ao criar registro de locação'}), 500
+        
+        # ===== EMITIR WEBSOCKET =====
+        usuario_atual = session.get('usuario_login', '')
+        
+        try:
+            payload = {
+                'tipo': 'INSERT',
+                'entidade': 'LOCACAO_FORNECEDOR',
                 'id_item': id_item,
-                'mensagem': 'Registro de locação criado com sucesso'
-            })
-        else:
-            return jsonify({
-                'erro': 'Erro ao criar registro de locação'
-            }), 500
+                'id_demanda': id_demanda,
+                'usuario': usuario_atual,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            socketio.emit('alteracao_agenda', payload, room='agenda')
+            
+            print(f"📡 WebSocket: INSERT LOCACAO_FORNECEDOR - ID_ITEM: {id_item}")
+            
+        except Exception as e:
+            print(f"❌ Erro ao emitir WebSocket: {str(e)}")
+        
+        # Retornar sucesso (mesma estrutura de antes)
+        return jsonify({
+            'success': True,
+            'id_item': id_item,
+            'mensagem': 'Registro de locação criado com sucesso'
+        })
             
     except Exception as e:
         app.logger.error(f"Erro em criar_locacao_fornecedor: {str(e)}")
@@ -8223,8 +8550,8 @@ def validar_aeroportos_no_banco(codigos_possiveis, cursor):
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# def allowed_file(filename):
+#     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def converter_valor_br(valor_str):
@@ -8749,137 +9076,137 @@ def validar_aeroportos_no_banco_modelo2(codigos_possiveis, cursor):
     return codigos_limpos
 
 
-def extrair_dados_bilhete_modelo2_completo(texto, cursor):
-    """
-    Extrai dados do Modelo 2 - VERSÃO COMPLETA COM IDA E VOLTA
-    """
-    dados = {
-        'dt_emissao': '',
-        'nu_sei': '',
-        'nome_passageiro': '',
-        'localizador': '',
-        'trecho': '',
-        'origem': '',
-        'destino': '',
-        'cia': '',
-        'vl_tarifa': '',
-        'vl_taxa_extra': '',
-        'vl_total': '',
-        'dt_embarque': ''
-    }
+# def extrair_dados_bilhete_modelo2_completo(texto, cursor):
+#     """
+#     Extrai dados do Modelo 2 - VERSÃO COMPLETA COM IDA E VOLTA
+#     """
+#     dados = {
+#         'dt_emissao': '',
+#         'nu_sei': '',
+#         'nome_passageiro': '',
+#         'localizador': '',
+#         'trecho': '',
+#         'origem': '',
+#         'destino': '',
+#         'cia': '',
+#         'vl_tarifa': '',
+#         'vl_taxa_extra': '',
+#         'vl_total': '',
+#         'dt_embarque': ''
+#     }
     
-    try:
-        print("=" * 80)
-        print("EXTRAINDO DADOS - MODELO 2 (VERSÃO COMPLETA)")
-        print("=" * 80)
+#     try:
+#         print("=" * 80)
+#         print("EXTRAINDO DADOS - MODELO 2 (VERSÃO COMPLETA)")
+#         print("=" * 80)
         
-        # 1. DATA DE EMISSÃO
-        match_data = re.search(r'Data Emissão\s*(\d{2}/\d{2}/\d{4})', texto)
-        if not match_data:
-            match_data = re.search(r'(\d{2}/\d{2}/\d{4})', texto)
-        if match_data:
-            dados['dt_emissao'] = match_data.group(1)
-            print(f"✅ Data Emissão: {dados['dt_emissao']}")
+#         # 1. DATA DE EMISSÃO
+#         match_data = re.search(r'Data Emissão\s*(\d{2}/\d{2}/\d{4})', texto)
+#         if not match_data:
+#             match_data = re.search(r'(\d{2}/\d{2}/\d{4})', texto)
+#         if match_data:
+#             dados['dt_emissao'] = match_data.group(1)
+#             print(f"✅ Data Emissão: {dados['dt_emissao']}")
         
-        # 2. Nº SEI
-        match_sei = re.search(r'(\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})', texto)
-        if match_sei:
-            dados['nu_sei'] = match_sei.group(1)
-            print(f"✅ Nº SEI: {dados['nu_sei']}")
+#         # 2. Nº SEI
+#         match_sei = re.search(r'(\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4})', texto)
+#         if match_sei:
+#             dados['nu_sei'] = match_sei.group(1)
+#             print(f"✅ Nº SEI: {dados['nu_sei']}")
         
-        # 3. NOME DO PASSAGEIRO
-        match_nome = re.search(r'Sobrenome\s+Nome.*?\n.*?([A-ZÀ-Ú]+)\s+([A-ZÀ-Ú\s]+?)\s+(?:Masculino|Feminino)', texto, re.DOTALL)
-        if match_nome:
-            sobrenome = match_nome.group(1).strip()
-            nome = match_nome.group(2).strip()
-            nome_completo = f"{nome} {sobrenome}"
-            dados['nome_passageiro'] = capitalizar_nome(nome_completo)
-            print(f"✅ Nome: {dados['nome_passageiro']}")
+#         # 3. NOME DO PASSAGEIRO
+#         match_nome = re.search(r'Sobrenome\s+Nome.*?\n.*?([A-ZÀ-Ú]+)\s+([A-ZÀ-Ú\s]+?)\s+(?:Masculino|Feminino)', texto, re.DOTALL)
+#         if match_nome:
+#             sobrenome = match_nome.group(1).strip()
+#             nome = match_nome.group(2).strip()
+#             nome_completo = f"{nome} {sobrenome}"
+#             dados['nome_passageiro'] = capitalizar_nome(nome_completo)
+#             print(f"✅ Nome: {dados['nome_passageiro']}")
         
-        # 4. LOCALIZADOR
-        match_loc = re.search(r'Localizador.*?\n([A-Z0-9]{5,7})', texto, re.DOTALL)
-        if match_loc:
-            dados['localizador'] = match_loc.group(1)
-            print(f"✅ Localizador: {dados['localizador']}")
+#         # 4. LOCALIZADOR
+#         match_loc = re.search(r'Localizador.*?\n([A-Z0-9]{5,7})', texto, re.DOTALL)
+#         if match_loc:
+#             dados['localizador'] = match_loc.group(1)
+#             print(f"✅ Localizador: {dados['localizador']}")
         
-        # 5. TRECHOS - NOVA LÓGICA COM DETECÇÃO DE VOLTA
-        codigos_ordem, (trechos_ida, trechos_volta) = extrair_trechos_modelo2_completo(texto, cursor)
+#         # 5. TRECHOS - NOVA LÓGICA COM DETECÇÃO DE VOLTA
+#         codigos_ordem, (trechos_ida, trechos_volta) = extrair_trechos_modelo2_completo(texto, cursor)
         
-        if codigos_ordem:
-            # Validar no banco
-            aeroportos_validos = validar_aeroportos_no_banco_modelo2(codigos_ordem, cursor)
+#         if codigos_ordem:
+#             # Validar no banco
+#             aeroportos_validos = validar_aeroportos_no_banco_modelo2(codigos_ordem, cursor)
             
-            print(f"\n✅ Aeroportos validados: {aeroportos_validos}")
+#             print(f"\n✅ Aeroportos validados: {aeroportos_validos}")
             
-            if aeroportos_validos:
-                # Detectar origem/destino
-                resultado = detectar_origem_destino_ida_volta(aeroportos_validos)
+#             if aeroportos_validos:
+#                 # Detectar origem/destino
+#                 resultado = detectar_origem_destino_ida_volta(aeroportos_validos)
                 
-                dados['origem'] = resultado['origem']
-                dados['destino'] = resultado['destino']
+#                 dados['origem'] = resultado['origem']
+#                 dados['destino'] = resultado['destino']
                 
-                print(f"\n✅ Origem: {dados['origem']}")
-                print(f"✅ Destino: {dados['destino']}")
+#                 print(f"\n✅ Origem: {dados['origem']}")
+#                 print(f"✅ Destino: {dados['destino']}")
                 
-                if resultado['ida_volta']:
-                    print(f"✈️ Tipo: IDA E VOLTA")
-                else:
-                    print(f"✈️ Tipo: APENAS IDA")
+#                 if resultado['ida_volta']:
+#                     print(f"✈️ Tipo: IDA E VOLTA")
+#                 else:
+#                     print(f"✈️ Tipo: APENAS IDA")
                 
-                # Reconstrói trecho COMPLETO
-                trechos = []
-                for i in range(len(aeroportos_validos) - 1):
-                    trechos.append(f"{aeroportos_validos[i]}-{aeroportos_validos[i+1]}")
-                dados['trecho'] = '/'.join(trechos)
+#                 # Reconstrói trecho COMPLETO
+#                 trechos = []
+#                 for i in range(len(aeroportos_validos) - 1):
+#                     trechos.append(f"{aeroportos_validos[i]}-{aeroportos_validos[i+1]}")
+#                 dados['trecho'] = '/'.join(trechos)
                 
-                print(f"✅ Trecho: {dados['trecho']}")
-                print(f"   📊 Total de segmentos: {len(trechos)}")
+#                 print(f"✅ Trecho: {dados['trecho']}")
+#                 print(f"   📊 Total de segmentos: {len(trechos)}")
         
-        # 6. CIA
-        if 'LATAM' in texto:
-            dados['cia'] = 'LATAM'
-        elif 'AZUL' in texto or 'Azul' in texto:
-            dados['cia'] = 'AZUL'
-        elif 'GOL' in texto:
-            dados['cia'] = 'GOL'
+#         # 6. CIA
+#         if 'LATAM' in texto:
+#             dados['cia'] = 'LATAM'
+#         elif 'AZUL' in texto or 'Azul' in texto:
+#             dados['cia'] = 'AZUL'
+#         elif 'GOL' in texto:
+#             dados['cia'] = 'GOL'
         
-        if dados['cia']:
-            print(f"✅ CIA: {dados['cia']}")
+#         if dados['cia']:
+#             print(f"✅ CIA: {dados['cia']}")
         
-        # 7. VALORES
-        match_tarifa = re.search(r'R\$\s*([\d.,]+)', texto)
-        if match_tarifa:
-            dados['vl_tarifa'] = match_tarifa.group(1)
-            print(f"✅ Tarifa: {dados['vl_tarifa']}")
+#         # 7. VALORES
+#         match_tarifa = re.search(r'R\$\s*([\d.,]+)', texto)
+#         if match_tarifa:
+#             dados['vl_tarifa'] = match_tarifa.group(1)
+#             print(f"✅ Tarifa: {dados['vl_tarifa']}")
         
-        # Taxas (segundo valor)
-        valores = re.findall(r'R\$\s*([\d.,]+)', texto)
-        if len(valores) >= 2:
-            dados['vl_taxa_extra'] = valores[1]
-            print(f"✅ Taxas: {dados['vl_taxa_extra']}")
+#         # Taxas (segundo valor)
+#         valores = re.findall(r'R\$\s*([\d.,]+)', texto)
+#         if len(valores) >= 2:
+#             dados['vl_taxa_extra'] = valores[1]
+#             print(f"✅ Taxas: {dados['vl_taxa_extra']}")
         
-        if len(valores) >= 3:
-            dados['vl_total'] = valores[2]
-            print(f"✅ Total: {dados['vl_total']}")
+#         if len(valores) >= 3:
+#             dados['vl_total'] = valores[2]
+#             print(f"✅ Total: {dados['vl_total']}")
         
-        # 8. DATA DE EMBARQUE (primeira data do voo)
-        if trechos_ida:
-            # Buscar data no texto perto do primeiro trecho
-            match_data_voo = re.search(r'(\d{2}\s+\w{3}\s+\d{4})', texto)
-            if match_data_voo:
-                # Converter "08 Nov 2025" para "08/11/2025"
-                data_str = match_data_voo.group(1)
-                print(f"✅ Data embarque (raw): {data_str}")
-                # Implementar conversão se necessário
+#         # 8. DATA DE EMBARQUE (primeira data do voo)
+#         if trechos_ida:
+#             # Buscar data no texto perto do primeiro trecho
+#             match_data_voo = re.search(r'(\d{2}\s+\w{3}\s+\d{4})', texto)
+#             if match_data_voo:
+#                 # Converter "08 Nov 2025" para "08/11/2025"
+#                 data_str = match_data_voo.group(1)
+#                 print(f"✅ Data embarque (raw): {data_str}")
+#                 # Implementar conversão se necessário
         
-        print("=" * 80 + "\n")
+#         print("=" * 80 + "\n")
         
-    except Exception as e:
-        print(f"❌ Erro: {str(e)}")
-        import traceback
-        traceback.print_exc()
+#     except Exception as e:
+#         print(f"❌ Erro: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
     
-    return dados
+#     return dados
 
 
 def extrair_dados_bilhete_modelo2(texto, cursor):
@@ -9376,5 +9703,675 @@ def calcular_distancia_trecho():
         }), 500
 
 
+# ============================================================
+# BLOCO 4: ROTAS /api/v2/ - CRIAR DEMANDA
+# ============================================================
+
+@app.route('/api/v2/agenda/demanda', methods=['POST'])
+@login_required
+def criar_demanda_v2():
+    """
+    NOVA VERSÃO com emissão WebSocket
+    Cria demanda E notifica todos os clientes em tempo real
+    """
+    cursor = None
+    try:
+        data = request.get_json()
+        cursor = mysql.connection.cursor()
+
+        usuario = session.get('usuario_login')
+        
+        # Validações de conflito
+        id_motorista = data.get('id_motorista')
+        id_veiculo = data.get('id_veiculo')
+        id_tipodemanda = data['id_tipodemanda']
+        dt_inicio = data['dt_inicio']
+        dt_fim = data['dt_fim']
+        horario = data.get('horario')
+        tem_horario = horario and horario.strip()
+        
+        # 1. Validar conflito de MOTORISTA
+        if id_motorista and int(id_motorista) > 0:
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM AGENDA_DEMANDAS
+                WHERE ID_MOTORISTA = %s
+                  AND DT_INICIO <= %s
+                  AND DT_FIM >= %s
+            """, (id_motorista, dt_fim, dt_inicio))
+            
+            if cursor.fetchone()[0] > 0:
+                cursor.close()
+                return jsonify({
+                    'success': False,
+                    'error': 'Este motorista já possui demanda(s) neste período.'
+                }), 409
+        
+        # 2. Validar conflito de VEÍCULO
+        if id_veiculo and not tem_horario:
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM AGENDA_DEMANDAS
+                WHERE ID_VEICULO = %s
+                  AND DT_INICIO <= %s
+                  AND DT_FIM >= %s
+                  AND (HORARIO IS NULL OR HORARIO = '00:00:00')
+            """, (id_veiculo, dt_fim, dt_inicio))
+            
+            if cursor.fetchone()[0] > 0:
+                cursor.close()
+                return jsonify({
+                    'success': False,
+                    'error': 'Este veículo já possui demanda(s) SEM horário neste período.'
+                }), 409
+        
+        # Converter horário
+        if tem_horario:
+            horario_value = horario + ':00'
+        else:
+            horario_value = None
+        
+        # INSERIR DEMANDA
+        cursor.execute("""
+            INSERT INTO AGENDA_DEMANDAS 
+            (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
+             DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
+             OBS, SOLICITADO, HORARIO, TODOS_VEICULOS, NC_MOTORISTA, DT_LANCAMENTO, USUARIO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+        """, (
+            data.get('id_motorista'), 
+            data.get('id_tipoveiculo'), 
+            data.get('id_veiculo'),
+            id_tipodemanda, 
+            dt_inicio, 
+            dt_fim,
+            data.get('setor'), 
+            data.get('solicitante'), 
+            data.get('destino'), 
+            data.get('nu_sei'),
+            data.get('obs'),
+            data.get('solicitado', 'N'),
+            horario_value,
+            data.get('todos_veiculos', 'N'),
+            data.get('nc_motorista', ''),
+            usuario
+        ))
+        
+        mysql.connection.commit()
+        id_ad = cursor.lastrowid
+        
+        # Gerenciar diária motorista atendimento
+        gerenciar_diaria_motorista_atendimento(
+            id_ad=id_ad,
+            id_tipodemanda=id_tipodemanda,
+            id_motorista=id_motorista,
+            dt_inicio=dt_inicio,
+            dt_fim=dt_fim,
+            operacao='INSERT'
+        )
+        
+        mysql.connection.commit()
+        
+        # BUSCAR DADOS COMPLETOS DA DEMANDA PARA EMITIR
+        cursor.execute("""
+            SELECT ae.ID_AD, ae.ID_MOTORISTA, 
+                   CASE 
+                       WHEN ae.ID_MOTORISTA = 0 THEN CONCAT(ae.NC_MOTORISTA, ' (Não Cadast.)')
+                       ELSE m.NM_MOTORISTA 
+                   END as NOME_MOTORISTA, 
+                   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+                   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+                   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+                   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
+                   ae.TODOS_VEICULOS, ae.NC_MOTORISTA
+            FROM AGENDA_DEMANDAS ae
+            LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+            LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+            WHERE ae.ID_AD = %s
+        """, (id_ad,))
+        
+        row = cursor.fetchone()
+        
+        if row:
+            dt_lancamento = row[14].strftime('%Y-%m-%d %H:%M:%S') if row[14] else ''
+            
+            horario_formatado = ''
+            if row[17]:
+                try:
+                    if isinstance(row[17], str):
+                        horario_formatado = row[17][:5] if len(row[17]) >= 5 else ''
+                    elif hasattr(row[17], 'total_seconds'):
+                        total_seconds = int(row[17].total_seconds())
+                        hours = total_seconds // 3600
+                        minutes = (total_seconds % 3600) // 60
+                        if hours > 0 or minutes > 0:
+                            horario_formatado = f"{hours:02d}:{minutes:02d}"
+                    elif hasattr(row[17], 'strftime'):
+                        horario_formatted = row[17].strftime('%H:%M')
+                        if horario_formatted != '00:00':
+                            horario_formatado = horario_formatted
+                except:
+                    horario_formatado = ''
+            
+            dados_demanda = {
+                'id': row[0], 
+                'id_motorista': row[1], 
+                'nm_motorista': row[2],
+                'id_tipoveiculo': row[3], 
+                'de_tipodemanda': row[4], 
+                'id_tipodemanda': row[5],
+                'de_tipoveiculo': row[6], 
+                'id_veiculo': row[7], 
+                'dt_inicio': row[8].strftime('%Y-%m-%d'), 
+                'dt_fim': row[9].strftime('%Y-%m-%d'),
+                'setor': row[10] or '', 
+                'solicitante': row[11] or '', 
+                'destino': row[12] or '', 
+                'nu_sei': row[13] or '', 
+                'dt_lancamento': dt_lancamento,
+                'usuario': row[15] or '',
+                'obs': row[16] or '',
+                'solicitado': row[17] or 'N',
+                'horario': horario_formatado,
+                'todos_veiculos': row[18] or 'N',
+                'nc_motorista': row[19] or ''
+            }
+            
+            # EMITIR WEBSOCKET
+            emitir_alteracao_demanda('INSERT', id_ad, dados_demanda)
+        
+        cursor.close()
+        
+        return jsonify({'success': True, 'id': id_ad})
+        
+    except Exception as e:
+        if cursor:
+            mysql.connection.rollback()
+        print(f"Erro ao criar demanda: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+# ============================================================
+# BLOCO 5: ROTAS /api/v2/ - ATUALIZAR DEMANDA
+# ============================================================
+
+@app.route('/api/v2/agenda/demanda/<int:id_ad>', methods=['PUT'])
+@login_required
+def atualizar_demanda_v2(id_ad):
+    """NOVA VERSÃO com emissão WebSocket"""
+    cursor = None
+    try:
+        data = request.get_json()
+        cursor = mysql.connection.cursor()
+
+        usuario = session.get('usuario_login')
+        
+        # Buscar dados antigos
+        cursor.execute("""
+            SELECT ID_TIPODEMANDA, ID_MOTORISTA
+            FROM AGENDA_DEMANDAS
+            WHERE ID_AD = %s
+        """, (id_ad,))
+        
+        dados_antigos = cursor.fetchone()
+        id_tipodemanda_antigo = dados_antigos[0] if dados_antigos else None
+        id_motorista_antigo = dados_antigos[1] if dados_antigos else None
+        
+        # Converter horário
+        horario = data.get('horario')
+        if horario and horario.strip():
+            horario_value = horario + ':00'
+        else:
+            horario_value = None
+        
+        id_tipodemanda_novo = data['id_tipodemanda']
+        id_motorista_novo = data.get('id_motorista')
+        dt_inicio = data['dt_inicio']
+        dt_fim = data['dt_fim']
+        
+        # ATUALIZAR DEMANDA
+        cursor.execute("""
+            UPDATE AGENDA_DEMANDAS 
+            SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
+                ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
+                SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
+                OBS = %s, SOLICITADO = %s, HORARIO = %s, TODOS_VEICULOS = %s, 
+                NC_MOTORISTA = %s, USUARIO = %s
+            WHERE ID_AD = %s
+        """, (
+            id_motorista_novo, 
+            data.get('id_tipoveiculo'), 
+            data.get('id_veiculo'),
+            id_tipodemanda_novo, 
+            dt_inicio, 
+            dt_fim,
+            data.get('setor'), 
+            data.get('solicitante'), 
+            data.get('destino'), 
+            data.get('nu_sei'),
+            data.get('obs'),
+            data.get('solicitado', 'N'),
+            horario_value,
+            data.get('todos_veiculos', 'N'),
+            data.get('nc_motorista', ''),
+            usuario, 
+            id_ad
+        ))
+
+        # Gerenciar diárias terceirizados
+        cursor.execute("""
+            SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
+        """, (id_ad,))
+        
+        diaria_terceirizado = cursor.fetchone()
+        
+        if diaria_terceirizado:
+            precisa_excluir = False
+            
+            if id_tipodemanda_novo != 2:
+                precisa_excluir = True
+            
+            if id_motorista_novo and int(id_motorista_novo) > 0:
+                cursor.execute("""
+                    SELECT m.ID_MOTORISTA
+                    FROM CAD_MOTORISTA m
+                    INNER JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
+                    WHERE m.ID_MOTORISTA = %s
+                      AND m.TIPO_CADASTRO = 'Terceirizado'
+                      AND m.ATIVO = 'S'
+                      AND f.VL_DIARIA IS NOT NULL
+                      AND f.VL_DIARIA > 0
+                """, (id_motorista_novo,))
+                
+                if not cursor.fetchone():
+                    precisa_excluir = True
+            else:
+                precisa_excluir = True
+            
+            if precisa_excluir:
+                cursor.execute("""
+                    DELETE FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
+                """, (id_ad,))
+        
+        # Gerenciar diárias motorista atendimento
+        mudou_tipo = id_tipodemanda_antigo != id_tipodemanda_novo
+        mudou_motorista = id_motorista_antigo != id_motorista_novo
+        
+        if mudou_tipo or mudou_motorista:
+            cursor.execute("""
+                DELETE FROM DIARIAS_MOTORISTAS WHERE ID_AD = %s
+            """, (id_ad,))
+        
+        gerenciar_diaria_motorista_atendimento(
+            id_ad=id_ad,
+            id_tipodemanda=id_tipodemanda_novo,
+            id_motorista=id_motorista_novo,
+            dt_inicio=dt_inicio,
+            dt_fim=dt_fim,
+            operacao='UPDATE'
+        )
+        
+        mysql.connection.commit()
+        
+        # BUSCAR DADOS ATUALIZADOS PARA EMITIR
+        cursor.execute("""
+            SELECT ae.ID_AD, ae.ID_MOTORISTA, 
+                   CASE 
+                       WHEN ae.ID_MOTORISTA = 0 THEN CONCAT(ae.NC_MOTORISTA, ' (Não Cadast.)')
+                       ELSE m.NM_MOTORISTA 
+                   END as NOME_MOTORISTA, 
+                   ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+                   tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+                   ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+                   ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
+                   ae.TODOS_VEICULOS, ae.NC_MOTORISTA
+            FROM AGENDA_DEMANDAS ae
+            LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+            LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+            LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+            WHERE ae.ID_AD = %s
+        """, (id_ad,))
+        
+        row = cursor.fetchone()
+        
+        if row:
+            dt_lancamento = row[14].strftime('%Y-%m-%d %H:%M:%S') if row[14] else ''
+            
+            horario_formatado = ''
+            if row[17]:
+                try:
+                    if isinstance(row[17], str):
+                        horario_formatado = row[17][:5] if len(row[17]) >= 5 else ''
+                    elif hasattr(row[17], 'total_seconds'):
+                        total_seconds = int(row[17].total_seconds())
+                        hours = total_seconds // 3600
+                        minutes = (total_seconds % 3600) // 60
+                        if hours > 0 or minutes > 0:
+                            horario_formatado = f"{hours:02d}:{minutes:02d}"
+                    elif hasattr(row[17], 'strftime'):
+                        horario_formatted = row[17].strftime('%H:%M')
+                        if horario_formatted != '00:00':
+                            horario_formatado = horario_formatted
+                except:
+                    horario_formatado = ''
+            
+            dados_demanda = {
+                'id': row[0], 
+                'id_motorista': row[1], 
+                'nm_motorista': row[2],
+                'id_tipoveiculo': row[3], 
+                'de_tipodemanda': row[4], 
+                'id_tipodemanda': row[5],
+                'de_tipoveiculo': row[6], 
+                'id_veiculo': row[7], 
+                'dt_inicio': row[8].strftime('%Y-%m-%d'), 
+                'dt_fim': row[9].strftime('%Y-%m-%d'),
+                'setor': row[10] or '', 
+                'solicitante': row[11] or '', 
+                'destino': row[12] or '', 
+                'nu_sei': row[13] or '', 
+                'dt_lancamento': dt_lancamento,
+                'usuario': row[15] or '',
+                'obs': row[16] or '',
+                'solicitado': row[17] or 'N',
+                'horario': horario_formatado,
+                'todos_veiculos': row[18] or 'N',
+                'nc_motorista': row[19] or ''
+            }
+            
+            # EMITIR WEBSOCKET
+            emitir_alteracao_demanda('UPDATE', id_ad, dados_demanda)
+        
+        cursor.close()
+        
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        if cursor:
+            mysql.connection.rollback()
+        print(f"Erro ao atualizar demanda: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+# ============================================================
+# BLOCO 6: ROTAS /api/v2/ - DELETAR DEMANDA
+# ============================================================
+
+@app.route('/api/v2/agenda/demanda/<int:id_ad>', methods=['DELETE'])
+@login_required
+def excluir_demanda_v2(id_ad):
+    """NOVA VERSÃO com emissão WebSocket"""
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # Log de diárias
+        cursor.execute("SELECT COUNT(*) FROM DIARIAS_MOTORISTAS WHERE ID_AD = %s", (id_ad,))
+        tem_diaria_motorista = cursor.fetchone()[0] > 0
+        
+        cursor.execute("SELECT COUNT(*) FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s", (id_ad,))
+        tem_diaria_terceirizado = cursor.fetchone()[0] > 0
+        
+        if tem_diaria_motorista:
+            print(f"Excluindo demanda {id_ad} com diária de motorista atendimento")
+        if tem_diaria_terceirizado:
+            print(f"Excluindo demanda {id_ad} com diária de terceirizado")
+        
+        # Deleta dependências
+        cursor.execute("DELETE FROM EMAIL_OUTRAS_LOCACOES WHERE ID_AD = %s", (id_ad,))
+        cursor.execute("DELETE FROM CONTROLE_LOCACAO_ITENS WHERE ID_AD = %s", (id_ad,))
+        cursor.execute("DELETE FROM AGENDA_DEMANDAS WHERE ID_AD = %s", (id_ad,))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        # EMITIR WEBSOCKET
+        emitir_alteracao_demanda('DELETE', id_ad)
+        
+        return jsonify({'success': True})
+
+    except Exception as e:
+        if cursor:
+            mysql.connection.rollback()
+        print(f"Erro ao excluir demanda: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
+
+# ============================================================
+# BLOCO 7: ROTAS /api/v2/ - ENVIAR EMAIL
+# ============================================================
+
+@app.route('/api/v2/enviar_email_fornecedor', methods=['POST'])
+@login_required
+def enviar_email_fornecedor_v2():
+    """NOVA VERSÃO com emissão WebSocket"""
+    cursor = None
+    try:
+        email_destinatario = request.form.get('email_destinatario')
+        assunto = request.form.get('assunto')
+        corpo_html = request.form.get('corpo_html')
+        id_demanda = request.form.get('id_demanda')
+        id_item_fornecedor = request.form.get('id_item_fornecedor')
+        tipo_email = request.form.get('tipo_email', 'locacao')
+        
+        if not all([email_destinatario, assunto, corpo_html, id_demanda]):
+            return jsonify({'erro': 'Dados incompletos'}), 400
+        
+        # Processar anexos
+        anexos = []
+        if 'anexos' in request.files:
+            files = request.files.getlist('anexos')
+            for file in files:
+                if file and file.filename:
+                    anexos.append({
+                        'nome': file.filename,
+                        'conteudo': file.read(),
+                        'tipo': file.content_type or 'application/octet-stream'
+                    })
+        
+        nome_usuario = session.get('usuario_nome', 'Administrador')
+        
+        # Criar versão texto
+        from html.parser import HTMLParser
+        
+        class HTMLToText(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.text = []
+            def handle_data(self, data):
+                self.text.append(data)
+            def get_text(self):
+                return ''.join(self.text)
+        
+        parser = HTMLToText()
+        parser.feed(corpo_html)
+        corpo_texto = parser.get_text()
+        
+        # Enviar email
+        msg = Message(
+            subject=assunto,
+            recipients=[email_destinatario],
+            html=corpo_html,
+            body=corpo_texto,
+            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+        )
+        
+        for anexo in anexos:
+            msg.attach(anexo['nome'], anexo['tipo'], anexo['conteudo'])
+        
+        mail.send(msg)
+        
+        # Registrar no banco
+        cursor = mysql.connection.cursor()
+        
+        from pytz import timezone
+        tz_manaus = timezone('America/Manaus')
+        data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
+        
+        if tipo_email == 'diarias':
+            # EMAIL DE DIÁRIAS
+            if not id_item_fornecedor or id_item_fornecedor == '0':
+                cursor.execute("""
+                    SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS 
+                    WHERE ID_AD = %s
+                """, (id_demanda,))
+                
+                resultado_diaria = cursor.fetchone()
+                
+                if not resultado_diaria:
+                    return jsonify({'erro': 'Registro de diária não encontrado'}), 400
+                
+                iditem_diaria = resultado_diaria[0]
+            else:
+                iditem_diaria = int(id_item_fornecedor)
+            
+            # Inserir em EMAIL_DIARIAS
+            cursor.execute("""
+                INSERT INTO EMAIL_DIARIAS 
+                (IDITEM, ID_AD, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (iditem_diaria, id_demanda, email_destinatario, assunto, corpo_texto, data_hora_atual))
+            
+            id_email = cursor.lastrowid
+            
+            # Atualizar FL_EMAIL
+            cursor.execute("""
+                UPDATE DIARIAS_TERCEIRIZADOS 
+                SET FL_EMAIL = 'S' 
+                WHERE IDITEM = %s
+            """, (iditem_diaria,))
+            
+            mysql.connection.commit()
+            
+            # EMITIR WEBSOCKET
+            emitir_alteracao_diaria_terceirizado('UPDATE', iditem_diaria, id_demanda, 'S')
+        
+        else:
+            # EMAIL DE LOCAÇÃO
+            cursor.execute("""
+                INSERT INTO EMAIL_OUTRAS_LOCACOES 
+                (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (id_demanda, id_item_fornecedor or 0, email_destinatario, assunto, corpo_texto, data_hora_atual))
+            
+            id_email = cursor.lastrowid
+            
+            # Atualizar SOLICITADO
+            cursor.execute("""
+                UPDATE AGENDA_DEMANDAS 
+                SET SOLICITADO = 'S' 
+                WHERE ID_AD = %s
+            """, (id_demanda,))
+            
+            if id_item_fornecedor:
+                cursor.execute("""
+                    UPDATE CONTROLE_LOCACAO_ITENS 
+                    SET FL_EMAIL = 'S' 
+                    WHERE ID_ITEM = %s
+                """, (id_item_fornecedor,))
+            
+            mysql.connection.commit()
+            
+            # BUSCAR DADOS ATUALIZADOS E EMITIR
+            cursor.execute("""
+                SELECT ae.ID_AD, ae.ID_MOTORISTA, 
+                       CASE 
+                           WHEN ae.ID_MOTORISTA = 0 THEN CONCAT(ae.NC_MOTORISTA, ' (Não Cadast.)')
+                           ELSE m.NM_MOTORISTA 
+                       END as NOME_MOTORISTA, 
+                       ae.ID_TIPOVEICULO, td.DE_TIPODEMANDA, ae.ID_TIPODEMANDA, 
+                       tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
+                       ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
+                       ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
+                       ae.TODOS_VEICULOS, ae.NC_MOTORISTA
+                FROM AGENDA_DEMANDAS ae
+                LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
+                LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
+                LEFT JOIN TIPO_VEICULO tv ON tv.ID_TIPOVEICULO = ae.ID_TIPOVEICULO
+                WHERE ae.ID_AD = %s
+            """, (id_demanda,))
+            
+            row = cursor.fetchone()
+            
+            if row:
+                dt_lancamento = row[14].strftime('%Y-%m-%d %H:%M:%S') if row[14] else ''
+                
+                horario_formatado = ''
+                if row[17]:
+                    try:
+                        if isinstance(row[17], str):
+                            horario_formatado = row[17][:5]
+                        elif hasattr(row[17], 'total_seconds'):
+                            total_seconds = int(row[17].total_seconds())
+                            hours = total_seconds // 3600
+                            minutes = (total_seconds % 3600) // 60
+                            if hours > 0 or minutes > 0:
+                                horario_formatado = f"{hours:02d}:{minutes:02d}"
+                        elif hasattr(row[17], 'strftime'):
+                            horario_formatted = row[17].strftime('%H:%M')
+                            if horario_formatted != '00:00':
+                                horario_formatado = horario_formatted
+                    except:
+                        horario_formatado = ''
+                
+                dados_demanda = {
+                    'id': row[0], 
+                    'id_motorista': row[1], 
+                    'nm_motorista': row[2],
+                    'id_tipoveiculo': row[3], 
+                    'de_tipodemanda': row[4], 
+                    'id_tipodemanda': row[5],
+                    'de_tipoveiculo': row[6], 
+                    'id_veiculo': row[7], 
+                    'dt_inicio': row[8].strftime('%Y-%m-%d'), 
+                    'dt_fim': row[9].strftime('%Y-%m-%d'),
+                    'setor': row[10] or '', 
+                    'solicitante': row[11] or '', 
+                    'destino': row[12] or '', 
+                    'nu_sei': row[13] or '', 
+                    'dt_lancamento': dt_lancamento,
+                    'usuario': row[15] or '',
+                    'obs': row[16] or '',
+                    'solicitado': row[17] or 'N',
+                    'horario': horario_formatado,
+                    'todos_veiculos': row[18] or 'N',
+                    'nc_motorista': row[19] or ''
+                }
+                
+                emitir_alteracao_demanda('UPDATE', id_demanda, dados_demanda)
+        
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'id_email': id_email,
+            'mensagem': 'Email enviado com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao enviar email: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        if cursor:
+            mysql.connection.rollback()
+        return jsonify({'erro': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
