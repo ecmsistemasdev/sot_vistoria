@@ -6453,12 +6453,12 @@ def buscar_locacoes():
         cursor = mysql.connection.cursor()
         
         cursor.execute("""
-            SELECT ID_ITEM, ID_MOTORISTA, DS_VEICULO_MOD, DATA_INICIO, DATA_FIM, FL_STATUS
+            SELECT ID_ITEM, ID_MOTORISTA, DS_VEICULO_MOD, DATA_INICIO, DATA_FIM, FL_STATUS, FL_EMAIL
             FROM CONTROLE_LOCACAO_ITENS
             WHERE DATA_INICIO <= %s AND DATA_FIM >= %s
             ORDER BY DATA_INICIO
         """, (fim, inicio))
-        
+
         locacoes = []
         for r in cursor.fetchall():
             locacoes.append({
@@ -6467,7 +6467,8 @@ def buscar_locacoes():
                 'ds_veiculo_mod': r[2] or '',
                 'data_inicio': r[3].strftime('%Y-%m-%d') if r[3] else '',
                 'data_fim': r[4].strftime('%Y-%m-%d') if r[4] else '',
-                'fl_status': r[5] or ''
+                'fl_status': r[5] or '',
+                'fl_email': r[6] or 'N'
             })
         
         return jsonify(locacoes)
@@ -7202,6 +7203,41 @@ def enviar_email_fornecedor():
         mysql.connection.commit()
         
         app.logger.info(f"✅ Email enviado e registrado com sucesso!")
+        
+        # ===== EMITIR WEBSOCKET PARA ATUALIZAR FL_EMAIL =====
+        usuario_atual = session.get('usuario_login', '')
+        
+        try:
+            if tipo_email == 'diarias':
+                # WebSocket para atualização de diária
+                payload = {
+                    'tipo': 'UPDATE',
+                    'entidade': 'DIARIA_TERCEIRIZADO',
+                    'iditem': iditem_diaria,
+                    'id_ad': id_demanda,
+                    'usuario': usuario_atual,
+                    'timestamp': datetime.now().isoformat(),
+                    'fl_email': 'S'
+                }
+                socketio.emit('alteracao_agenda', payload, room='agenda')
+                print(f"📡 WebSocket: UPDATE DIARIA_TERCEIRIZADO - IDITEM: {iditem_diaria} - FL_EMAIL=S")
+                
+            else:
+                # WebSocket para atualização de locação
+                payload = {
+                    'tipo': 'UPDATE',
+                    'entidade': 'LOCACAO_FORNECEDOR',
+                    'id_item': id_item_fornecedor,
+                    'id_demanda': id_demanda,
+                    'usuario': usuario_atual,
+                    'timestamp': datetime.now().isoformat(),
+                    'fl_email': 'S'
+                }
+                socketio.emit('alteracao_agenda', payload, room='agenda')
+                print(f"📡 WebSocket: UPDATE LOCACAO_FORNECEDOR - ID_ITEM: {id_item_fornecedor} - FL_EMAIL=S")
+                
+        except Exception as e:
+            print(f"❌ Erro ao emitir WebSocket de email: {str(e)}")
         
         return jsonify({
             'success': True,
@@ -9874,8 +9910,9 @@ def criar_demanda_v2():
                 'obs': row[16] or '',
                 'solicitado': row[17] or 'N',
                 'horario': horario_formatado,
-                'todos_veiculos': row[18] or 'N',
-                'nc_motorista': row[19] or ''
+                'todos_veiculos': row[19] or 'N',  # ← Corrigir de row[18] para row[19]
+                'nc_motorista': row[20] or ''      # ← Corrigir de row[19] para row[20]
+
             }
             
             # EMITIR WEBSOCKET
@@ -10081,8 +10118,9 @@ def atualizar_demanda_v2(id_ad):
                 'obs': row[16] or '',
                 'solicitado': row[17] or 'N',
                 'horario': horario_formatado,
-                'todos_veiculos': row[18] or 'N',
-                'nc_motorista': row[19] or ''
+                'todos_veiculos': row[19] or 'N',  # ← Corrigir de row[18] para row[19]
+                'nc_motorista': row[20] or ''      # ← Corrigir de row[19] para row[20]
+
             }
             
             # EMITIR WEBSOCKET
@@ -10348,8 +10386,8 @@ def enviar_email_fornecedor_v2():
                     'obs': row[16] or '',
                     'solicitado': row[17] or 'N',
                     'horario': horario_formatado,
-                    'todos_veiculos': row[18] or 'N',
-                    'nc_motorista': row[19] or ''
+                    'todos_veiculos': row[19] or 'N',  # ← row[19] não row[18]
+                    'nc_motorista': row[20] or ''      # ← row[20] não row[19]
                 }
                 
                 emitir_alteracao_demanda('UPDATE', id_demanda, dados_demanda)
