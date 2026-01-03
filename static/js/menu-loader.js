@@ -31,6 +31,9 @@ async function carregarMenu() {
         // Inicializar componentes do Bootstrap após carregar o menu
         inicializarBootstrap();
         
+        // Exibir nome do usuário no menu
+        exibirNomeUsuario();
+        
         console.log('Menu carregado com sucesso');
         
     } catch (error) {
@@ -63,6 +66,31 @@ function inicializarBootstrap() {
     }
     
     console.log('Bootstrap inicializado no menu');
+}
+
+// Função para exibir o nome do usuário no menu
+function exibirNomeUsuario() {
+    const menuUserName = document.getElementById('menuUserName');
+    
+    if (menuUserName) {
+        const usuarioNome = localStorage.getItem('usuario_nome');
+        
+        if (usuarioNome) {
+            // Extrair primeiro e segundo nome
+            const nomes = usuarioNome.trim().split(/\s+/);
+            let nomeExibir = '';
+            
+            if (nomes.length >= 2) {
+                // Primeiro e segundo nome
+                nomeExibir = `${nomes[0]} ${nomes[1]}`;
+            } else if (nomes.length === 1) {
+                // Apenas primeiro nome
+                nomeExibir = nomes[0];
+            }
+            
+            menuUserName.textContent = nomeExibir;
+        }
+    }
 }
 
 // Função de logout (global para ser acessível pelo onclick)
