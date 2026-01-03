@@ -166,6 +166,29 @@
             box-shadow: inset 0 0 0 2px #1a73e8;
         }
 
+        .cell-loading {
+            background: rgba(0, 0, 0, 0.05) !important;
+            position: relative;
+        }
+
+        .cell-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            margin: -8px 0 0 -8px;
+            border: 2px solid #1a73e8;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }        
+
         .tipo-locacao {
             background: linear-gradient(to bottom, #c7a3e7, #d9bef0) !important;
         }
@@ -6426,11 +6449,182 @@
             return true; // Intervalo completamente vazio (pode ter feriados sem demanda)
         }            
 
+        // async function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula, secao = null) {
+        //     event.stopPropagation();
+            
+        //     // Se Ctrl NÃO está pressionado, comportamento normal
+        //     if (!modoSelecaoIntervalo) {
+        //         // ========== NOVA VALIDAÇÃO ANTES DE ABRIR MODAL ==========
+                
+        //         // Validar MOTORISTA
+        //         if (idMotorista) {
+        //             try {
+        //                 const resConflito = await fetch(`/api/agenda/verificar-conflito-motorista?id_motorista=${idMotorista}&dt_inicio=${data}&dt_fim=${data}`);
+        //                 const resultConflito = await resConflito.json();
+                        
+        //                 if (resultConflito.tem_conflito) {
+        //                     // Mostrar alerta com detalhes do conflito
+        //                     const demandas = resultConflito.demandas_conflitantes;
+        //                     let mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este motorista já possui ${demandas.length} demanda(s) nesta data:<br><br>`;
+                            
+        //                     demandas.forEach((d, index) => {
+        //                         const periodo = d.dt_inicio === d.dt_fim 
+        //                             ? new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')
+        //                             : `${new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(d.dt_fim + 'T00:00:00').toLocaleDateString('pt-BR')}`;
+                                
+        //                         mensagem += `📌 <strong>${d.tipo_demanda || 'Demanda'}</strong><br>`;
+        //                         mensagem += `   Período: ${periodo}<br>`;
+        //                         if (d.setor) mensagem += `   Setor: ${d.setor}<br>`;
+        //                         if (d.destino) mensagem += `   Destino: ${d.destino}<br>`;
+        //                         if (d.nu_sei) mensagem += `   SEI: ${d.nu_sei}<br>`;
+        //                         if (index < demandas.length - 1) mensagem += `<br>`;
+        //                     });
+                            
+        //                     mensagem += `<br><strong>Não é possível criar demanda sobreposta.</strong>`;
+                            
+        //                     // Destacar célula com conflito
+        //                     elementoCelula.classList.add('cell-conflito');
+        //                     setTimeout(() => {
+        //                         elementoCelula.classList.remove('cell-conflito');
+        //                     }, 3000);
+                            
+        //                     mostrarAlerta(mensagem, '⚠️ Conflito Detectado', '#ffc107');
+        //                     return;
+        //                 }
+        //             } catch (error) {
+        //                 console.error('Erro ao verificar conflito de motorista:', error);
+        //             }
+        //         }
+                
+        //         // Validar VEÍCULO
+        //         if (idVeiculo) {
+        //             try {
+        //                 const resConflito = await fetch(`/api/agenda/verificar-conflito-veiculo?id_veiculo=${idVeiculo}&dt_inicio=${data}&dt_fim=${data}&tem_horario=false`);
+        //                 const resultConflito = await resConflito.json();
+                        
+        //                 if (resultConflito.tem_conflito) {
+        //                     const demandas = resultConflito.demandas_conflitantes;
+        //                     let mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este veículo já possui ${demandas.length} demanda(s) SEM horário nesta data:<br><br>`;
+                            
+        //                     demandas.forEach((d, index) => {
+        //                         const periodo = d.dt_inicio === d.dt_fim 
+        //                             ? new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')
+        //                             : `${new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(d.dt_fim + 'T00:00:00').toLocaleDateString('pt-BR')}`;
+                                
+        //                         mensagem += `📌 <strong>${d.tipo_demanda || 'Demanda'}</strong><br>`;
+        //                         mensagem += `   Motorista: ${d.motorista || 'Não informado'}<br>`;
+        //                         mensagem += `   Período: ${periodo}<br>`;
+        //                         if (d.setor) mensagem += `   Setor: ${d.setor}<br>`;
+        //                         if (d.destino) mensagem += `   Destino: ${d.destino}<br>`;
+        //                         if (index < demandas.length - 1) mensagem += `<br>`;
+        //                     });
+                            
+        //                     mensagem += `<br><strong>Não é possível criar demanda sobreposta SEM horário.</strong><br>`;
+        //                     mensagem += `<em>Dica: Se for criar demanda COM horário definido, isso será permitido.</em>`;
+                            
+        //                     // Destacar célula com conflito
+        //                     elementoCelula.classList.add('cell-conflito');
+        //                     setTimeout(() => {
+        //                         elementoCelula.classList.remove('cell-conflito');
+        //                     }, 3000);
+                            
+        //                     mostrarAlerta(mensagem, '⚠️ Conflito Detectado', '#ffc107');
+        //                     return;
+        //                 }
+        //             } catch (error) {
+        //                 console.error('Erro ao verificar conflito de veículo:', error);
+        //             }
+        //         }
+                
+        //         // ========== FIM DA VALIDAÇÃO ==========
+                
+        //         // Se passou pelas validações, abrir modal normalmente
+        //         if (idMotorista) {
+        //             abrirModalNovoComData(data, idMotorista, secao);
+        //         } else if (idVeiculo) {
+        //             abrirModalNovoComVeiculo(data, idVeiculo);
+        //         }
+        //         return;
+        //     }
+            
+        //     // === MODO SELEÇÃO DE INTERVALO ATIVO ===
+            
+        //     // Verificar se é da mesma linha
+        //     const linhaClicada = elementoCelula.parentElement;
+            
+        //     if (!primeiraDataSelecionada) {
+        //         // PRIMEIRO CLIQUE
+        //         primeiraDataSelecionada = data;
+        //         linhaAtualSelecao = linhaClicada;
+                
+        //         // Marcar célula
+        //         elementoCelula.classList.add('cell-intervalo-selecionado');
+        //         celulasIntervalo.push(elementoCelula);
+                
+        //     } else if (linhaClicada === linhaAtualSelecao) {
+        //         // SEGUNDO CLIQUE NA MESMA LINHA
+        //         segundaDataSelecionada = data;
+                
+        //         // Determinar qual é a data inicial e final (ordem cronológica)
+        //         const data1 = new Date(primeiraDataSelecionada + 'T00:00:00');
+        //         const data2 = new Date(segundaDataSelecionada + 'T00:00:00');
+                
+        //         let dtInicio, dtFim;
+        //         if (data1 <= data2) {
+        //             dtInicio = primeiraDataSelecionada;
+        //             dtFim = segundaDataSelecionada;
+        //         } else {
+        //             dtInicio = segundaDataSelecionada;
+        //             dtFim = primeiraDataSelecionada;
+        //         }
+                
+        //         // ====== VALIDAR SE O INTERVALO ESTÁ COMPLETAMENTE VAZIO ======
+        //         if (!validarIntervaloVazio(linhaAtualSelecao, dtInicio, dtFim)) {
+        //             // Intervalo contém demandas - não permitir
+        //             mostrarAlerta(
+        //                 'Não é possível selecionar este intervalo pois há demandas entre as datas selecionadas.<br><br>' +
+        //                 '<strong>Regra:</strong> Não é permitido criar demandas que atravessem períodos já ocupados.',
+        //                 '⚠️ Intervalo Inválido',
+        //                 '#ffc107'
+        //             );
+        //             limparSelecaoIntervalo();
+        //             return;
+        //         }
+        //         // ====== FIM DA VALIDAÇÃO ======
+                
+        //         // Marcar todas as células do intervalo (feedback visual rápido)
+        //         marcarIntervaloCelulas(linhaAtualSelecao, dtInicio, dtFim);
+                
+        //         // Pequeno delay para mostrar as células marcadas antes de abrir o modal
+        //         setTimeout(() => {
+        //             // Abrir modal com as datas preenchidas
+        //             if (idMotorista) {
+        //                 abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista, null, secao);
+        //             } else if (idVeiculo) {
+        //                 abrirModalNovoComIntervalo(dtInicio, dtFim, null, idVeiculo);
+        //             }
+                    
+        //             // Limpar seleção após abrir modal
+        //             setTimeout(() => {
+        //                 limparSelecaoIntervalo();
+        //             }, 100);
+        //         }, 200);
+                
+        //     } else {
+        //         // CLICOU EM LINHA DIFERENTE - resetar
+        //         limparSelecaoIntervalo();
+        //     }
+        // }            
+        
+
         async function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula, secao = null) {
             event.stopPropagation();
             
             // Se Ctrl NÃO está pressionado, comportamento normal
             if (!modoSelecaoIntervalo) {
+                // Adicionar efeito visual de loading
+                elementoCelula.classList.add('cell-loading');
+                
                 // ========== NOVA VALIDAÇÃO ANTES DE ABRIR MODAL ==========
                 
                 // Validar MOTORISTA
@@ -6440,6 +6634,9 @@
                         const resultConflito = await resConflito.json();
                         
                         if (resultConflito.tem_conflito) {
+                            // Remover loading
+                            elementoCelula.classList.remove('cell-loading');
+                            
                             // Mostrar alerta com detalhes do conflito
                             const demandas = resultConflito.demandas_conflitantes;
                             let mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este motorista já possui ${demandas.length} demanda(s) nesta data:<br><br>`;
@@ -6469,6 +6666,7 @@
                             return;
                         }
                     } catch (error) {
+                        elementoCelula.classList.remove('cell-loading');
                         console.error('Erro ao verificar conflito de motorista:', error);
                     }
                 }
@@ -6480,6 +6678,9 @@
                         const resultConflito = await resConflito.json();
                         
                         if (resultConflito.tem_conflito) {
+                            // Remover loading
+                            elementoCelula.classList.remove('cell-loading');
+                            
                             const demandas = resultConflito.demandas_conflitantes;
                             let mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este veículo já possui ${demandas.length} demanda(s) SEM horário nesta data:<br><br>`;
                             
@@ -6509,18 +6710,25 @@
                             return;
                         }
                     } catch (error) {
+                        elementoCelula.classList.remove('cell-loading');
                         console.error('Erro ao verificar conflito de veículo:', error);
                     }
                 }
                 
                 // ========== FIM DA VALIDAÇÃO ==========
                 
-                // Se passou pelas validações, abrir modal normalmente
-                if (idMotorista) {
-                    abrirModalNovoComData(data, idMotorista, secao);
-                } else if (idVeiculo) {
-                    abrirModalNovoComVeiculo(data, idVeiculo);
-                }
+                // Pequeno delay para mostrar o spinner antes de abrir
+                setTimeout(() => {
+                    elementoCelula.classList.remove('cell-loading');
+                    
+                    // Se passou pelas validações, abrir modal normalmente
+                    if (idMotorista) {
+                        abrirModalNovoComData(data, idMotorista, secao);
+                    } else if (idVeiculo) {
+                        abrirModalNovoComVeiculo(data, idVeiculo);
+                    }
+                }, 150);
+                
                 return;
             }
             
@@ -6591,8 +6799,7 @@
                 // CLICOU EM LINHA DIFERENTE - resetar
                 limparSelecaoIntervalo();
             }
-        }            
-        
+        }        
         
         function renderizarSecaoVeiculos(dias) {
             let html = '<div class="agenda-section">';
