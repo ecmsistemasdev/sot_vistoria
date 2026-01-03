@@ -11,8 +11,8 @@
                         Cadastros
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarCadastros">
-                        <li><a class="dropdown-item" href="/motoristas">Motorista/Servidor Adm</a></li>
-                        <li><a class="dropdown-item" href="/veiculos_frota">Veículos</a></li>
+                        <li><a class="dropdown-item" href="/motoristas">Motorista</a></li>
+                        <li><a class="dropdown-item" href="/veiculos_frota">Veículo da Frota</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="/cadastro_usuarios">Cadastro de Usuários</a></li>
                     </ul>
@@ -58,8 +58,9 @@
                     </a>
                 </li>
             </ul>
-            <!-- Botão Sair -->
-            <div class="ms-auto">
+            <!-- Nome do Usuário e Botão Sair -->
+            <div class="ms-auto d-flex align-items-center">
+                <span class="me-3 text-dark fw-semibold" id="menuUserName" style="font-size: 0.9rem;"></span>
                 <button class="btn btn-sm btn-logout" id="btnLogout" onclick="fazerLogout()">Sair</button>
             </div>
         </div>
