@@ -8,6 +8,9 @@ Versão: 2.0 (com WebSocket em tempo real usando Threading)
 ============================================================
 """
 
+import eventlet
+eventlet.monkey_patch()
+
 # ============================================================
 # IMPORTS - BIBLIOTECAS PYTHON PADRÃO
 # ============================================================
@@ -6037,307 +6040,321 @@ def buscar_veiculos_disponiveis():
             cursor.close()
 
 
-# API: Criar nova demanda (MODIFICADA COM DIÁRIAS MOTORISTA ATENDIMENTO)
-@app.route('/api/agenda/demanda', methods=['POST'])
-@login_required
-def criar_demanda():
-    cursor = None
-    try:
-        data = request.get_json()
-        cursor = mysql.connection.cursor()
+# ============================================================
+# ROTA ANTIGA - SUBSTITUÍDA POR /api/v2/agenda/demanda (linha 9749)
+# COMENTADA EM: 2026-01-03
+# MOTIVO: Migração para WebSocket - Usar apenas rotas v2
+# REMOVER APÓS 7-30 DIAS SEM PROBLEMAS
+# ============================================================
+# @app.route('/api/agenda/demanda', methods=['POST'])
+# @login_required
+# def criar_demanda():
+#     cursor = None
+#     try:
+#         data = request.get_json()
+#         cursor = mysql.connection.cursor()
 
-        # Obter ID do usuário da sessão
-        usuario = session.get('usuario_login')
+#         # Obter ID do usuário da sessão
+#         usuario = session.get('usuario_login')
         
-        # ========== VALIDAÇÃO DE CONFLITOS ANTES DE INSERIR ==========
-        id_motorista = data.get('id_motorista')
-        id_veiculo = data.get('id_veiculo')
-        id_tipodemanda = data['id_tipodemanda']
-        dt_inicio = data['dt_inicio']
-        dt_fim = data['dt_fim']
-        horario = data.get('horario')
-        tem_horario = horario and horario.strip()
+#         # ========== VALIDAÇÃO DE CONFLITOS ANTES DE INSERIR ==========
+#         id_motorista = data.get('id_motorista')
+#         id_veiculo = data.get('id_veiculo')
+#         id_tipodemanda = data['id_tipodemanda']
+#         dt_inicio = data['dt_inicio']
+#         dt_fim = data['dt_fim']
+#         horario = data.get('horario')
+#         tem_horario = horario and horario.strip()
         
-        # 1. Validar conflito de MOTORISTA (se não for NC_MOTORISTA)
-        if id_motorista and int(id_motorista) > 0:
-            cursor.execute("""
-                SELECT COUNT(*) as total
-                FROM AGENDA_DEMANDAS
-                WHERE ID_MOTORISTA = %s
-                  AND DT_INICIO <= %s
-                  AND DT_FIM >= %s
-            """, (id_motorista, dt_fim, dt_inicio))
+#         # 1. Validar conflito de MOTORISTA (se não for NC_MOTORISTA)
+#         if id_motorista and int(id_motorista) > 0:
+#             cursor.execute("""
+#                 SELECT COUNT(*) as total
+#                 FROM AGENDA_DEMANDAS
+#                 WHERE ID_MOTORISTA = %s
+#                   AND DT_INICIO <= %s
+#                   AND DT_FIM >= %s
+#             """, (id_motorista, dt_fim, dt_inicio))
             
-            if cursor.fetchone()[0] > 0:
-                cursor.close()
-                return jsonify({
-                    'success': False,
-                    'error': 'Este motorista já possui demanda(s) neste período. Por favor, atualize a página e tente novamente.'
-                }), 409
+#             if cursor.fetchone()[0] > 0:
+#                 cursor.close()
+#                 return jsonify({
+#                     'success': False,
+#                     'error': 'Este motorista já possui demanda(s) neste período. Por favor, atualize a página e tente novamente.'
+#                 }), 409
         
-        # 2. Validar conflito de VEÍCULO (apenas se NÃO tiver horário)
-        if id_veiculo and not tem_horario:
-            cursor.execute("""
-                SELECT COUNT(*) as total
-                FROM AGENDA_DEMANDAS
-                WHERE ID_VEICULO = %s
-                  AND DT_INICIO <= %s
-                  AND DT_FIM >= %s
-                  AND (HORARIO IS NULL OR HORARIO = '00:00:00')
-            """, (id_veiculo, dt_fim, dt_inicio))
+#         # 2. Validar conflito de VEÍCULO (apenas se NÃO tiver horário)
+#         if id_veiculo and not tem_horario:
+#             cursor.execute("""
+#                 SELECT COUNT(*) as total
+#                 FROM AGENDA_DEMANDAS
+#                 WHERE ID_VEICULO = %s
+#                   AND DT_INICIO <= %s
+#                   AND DT_FIM >= %s
+#                   AND (HORARIO IS NULL OR HORARIO = '00:00:00')
+#             """, (id_veiculo, dt_fim, dt_inicio))
             
-            if cursor.fetchone()[0] > 0:
-                cursor.close()
-                return jsonify({
-                    'success': False,
-                    'error': 'Este veículo já possui demanda(s) SEM horário neste período. Por favor, atualize a página e tente novamente.'
-                }), 409
+#             if cursor.fetchone()[0] > 0:
+#                 cursor.close()
+#                 return jsonify({
+#                     'success': False,
+#                     'error': 'Este veículo já possui demanda(s) SEM horário neste período. Por favor, atualize a página e tente novamente.'
+#                 }), 409
         
-        # ========== CONVERTER HORÁRIO ==========
-        if tem_horario:
-            horario_value = horario + ':00'
-        else:
-            horario_value = None
+#         # ========== CONVERTER HORÁRIO ==========
+#         if tem_horario:
+#             horario_value = horario + ':00'
+#         else:
+#             horario_value = None
         
-        # ========== INSERIR DEMANDA ==========
-        cursor.execute("""
-            INSERT INTO AGENDA_DEMANDAS 
-            (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
-             DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
-             OBS, SOLICITADO, HORARIO, TODOS_VEICULOS, NC_MOTORISTA, DT_LANCAMENTO, USUARIO)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
-        """, (
-            data.get('id_motorista'), 
-            data.get('id_tipoveiculo'), 
-            data.get('id_veiculo'),
-            id_tipodemanda, 
-            dt_inicio, 
-            dt_fim,
-            data.get('setor'), 
-            data.get('solicitante'), 
-            data.get('destino'), 
-            data.get('nu_sei'),
-            data.get('obs'),
-            data.get('solicitado', 'N'),
-            horario_value,
-            data.get('todos_veiculos', 'N'),
-            data.get('nc_motorista', ''),
-            usuario
-        ))
+#         # ========== INSERIR DEMANDA ==========
+#         cursor.execute("""
+#             INSERT INTO AGENDA_DEMANDAS 
+#             (ID_MOTORISTA, ID_TIPOVEICULO, ID_VEICULO, ID_TIPODEMANDA, 
+#              DT_INICIO, DT_FIM, SETOR, SOLICITANTE, DESTINO, NU_SEI, 
+#              OBS, SOLICITADO, HORARIO, TODOS_VEICULOS, NC_MOTORISTA, DT_LANCAMENTO, USUARIO)
+#             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+#         """, (
+#             data.get('id_motorista'), 
+#             data.get('id_tipoveiculo'), 
+#             data.get('id_veiculo'),
+#             id_tipodemanda, 
+#             dt_inicio, 
+#             dt_fim,
+#             data.get('setor'), 
+#             data.get('solicitante'), 
+#             data.get('destino'), 
+#             data.get('nu_sei'),
+#             data.get('obs'),
+#             data.get('solicitado', 'N'),
+#             horario_value,
+#             data.get('todos_veiculos', 'N'),
+#             data.get('nc_motorista', ''),
+#             usuario
+#         ))
         
-        mysql.connection.commit()
-        id_ad = cursor.lastrowid
+#         mysql.connection.commit()
+#         id_ad = cursor.lastrowid
         
-        # ========== NOVO: GERENCIAR DIÁRIA MOTORISTA ATENDIMENTO ==========
-        gerenciar_diaria_motorista_atendimento(
-            id_ad=id_ad,
-            id_tipodemanda=id_tipodemanda,
-            id_motorista=id_motorista,
-            dt_inicio=dt_inicio,
-            dt_fim=dt_fim,
-            operacao='INSERT'
-        )
+#         # ========== NOVO: GERENCIAR DIÁRIA MOTORISTA ATENDIMENTO ==========
+#         gerenciar_diaria_motorista_atendimento(
+#             id_ad=id_ad,
+#             id_tipodemanda=id_tipodemanda,
+#             id_motorista=id_motorista,
+#             dt_inicio=dt_inicio,
+#             dt_fim=dt_fim,
+#             operacao='INSERT'
+#         )
         
-        mysql.connection.commit()
-        cursor.close()
+#         mysql.connection.commit()
+#         cursor.close()
         
-        registrar_alteracao_agenda('INSERT')
+#         registrar_alteracao_agenda('INSERT')
 
-        return jsonify({'success': True, 'id': id_ad})
+#         return jsonify({'success': True, 'id': id_ad})
         
-    except Exception as e:
-        if cursor:
-            mysql.connection.rollback()
-        print(f"Erro ao criar demanda: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
+#     except Exception as e:
+#         if cursor:
+#             mysql.connection.rollback()
+#         print(f"Erro ao criar demanda: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+#         return jsonify({'error': str(e)}), 500
+#     finally:
+#         if cursor:
+#             cursor.close()
 
-# API: Atualizar demanda (MODIFICADA COM DIÁRIAS MOTORISTA ATENDIMENTO)
-@app.route('/api/agenda/demanda/<int:id_ad>', methods=['PUT'])
-@login_required
-def atualizar_demanda(id_ad):
-    cursor = None
-    try:
-        data = request.get_json()
-        cursor = mysql.connection.cursor()
+# ============================================================
+# ROTA ANTIGA - SUBSTITUÍDA POR /api/v2/agenda/demanda/<id> (linha 9944)
+# COMENTADA EM: 2026-01-03
+# MOTIVO: Migração para WebSocket - Usar apenas rotas v2
+# REMOVER APÓS 7-30 DIAS SEM PROBLEMAS
+# ============================================================
+# @app.route('/api/agenda/demanda/<int:id_ad>', methods=['PUT'])
+# @login_required
+# def atualizar_demanda(id_ad):
+#     cursor = None
+#     try:
+#         data = request.get_json()
+#         cursor = mysql.connection.cursor()
 
-        # Obter ID do usuário da sessão
-        usuario = session.get('usuario_login')
+#         # Obter ID do usuário da sessão
+#         usuario = session.get('usuario_login')
         
-        # ===== BUSCAR DADOS ANTIGOS ANTES DE ATUALIZAR =====
-        cursor.execute("""
-            SELECT ID_TIPODEMANDA, ID_MOTORISTA
-            FROM AGENDA_DEMANDAS
-            WHERE ID_AD = %s
-        """, (id_ad,))
+#         # ===== BUSCAR DADOS ANTIGOS ANTES DE ATUALIZAR =====
+#         cursor.execute("""
+#             SELECT ID_TIPODEMANDA, ID_MOTORISTA
+#             FROM AGENDA_DEMANDAS
+#             WHERE ID_AD = %s
+#         """, (id_ad,))
         
-        dados_antigos = cursor.fetchone()
-        id_tipodemanda_antigo = dados_antigos[0] if dados_antigos else None
-        id_motorista_antigo = dados_antigos[1] if dados_antigos else None
+#         dados_antigos = cursor.fetchone()
+#         id_tipodemanda_antigo = dados_antigos[0] if dados_antigos else None
+#         id_motorista_antigo = dados_antigos[1] if dados_antigos else None
         
-        # Converter horário para formato TIME ou NULL
-        horario = data.get('horario')
-        if horario and horario.strip():
-            horario_value = horario + ':00'
-        else:
-            horario_value = None
+#         # Converter horário para formato TIME ou NULL
+#         horario = data.get('horario')
+#         if horario and horario.strip():
+#             horario_value = horario + ':00'
+#         else:
+#             horario_value = None
         
-        # ===== ATUALIZAR DEMANDA =====
-        id_tipodemanda_novo = data['id_tipodemanda']
-        id_motorista_novo = data.get('id_motorista')
-        dt_inicio = data['dt_inicio']
-        dt_fim = data['dt_fim']
+#         # ===== ATUALIZAR DEMANDA =====
+#         id_tipodemanda_novo = data['id_tipodemanda']
+#         id_motorista_novo = data.get('id_motorista')
+#         dt_inicio = data['dt_inicio']
+#         dt_fim = data['dt_fim']
         
-        cursor.execute("""
-            UPDATE AGENDA_DEMANDAS 
-            SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
-                ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
-                SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
-                OBS = %s, SOLICITADO = %s, HORARIO = %s, TODOS_VEICULOS = %s, 
-                NC_MOTORISTA = %s, USUARIO = %s
-            WHERE ID_AD = %s
-        """, (
-            id_motorista_novo, 
-            data.get('id_tipoveiculo'), 
-            data.get('id_veiculo'),
-            id_tipodemanda_novo, 
-            dt_inicio, 
-            dt_fim,
-            data.get('setor'), 
-            data.get('solicitante'), 
-            data.get('destino'), 
-            data.get('nu_sei'),
-            data.get('obs'),
-            data.get('solicitado', 'N'),
-            horario_value,
-            data.get('todos_veiculos', 'N'),
-            data.get('nc_motorista', ''),
-            usuario, 
-            id_ad
-        ))
+#         cursor.execute("""
+#             UPDATE AGENDA_DEMANDAS 
+#             SET ID_MOTORISTA = %s, ID_TIPOVEICULO = %s, ID_VEICULO = %s,
+#                 ID_TIPODEMANDA = %s, DT_INICIO = %s, DT_FIM = %s,
+#                 SETOR = %s, SOLICITANTE = %s, DESTINO = %s, NU_SEI = %s,
+#                 OBS = %s, SOLICITADO = %s, HORARIO = %s, TODOS_VEICULOS = %s, 
+#                 NC_MOTORISTA = %s, USUARIO = %s
+#             WHERE ID_AD = %s
+#         """, (
+#             id_motorista_novo, 
+#             data.get('id_tipoveiculo'), 
+#             data.get('id_veiculo'),
+#             id_tipodemanda_novo, 
+#             dt_inicio, 
+#             dt_fim,
+#             data.get('setor'), 
+#             data.get('solicitante'), 
+#             data.get('destino'), 
+#             data.get('nu_sei'),
+#             data.get('obs'),
+#             data.get('solicitado', 'N'),
+#             horario_value,
+#             data.get('todos_veiculos', 'N'),
+#             data.get('nc_motorista', ''),
+#             usuario, 
+#             id_ad
+#         ))
 
-        # ===== GERENCIAR DIÁRIAS TERCEIRIZADOS (LÓGICA EXISTENTE) =====
-        cursor.execute("""
-            SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
-        """, (id_ad,))
+#         # ===== GERENCIAR DIÁRIAS TERCEIRIZADOS (LÓGICA EXISTENTE) =====
+#         cursor.execute("""
+#             SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
+#         """, (id_ad,))
         
-        diaria_terceirizado = cursor.fetchone()
+#         diaria_terceirizado = cursor.fetchone()
         
-        if diaria_terceirizado:
-            precisa_excluir = False
+#         if diaria_terceirizado:
+#             precisa_excluir = False
             
-            if id_tipodemanda_novo != 2:
-                precisa_excluir = True
+#             if id_tipodemanda_novo != 2:
+#                 precisa_excluir = True
             
-            if id_motorista_novo and int(id_motorista_novo) > 0:
-                cursor.execute("""
-                    SELECT m.ID_MOTORISTA
-                    FROM CAD_MOTORISTA m
-                    INNER JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
-                    WHERE m.ID_MOTORISTA = %s
-                      AND m.TIPO_CADASTRO = 'Terceirizado'
-                      AND m.ATIVO = 'S'
-                      AND f.VL_DIARIA IS NOT NULL
-                      AND f.VL_DIARIA > 0
-                """, (id_motorista_novo,))
+#             if id_motorista_novo and int(id_motorista_novo) > 0:
+#                 cursor.execute("""
+#                     SELECT m.ID_MOTORISTA
+#                     FROM CAD_MOTORISTA m
+#                     INNER JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = m.ID_FORNECEDOR
+#                     WHERE m.ID_MOTORISTA = %s
+#                       AND m.TIPO_CADASTRO = 'Terceirizado'
+#                       AND m.ATIVO = 'S'
+#                       AND f.VL_DIARIA IS NOT NULL
+#                       AND f.VL_DIARIA > 0
+#                 """, (id_motorista_novo,))
                 
-                if not cursor.fetchone():
-                    precisa_excluir = True
-            else:
-                precisa_excluir = True
+#                 if not cursor.fetchone():
+#                     precisa_excluir = True
+#             else:
+#                 precisa_excluir = True
             
-            if precisa_excluir:
-                cursor.execute("""
-                    DELETE FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
-                """, (id_ad,))
+#             if precisa_excluir:
+#                 cursor.execute("""
+#                     DELETE FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s
+#                 """, (id_ad,))
         
-        # ===== NOVO: GERENCIAR DIÁRIAS MOTORISTA ATENDIMENTO =====
+#         # ===== NOVO: GERENCIAR DIÁRIAS MOTORISTA ATENDIMENTO =====
         
-        # Verificar se mudou de tipo ou motorista que invalide a diária
-        mudou_tipo = id_tipodemanda_antigo != id_tipodemanda_novo
-        mudou_motorista = id_motorista_antigo != id_motorista_novo
+#         # Verificar se mudou de tipo ou motorista que invalide a diária
+#         mudou_tipo = id_tipodemanda_antigo != id_tipodemanda_novo
+#         mudou_motorista = id_motorista_antigo != id_motorista_novo
         
-        if mudou_tipo or mudou_motorista:
-            # Se mudou, excluir diária antiga
-            cursor.execute("""
-                DELETE FROM DIARIAS_MOTORISTAS WHERE ID_AD = %s
-            """, (id_ad,))
+#         if mudou_tipo or mudou_motorista:
+#             # Se mudou, excluir diária antiga
+#             cursor.execute("""
+#                 DELETE FROM DIARIAS_MOTORISTAS WHERE ID_AD = %s
+#             """, (id_ad,))
         
-        # Criar ou atualizar diária se aplicável
-        gerenciar_diaria_motorista_atendimento(
-            id_ad=id_ad,
-            id_tipodemanda=id_tipodemanda_novo,
-            id_motorista=id_motorista_novo,
-            dt_inicio=dt_inicio,
-            dt_fim=dt_fim,
-            operacao='UPDATE'
-        )
+#         # Criar ou atualizar diária se aplicável
+#         gerenciar_diaria_motorista_atendimento(
+#             id_ad=id_ad,
+#             id_tipodemanda=id_tipodemanda_novo,
+#             id_motorista=id_motorista_novo,
+#             dt_inicio=dt_inicio,
+#             dt_fim=dt_fim,
+#             operacao='UPDATE'
+#         )
         
-        mysql.connection.commit()
-        cursor.close()
+#         mysql.connection.commit()
+#         cursor.close()
         
-        registrar_alteracao_agenda('INSERT')
+#         registrar_alteracao_agenda('INSERT')
 
-        return jsonify({'success': True})
+#         return jsonify({'success': True})
     
-    except Exception as e:
-        if cursor:
-            mysql.connection.rollback()
-        print(f"Erro ao atualizar demanda: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
+#     except Exception as e:
+#         if cursor:
+#             mysql.connection.rollback()
+#         print(f"Erro ao atualizar demanda: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+#         return jsonify({'error': str(e)}), 500
+#     finally:
+#         if cursor:
+#             cursor.close()
 		
-		
-# API: Excluir demanda (COM LOG DE DIÁRIAS)
-@app.route('/api/agenda/demanda/<int:id_ad>', methods=['DELETE'])
-@login_required
-def excluir_demanda(id_ad):
-    cursor = None
-    try:
-        cursor = mysql.connection.cursor()
+# ============================================================
+# ROTA ANTIGA - SUBSTITUÍDA POR /api/v2/agenda/demanda/<id> (linha 10152)
+# COMENTADA EM: 2026-01-03
+# MOTIVO: Migração para WebSocket - Usar apenas rotas v2
+# REMOVER APÓS 7-30 DIAS SEM PROBLEMAS
+# ============================================================
+# @app.route('/api/agenda/demanda/<int:id_ad>', methods=['DELETE'])
+# @login_required
+# def excluir_demanda(id_ad):
+#     cursor = None
+#     try:
+#         cursor = mysql.connection.cursor()
         
-        # Log: Verificar se tem diárias antes de excluir
-        cursor.execute("SELECT COUNT(*) FROM DIARIAS_MOTORISTAS WHERE ID_AD = %s", (id_ad,))
-        tem_diaria_motorista = cursor.fetchone()[0] > 0
+#         # Log: Verificar se tem diárias antes de excluir
+#         cursor.execute("SELECT COUNT(*) FROM DIARIAS_MOTORISTAS WHERE ID_AD = %s", (id_ad,))
+#         tem_diaria_motorista = cursor.fetchone()[0] > 0
         
-        cursor.execute("SELECT COUNT(*) FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s", (id_ad,))
-        tem_diaria_terceirizado = cursor.fetchone()[0] > 0
+#         cursor.execute("SELECT COUNT(*) FROM DIARIAS_TERCEIRIZADOS WHERE ID_AD = %s", (id_ad,))
+#         tem_diaria_terceirizado = cursor.fetchone()[0] > 0
         
-        if tem_diaria_motorista:
-            app.logger.info(f"Excluindo demanda {id_ad} com diária de motorista atendimento")
-        if tem_diaria_terceirizado:
-            app.logger.info(f"Excluindo demanda {id_ad} com diária de terceirizado")
+#         if tem_diaria_motorista:
+#             app.logger.info(f"Excluindo demanda {id_ad} com diária de motorista atendimento")
+#         if tem_diaria_terceirizado:
+#             app.logger.info(f"Excluindo demanda {id_ad} com diária de terceirizado")
         
-        # Deleta tabelas dependentes (CASCADE já deleta DIARIAS_MOTORISTAS)
-        cursor.execute("DELETE FROM EMAIL_OUTRAS_LOCACOES WHERE ID_AD = %s", (id_ad,))
-        cursor.execute("DELETE FROM CONTROLE_LOCACAO_ITENS WHERE ID_AD = %s", (id_ad,))
+#         # Deleta tabelas dependentes (CASCADE já deleta DIARIAS_MOTORISTAS)
+#         cursor.execute("DELETE FROM EMAIL_OUTRAS_LOCACOES WHERE ID_AD = %s", (id_ad,))
+#         cursor.execute("DELETE FROM CONTROLE_LOCACAO_ITENS WHERE ID_AD = %s", (id_ad,))
         
-        # Deleta a demanda (CASCADE vai deletar DIARIAS_MOTORISTAS e DIARIAS_TERCEIRIZADOS se houver FK)
-        cursor.execute("DELETE FROM AGENDA_DEMANDAS WHERE ID_AD = %s", (id_ad,))
+#         # Deleta a demanda (CASCADE vai deletar DIARIAS_MOTORISTAS e DIARIAS_TERCEIRIZADOS se houver FK)
+#         cursor.execute("DELETE FROM AGENDA_DEMANDAS WHERE ID_AD = %s", (id_ad,))
         
-        mysql.connection.commit()
-        cursor.close()
+#         mysql.connection.commit()
+#         cursor.close()
         
-        registrar_alteracao_agenda('INSERT')
+#         registrar_alteracao_agenda('INSERT')
 
-        return jsonify({'success': True})
+#         return jsonify({'success': True})
 
-    except Exception as e:
-        if cursor:
-            mysql.connection.rollback()
-        app.logger.error(f"Erro ao excluir demanda: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
+#     except Exception as e:
+#         if cursor:
+#             mysql.connection.rollback()
+#         app.logger.error(f"Erro ao excluir demanda: {str(e)}")
+#         return jsonify({'error': str(e)}), 500
+#     finally:
+#         if cursor:
+#             cursor.close()
 			
 
 # API: Buscar tipos de demanda
@@ -7009,252 +7026,252 @@ def criar_locacao_fornecedor():
         return jsonify({'erro': str(e)}), 500
     
 
-@app.route('/api/enviar_email_fornecedor', methods=['POST'])
-@login_required
-def enviar_email_fornecedor():
-    """
-    Envia email de solicitação para fornecedor
-    Aceita dois tipos:
-    1. Locação de veículo (com id_item_fornecedor)
-    2. Diárias de motorista (tipo_email='diarias')
-    """
-    cursor = None
-    try:
-        # Receber dados do formulário
-        email_destinatario = request.form.get('email_destinatario')
-        assunto = request.form.get('assunto')
-        corpo_html = request.form.get('corpo_html')
-        id_demanda = request.form.get('id_demanda')
-        id_item_fornecedor = request.form.get('id_item_fornecedor')
-        tipo_email = request.form.get('tipo_email', 'locacao')
+# @app.route('/api/enviar_email_fornecedor', methods=['POST'])
+# @login_required
+# def enviar_email_fornecedor():
+#     """
+#     Envia email de solicitação para fornecedor
+#     Aceita dois tipos:
+#     1. Locação de veículo (com id_item_fornecedor)
+#     2. Diárias de motorista (tipo_email='diarias')
+#     """
+#     cursor = None
+#     try:
+#         # Receber dados do formulário
+#         email_destinatario = request.form.get('email_destinatario')
+#         assunto = request.form.get('assunto')
+#         corpo_html = request.form.get('corpo_html')
+#         id_demanda = request.form.get('id_demanda')
+#         id_item_fornecedor = request.form.get('id_item_fornecedor')
+#         tipo_email = request.form.get('tipo_email', 'locacao')
         
-        # ===== LOG DE DEBUG =====
-        app.logger.info(f"=== ENVIO DE EMAIL ===")
-        app.logger.info(f"Tipo: {tipo_email}")
-        app.logger.info(f"ID_AD: {id_demanda}")
-        app.logger.info(f"ID_ITEM Recebido: {id_item_fornecedor}")
-        app.logger.info(f"Destinatário: {email_destinatario}")
+#         # ===== LOG DE DEBUG =====
+#         app.logger.info(f"=== ENVIO DE EMAIL ===")
+#         app.logger.info(f"Tipo: {tipo_email}")
+#         app.logger.info(f"ID_AD: {id_demanda}")
+#         app.logger.info(f"ID_ITEM Recebido: {id_item_fornecedor}")
+#         app.logger.info(f"Destinatário: {email_destinatario}")
         
-        if not all([email_destinatario, assunto, corpo_html, id_demanda]):
-            return jsonify({'erro': 'Dados incompletos'}), 400
+#         if not all([email_destinatario, assunto, corpo_html, id_demanda]):
+#             return jsonify({'erro': 'Dados incompletos'}), 400
         
-        # Processar anexos
-        anexos = []
-        if 'anexos' in request.files:
-            files = request.files.getlist('anexos')
-            for file in files:
-                if file and file.filename:
-                    anexos.append({
-                        'nome': file.filename,
-                        'conteudo': file.read(),
-                        'tipo': file.content_type or 'application/octet-stream'
-                    })
+#         # Processar anexos
+#         anexos = []
+#         if 'anexos' in request.files:
+#             files = request.files.getlist('anexos')
+#             for file in files:
+#                 if file and file.filename:
+#                     anexos.append({
+#                         'nome': file.filename,
+#                         'conteudo': file.read(),
+#                         'tipo': file.content_type or 'application/octet-stream'
+#                     })
         
-        # Obter nome do usuário
-        nome_usuario = session.get('usuario_nome', 'Administrador')
+#         # Obter nome do usuário
+#         nome_usuario = session.get('usuario_nome', 'Administrador')
         
-        # Versão texto simples (fallback)
-        from html.parser import HTMLParser
+#         # Versão texto simples (fallback)
+#         from html.parser import HTMLParser
         
-        class HTMLToText(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.text = []
+#         class HTMLToText(HTMLParser):
+#             def __init__(self):
+#                 super().__init__()
+#                 self.text = []
             
-            def handle_data(self, data):
-                self.text.append(data)
+#             def handle_data(self, data):
+#                 self.text.append(data)
             
-            def get_text(self):
-                return ''.join(self.text)
+#             def get_text(self):
+#                 return ''.join(self.text)
         
-        parser = HTMLToText()
-        parser.feed(corpo_html)
-        corpo_texto = parser.get_text()
+#         parser = HTMLToText()
+#         parser.feed(corpo_html)
+#         corpo_texto = parser.get_text()
         
-        # Criar mensagem
-        msg = Message(
-            subject=assunto,
-            recipients=[email_destinatario],
-            html=corpo_html,
-            body=corpo_texto,
-            sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
-        )
+#         # Criar mensagem
+#         msg = Message(
+#             subject=assunto,
+#             recipients=[email_destinatario],
+#             html=corpo_html,
+#             body=corpo_texto,
+#             sender=("TJRO-SEGEOP", "segeop@tjro.jus.br")
+#         )
         
-        # Anexar arquivos
-        for anexo in anexos:
-            msg.attach(
-                anexo['nome'],
-                anexo['tipo'],
-                anexo['conteudo']
-            )
+#         # Anexar arquivos
+#         for anexo in anexos:
+#             msg.attach(
+#                 anexo['nome'],
+#                 anexo['tipo'],
+#                 anexo['conteudo']
+#             )
         
-        # Enviar email
-        mail.send(msg)
+#         # Enviar email
+#         mail.send(msg)
         
-        # Registrar no banco
-        cursor = mysql.connection.cursor()
+#         # Registrar no banco
+#         cursor = mysql.connection.cursor()
         
-        from pytz import timezone
-        tz_manaus = timezone('America/Manaus')
-        data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
+#         from pytz import timezone
+#         tz_manaus = timezone('America/Manaus')
+#         data_hora_atual = datetime.now(tz_manaus).strftime("%d/%m/%Y %H:%M:%S")
         
-        # ===== CORREÇÃO: TRATAMENTO CORRETO POR TIPO DE EMAIL =====
-        if tipo_email == 'diarias':
-            # ===== EMAIL DE DIÁRIAS =====
+#         # ===== CORREÇÃO: TRATAMENTO CORRETO POR TIPO DE EMAIL =====
+#         if tipo_email == 'diarias':
+#             # ===== EMAIL DE DIÁRIAS =====
             
-            # ===== CORREÇÃO: USAR O IDITEM RECEBIDO =====
-            if not id_item_fornecedor or id_item_fornecedor == '0':
-                # Se não recebeu IDITEM, buscar da tabela
-                cursor.execute("""
-                    SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS 
-                    WHERE ID_AD = %s
-                """, (id_demanda,))
+#             # ===== CORREÇÃO: USAR O IDITEM RECEBIDO =====
+#             if not id_item_fornecedor or id_item_fornecedor == '0':
+#                 # Se não recebeu IDITEM, buscar da tabela
+#                 cursor.execute("""
+#                     SELECT IDITEM FROM DIARIAS_TERCEIRIZADOS 
+#                     WHERE ID_AD = %s
+#                 """, (id_demanda,))
                 
-                resultado_diaria = cursor.fetchone()
+#                 resultado_diaria = cursor.fetchone()
                 
-                if not resultado_diaria:
-                    app.logger.error(f"ERRO: Nenhuma diária encontrada para ID_AD={id_demanda}")
-                    return jsonify({'erro': 'Registro de diária não encontrado'}), 400
+#                 if not resultado_diaria:
+#                     app.logger.error(f"ERRO: Nenhuma diária encontrada para ID_AD={id_demanda}")
+#                     return jsonify({'erro': 'Registro de diária não encontrado'}), 400
                 
-                iditem_diaria = resultado_diaria[0]
-            else:
-                iditem_diaria = int(id_item_fornecedor)
+#                 iditem_diaria = resultado_diaria[0]
+#             else:
+#                 iditem_diaria = int(id_item_fornecedor)
             
-            app.logger.info(f"✅ IDITEM que será usado: {iditem_diaria}")
+#             app.logger.info(f"✅ IDITEM que será usado: {iditem_diaria}")
             
-            # 1. Inserir em EMAIL_DIARIAS
-            cursor.execute("""
-                INSERT INTO EMAIL_DIARIAS 
-                (IDITEM, ID_AD, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (
-                iditem_diaria,
-                id_demanda, 
-                email_destinatario, 
-                assunto, 
-                corpo_texto, 
-                data_hora_atual
-            ))
+#             # 1. Inserir em EMAIL_DIARIAS
+#             cursor.execute("""
+#                 INSERT INTO EMAIL_DIARIAS 
+#                 (IDITEM, ID_AD, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+#                 VALUES (%s, %s, %s, %s, %s, %s)
+#             """, (
+#                 iditem_diaria,
+#                 id_demanda, 
+#                 email_destinatario, 
+#                 assunto, 
+#                 corpo_texto, 
+#                 data_hora_atual
+#             ))
             
-            id_email = cursor.lastrowid
-            app.logger.info(f"✅ Email registrado em EMAIL_DIARIAS - ID_EMAIL: {id_email}")
+#             id_email = cursor.lastrowid
+#             app.logger.info(f"✅ Email registrado em EMAIL_DIARIAS - ID_EMAIL: {id_email}")
             
-            # 2. Atualizar FL_EMAIL na DIARIAS_TERCEIRIZADOS
-            cursor.execute("""
-                UPDATE DIARIAS_TERCEIRIZADOS 
-                SET FL_EMAIL = 'S' 
-                WHERE IDITEM = %s
-            """, (iditem_diaria,))
+#             # 2. Atualizar FL_EMAIL na DIARIAS_TERCEIRIZADOS
+#             cursor.execute("""
+#                 UPDATE DIARIAS_TERCEIRIZADOS 
+#                 SET FL_EMAIL = 'S' 
+#                 WHERE IDITEM = %s
+#             """, (iditem_diaria,))
             
-            linhas_afetadas = cursor.rowcount
+#             linhas_afetadas = cursor.rowcount
             
-            if linhas_afetadas > 0:
-                app.logger.info(f"✅ FL_EMAIL atualizado com sucesso - IDITEM: {iditem_diaria}")
-            else:
-                app.logger.warning(f"⚠️ Nenhuma linha atualizada para IDITEM: {iditem_diaria}")
+#             if linhas_afetadas > 0:
+#                 app.logger.info(f"✅ FL_EMAIL atualizado com sucesso - IDITEM: {iditem_diaria}")
+#             else:
+#                 app.logger.warning(f"⚠️ Nenhuma linha atualizada para IDITEM: {iditem_diaria}")
                 
-                # DEBUG: Verificar se o registro existe
-                cursor.execute("""
-                    SELECT IDITEM, ID_AD, FL_EMAIL 
-                    FROM DIARIAS_TERCEIRIZADOS 
-                    WHERE IDITEM = %s
-                """, (iditem_diaria,))
+#                 # DEBUG: Verificar se o registro existe
+#                 cursor.execute("""
+#                     SELECT IDITEM, ID_AD, FL_EMAIL 
+#                     FROM DIARIAS_TERCEIRIZADOS 
+#                     WHERE IDITEM = %s
+#                 """, (iditem_diaria,))
                 
-                registro = cursor.fetchone()
-                if registro:
-                    app.logger.warning(f"⚠️ Registro existe: IDITEM={registro[0]}, ID_AD={registro[1]}, FL_EMAIL={registro[2]}")
-                else:
-                    app.logger.error(f"❌ Registro NÃO EXISTE com IDITEM={iditem_diaria}")
+#                 registro = cursor.fetchone()
+#                 if registro:
+#                     app.logger.warning(f"⚠️ Registro existe: IDITEM={registro[0]}, ID_AD={registro[1]}, FL_EMAIL={registro[2]}")
+#                 else:
+#                     app.logger.error(f"❌ Registro NÃO EXISTE com IDITEM={iditem_diaria}")
         
-        else:
-            # ===== EMAIL DE LOCAÇÃO =====
+#         else:
+#             # ===== EMAIL DE LOCAÇÃO =====
             
-            # Inserir em EMAIL_OUTRAS_LOCACOES
-            cursor.execute("""
-                INSERT INTO EMAIL_OUTRAS_LOCACOES 
-                (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (
-                id_demanda, 
-                id_item_fornecedor or 0,
-                email_destinatario, 
-                assunto, 
-                corpo_texto, 
-                data_hora_atual
-            ))
+#             # Inserir em EMAIL_OUTRAS_LOCACOES
+#             cursor.execute("""
+#                 INSERT INTO EMAIL_OUTRAS_LOCACOES 
+#                 (ID_AD, ID_ITEM, DESTINATARIO, ASSUNTO, TEXTO, DATA_HORA) 
+#                 VALUES (%s, %s, %s, %s, %s, %s)
+#             """, (
+#                 id_demanda, 
+#                 id_item_fornecedor or 0,
+#                 email_destinatario, 
+#                 assunto, 
+#                 corpo_texto, 
+#                 data_hora_atual
+#             ))
             
-            id_email = cursor.lastrowid
+#             id_email = cursor.lastrowid
             
-            # Atualizar SOLICITADO na demanda
-            cursor.execute("""
-                UPDATE AGENDA_DEMANDAS 
-                SET SOLICITADO = 'S' 
-                WHERE ID_AD = %s
-            """, (id_demanda,))
+#             # Atualizar SOLICITADO na demanda
+#             cursor.execute("""
+#                 UPDATE AGENDA_DEMANDAS 
+#                 SET SOLICITADO = 'S' 
+#                 WHERE ID_AD = %s
+#             """, (id_demanda,))
             
-            # Atualizar FL_EMAIL na locação
-            if id_item_fornecedor:
-                cursor.execute("""
-                    UPDATE CONTROLE_LOCACAO_ITENS 
-                    SET FL_EMAIL = 'S' 
-                    WHERE ID_ITEM = %s
-                """, (id_item_fornecedor,))
+#             # Atualizar FL_EMAIL na locação
+#             if id_item_fornecedor:
+#                 cursor.execute("""
+#                     UPDATE CONTROLE_LOCACAO_ITENS 
+#                     SET FL_EMAIL = 'S' 
+#                     WHERE ID_ITEM = %s
+#                 """, (id_item_fornecedor,))
         
-        mysql.connection.commit()
+#         mysql.connection.commit()
         
-        app.logger.info(f"✅ Email enviado e registrado com sucesso!")
+#         app.logger.info(f"✅ Email enviado e registrado com sucesso!")
         
-        # ===== EMITIR WEBSOCKET PARA ATUALIZAR FL_EMAIL =====
-        usuario_atual = session.get('usuario_login', '')
+#         # ===== EMITIR WEBSOCKET PARA ATUALIZAR FL_EMAIL =====
+#         usuario_atual = session.get('usuario_login', '')
         
-        try:
-            if tipo_email == 'diarias':
-                # WebSocket para atualização de diária
-                payload = {
-                    'tipo': 'UPDATE',
-                    'entidade': 'DIARIA_TERCEIRIZADO',
-                    'iditem': iditem_diaria,
-                    'id_ad': id_demanda,
-                    'usuario': usuario_atual,
-                    'timestamp': datetime.now().isoformat(),
-                    'fl_email': 'S'
-                }
-                socketio.emit('alteracao_agenda', payload, room='agenda')
-                print(f"📡 WebSocket: UPDATE DIARIA_TERCEIRIZADO - IDITEM: {iditem_diaria} - FL_EMAIL=S")
+#         try:
+#             if tipo_email == 'diarias':
+#                 # WebSocket para atualização de diária
+#                 payload = {
+#                     'tipo': 'UPDATE',
+#                     'entidade': 'DIARIA_TERCEIRIZADO',
+#                     'iditem': iditem_diaria,
+#                     'id_ad': id_demanda,
+#                     'usuario': usuario_atual,
+#                     'timestamp': datetime.now().isoformat(),
+#                     'fl_email': 'S'
+#                 }
+#                 socketio.emit('alteracao_agenda', payload, room='agenda')
+#                 print(f"📡 WebSocket: UPDATE DIARIA_TERCEIRIZADO - IDITEM: {iditem_diaria} - FL_EMAIL=S")
                 
-            else:
-                # WebSocket para atualização de locação
-                payload = {
-                    'tipo': 'UPDATE',
-                    'entidade': 'LOCACAO_FORNECEDOR',
-                    'id_item': id_item_fornecedor,
-                    'id_demanda': id_demanda,
-                    'usuario': usuario_atual,
-                    'timestamp': datetime.now().isoformat(),
-                    'fl_email': 'S'
-                }
-                socketio.emit('alteracao_agenda', payload, room='agenda')
-                print(f"📡 WebSocket: UPDATE LOCACAO_FORNECEDOR - ID_ITEM: {id_item_fornecedor} - FL_EMAIL=S")
+#             else:
+#                 # WebSocket para atualização de locação
+#                 payload = {
+#                     'tipo': 'UPDATE',
+#                     'entidade': 'LOCACAO_FORNECEDOR',
+#                     'id_item': id_item_fornecedor,
+#                     'id_demanda': id_demanda,
+#                     'usuario': usuario_atual,
+#                     'timestamp': datetime.now().isoformat(),
+#                     'fl_email': 'S'
+#                 }
+#                 socketio.emit('alteracao_agenda', payload, room='agenda')
+#                 print(f"📡 WebSocket: UPDATE LOCACAO_FORNECEDOR - ID_ITEM: {id_item_fornecedor} - FL_EMAIL=S")
                 
-        except Exception as e:
-            print(f"❌ Erro ao emitir WebSocket de email: {str(e)}")
+#         except Exception as e:
+#             print(f"❌ Erro ao emitir WebSocket de email: {str(e)}")
         
-        return jsonify({
-            'success': True,
-            'id_email': id_email,
-            'mensagem': 'Email enviado com sucesso!'
-        })
+#         return jsonify({
+#             'success': True,
+#             'id_email': id_email,
+#             'mensagem': 'Email enviado com sucesso!'
+#         })
         
-    except Exception as e:
-        app.logger.error(f"❌ Erro ao enviar email: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        if cursor:
-            mysql.connection.rollback()
-        return jsonify({'erro': str(e)}), 500
-    finally:
-        if cursor:
-            cursor.close()
+#     except Exception as e:
+#         app.logger.error(f"❌ Erro ao enviar email: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+#         if cursor:
+#             mysql.connection.rollback()
+#         return jsonify({'erro': str(e)}), 500
+#     finally:
+#         if cursor:
+#             cursor.close()
 			
 ###...casdastro do tipo de demanda.###
 
@@ -9967,11 +9984,57 @@ def atualizar_demanda_v2(id_ad):
         else:
             horario_value = None
         
+        # Converter horário
+        horario = data.get('horario')
+        if horario and horario.strip():
+            horario_value = horario + ':00'
+        else:
+            horario_value = None        
+        
         id_tipodemanda_novo = data['id_tipodemanda']
         id_motorista_novo = data.get('id_motorista')
+        id_veiculo_novo = data.get('id_veiculo')
         dt_inicio = data['dt_inicio']
         dt_fim = data['dt_fim']
+        tem_horario = horario and horario.strip()
         
+        # 1. Validar conflito de MOTORISTA (se mudou o motorista)
+        if id_motorista_novo and int(id_motorista_novo) > 0:
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM AGENDA_DEMANDAS
+                WHERE ID_MOTORISTA = %s
+                AND DT_INICIO <= %s
+                AND DT_FIM >= %s
+                AND ID_AD != %s
+            """, (id_motorista_novo, dt_fim, dt_inicio, id_ad))
+            
+            if cursor.fetchone()[0] > 0:
+                cursor.close()
+                return jsonify({
+                    'success': False,
+                    'error': 'Este motorista já possui demanda(s) neste período.'
+                }), 409
+
+        # 2. Validar conflito de VEÍCULO (se mudou o veículo e não tem horário)
+        if id_veiculo_novo and not tem_horario:
+            cursor.execute("""
+                SELECT COUNT(*) as total
+                FROM AGENDA_DEMANDAS
+                WHERE ID_VEICULO = %s
+                AND DT_INICIO <= %s
+                AND DT_FIM >= %s
+                AND (HORARIO IS NULL OR HORARIO = '00:00:00')
+                AND ID_AD != %s
+            """, (id_veiculo_novo, dt_fim, dt_inicio, id_ad))
+            
+            if cursor.fetchone()[0] > 0:
+                cursor.close()
+                return jsonify({
+                    'success': False,
+                    'error': 'Este veículo já possui demanda(s) SEM horário neste período.'
+                }), 409
+
         # ATUALIZAR DEMANDA
         cursor.execute("""
             UPDATE AGENDA_DEMANDAS 
