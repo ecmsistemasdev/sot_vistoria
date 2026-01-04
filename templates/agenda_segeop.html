@@ -2629,6 +2629,11 @@
         let atualizacaoPropriaEmAndamento = false;
         let timestampUltimaAcaoLocal = null;
 
+        // Adicionar junto com as outras variáveis globais (por volta da linha 2700-2800)
+        let idRecursoSelecao = null;
+        let tipoRecursoSelecao = null;
+        let secaoSelecao = null;
+
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
             if (!idTipoVeiculo) {
@@ -4204,46 +4209,77 @@
             document.body.classList.remove('modo-selecao-ativo');
         }
 
-        function marcarIntervaloCelulas(linha, dtInicio, dtFim) {
-            const celulas = linha.querySelectorAll('td.col-dia.empty-cell');
+        function marcarIntervaloCelulas(linha, dtInicio, dtFim, addConflito = false) {
+            const celulas = linha.querySelectorAll('td.col-dia');
+            const dataInicioObj = new Date(dtInicio + 'T00:00:00');
+            const dataFimObj = new Date(dtFim + 'T00:00:00');
             
             celulas.forEach(celula => {
-                // Verificar se a célula tem onclick que contém uma data
                 const onclickAttr = celula.getAttribute('onclick');
-                if (!onclickAttr) return;
-                
-                // Extrair data do onclick (ex: "handleClickCelulaVazia(event, '2025-01-15', ...")
-                const matchData = onclickAttr.match(/'(\d{4}-\d{2}-\d{2})'/);
-                if (!matchData) return;
-                
-                const dataCell = matchData[1];
-                const dataCellObj = new Date(dataCell + 'T00:00:00');
-                const dataInicioObj = new Date(dtInicio + 'T00:00:00');
-                const dataFimObj = new Date(dtFim + 'T00:00:00');
-                
-                // Se a data está no intervalo, marcar
-                if (dataCellObj >= dataInicioObj && dataCellObj <= dataFimObj) {
-                    celula.classList.add('cell-intervalo-selecionado');
-                    celulasIntervalo.push(celula);
+                if (onclickAttr && onclickAttr.includes('handleClickCelulaVazia')) {
+                    const matchData = onclickAttr.match(/'(\d{4}-\d{2}-\d{2})'/);
+                    if (matchData) {
+                        const dataCell = matchData[1];
+                        const dataCellObj = new Date(dataCell + 'T00:00:00');
+                        
+                        if (dataCellObj >= dataInicioObj && dataCellObj <= dataFimObj) {
+                            // Só adicionar à lista se ainda não estiver
+                            if (!celulasIntervalo.includes(celula)) {
+                                celula.classList.add('cell-intervalo-selecionado');
+                                celulasIntervalo.push(celula);
+                            }
+                            
+                            if (addConflito) {
+                                celula.classList.add('cell-conflito');
+                            }
+                        }
+                    }
                 }
             });
         }
 
-        // Detectar quando Ctrl é pressionado
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Control' && !modoSelecaoIntervalo) {
+            if (event.key === 'Control') {
                 modoSelecaoIntervalo = true;
-                // Adicionar classe apenas no body (CSS já controla quais seções recebem o cursor)
-                document.body.classList.add('modo-selecao-ativo');
+                
+                // Mudar cursor globalmente para células clicáveis
+                document.querySelectorAll('.agenda-table td.col-dia').forEach(td => {
+                    const hasClick = td.getAttribute('onclick');
+                    if (hasClick && !td.classList.contains('cell-loading')) {
+                        td.style.cursor = 'cell';
+                    }
+                });
             }
         });
 
-        // Detectar quando Ctrl é solto
         document.addEventListener('keyup', function(event) {
-            if (event.key === 'Control' && modoSelecaoIntervalo) {
+            if (event.key === 'Control') {
+                modoSelecaoIntervalo = false;
                 limparSelecaoIntervalo();
+                
+                // Restaurar cursor padrão
+                document.querySelectorAll('.agenda-table td.col-dia').forEach(td => {
+                    td.style.cursor = 'pointer';
+                });
             }
         });
+
+
+        // // Detectar quando Ctrl é pressionado
+        // document.addEventListener('keydown', function(event) {
+        //     if (event.key === 'Control' && !modoSelecaoIntervalo) {
+        //         modoSelecaoIntervalo = true;
+        //         // Adicionar classe apenas no body (CSS já controla quais seções recebem o cursor)
+        //         document.body.classList.add('modo-selecao-ativo');
+        //     }
+        // });
+
+        // // Detectar quando Ctrl é solto
+        // document.addEventListener('keyup', function(event) {
+        //     if (event.key === 'Control' && modoSelecaoIntervalo) {
+        //         limparSelecaoIntervalo();
+        //     }
+        // });
 
         // Limpar seleção ao sair da página
         window.addEventListener('blur', function() {
@@ -6447,287 +6483,129 @@
             }
             
             return true; // Intervalo completamente vazio (pode ter feriados sem demanda)
-        }            
-
-        // async function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula, secao = null) {
-        //     event.stopPropagation();
-            
-        //     // Se Ctrl NÃO está pressionado, comportamento normal
-        //     if (!modoSelecaoIntervalo) {
-        //         // ========== NOVA VALIDAÇÃO ANTES DE ABRIR MODAL ==========
-                
-        //         // Validar MOTORISTA
-        //         if (idMotorista) {
-        //             try {
-        //                 const resConflito = await fetch(`/api/agenda/verificar-conflito-motorista?id_motorista=${idMotorista}&dt_inicio=${data}&dt_fim=${data}`);
-        //                 const resultConflito = await resConflito.json();
-                        
-        //                 if (resultConflito.tem_conflito) {
-        //                     // Mostrar alerta com detalhes do conflito
-        //                     const demandas = resultConflito.demandas_conflitantes;
-        //                     let mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este motorista já possui ${demandas.length} demanda(s) nesta data:<br><br>`;
-                            
-        //                     demandas.forEach((d, index) => {
-        //                         const periodo = d.dt_inicio === d.dt_fim 
-        //                             ? new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')
-        //                             : `${new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(d.dt_fim + 'T00:00:00').toLocaleDateString('pt-BR')}`;
-                                
-        //                         mensagem += `📌 <strong>${d.tipo_demanda || 'Demanda'}</strong><br>`;
-        //                         mensagem += `   Período: ${periodo}<br>`;
-        //                         if (d.setor) mensagem += `   Setor: ${d.setor}<br>`;
-        //                         if (d.destino) mensagem += `   Destino: ${d.destino}<br>`;
-        //                         if (d.nu_sei) mensagem += `   SEI: ${d.nu_sei}<br>`;
-        //                         if (index < demandas.length - 1) mensagem += `<br>`;
-        //                     });
-                            
-        //                     mensagem += `<br><strong>Não é possível criar demanda sobreposta.</strong>`;
-                            
-        //                     // Destacar célula com conflito
-        //                     elementoCelula.classList.add('cell-conflito');
-        //                     setTimeout(() => {
-        //                         elementoCelula.classList.remove('cell-conflito');
-        //                     }, 3000);
-                            
-        //                     mostrarAlerta(mensagem, '⚠️ Conflito Detectado', '#ffc107');
-        //                     return;
-        //                 }
-        //             } catch (error) {
-        //                 console.error('Erro ao verificar conflito de motorista:', error);
-        //             }
-        //         }
-                
-        //         // Validar VEÍCULO
-        //         if (idVeiculo) {
-        //             try {
-        //                 const resConflito = await fetch(`/api/agenda/verificar-conflito-veiculo?id_veiculo=${idVeiculo}&dt_inicio=${data}&dt_fim=${data}&tem_horario=false`);
-        //                 const resultConflito = await resConflito.json();
-                        
-        //                 if (resultConflito.tem_conflito) {
-        //                     const demandas = resultConflito.demandas_conflitantes;
-        //                     let mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este veículo já possui ${demandas.length} demanda(s) SEM horário nesta data:<br><br>`;
-                            
-        //                     demandas.forEach((d, index) => {
-        //                         const periodo = d.dt_inicio === d.dt_fim 
-        //                             ? new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')
-        //                             : `${new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(d.dt_fim + 'T00:00:00').toLocaleDateString('pt-BR')}`;
-                                
-        //                         mensagem += `📌 <strong>${d.tipo_demanda || 'Demanda'}</strong><br>`;
-        //                         mensagem += `   Motorista: ${d.motorista || 'Não informado'}<br>`;
-        //                         mensagem += `   Período: ${periodo}<br>`;
-        //                         if (d.setor) mensagem += `   Setor: ${d.setor}<br>`;
-        //                         if (d.destino) mensagem += `   Destino: ${d.destino}<br>`;
-        //                         if (index < demandas.length - 1) mensagem += `<br>`;
-        //                     });
-                            
-        //                     mensagem += `<br><strong>Não é possível criar demanda sobreposta SEM horário.</strong><br>`;
-        //                     mensagem += `<em>Dica: Se for criar demanda COM horário definido, isso será permitido.</em>`;
-                            
-        //                     // Destacar célula com conflito
-        //                     elementoCelula.classList.add('cell-conflito');
-        //                     setTimeout(() => {
-        //                         elementoCelula.classList.remove('cell-conflito');
-        //                     }, 3000);
-                            
-        //                     mostrarAlerta(mensagem, '⚠️ Conflito Detectado', '#ffc107');
-        //                     return;
-        //                 }
-        //             } catch (error) {
-        //                 console.error('Erro ao verificar conflito de veículo:', error);
-        //             }
-        //         }
-                
-        //         // ========== FIM DA VALIDAÇÃO ==========
-                
-        //         // Se passou pelas validações, abrir modal normalmente
-        //         if (idMotorista) {
-        //             abrirModalNovoComData(data, idMotorista, secao);
-        //         } else if (idVeiculo) {
-        //             abrirModalNovoComVeiculo(data, idVeiculo);
-        //         }
-        //         return;
-        //     }
-            
-        //     // === MODO SELEÇÃO DE INTERVALO ATIVO ===
-            
-        //     // Verificar se é da mesma linha
-        //     const linhaClicada = elementoCelula.parentElement;
-            
-        //     if (!primeiraDataSelecionada) {
-        //         // PRIMEIRO CLIQUE
-        //         primeiraDataSelecionada = data;
-        //         linhaAtualSelecao = linhaClicada;
-                
-        //         // Marcar célula
-        //         elementoCelula.classList.add('cell-intervalo-selecionado');
-        //         celulasIntervalo.push(elementoCelula);
-                
-        //     } else if (linhaClicada === linhaAtualSelecao) {
-        //         // SEGUNDO CLIQUE NA MESMA LINHA
-        //         segundaDataSelecionada = data;
-                
-        //         // Determinar qual é a data inicial e final (ordem cronológica)
-        //         const data1 = new Date(primeiraDataSelecionada + 'T00:00:00');
-        //         const data2 = new Date(segundaDataSelecionada + 'T00:00:00');
-                
-        //         let dtInicio, dtFim;
-        //         if (data1 <= data2) {
-        //             dtInicio = primeiraDataSelecionada;
-        //             dtFim = segundaDataSelecionada;
-        //         } else {
-        //             dtInicio = segundaDataSelecionada;
-        //             dtFim = primeiraDataSelecionada;
-        //         }
-                
-        //         // ====== VALIDAR SE O INTERVALO ESTÁ COMPLETAMENTE VAZIO ======
-        //         if (!validarIntervaloVazio(linhaAtualSelecao, dtInicio, dtFim)) {
-        //             // Intervalo contém demandas - não permitir
-        //             mostrarAlerta(
-        //                 'Não é possível selecionar este intervalo pois há demandas entre as datas selecionadas.<br><br>' +
-        //                 '<strong>Regra:</strong> Não é permitido criar demandas que atravessem períodos já ocupados.',
-        //                 '⚠️ Intervalo Inválido',
-        //                 '#ffc107'
-        //             );
-        //             limparSelecaoIntervalo();
-        //             return;
-        //         }
-        //         // ====== FIM DA VALIDAÇÃO ======
-                
-        //         // Marcar todas as células do intervalo (feedback visual rápido)
-        //         marcarIntervaloCelulas(linhaAtualSelecao, dtInicio, dtFim);
-                
-        //         // Pequeno delay para mostrar as células marcadas antes de abrir o modal
-        //         setTimeout(() => {
-        //             // Abrir modal com as datas preenchidas
-        //             if (idMotorista) {
-        //                 abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista, null, secao);
-        //             } else if (idVeiculo) {
-        //                 abrirModalNovoComIntervalo(dtInicio, dtFim, null, idVeiculo);
-        //             }
-                    
-        //             // Limpar seleção após abrir modal
-        //             setTimeout(() => {
-        //                 limparSelecaoIntervalo();
-        //             }, 100);
-        //         }, 200);
-                
-        //     } else {
-        //         // CLICOU EM LINHA DIFERENTE - resetar
-        //         limparSelecaoIntervalo();
-        //     }
-        // }            
+        }                        
         
+        // async function verificarConflitos(idMotorista, idVeiculo, dtInicio, dtFim) {
+        //     try {
+        //         // Criar array de promises para executar em paralelo
+        //         const promises = [];
+                
+        //         if (idMotorista) {
+        //             promises.push(
+        //                 fetch(`/api/agenda/verificar-conflito-motorista?id_motorista=${idMotorista}&dt_inicio=${dtInicio}&dt_fim=${dtFim}`)
+        //                     .then(res => res.json())
+        //                     .then(result => ({ tipo: 'motorista', ...result }))
+        //             );
+        //         }
+                
+        //         if (idVeiculo) {
+        //             promises.push(
+        //                 fetch(`/api/agenda/verificar-conflito-veiculo?id_veiculo=${idVeiculo}&dt_inicio=${dtInicio}&dt_fim=${dtFim}&tem_horario=false`)
+        //                     .then(res => res.json())
+        //                     .then(result => ({ tipo: 'veiculo', ...result }))
+        //             );
+        //         }
+                
+        //         // Executar todas as verificações EM PARALELO (Promise.all)
+        //         const resultados = await Promise.all(promises);
+                
+        //         // Verificar se alguma retornou conflito
+        //         const conflitoEncontrado = resultados.find(r => r.tem_conflito);
+                
+        //         return conflitoEncontrado || null;
+                
+        //     } catch (error) {
+        //         console.error('Erro ao verificar conflitos:', error);
+        //         return null;
+        //     }
+        // }
+
+        // Função auxiliar para mostrar alerta de conflito
+        // function mostrarAlertaConflito(conflito) {
+        //     const demandas = conflito.demandas_conflitantes;
+        //     let mensagem = '';
+            
+        //     if (conflito.tipo === 'motorista') {
+        //         mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este motorista já possui ${demandas.length} demanda(s) neste período:<br><br>`;
+                
+        //         demandas.forEach((d, index) => {
+        //             const periodo = d.dt_inicio === d.dt_fim 
+        //                 ? new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')
+        //                 : `${new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(d.dt_fim + 'T00:00:00').toLocaleDateString('pt-BR')}`;
+                    
+        //             mensagem += `📌 <strong>${d.tipo_demanda || 'Demanda'}</strong><br>`;
+        //             mensagem += `   Período: ${periodo}<br>`;
+        //             if (d.setor) mensagem += `   Setor: ${d.setor}<br>`;
+        //             if (d.destino) mensagem += `   Destino: ${d.destino}<br>`;
+        //             if (d.nu_sei) mensagem += `   SEI: ${d.nu_sei}<br>`;
+        //             if (index < demandas.length - 1) mensagem += `<br>`;
+        //         });
+                
+        //         mensagem += `<br><strong>Não é possível criar demanda sobreposta.</strong>`;
+        //     } else {
+        //         mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este veículo já possui ${demandas.length} demanda(s) SEM horário neste período:<br><br>`;
+                
+        //         demandas.forEach((d, index) => {
+        //             const periodo = d.dt_inicio === d.dt_fim 
+        //                 ? new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')
+        //                 : `${new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(d.dt_fim + 'T00:00:00').toLocaleDateString('pt-BR')}`;
+                    
+        //             mensagem += `📌 <strong>${d.tipo_demanda || 'Demanda'}</strong><br>`;
+        //             mensagem += `   Motorista: ${d.motorista || 'Não informado'}<br>`;
+        //             mensagem += `   Período: ${periodo}<br>`;
+        //             if (d.setor) mensagem += `   Setor: ${d.setor}<br>`;
+        //             if (d.destino) mensagem += `   Destino: ${d.destino}<br>`;
+        //             if (index < demandas.length - 1) mensagem += `<br>`;
+        //         });
+                
+        //         mensagem += `<br><strong>Não é possível criar demanda sobreposta SEM horário.</strong><br>`;
+        //         mensagem += `<em>Dica: Se for criar demanda COM horário definido, isso será permitido.</em>`;
+        //     }
+            
+        //     mostrarAlerta(mensagem, '⚠️ Conflito Detectado', '#ffc107');
+        // }
 
         async function handleClickCelulaVazia(event, data, idMotorista, idVeiculo, elementoCelula, secao = null) {
             event.stopPropagation();
             
-            // Se Ctrl NÃO está pressionado, comportamento normal
+            // Feedback visual IMEDIATO apenas no cursor (sem spinner na célula)
+            elementoCelula.style.cursor = 'wait';
+            
+            // Se Ctrl NÃO está pressionado, comportamento normal (clique único)
             if (!modoSelecaoIntervalo) {
-                // Adicionar efeito visual de loading
-                elementoCelula.classList.add('cell-loading');
+                // ========== VALIDAÇÃO OTIMIZADA - FAZER EM PARALELO ==========
+                // const dtInicio = data;
+                // const dtFim = data;
                 
-                // ========== NOVA VALIDAÇÃO ANTES DE ABRIR MODAL ==========
+                // // Executar ambas verificações em paralelo (muito mais rápido!)
+                // const conflito = await verificarConflitos(idMotorista, idVeiculo, dtInicio, dtFim);
                 
-                // Validar MOTORISTA
-                if (idMotorista) {
-                    try {
-                        const resConflito = await fetch(`/api/agenda/verificar-conflito-motorista?id_motorista=${idMotorista}&dt_inicio=${data}&dt_fim=${data}`);
-                        const resultConflito = await resConflito.json();
-                        
-                        if (resultConflito.tem_conflito) {
-                            // Remover loading
-                            elementoCelula.classList.remove('cell-loading');
-                            
-                            // Mostrar alerta com detalhes do conflito
-                            const demandas = resultConflito.demandas_conflitantes;
-                            let mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este motorista já possui ${demandas.length} demanda(s) nesta data:<br><br>`;
-                            
-                            demandas.forEach((d, index) => {
-                                const periodo = d.dt_inicio === d.dt_fim 
-                                    ? new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')
-                                    : `${new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(d.dt_fim + 'T00:00:00').toLocaleDateString('pt-BR')}`;
-                                
-                                mensagem += `📌 <strong>${d.tipo_demanda || 'Demanda'}</strong><br>`;
-                                mensagem += `   Período: ${periodo}<br>`;
-                                if (d.setor) mensagem += `   Setor: ${d.setor}<br>`;
-                                if (d.destino) mensagem += `   Destino: ${d.destino}<br>`;
-                                if (d.nu_sei) mensagem += `   SEI: ${d.nu_sei}<br>`;
-                                if (index < demandas.length - 1) mensagem += `<br>`;
-                            });
-                            
-                            mensagem += `<br><strong>Não é possível criar demanda sobreposta.</strong>`;
-                            
-                            // Destacar célula com conflito
-                            elementoCelula.classList.add('cell-conflito');
-                            setTimeout(() => {
-                                elementoCelula.classList.remove('cell-conflito');
-                            }, 3000);
-                            
-                            mostrarAlerta(mensagem, '⚠️ Conflito Detectado', '#ffc107');
-                            return;
-                        }
-                    } catch (error) {
-                        elementoCelula.classList.remove('cell-loading');
-                        console.error('Erro ao verificar conflito de motorista:', error);
-                    }
-                }
-                
-                // Validar VEÍCULO
-                if (idVeiculo) {
-                    try {
-                        const resConflito = await fetch(`/api/agenda/verificar-conflito-veiculo?id_veiculo=${idVeiculo}&dt_inicio=${data}&dt_fim=${data}&tem_horario=false`);
-                        const resultConflito = await resConflito.json();
-                        
-                        if (resultConflito.tem_conflito) {
-                            // Remover loading
-                            elementoCelula.classList.remove('cell-loading');
-                            
-                            const demandas = resultConflito.demandas_conflitantes;
-                            let mensagem = `⚠️ <strong>ATENÇÃO:</strong> Este veículo já possui ${demandas.length} demanda(s) SEM horário nesta data:<br><br>`;
-                            
-                            demandas.forEach((d, index) => {
-                                const periodo = d.dt_inicio === d.dt_fim 
-                                    ? new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')
-                                    : `${new Date(d.dt_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} a ${new Date(d.dt_fim + 'T00:00:00').toLocaleDateString('pt-BR')}`;
-                                
-                                mensagem += `📌 <strong>${d.tipo_demanda || 'Demanda'}</strong><br>`;
-                                mensagem += `   Motorista: ${d.motorista || 'Não informado'}<br>`;
-                                mensagem += `   Período: ${periodo}<br>`;
-                                if (d.setor) mensagem += `   Setor: ${d.setor}<br>`;
-                                if (d.destino) mensagem += `   Destino: ${d.destino}<br>`;
-                                if (index < demandas.length - 1) mensagem += `<br>`;
-                            });
-                            
-                            mensagem += `<br><strong>Não é possível criar demanda sobreposta SEM horário.</strong><br>`;
-                            mensagem += `<em>Dica: Se for criar demanda COM horário definido, isso será permitido.</em>`;
-                            
-                            // Destacar célula com conflito
-                            elementoCelula.classList.add('cell-conflito');
-                            setTimeout(() => {
-                                elementoCelula.classList.remove('cell-conflito');
-                            }, 3000);
-                            
-                            mostrarAlerta(mensagem, '⚠️ Conflito Detectado', '#ffc107');
-                            return;
-                        }
-                    } catch (error) {
-                        elementoCelula.classList.remove('cell-loading');
-                        console.error('Erro ao verificar conflito de veículo:', error);
-                    }
-                }
-                
+                // if (conflito) {
+                //     // Restaurar cursor
+                //     elementoCelula.style.cursor = 'pointer';
+                    
+                //     // Mostrar alerta do conflito
+                //     mostrarAlertaConflito(conflito);
+                    
+                //     // Destacar célula com conflito
+                //     elementoCelula.classList.add('cell-conflito');
+                //     setTimeout(() => {
+                //         elementoCelula.classList.remove('cell-conflito');
+                //     }, 3000);
+                    
+                //     return;
+                // }
                 // ========== FIM DA VALIDAÇÃO ==========
                 
-                // Pequeno delay para mostrar o spinner antes de abrir
-                setTimeout(() => {
-                    elementoCelula.classList.remove('cell-loading');
-                    
-                    // Se passou pelas validações, abrir modal normalmente
-                    if (idMotorista) {
-                        abrirModalNovoComData(data, idMotorista, secao);
-                    } else if (idVeiculo) {
-                        abrirModalNovoComVeiculo(data, idVeiculo);
-                    }
-                }, 150);
+                // Restaurar cursor
+                elementoCelula.style.cursor = 'pointer';
+                
+                // Se passou pelas validações, abrir modal normalmente
+                if (idMotorista) {
+                    abrirModalNovoComData(data, idMotorista, secao);
+                } else if (idVeiculo) {
+                    abrirModalNovoComVeiculo(data, idVeiculo);
+                }
                 
                 return;
             }
@@ -6741,10 +6619,16 @@
                 // PRIMEIRO CLIQUE
                 primeiraDataSelecionada = data;
                 linhaAtualSelecao = linhaClicada;
+                idRecursoSelecao = idMotorista || idVeiculo;
+                tipoRecursoSelecao = idMotorista ? 'motorista' : 'veiculo';
+                secaoSelecao = secao;
                 
                 // Marcar célula
                 elementoCelula.classList.add('cell-intervalo-selecionado');
                 celulasIntervalo.push(elementoCelula);
+                
+                // Restaurar cursor
+                elementoCelula.style.cursor = 'cell';
                 
             } else if (linhaClicada === linhaAtualSelecao) {
                 // SEGUNDO CLIQUE NA MESMA LINHA
@@ -6765,7 +6649,6 @@
                 
                 // ====== VALIDAR SE O INTERVALO ESTÁ COMPLETAMENTE VAZIO ======
                 if (!validarIntervaloVazio(linhaAtualSelecao, dtInicio, dtFim)) {
-                    // Intervalo contém demandas - não permitir
                     mostrarAlerta(
                         'Não é possível selecionar este intervalo pois há demandas entre as datas selecionadas.<br><br>' +
                         '<strong>Regra:</strong> Não é permitido criar demandas que atravessem períodos já ocupados.',
@@ -6773,31 +6656,57 @@
                         '#ffc107'
                     );
                     limparSelecaoIntervalo();
+                    elementoCelula.style.cursor = 'cell';
                     return;
                 }
-                // ====== FIM DA VALIDAÇÃO ======
                 
-                // Marcar todas as células do intervalo (feedback visual rápido)
+                // ========== VALIDAÇÃO DE CONFLITOS PARA INTERVALO ==========
+                // Marcar células visualmente (sem loading)
                 marcarIntervaloCelulas(linhaAtualSelecao, dtInicio, dtFim);
                 
-                // Pequeno delay para mostrar as células marcadas antes de abrir o modal
-                setTimeout(() => {
-                    // Abrir modal com as datas preenchidas
-                    if (idMotorista) {
-                        abrirModalNovoComIntervalo(dtInicio, dtFim, idMotorista, null, secao);
-                    } else if (idVeiculo) {
-                        abrirModalNovoComIntervalo(dtInicio, dtFim, null, idVeiculo);
-                    }
+                // // Verificar conflitos no intervalo
+                // const conflito = await verificarConflitos(
+                //     tipoRecursoSelecao === 'motorista' ? idRecursoSelecao : null,
+                //     tipoRecursoSelecao === 'veiculo' ? idRecursoSelecao : null,
+                //     dtInicio,
+                //     dtFim
+                // );
+                
+                // if (conflito) {
+                //     // Limpar seleção
+                //     limparSelecaoIntervalo();
+                //     elementoCelula.style.cursor = 'cell';
                     
-                    // Limpar seleção após abrir modal
-                    setTimeout(() => {
-                        limparSelecaoIntervalo();
-                    }, 100);
-                }, 200);
+                //     // Mostrar alerta do conflito
+                //     mostrarAlertaConflito(conflito);
+                    
+                //     // Destacar todas as células do intervalo com conflito
+                //     marcarIntervaloCelulas(linhaAtualSelecao, dtInicio, dtFim, true); // true = conflito
+                //     setTimeout(() => {
+                //         const celulasConflito = linhaAtualSelecao.querySelectorAll('.cell-conflito');
+                //         celulasConflito.forEach(c => c.classList.remove('cell-conflito'));
+                //     }, 3000);
+                    
+                //     return;
+                // }
+                // // ========== FIM DA VALIDAÇÃO DE CONFLITOS ==========
+                
+                // Abrir modal com as datas preenchidas IMEDIATAMENTE
+                if (tipoRecursoSelecao === 'motorista') {
+                    abrirModalNovoComIntervalo(dtInicio, dtFim, idRecursoSelecao, null, secaoSelecao);
+                } else if (tipoRecursoSelecao === 'veiculo') {
+                    abrirModalNovoComIntervalo(dtInicio, dtFim, null, idRecursoSelecao);
+                }
+                
+                // Limpar seleção após abrir modal
+                setTimeout(() => {
+                    limparSelecaoIntervalo();
+                }, 100);
                 
             } else {
                 // CLICOU EM LINHA DIFERENTE - resetar
                 limparSelecaoIntervalo();
+                elementoCelula.style.cursor = 'cell';
             }
         }        
         
