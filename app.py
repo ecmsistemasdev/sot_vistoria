@@ -574,6 +574,146 @@ def logout():
         return jsonify({'success': True})
     return redirect(url_for('login'))
 
+# ============================================================
+# ROTA PARA ALTERAR SENHA DO USUÁRIO
+# ============================================================
+@app.route('/api/alterar-senha', methods=['POST'])
+@login_required
+def alterar_senha():
+    """
+    Altera a senha do usuário logado
+    Requer autenticação e validação da senha atual
+    """
+    cur = None
+    try:
+        # Log para debug
+        print("=== INICIANDO ALTERAÇÃO DE SENHA ===")
+        
+        # Obter dados do request
+        dados = request.get_json()
+        print(f"Dados recebidos: {dados is not None}")
+        
+        if not dados:
+            print("❌ Nenhum dado recebido")
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Nenhum dado foi enviado.'
+            }), 400
+        
+        senha_atual = dados.get('senha_atual')
+        senha_nova = dados.get('senha_nova')
+        
+        print(f"Senha atual recebida: {senha_atual is not None}")
+        print(f"Senha nova recebida: {senha_nova is not None}")
+        
+        # Validações básicas
+        if not senha_atual or not senha_nova:
+            print("❌ Campos obrigatórios ausentes")
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Todos os campos são obrigatórios.'
+            }), 400
+        
+        if len(senha_nova) < 6:
+            print("❌ Senha muito curta")
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'A nova senha deve ter no mínimo 6 caracteres.'
+            }), 400
+        
+        # Obter ID do usuário logado
+        usuario_id = session.get('usuario_id')
+        usuario_login = session.get('usuario_login')
+        
+        print(f"Usuário ID: {usuario_id}")
+        print(f"Usuário Login: {usuario_login}")
+        
+        if not usuario_id:
+            print("❌ Usuário não autenticado")
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Usuário não autenticado.'
+            }), 401
+        
+        # Criptografar senha atual para verificação
+        senha_atual_criptografada = criptografar(senha_atual)
+        print(f"Senha atual criptografada: {senha_atual_criptografada[:10]}...")
+        
+        # Verificar se a senha atual está correta
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT ID_USUARIO, SENHA 
+            FROM CAD_USUARIO 
+            WHERE ID_USUARIO = %s 
+            AND FL_STATUS = 'A'
+        """, (usuario_id,))
+        
+        usuario = cur.fetchone()
+        
+        if not usuario:
+            print("❌ Usuário não encontrado ou inativo")
+            cur.close()
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Usuário não encontrado.'
+            }), 400
+        
+        senha_banco = usuario[1]
+        print(f"Senha do banco: {senha_banco[:10]}...")
+        print(f"Senhas coincidem: {senha_atual_criptografada == senha_banco}")
+        
+        if senha_atual_criptografada != senha_banco:
+            print("❌ Senha atual incorreta")
+            cur.close()
+            return jsonify({
+                'sucesso': False,
+                'mensagem': 'Senha atual incorreta.'
+            }), 400
+        
+        # Criptografar nova senha
+        senha_nova_criptografada = criptografar(senha_nova)
+        print(f"Nova senha criptografada: {senha_nova_criptografada[:10]}...")
+        
+        # Atualizar senha no banco
+        cur.execute("""
+            UPDATE CAD_USUARIO 
+            SET SENHA = %s 
+            WHERE ID_USUARIO = %s
+        """, (senha_nova_criptografada, usuario_id))
+        
+        mysql.connection.commit()
+        print(f"✅ Senha atualizada com sucesso para usuário ID: {usuario_id}")
+        
+        cur.close()
+        
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Senha alterada com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao alterar senha: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        if cur:
+            try:
+                mysql.connection.rollback()
+            except:
+                pass
+        
+        return jsonify({
+            'sucesso': False,
+            'mensagem': f'Erro ao processar solicitação: {str(e)}'
+        }), 500
+    
+    finally:
+        if cur:
+            try:
+                cur.close()
+            except:
+                pass
+
 
 # Rota para listar todas as páginas
 @app.route('/api/paginas', methods=['GET'])
