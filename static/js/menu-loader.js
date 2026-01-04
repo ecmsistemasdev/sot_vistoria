@@ -16,17 +16,7 @@ async function carregarMenu() {
         
         menuContainer.innerHTML = menuHtml;
         
-        // Determinar se deve mostrar o link "Início"
-        const paginaAtual = window.location.pathname;
-        const ehPaginaInicial = paginaAtual === '/' || paginaAtual === '/index' || paginaAtual === '/index.html';
-        
-        if (!ehPaginaInicial) {
-            // Se não for a página inicial, mostra o link "Início"
-            const menuInicio = document.querySelector('.menu-inicio');
-            if (menuInicio) {
-                menuInicio.style.display = 'block';
-            }
-        }
+        // O item "Início" sempre fica visível
         
         // Inicializar componentes do Bootstrap após carregar o menu
         inicializarBootstrap();
