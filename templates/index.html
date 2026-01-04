@@ -6,8 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SOTWeb</title>
     
-    <!-- Bootstrap CSS (CARREGAR APENAS UMA VEZ) -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <!-- CSS do Menu -->
     <link rel="stylesheet" href="/static/css/menu-styles.css">
@@ -128,6 +131,42 @@
             align-items: center;
         }
         
+        .footer-link {
+            color: #adb5bd;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+        
+        .footer-link:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+        
+        /* Password toggle */
+        .password-toggle {
+            position: relative;
+        }
+        
+        .password-toggle .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+            z-index: 10;
+        }
+        
+        .password-toggle .toggle-password:hover {
+            color: #495057;
+        }
+        
+        .password-toggle input {
+            padding-right: 40px;
+        }
+        
         /* Responsividade */
         @media (max-width: 768px) {
             body {
@@ -143,6 +182,11 @@
                 margin: 0;
                 padding-left: 10px;
                 padding-right: 10px;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+                gap: 5px;
             }
         }
     </style>
@@ -172,21 +216,69 @@
         <div class="container">
             <div class="footer-content">
                 <div id="userInfo">Usuário</div>
+                <div>
+                    <a class="footer-link" data-bs-toggle="modal" data-bs-target="#modalAlterarSenha">
+                        Alterar senha de acesso
+                    </a>
+                </div>
             </div>
         </div>
     </footer>
 
-    <!-- SCRIPTS NA ORDEM CORRETA -->
-    <!-- 1. Bootstrap PRIMEIRO (apenas uma vez) -->
+    <!-- Modal Alterar Senha -->
+    <div class="modal fade" id="modalAlterarSenha" tabindex="-1" aria-labelledby="modalAlterarSenhaLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAlterarSenhaLabel">Alterar Senha de Acesso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAlterarSenha">
+                        <div class="mb-3">
+                            <label for="senhaAtual" class="form-label">Senha Atual</label>
+                            <div class="password-toggle">
+                                <input type="password" class="form-control" id="senhaAtual" required>
+                                <i class="bi bi-eye toggle-password" data-target="senhaAtual"></i>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="senhaNova" class="form-label">Nova Senha</label>
+                            <div class="password-toggle">
+                                <input type="password" class="form-control" id="senhaNova" required minlength="6">
+                                <i class="bi bi-eye toggle-password" data-target="senhaNova"></i>
+                            </div>
+                            <div class="form-text">A senha deve ter no mínimo 6 caracteres.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="senhaConfirmar" class="form-label">Confirmar Nova Senha</label>
+                            <div class="password-toggle">
+                                <input type="password" class="form-control" id="senhaConfirmar" required minlength="6">
+                                <i class="bi bi-eye toggle-password" data-target="senhaConfirmar"></i>
+                            </div>
+                        </div>
+                        <div id="mensagemErro" class="alert alert-danger d-none" role="alert"></div>
+                        <div id="mensagemSucesso" class="alert alert-success d-none" role="alert"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnSalvarSenha">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- 2. Script de verificação de autenticação -->
+    <!-- Script de verificação de autenticação -->
     <script src="/static/js/auth-check.js"></script>
     
-    <!-- 3. Script do Menu (DEPOIS do Bootstrap) -->
+    <!-- Script do Menu -->
     <script src="/static/js/menu-loader.js"></script>
     
-    <!-- 4. Scripts da página -->
+    <!-- Scripts da página -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const usuarioNome = localStorage.getItem('usuario_nome');
@@ -194,6 +286,24 @@
             if (usuarioNome) {
                 document.getElementById('userInfo').textContent = usuarioNome;
             }
+            
+            // Toggle para mostrar/ocultar senha
+            document.querySelectorAll('.toggle-password').forEach(icon => {
+                icon.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const input = document.getElementById(targetId);
+                    
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        this.classList.remove('bi-eye');
+                        this.classList.add('bi-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        this.classList.remove('bi-eye-slash');
+                        this.classList.add('bi-eye');
+                    }
+                });
+            });
         });
         
         // Função de logout
@@ -202,30 +312,25 @@
             
             if (!btnLogout) return;
             
-            // Desabilitar o botão para evitar múltiplos cliques
             btnLogout.disabled = true;
             btnLogout.textContent = 'Saindo...';
             
-            // Fazer requisição para o endpoint de logout do backend
             fetch('/logout', {
                 method: 'GET',
                 credentials: 'same-origin'
             })
             .then(response => {
-                // Limpar o localStorage
                 localStorage.removeItem('usuario_logado');
                 localStorage.removeItem('usuario_id');
                 localStorage.removeItem('usuario_login');
                 localStorage.removeItem('usuario_nome');
                 localStorage.removeItem('nivel_acesso');
                 
-                // Redirecionar para a página de login
                 window.location.href = '/login';
             })
             .catch(error => {
                 console.error('Erro durante logout:', error);
                 
-                // Mesmo com erro, limpar o localStorage e redirecionar
                 localStorage.removeItem('usuario_logado');
                 localStorage.removeItem('usuario_id');
                 localStorage.removeItem('usuario_login');
@@ -235,13 +340,113 @@
                 window.location.href = '/login';
             })
             .finally(() => {
-                // Reabilitar o botão
                 if (btnLogout) {
                     btnLogout.disabled = false;
                     btnLogout.textContent = 'Sair';
                 }
             });
         }
+
+        // Script de alteração de senha
+        document.getElementById('btnSalvarSenha').addEventListener('click', function() {
+            const senhaAtual = document.getElementById('senhaAtual').value;
+            const senhaNova = document.getElementById('senhaNova').value;
+            const senhaConfirmar = document.getElementById('senhaConfirmar').value;
+            
+            const mensagemErro = document.getElementById('mensagemErro');
+            const mensagemSucesso = document.getElementById('mensagemSucesso');
+            
+            // Limpar mensagens anteriores
+            mensagemErro.classList.add('d-none');
+            mensagemSucesso.classList.add('d-none');
+            
+            // Validações
+            if (!senhaAtual || !senhaNova || !senhaConfirmar) {
+                mensagemErro.textContent = 'Todos os campos são obrigatórios.';
+                mensagemErro.classList.remove('d-none');
+                return;
+            }
+            
+            if (senhaNova.length < 6) {
+                mensagemErro.textContent = 'A nova senha deve ter no mínimo 6 caracteres.';
+                mensagemErro.classList.remove('d-none');
+                return;
+            }
+            
+            if (senhaNova !== senhaConfirmar) {
+                mensagemErro.textContent = 'A nova senha e a confirmação não coincidem.';
+                mensagemErro.classList.remove('d-none');
+                return;
+            }
+            
+            // Desabilitar botão durante o envio
+            const btnSalvar = document.getElementById('btnSalvarSenha');
+            btnSalvar.disabled = true;
+            btnSalvar.textContent = 'Salvando...';
+            
+            // Enviar requisição
+            fetch('/api/alterar-senha', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    senha_atual: senhaAtual,
+                    senha_nova: senhaNova
+                })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                
+                if (data.sucesso) {
+                    mensagemSucesso.textContent = data.mensagem || 'Senha alterada com sucesso!';
+                    mensagemSucesso.classList.remove('d-none');
+                    
+                    // Limpar formulário
+                    document.getElementById('formAlterarSenha').reset();
+                    
+                    // Fechar modal após 2 segundos
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAlterarSenha'));
+                        modal.hide();
+                        mensagemSucesso.classList.add('d-none');
+                    }, 2000);
+                } else {
+                    mensagemErro.textContent = data.mensagem || 'Erro ao alterar senha.';
+                    mensagemErro.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Erro completo:', error);
+                mensagemErro.textContent = 'Erro ao processar solicitação: ' + error.message;
+                mensagemErro.classList.remove('d-none');
+            })
+            .finally(() => {
+                btnSalvar.disabled = false;
+                btnSalvar.textContent = 'Salvar';
+            });
+        });
+        
+        // Limpar mensagens ao fechar o modal
+        document.getElementById('modalAlterarSenha').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('formAlterarSenha').reset();
+            document.getElementById('mensagemErro').classList.add('d-none');
+            document.getElementById('mensagemSucesso').classList.add('d-none');
+            
+            // Reset password visibility
+            document.querySelectorAll('.toggle-password').forEach(icon => {
+                const targetId = icon.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            });
+        });
     </script>
 </body>
 </html>
