@@ -1896,6 +1896,20 @@
             100% { background-color: rgba(255, 255, 0, 0); }
         }
 
+        .icone-expandir {
+            display: inline-block;
+            transition: transform 0.2s;
+            font-size: 11px;
+        }
+
+        .linha-detalhes {
+            transition: all 0.3s ease;
+        }
+
+        .linha-motorista:hover {
+            background: #f8f9fa;
+        }
+
     </style>
 
     <!-- Biblioteca para copiar como imagem (OPCIONAL) -->
@@ -2555,6 +2569,111 @@
             </div>
         </div>
     </div>
+
+    <!-- ========== MODAL DIÁRIAS MOTORISTAS ========== -->
+    <div id="modalDiariasMotoristas" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 90%; max-width: 1200px;">
+            <div class="modal-header" style="background: #1a73e8;">
+                <h2 style="margin: 0; font-size: 18px;">📊 Controle de Diárias - Motoristas</h2>
+                <span class="close" onclick="fecharModalDiariasMotoristas()">&times;</span>
+            </div>
+            
+            <div class="modal-body" style="padding: 20px; max-height: 70vh; overflow-y: auto;">
+                
+                <!-- ========== MOTORISTAS ATENDIMENTO ========== -->
+                <div style="margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 10px 0; color: #1a73e8; font-size: 15px;">👲 Motoristas Atendimento</h3>
+                    
+                    <table class="table table-bordered" id="tabelaDiariasAtendimento" style="width: 100%; font-size: 13px;">
+                        <thead style="background: #ecf0f1;">
+                            <tr>
+                                <th style="width: 4%; text-align: center;"></th>
+                                <th style="width: 7%; text-align: center;">Ordem</th>
+                                <th style="width: 35%;">Nome Motorista</th>
+                                <th style="width: 15%; text-align: center;">
+                                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <span>Diária Acumulada</span>
+                                        <button id="btnEditarAtendimento" 
+                                                onclick="habilitarEdicao('atendimento')" 
+                                                title="Editar"
+                                                style="padding: 3px 8px; background: #ffc107; color: #000; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                                            ✏️
+                                        </button>
+                                        <div id="botoesAcoesAtendimento" style="display: none; gap: 4px;">
+                                            <button onclick="salvarDiarias('atendimento')" 
+                                                    title="Salvar"
+                                                    style="padding: 3px 8px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                                                💾
+                                            </button>
+                                            <button onclick="cancelarEdicao('atendimento')" 
+                                                    title="Cancelar"
+                                                    style="padding: 3px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                                                ✖️
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th style="width: 15%; text-align: center;">Qtd. Diárias</th>
+                                <th style="width: 16%; text-align: center; background: #d4edda;">Total Diárias</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDiariasAtendimento">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- ========== TERCEIRIZADOS ========== -->
+                <div>
+                    <h3 style="margin: 0 0 10px 0; color: #6f42c1; font-size: 15px;">🚶 Terceirizados</h3>
+                    
+                    <table class="table table-bordered" id="tabelaDiariasTerceirizados" style="width: 100%; font-size: 13px;">
+                        <thead style="background: #ecf0f1;">
+                            <tr>
+                                <th style="width: 4%; text-align: center;"></th>
+                                <th style="width: 7%; text-align: center;">Ordem</th>
+                                <th style="width: 35%;">Nome Motorista</th>
+                                <th style="width: 15%; text-align: center;">
+                                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                        <span>Diária Acumulada</span>
+                                        <button id="btnEditarTerceirizados" 
+                                                onclick="habilitarEdicao('terceirizado')" 
+                                                title="Editar"
+                                                style="padding: 3px 8px; background: #ffc107; color: #000; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                                            ✏️
+                                        </button>
+                                        <div id="botoesAcoesTerceirizados" style="display: none; gap: 4px;">
+                                            <button onclick="salvarDiarias('terceirizado')" 
+                                                    title="Salvar"
+                                                    style="padding: 3px 8px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                                                💾
+                                            </button>
+                                            <button onclick="cancelarEdicao('terceirizado')" 
+                                                    title="Cancelar"
+                                                    style="padding: 3px 8px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                                                ✖️
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th style="width: 15%; text-align: center;">Qtd. Diárias</th>
+                                <th style="width: 16%; text-align: center; background: #d4edda;">Total Diárias</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDiariasTerceirizados">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                
+            </div>
+            
+            <div class="modal-footer" style="padding: 12px 20px; display: flex; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="fecharModalDiariasMotoristas()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Scripts Bootstrap (ANTES dos seus scripts) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
@@ -5890,7 +6009,14 @@
             html += `
                 <div class="section-header">
                     <span>👲 SEGEOP - MOTORISTAS</span>
-                    <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('motoristas')">👁️ Visualizar</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-visualizar" onclick="abrirModalDiariasMotoristas()" title="Controle de Diárias">
+                            📊 Diárias
+                        </button>
+                        <button class="btn-visualizar" onclick="abrirVisualizacaoSecao('motoristas')">
+                            👁️ Visualizar
+                        </button>
+                    </div>
                 </div>
             `;
             html += '<table class="agenda-table"><thead><tr>';
@@ -9014,6 +9140,294 @@
         // Função para retornar à página inicial
         function voltarPaginaInicial() {
             window.location.href = '/';
+        }
+
+        // ========================================
+        // CONTROLE DE DIÁRIAS - MOTORISTAS
+        // ========================================
+
+        let dadosDiariasOriginais = null; // Backup para cancelamento
+
+        async function abrirModalDiariasMotoristas() {
+            try {
+                // Mostrar modal
+                document.getElementById('modalDiariasMotoristas').style.display = 'block';
+                
+                // Carregar dados
+                await carregarDadosDiarias();
+                
+            } catch (error) {
+                console.error('Erro ao abrir modal de diárias:', error);
+                mostrarAlerta('Erro ao carregar dados de diárias.', '❌ Erro', '#dc3545');
+            }
+        }
+
+        function fecharModalDiariasMotoristas() {
+            document.getElementById('modalDiariasMotoristas').style.display = 'none';
+            
+            // Reset dos botões
+            document.getElementById('btnEditarAtendimento').style.display = 'inline-block';
+            document.getElementById('botoesAcoesAtendimento').style.display = 'none';
+            document.getElementById('btnEditarTerceirizados').style.display = 'inline-block';
+            document.getElementById('botoesAcoesTerceirizados').style.display = 'none';
+            
+            dadosDiariasOriginais = null;
+        }
+
+        async function carregarDadosDiarias() {
+            try {
+                const response = await fetch('/api/agenda/diarias-motoristas');
+                const data = await response.json();
+                
+                // Guardar dados originais para cancelamento
+                dadosDiariasOriginais = JSON.parse(JSON.stringify(data));
+                
+                // Renderizar tabelas
+                renderizarTabelaDiarias('atendimento', data.motoristas_atendimento);
+                renderizarTabelaDiarias('terceirizado', data.terceirizados);
+                
+            } catch (error) {
+                console.error('Erro ao carregar diárias:', error);
+                throw error;
+            }
+        }
+
+        function renderizarTabelaDiarias(tipo, motoristas) {
+            const tbody = tipo === 'atendimento' 
+                ? document.getElementById('tbodyDiariasAtendimento')
+                : document.getElementById('tbodyDiariasTerceirizados');
+            
+            let html = '';
+            
+            motoristas.forEach((m, index) => {
+                const ordem = index + 1;
+                const totalDiarias = parseFloat(m.TOTAL_DIARIAS).toFixed(2);
+                const diariaAcumulada = parseFloat(m.DIARIA_ACUMULADA).toFixed(2);
+                const qtdDiarias = parseFloat(m.QTD_DIARIAS).toFixed(2);
+                
+                // Linha principal
+                html += `
+                    <tr data-id-motorista="${m.ID_MOTORISTA}" class="linha-motorista">
+                        <td style="text-align: center; cursor: pointer; padding: 4px;" 
+                            onclick="toggleDetalhes(${m.ID_MOTORISTA}, '${tipo}')" 
+                            title="Clique para expandir/recolher">
+                            <span class="icone-expandir" id="icone-${tipo}-${m.ID_MOTORISTA}">▶</span>
+                        </td>
+                        <td style="text-align: center; font-weight: 600;">${ordem}</td>
+                        <td>${m.NM_MOTORISTA}</td>
+                        <td style="text-align: center;">
+                            <input type="number" 
+                                step="0.5" 
+                                value="${diariaAcumulada}" 
+                                class="input-diaria-acumulada"
+                                data-tipo="${tipo}"
+                                data-id="${m.ID_MOTORISTA}"
+                                disabled
+                                style="width: 80px; text-align: center; padding: 4px; border: 1px solid #ddd; border-radius: 3px;">
+                        </td>
+                        <td style="text-align: center; color: #666;">${qtdDiarias}</td>
+                        <td style="text-align: center; font-weight: 600; background: #d4edda;" class="total-diarias">
+                            ${totalDiarias}
+                        </td>
+                    </tr>
+                `;
+                
+                // Linha de detalhes (inicialmente oculta)
+                html += `
+                    <tr id="detalhes-${tipo}-${m.ID_MOTORISTA}" class="linha-detalhes" style="display: none;">
+                        <td colspan="6" style="padding: 0; background: #f8f9fa;">
+                            <div id="conteudo-detalhes-${tipo}-${m.ID_MOTORISTA}" style="padding: 10px;">
+                                <!-- Conteúdo carregado via AJAX -->
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+            
+            // Adicionar event listeners para atualizar total ao digitar
+            const inputs = tbody.querySelectorAll('.input-diaria-acumulada');
+            inputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    atualizarTotalLinha(this);
+                });
+            });
+        }
+
+        function atualizarTotalLinha(input) {
+            const tr = input.closest('tr');
+            const diariaAcumulada = parseFloat(input.value) || 0;
+            const qtdDiarias = parseFloat(tr.children[3].textContent) || 0;
+            const total = (diariaAcumulada + qtdDiarias).toFixed(2);
+            
+            tr.querySelector('.total-diarias').textContent = total;
+        }
+
+        function habilitarEdicao(tipo) {
+            const inputs = document.querySelectorAll(`.input-diaria-acumulada[data-tipo="${tipo}"]`);
+            
+            inputs.forEach(input => {
+                input.disabled = false;
+                input.style.background = '#fff9c4';
+                input.style.borderColor = '#ffc107';
+            });
+            
+            // Trocar botões
+            if (tipo === 'atendimento') {
+                document.getElementById('btnEditarAtendimento').style.display = 'none';
+                document.getElementById('botoesAcoesAtendimento').style.display = 'flex';
+            } else {
+                document.getElementById('btnEditarTerceirizados').style.display = 'none';
+                document.getElementById('botoesAcoesTerceirizados').style.display = 'flex';
+            }
+        }
+
+        function cancelarEdicao(tipo) {
+            // Restaurar dados originais
+            if (tipo === 'atendimento') {
+                renderizarTabelaDiarias('atendimento', dadosDiariasOriginais.motoristas_atendimento);
+                document.getElementById('btnEditarAtendimento').style.display = 'inline-block';
+                document.getElementById('botoesAcoesAtendimento').style.display = 'none';
+            } else {
+                renderizarTabelaDiarias('terceirizado', dadosDiariasOriginais.terceirizados);
+                document.getElementById('btnEditarTerceirizados').style.display = 'inline-block';
+                document.getElementById('botoesAcoesTerceirizados').style.display = 'none';
+            }
+        }
+
+        async function salvarDiarias(tipo) {
+            try {
+                const inputs = document.querySelectorAll(`.input-diaria-acumulada[data-tipo="${tipo}"]`);
+                const diarias = [];
+                
+                inputs.forEach(input => {
+                    diarias.push({
+                        id_motorista: parseInt(input.dataset.id),
+                        diaria_acumulada: parseFloat(input.value) || 0
+                    });
+                });
+                
+                const response = await fetch('/api/agenda/diarias-motoristas/atualizar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipo, diarias })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    mostrarAlerta('Diárias atualizadas com sucesso!', '✅ Sucesso', '#28a745');
+                    
+                    // Recarregar dados
+                    await carregarDadosDiarias();
+                    
+                    // Voltar para modo visualização
+                    if (tipo === 'atendimento') {
+                        document.getElementById('btnEditarAtendimento').style.display = 'inline-block';
+                        document.getElementById('botoesAcoesAtendimento').style.display = 'none';
+                    } else {
+                        document.getElementById('btnEditarTerceirizados').style.display = 'inline-block';
+                        document.getElementById('botoesAcoesTerceirizados').style.display = 'none';
+                    }
+                } else {
+                    mostrarAlerta('Erro ao salvar diárias: ' + result.error, '❌ Erro', '#dc3545');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao salvar diárias:', error);
+                mostrarAlerta('Erro ao salvar diárias.', '❌ Erro', '#dc3545');
+            }
+        }
+
+        // ========================================
+        // EXPANSÃO DE DETALHES DAS DIÁRIAS
+        // ========================================
+
+        const detalhesCarregados = {}; // Cache de detalhes já carregados
+
+        async function toggleDetalhes(idMotorista, tipo) {
+            const linhaDetalhes = document.getElementById(`detalhes-${tipo}-${idMotorista}`);
+            const icone = document.getElementById(`icone-${tipo}-${idMotorista}`);
+            const conteudoDiv = document.getElementById(`conteudo-detalhes-${tipo}-${idMotorista}`);
+            
+            // Se está visível, recolher
+            if (linhaDetalhes.style.display !== 'none') {
+                linhaDetalhes.style.display = 'none';
+                icone.textContent = '▶';
+                return;
+            }
+            
+            // Se está oculto, expandir
+            linhaDetalhes.style.display = 'table-row';
+            icone.textContent = '▼';
+            
+            // Se já carregou os dados, não precisa buscar novamente
+            const chaveCache = `${tipo}-${idMotorista}`;
+            if (detalhesCarregados[chaveCache]) {
+                return;
+            }
+            
+            // Mostrar loading
+            conteudoDiv.innerHTML = '<div style="text-align: center; padding: 10px;"><em>Carregando...</em></div>';
+            
+            try {
+                // Buscar detalhes via API
+                const response = await fetch(`/api/agenda/diarias-motoristas/detalhes/${idMotorista}/${tipo}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    conteudoDiv.innerHTML = `<div style="color: #dc3545; padding: 10px;">Erro: ${data.error}</div>`;
+                    return;
+                }
+                
+                // Renderizar sub-tabela
+                let html = '';
+                
+                if (data.demandas && data.demandas.length > 0) {
+                    html = `
+                        <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: #e9ecef;">
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 18%;">Período</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 22%;">Setor</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 28%;">Destino</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 20%;">SEI</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 12%; text-align: center; background: #d4edda;">Qtd. Diárias</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.demandas.forEach(d => {
+                        html += `
+                            <tr>
+                                <td style="padding: 6px; border: 1px solid #dee2e6;">${d.PERIODO}</td>
+                                <td style="padding: 6px; border: 1px solid #dee2e6;">${d.SETOR}</td>
+                                <td style="padding: 6px; border: 1px solid #dee2e6;">${d.DESTINO}</td>
+                                <td style="padding: 6px; border: 1px solid #dee2e6;">${d.NU_SEI}</td>
+                                <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: 600; background: #d4edda;">${d.QTD_DIARIAS.toFixed(1)}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    html = '<div style="padding: 10px; color: #666; font-style: italic;">Nenhuma diária registrada.</div>';
+                }
+                
+                conteudoDiv.innerHTML = html;
+                
+                // Marcar como carregado
+                detalhesCarregados[chaveCache] = true;
+                
+            } catch (error) {
+                console.error('Erro ao carregar detalhes:', error);
+                conteudoDiv.innerHTML = '<div style="color: #dc3545; padding: 10px;">Erro ao carregar detalhes.</div>';
+            }
         }
         
         init();
