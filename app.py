@@ -6947,6 +6947,242 @@ def verificar_conflito_veiculo():
 
 # =============== FIM DAS NOVAS ROTAS PARA VALIDAÇÃO DE CONFLITOS ====================
 
+@app.route('/api/agenda/diarias-motoristas', methods=['GET'])
+def get_diarias_motoristas():
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        
+        # ========== MOTORISTAS ATENDIMENTO ==========
+        query_atendimento = """
+            SELECT 
+                m.ID_MOTORISTA,
+                m.NM_MOTORISTA,
+                COALESCE(m.QT_DIARIA_ACUMULADA, 0) as DIARIA_ACUMULADA,
+                COALESCE(SUM(d.QT_DIARIAS), 0) as QTD_DIARIAS,
+                (COALESCE(m.QT_DIARIA_ACUMULADA, 0) + COALESCE(SUM(d.QT_DIARIAS), 0)) as TOTAL_DIARIAS
+            FROM CAD_MOTORISTA m
+            LEFT JOIN DIARIAS_MOTORISTAS d ON m.ID_MOTORISTA = d.ID_MOTORISTA
+            WHERE m.TIPO_CADASTRO = 'Motorista Atendimento'
+              AND m.ATIVO = 'S'
+            GROUP BY m.ID_MOTORISTA, m.NM_MOTORISTA, m.QT_DIARIA_ACUMULADA
+            ORDER BY TOTAL_DIARIAS ASC
+        """
+        
+        print(f"[DEBUG] Executando query atendimento...")
+        cursor.execute(query_atendimento)
+        motoristas_atendimento = cursor.fetchall()
+        print(f"[DEBUG] Motoristas atendimento: {len(motoristas_atendimento)}")
+        
+        # Converter para dicionários
+        motoristas_atendimento_dict = []
+        for row in motoristas_atendimento:
+            motoristas_atendimento_dict.append({
+                'ID_MOTORISTA': row[0],
+                'NM_MOTORISTA': row[1],
+                'DIARIA_ACUMULADA': float(row[2]) if row[2] else 0.0,
+                'QTD_DIARIAS': float(row[3]) if row[3] else 0.0,
+                'TOTAL_DIARIAS': float(row[4]) if row[4] else 0.0
+            })
+        
+        # ========== TERCEIRIZADOS ==========
+        query_terceirizados = """
+            SELECT 
+                m.ID_MOTORISTA,
+                m.NM_MOTORISTA,
+                COALESCE(m.QT_DIARIA_ACUMULADA, 0) as DIARIA_ACUMULADA,
+                COALESCE(SUM(d.QT_DIARIAS), 0) as QTD_DIARIAS,
+                (COALESCE(m.QT_DIARIA_ACUMULADA, 0) + COALESCE(SUM(d.QT_DIARIAS), 0)) as TOTAL_DIARIAS
+            FROM CAD_MOTORISTA m
+            LEFT JOIN DIARIAS_TERCEIRIZADOS d ON m.ID_MOTORISTA = d.ID_MOTORISTA
+            WHERE m.TIPO_CADASTRO = 'Terceirizado'
+              AND m.ATIVO = 'S'
+              AND m.ID_FORNECEDOR IS NOT NULL
+            GROUP BY m.ID_MOTORISTA, m.NM_MOTORISTA, m.QT_DIARIA_ACUMULADA
+            ORDER BY TOTAL_DIARIAS ASC
+        """
+        
+        print(f"[DEBUG] Executando query terceirizados...")
+        cursor.execute(query_terceirizados)
+        terceirizados = cursor.fetchall()
+        print(f"[DEBUG] Terceirizados: {len(terceirizados)}")
+        
+        # Converter para dicionários
+        terceirizados_dict = []
+        for row in terceirizados:
+            terceirizados_dict.append({
+                'ID_MOTORISTA': row[0],
+                'NM_MOTORISTA': row[1],
+                'DIARIA_ACUMULADA': float(row[2]) if row[2] else 0.0,
+                'QTD_DIARIAS': float(row[3]) if row[3] else 0.0,
+                'TOTAL_DIARIAS': float(row[4]) if row[4] else 0.0
+            })
+        
+        cursor.close()
+        
+        return jsonify({
+            'motoristas_atendimento': motoristas_atendimento_dict,
+            'terceirizados': terceirizados_dict
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar diárias: {e}")
+        import traceback
+        traceback.print_exc()
+        if cursor:
+            cursor.close()
+        return jsonify({
+            'error': f'Erro ao buscar diárias: {str(e)}'
+        }), 500
+
+
+@app.route('/api/agenda/diarias-motoristas/atualizar', methods=['POST'])
+def atualizar_diarias_motoristas():
+    cursor = None
+    try:
+        data = request.get_json()
+        tipo = data.get('tipo')  # 'atendimento' ou 'terceirizado'
+        diarias = data.get('diarias')  # Lista de {id_motorista, diaria_acumulada}
+        
+        print(f"[DEBUG] Recebido pedido de atualização - Tipo: {tipo}, Quantidade: {len(diarias) if diarias else 0}")
+        
+        if not tipo or not diarias:
+            return jsonify({'error': 'Dados inválidos', 'success': False}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Atualizar cada motorista
+        usuario = session.get('usuario_login', 'SISTEMA')
+        count = 0
+        
+        for item in diarias:
+            id_motorista = item.get('id_motorista')
+            diaria_acumulada = item.get('diaria_acumulada', 0)
+            
+            query = """
+                UPDATE CAD_MOTORISTA 
+                SET QT_DIARIA_ACUMULADA = %s,
+                    USUARIO = %s,
+                    DT_TRANSACAO = NOW()
+                WHERE ID_MOTORISTA = %s
+            """
+            cursor.execute(query, (diaria_acumulada, usuario, id_motorista))
+            count += 1
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        print(f"✅ {count} motoristas atualizados com sucesso")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{count} motoristas atualizados com sucesso',
+            'count': count
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao atualizar diárias: {e}")
+        import traceback
+        traceback.print_exc()
+        if cursor:
+            cursor.close()
+        mysql.connection.rollback()
+        return jsonify({
+            'error': f'Erro ao atualizar: {str(e)}',
+            'success': False
+        }), 500
+
+
+@app.route('/api/agenda/diarias-motoristas/detalhes/<int:id_motorista>/<tipo>', methods=['GET'])
+def get_detalhes_diarias_motorista(id_motorista, tipo):
+    cursor = None
+    try:
+        print(f"[DEBUG] Buscando detalhes - ID: {id_motorista}, Tipo: {tipo}")
+        
+        cursor = mysql.connection.cursor()
+        
+        # Escolher a tabela correta baseado no tipo
+        if tipo == 'atendimento':
+            tabela_diarias = 'DIARIAS_MOTORISTAS'
+        else:  # terceirizado
+            tabela_diarias = 'DIARIAS_TERCEIRIZADOS'
+        
+        print(f"[DEBUG] Usando tabela: {tabela_diarias}")
+        
+        # Buscar demandas do motorista que geraram diárias
+        query = f"""
+            SELECT DISTINCT
+                ad.DT_INICIO,
+                ad.DT_FIM,
+                ad.SETOR,
+                ad.DESTINO,
+                ad.NU_SEI
+            FROM AGENDA_DEMANDAS ad
+            INNER JOIN {tabela_diarias} d ON ad.ID_AD = d.ID_AD
+            WHERE d.ID_MOTORISTA = %s
+            ORDER BY ad.DT_INICIO DESC, ad.DT_FIM DESC
+        """
+        
+        cursor.execute(query, (id_motorista,))
+        demandas = cursor.fetchall()
+        
+        print(f"[DEBUG] Encontradas {len(demandas)} demandas")
+        
+        # Converter para dicionários
+        demandas_dict = []
+        for row in demandas:
+            dt_inicio = row[0]
+            dt_fim = row[1]
+            
+            # Calcular quantidade de diárias
+            if dt_inicio and dt_fim:
+                if dt_inicio == dt_fim:
+                    # Mesmo dia = 0.5
+                    qtd_diarias = 0.5
+                else:
+                    # Diferença em dias
+                    diferenca = (dt_fim - dt_inicio).days
+                    # Fórmula: diferenca + 0.5
+                    # Ex: 1 dia = 1.5, 2 dias = 2.5, etc
+                    qtd_diarias = diferenca + 0.5
+            else:
+                qtd_diarias = 0
+            
+            # Formatar período
+            if dt_inicio == dt_fim:
+                periodo = dt_inicio.strftime('%d/%m/%Y') if dt_inicio else ''
+            else:
+                periodo_inicio = dt_inicio.strftime('%d/%m/%Y') if dt_inicio else ''
+                periodo_fim = dt_fim.strftime('%d/%m/%Y') if dt_fim else ''
+                periodo = f"{periodo_inicio} - {periodo_fim}"
+            
+            demandas_dict.append({
+                'PERIODO': periodo,
+                'SETOR': row[2] or '',
+                'DESTINO': row[3] or '',
+                'NU_SEI': row[4] or '',
+                'QTD_DIARIAS': qtd_diarias
+            })
+        
+        cursor.close()
+        
+        print(f"[DEBUG] Retornando {len(demandas_dict)} demandas formatadas")
+        
+        return jsonify({
+            'demandas': demandas_dict
+        })
+        
+    except Exception as e:
+        print(f"❌ Erro ao buscar detalhes de diárias: {e}")
+        import traceback
+        traceback.print_exc()
+        if cursor:
+            cursor.close()
+        return jsonify({
+            'error': f'Erro ao buscar detalhes: {str(e)}'
+        }), 500
+
+
 @app.route('/api/agenda_busca_setor')
 @login_required
 def agenda_busca_setor():
