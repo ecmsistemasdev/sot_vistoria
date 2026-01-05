@@ -594,7 +594,7 @@
             margin: 50px auto;
             padding: 0;
             width: 90%;
-            max-width: 600px;
+            max-width: 650px;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             animation: slideDown 0.3s;
@@ -692,11 +692,45 @@
             padding: 12px 20px;
             background: #f8f9fa;
             display: flex;
-            justify-content: flex-end;
-            gap: 10px;
+            justify-content: space-between;  /* ← Mudado de flex-end */
+            align-items: center;         /* ← Adicionado */
+            gap: 8px;                       /* ← Aumentado */
             border-radius: 0 0 8px 8px;
             position: sticky;
             bottom: 0;
+        }
+
+        /* Área dos botões de solicitação (esquerda) */
+        #areaLocacaoStatus,
+        #areaDiariaStatus {
+            display: flex !important;
+            flex-direction: column;   /* ← Empilha verticalmente */
+            gap: 5px;                 /* ← Espaço entre botões */
+        }
+
+        /* Container invisível para agrupar os botões de ação (direita) */
+        .modal-footer > .btn-secondary,
+        .modal-footer > .btn-danger,
+        .modal-footer > .btn-primary {
+            margin-left: auto;        /* ← Empurra para a direita */
+        }
+
+        /* Estilo para o primeiro botão do grupo da direita */
+        .modal-footer > .btn-secondary {
+            margin-left: auto;
+        }
+
+        /* Espaçamento reduzido entre os botões do grupo da direita */
+        .modal-footer > .btn-secondary + .btn-danger,
+        .modal-footer > .btn-danger + .btn-primary,
+        .modal-footer > .btn-secondary + .btn-primary {
+            margin-left: 8px;
+        }
+
+        /* Quando não tem botões de solicitação, mantém botões à direita */
+        .modal-footer:not(:has(#areaLocacaoStatus)):not(:has(#areaDiariaStatus)) {
+            justify-content: flex-end;
+            gap: 6px;
         }
 
         .btn-secondary {
@@ -1910,6 +1944,117 @@
             background: #f8f9fa;
         }
 
+        /* ========================================= */
+        /* TOAST NOTIFICATION COM PROGRESS BAR - CENTRALIZADO */
+        /* ========================================= */
+        .toast-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.7);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            min-width: 350px;
+            max-width: 450px;
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .toast-notification.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .toast-notification.hide {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.7);
+        }
+
+        .toast-content {
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .toast-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .toast-message {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .toast-progress {
+            height: 4px;
+            background: rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toast-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            width: 100%;
+            transform-origin: left;
+            animation: progress-shrink 2s linear forwards;
+        }
+
+        .toast-progress-bar.success {
+            background: linear-gradient(90deg, #28a745, #20c997);
+        }
+
+        .toast-progress-bar.error {
+            background: linear-gradient(90deg, #dc3545, #c82333);
+        }
+
+        .toast-progress-bar.warning {
+            background: linear-gradient(90deg, #ffc107, #ff9800);
+        }
+
+        .toast-progress-bar.info {
+            background: linear-gradient(90deg, #17a2b8, #138496);
+        }
+
+        @keyframes progress-shrink {
+            from {
+                transform: scaleX(1);
+            }
+            to {
+                transform: scaleX(0);
+            }
+        }
+
+        /* Overlay opcional para destacar mais */
+        .toast-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast-overlay.show {
+            opacity: 1;
+        }
+
+        .toast-overlay.hide {
+            opacity: 0;
+        }
+
     </style>
 
     <!-- Biblioteca para copiar como imagem (OPCIONAL) -->
@@ -2809,6 +2954,45 @@
             }
         }       
         
+        /**
+         * Verifica se a demanda requer verificação de vínculos
+         * Retorna objeto com flags indicando quais vínculos verificar
+         */
+        function precisaVerificarVinculos(dados) {
+            const idTipoVeiculo = parseInt(dados.id_tipoveiculo) || 0;
+            const idTipoDemanda = parseInt(dados.id_tipodemanda) || 0;
+            const idMotorista = parseInt(dados.id_motorista) || 0;
+            
+            const resultado = {
+                precisaVerificar: false,
+                verificarVeiculoLocado: false,
+                verificarDiariasTerceirizado: false,
+                verificarLocacaoFornecedor: false
+            };
+            
+            // 1. Veículos Locados (ID_TIPOVEICULO = 2 a 6)
+            if (idTipoVeiculo >= 2 && idTipoVeiculo <= 6 && idMotorista > 0) {
+                resultado.verificarVeiculoLocado = true;
+                resultado.precisaVerificar = true;
+            }
+            
+            // 2. Viagens de Motoristas Terceirizados (ID_TIPODEMANDA = 2 + Terceirizado)
+            if (idTipoDemanda === 2 && idMotorista > 0) {
+                // Precisa verificar se o motorista é terceirizado
+                resultado.verificarDiariasTerceirizado = true;
+                resultado.precisaVerificar = true;
+            }
+            
+            // 3. Locação de Fornecedor (ID_TIPOVEICULO = 7, 8 ou 9)
+            if (idTipoVeiculo === 7 || idTipoVeiculo === 8 || idTipoVeiculo === 9) {
+                resultado.verificarLocacaoFornecedor = true;
+                resultado.precisaVerificar = true;
+            }
+            
+            return resultado;
+        }
+
+
         // ========== FUNÇÃO: Calcular Diárias COM/SEM Pernoite ==========
         function calcularDiarias(dtInicio, dtFim) {
             const dataInicio = new Date(dtInicio + 'T00:00:00');
@@ -3132,6 +3316,86 @@
             }
         }
         
+        // ========================================
+        // TOAST NOTIFICATION COM PROGRESS BAR - CENTRALIZADO
+        // ========================================
+
+        /**
+         * Exibe notificação toast moderna com progress bar centralizada
+         * @param {string} mensagem - Texto a exibir
+         * @param {string} tipo - 'success', 'error', 'warning', 'info'
+         * @param {number} duracao - Duração em ms (padrão: 2000)
+         * @param {boolean} comOverlay - Exibir overlay escuro de fundo (padrão: false)
+         */
+        function mostrarToast(mensagem, tipo = 'success', duracao = 2000, comOverlay = false) {
+            // Remover toast e overlay anteriores se existirem
+            const toastAnterior = document.querySelector('.toast-notification');
+            const overlayAnterior = document.querySelector('.toast-overlay');
+            if (toastAnterior) toastAnterior.remove();
+            if (overlayAnterior) overlayAnterior.remove();
+            
+            // Ícones por tipo
+            const icones = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            // Criar overlay se solicitado
+            let overlay = null;
+            if (comOverlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'toast-overlay';
+                document.body.appendChild(overlay);
+                
+                setTimeout(() => {
+                    overlay.classList.add('show');
+                }, 10);
+            }
+            
+            // Criar elemento toast
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <span class="toast-icon">${icones[tipo] || icones.success}</span>
+                    <div class="toast-message">${mensagem}</div>
+                </div>
+                <div class="toast-progress">
+                    <div class="toast-progress-bar ${tipo}"></div>
+                </div>
+            `;
+            
+            // Adicionar ao body
+            document.body.appendChild(toast);
+            
+            // Animar entrada
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            // Configurar animação do progress bar
+            const progressBar = toast.querySelector('.toast-progress-bar');
+            progressBar.style.animationDuration = `${duracao}ms`;
+            
+            // Remover após duração
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                
+                if (overlay) {
+                    overlay.classList.remove('show');
+                    overlay.classList.add('hide');
+                }
+                
+                setTimeout(() => {
+                    toast.remove();
+                    if (overlay) overlay.remove();
+                }, 300);
+            }, duracao);
+        }
+
         // Funções para controlar o spinner de vínculos
         function mostrarSpinnerVinculos() {
             const overlay = document.getElementById('loadingVinculos');
@@ -4056,25 +4320,78 @@
                                 e.preventDefault();
                                 e.stopPropagation();
                                 
-                                // CORREÇÃO: Preencher IDITEM corretamente
-                                if (resultDiaria.tem_diaria) {
+                                // Preencher IDITEM corretamente
+                                if (resultDiaria.iditem) {
                                     document.getElementById('email_iditem').value = resultDiaria.iditem;
-                                } else if (resultSalvar && resultSalvar.iditem) {
-                                    document.getElementById('email_iditem').value = resultSalvar.iditem;
-                                } else {
-                                    document.getElementById('email_iditem').value = '0';
                                 }
                                 
                                 await abrirModalEmailDiarias(demanda);
                             });
                         }
                     }, 100);
-                     
-                } else {
-                    // ===== NÃO TEM DIÁRIA SALVA - CRIAR E MOSTRAR BOTÃO =====
                     
-                    app.logger.warning('Diária não encontrada para demanda que deveria ter vínculo');
-
+                } else {
+                    // ===== NÃO TEM DIÁRIA SALVA - CRIAR AUTOMATICAMENTE =====
+                    console.log('⚠️ Diária não encontrada - criando registro automaticamente...');
+                    
+                    try {
+                        // Calcular diárias
+                        const diarias = calcularDiarias(demanda.dt_inicio, demanda.dt_fim);
+                        
+                        // Criar registro de diária
+                        const dadosSalvarDiaria = {
+                            id_ad: idAd,
+                            id_fornecedor: resultVinculo.id_fornecedor,
+                            id_motorista: demanda.id_motorista,
+                            qt_diarias: diarias.total_diarias,
+                            vl_diaria: resultVinculo.vl_diaria,
+                            vl_total: diarias.total_diarias * resultVinculo.vl_diaria
+                        };
+                        
+                        const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(dadosSalvarDiaria)
+                        });
+                        
+                        const resultSalvarDiaria = await resSalvarDiaria.json();
+                        
+                        if (resultSalvarDiaria.success && resultSalvarDiaria.iditem) {
+                            console.log('✅ Registro de diária criado automaticamente! IDITEM:', resultSalvarDiaria.iditem);
+                            
+                            // Mostrar botão de solicitar
+                            divStatus.innerHTML = `
+                                <button type="button" class="btn btn-primary" id="btnSolicitarDiariaEdicao" style="background: #17a2b8; border-color: #17a2b8;">
+                                    ✈️ Solicitar Diária
+                                </button>
+                            `;
+                            
+                            // Guardar dados do vínculo
+                            dadosVinculoDiarias = resultVinculo;
+                            idDemandaParaDiarias = idAd;
+                            
+                            // Event listener no botão
+                            setTimeout(() => {
+                                const btnSolicitar = document.getElementById('btnSolicitarDiariaEdicao');
+                                if (btnSolicitar) {
+                                    btnSolicitar.addEventListener('click', async function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        
+                                        // Preencher IDITEM com o que acabamos de criar
+                                        document.getElementById('email_iditem').value = resultSalvarDiaria.iditem;
+                                        
+                                        await abrirModalEmailDiarias(demanda);
+                                    });
+                                }
+                            }, 100);
+                        } else {
+                            console.error('❌ Erro ao criar registro de diária:', resultSalvarDiaria);
+                        }
+                        
+                    } catch (errorCriarDiaria) {
+                        console.error('❌ Erro ao criar diária automaticamente:', errorCriarDiaria);
+                    }
                 }
                 
                 // Inserir antes dos botões de ação
@@ -5621,19 +5938,17 @@
         
         /**
          * Processa alteração recebida via WebSocket
-         * Chamado automaticamente quando outro usuário faz alteração
+         * Chamado automaticamente quando QUALQUER usuário faz alteração
+         * (incluindo o próprio usuário que fez a mudança)
          */
         function processarAlteracaoWebSocket(alteracao) {
             console.log('[WebSocket] 📡 Alteração recebida:', alteracao);
             
             const { tipo, entidade, id_ad, dados, usuario } = alteracao;
             
-            // Não ignorar mais - atualizar para TODOS (incluindo quem fez a alteração)
-            const usuarioAtual = '{{ session.usuario_login }}';
-            // if (usuario === usuarioAtual) {
-            //     console.log('[WebSocket] ⏭️ Ignorando própria alteração');
-            //     return;
-            // }
+            // ===== IMPORTANTE: NÃO ignora próprio usuário =====
+            // Todos os usuários (incluindo quem fez a alteração) recebem a atualização
+            // Isso garante consistência visual
             
             if (entidade === 'DEMANDA') {
                 if (tipo === 'INSERT') {
@@ -7792,6 +8107,11 @@
             }
         }
 
+        // ========================================================
+        // FUNÇÃO SALVAR DEMANDA - VERSÃO FINAL CORRIGIDA
+        // ========================================================
+        // CORREÇÃO: Backend retorna "id" e não "id_ad"
+
         async function salvarDemanda() {
             const idAd = document.getElementById('idAd').value;
             const idTipoDemanda = parseInt(document.getElementById('idTipoDemanda').value);
@@ -7811,6 +8131,7 @@
                 }
             }
 
+            // ===== IMPORTANTE: id_motorista deve ser null se vazio, não string vazia =====
             const dados = {
                 id_motorista: document.getElementById('idMotorista').value || null,
                 id_tipodemanda: idTipoDemanda,
@@ -7844,7 +8165,7 @@
                 return;
             }
             
-            // Validações dinâmicas (mantém as mesmas validações existentes)
+            // Validações dinâmicas baseadas na configuração
             if (config.motorista_obrigatorio && !dados.id_motorista) {
                 mostrarAlerta('O campo Motorista é obrigatório para este tipo de demanda!', '⚠️ Atenção', '#ffc107');
                 return;
@@ -7880,122 +8201,73 @@
                 return;
             }
             
+            const url = idAd ? `/api/v2/agenda/demanda/${idAd}` : '/api/v2/agenda/demanda';
+            const method = idAd ? 'PUT' : 'POST';
+            
             try {
-                let res;
-                let demandaIdRetornado = null;
+                mostrarSpinner();
                 
-                if (idAd) {
-                    // ========== EDIÇÃO ==========
-                    // ===== MUDANÇA: Trocar /api/ por /api/v2/ =====
-                    res = await fetch(`/api/v2/agenda/demanda/${idAd}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(dados)
-                    });
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                
+                const result = await response.json();
+                
+                esconderSpinner();
+                
+                if (result.success) {
+                    const operacao = idAd ? 'atualizada' : 'criada';
                     
-                    const result = await res.json();
+                    mostrarToast(`Demanda ${operacao} com sucesso!`, 'success', 1500);
                     
-                    if (result.success || result.id) {
-                        marcarAcaoLocal();
-                        fecharModal();
-                        // ===== REMOVIDO: await carregarSemanas() e await carregarAgenda() =====
-                        // O WebSocket vai atualizar automaticamente!
-                    } else {
-                        mostrarAlerta('Erro ao salvar: ' + (result.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
-                    }
+                    // ===== CORREÇÃO CRÍTICA: Backend retorna "id", não "id_ad" =====
+                    const demandaIdVinculos = result.id || idAd;
+                    const dadosDemandaParaVinculos = dados;
                     
-                } else {
-                    // ========== NOVA DEMANDA ==========
+                    console.log('✅ ID da demanda:', demandaIdVinculos);
                     
-                    // ===== MUDANÇA: Trocar /api/ por /api/v2/ =====
-                    const resSalvar = await fetch('/api/v2/agenda/demanda', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(dados)
-                    });
-                    
-                    const resultSalvar = await resSalvar.json();
-
-                    // ========== TRATAR ERRO 409 (CONFLITO) ==========
-                    if (resSalvar.status === 409) {
-                        mostrarAlerta(
-                            '⚠️ <strong>CONFLITO DETECTADO!</strong><br><br>' +
-                            (resultSalvar.error || 'Já existe demanda para este motorista/veículo no período selecionado.') +
-                            '<br><br><strong>A página será atualizada automaticamente.</strong>',
-                            '⚠️ Conflito',
-                            '#ffc107'
-                        );
-                        
-                        return;
-                    }
-
-                    if (!resultSalvar.success && !resultSalvar.id) {
-                        mostrarAlerta('Erro ao salvar: ' + (resultSalvar.error || 'Erro desconhecido'), '❌ Erro', '#dc3545');
-                        return;
-                    }
-                    
-                    demandaIdVinculos = resultSalvar.id;
-                    dadosDemandaParaVinculos = dados;
-                    
-                    marcarAcaoLocal();
                     fecharModal();
-
-                    // ===== MANTIDO: Recarregar semanas apenas para criar =====
-                    await carregarSemanas();
-
-                    // Encontrar índice da semana da data inicial da demanda
-                    const indiceSemana = encontrarSemanaDaData(dados.dt_inicio);
-
-                    if (indiceSemana !== -1) {
-                        semanaAtual = indiceSemana;
-                        renderizarAbas();
-                    }
-
-                    mostrarSpinnerVinculos();
-
-                    // ===== ATUALIZAR AGENDA IMEDIATAMENTE (DEMANDA JÁ FOI CRIADA!) =====
-                    await carregarAgenda();
-
-                    esconderSpinnerVinculos();
                     
-                    // ===== VERIFICAR TODOS OS VÍNCULOS =====
+                    // ===== Verificação CONDICIONAL de vínculos =====
+                    const verificacao = precisaVerificarVinculos(dados);
+                    
+                    if (!verificacao.precisaVerificar) {
+                        console.log('✅ Demanda salva - Sem vínculos a verificar');
+                        return;
+                    }
+                    
+                    // ===== TEM VÍNCULOS - mostrar spinner e verificar =====
+                    mostrarSpinnerVinculos();
+                    
                     let temDiarias = false;
                     let temLocacao = false;
                     let idItemDiariaSalvo = null;
-
-                    // 1. Verificar Diárias de Motorista Terceirizado
-                    const idTipoDemandaSalvo = parseInt(dados.id_tipodemanda);
-                    const idMotoristaSalvo = dados.id_motorista;
-
-                    // Verificar se é tipo Viagem (ID=2) e tem motorista válido
-                    if (idTipoDemandaSalvo === 2 && idMotoristaSalvo && parseInt(idMotoristaSalvo) > 0) {
-                        if (!temVinculoDiariasAtivo) {
-                            try {
-                                const urlVerificarDiarias = `/api/verificar_vinculo_diarias?id_motorista=${idMotoristaSalvo}`;
-                                const resVerificarDiarias = await fetch(urlVerificarDiarias);
-                                const resultadoDiarias = await resVerificarDiarias.json();
+                    
+                    // 1. Verificar Diárias de Motorista Terceirizado (se necessário)
+                    if (verificacao.verificarDiariasTerceirizado) {
+                        try {
+                            const urlVerificarDiarias = `/api/verificar_vinculo_diarias?id_motorista=${dados.id_motorista}`;
+                            const resVerificarDiarias = await fetch(urlVerificarDiarias);
+                            const resultadoDiarias = await resVerificarDiarias.json();
+                            
+                            if (resultadoDiarias.tem_vinculo) {
+                                temVinculoDiariasAtivo = true;
+                                dadosVinculoDiarias = resultadoDiarias;
                                 
-                                if (resultadoDiarias.tem_vinculo) {
-                                    temVinculoDiariasAtivo = true;
-                                    dadosVinculoDiarias = resultadoDiarias;
-                                }
-                            } catch (error) {
-                                console.error('Erro ao verificar vínculo de diárias:', error);
-                            }
-                        }
-                        
-                        if (temVinculoDiariasAtivo && dadosVinculoDiarias) {
-                            try {
                                 const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
                                 
                                 const dadosSalvarDiaria = {
                                     id_ad: demandaIdVinculos,
-                                    id_fornecedor: dadosVinculoDiarias.id_fornecedor,
-                                    id_motorista: idMotoristaSalvo,
+                                    id_fornecedor: resultadoDiarias.id_fornecedor,
+                                    id_motorista: dados.id_motorista,
                                     qt_diarias: diarias.total_diarias,
-                                    vl_diaria: dadosVinculoDiarias.vl_diaria,
-                                    vl_total: diarias.total_diarias * dadosVinculoDiarias.vl_diaria
+                                    vl_diaria: resultadoDiarias.vl_diaria,
+                                    vl_total: diarias.total_diarias * resultadoDiarias.vl_diaria
                                 };
+                                
+                                console.log('💾 Salvando diária para ID_AD:', demandaIdVinculos);
                                 
                                 const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
                                     method: 'POST',
@@ -8008,25 +8280,20 @@
                                 if (resultSalvarDiaria.success && resultSalvarDiaria.iditem) {
                                     temDiarias = true;
                                     idItemDiariaSalvo = resultSalvarDiaria.iditem;
-
-                                    console.log('[Diária] ✅ Salva:', {
-                                        id_ad: demandaIdVinculos,
-                                        iditem: resultSalvarDiaria.iditem,
-                                        id_motorista: dados.id_motorista
-                                    });
-
+                                    console.log('✅ Diária salva! IDITEM:', resultSalvarDiaria.iditem);
+                                } else {
+                                    console.error('❌ Erro ao salvar diária:', resultSalvarDiaria);
                                 }
-                            } catch (errorDiaria) {
-                                console.error('Erro ao salvar diária:', errorDiaria);
                             }
+                        } catch (error) {
+                            console.error('❌ Erro ao verificar/salvar diária:', error);
                         }
                     }
-
-                    // 2. Verificar Locação com Fornecedor
-                    // 2. Verificar Locação de Veículo (COM MOTORISTA)
-                    if (dados.id_tipoveiculo && idMotoristaSalvo && parseInt(idMotoristaSalvo) > 0) {
+                    
+                    // 2. Verificar Locação com Motorista (se necessário)
+                    if (verificacao.verificarVeiculoLocado && !temDiarias) {
                         try {
-                            const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${idMotoristaSalvo}`;
+                            const urlVerificarLocacao = `/api/verificar_vinculo_locacao?id_tipoveiculo=${dados.id_tipoveiculo}&id_motorista=${dados.id_motorista}`;
                             const resVerificarLocacao = await fetch(urlVerificarLocacao);
                             const resultadoLocacao = await resVerificarLocacao.json();
                             
@@ -8036,26 +8303,23 @@
                                 idDemandaParaLocacao = demandaIdVinculos;
                             }
                         } catch (error) {
-                            console.error('Erro ao verificar locação:', error);
+                            console.error('❌ Erro ao verificar locação:', error);
                         }
                     }
-
-                    // 3. Verificar Fornecedor (se não tem locação com motorista)
-                    if (!temLocacao && dados.id_tipoveiculo) {
+                    
+                    // 3. Verificar Fornecedor (se necessário e se não tem locação)
+                    if (verificacao.verificarLocacaoFornecedor && !temLocacao && !temDiarias) {
                         try {
                             const urlVerificarFornecedor = `/api/verificar_vinculo_fornecedor?id_tipoveiculo=${dados.id_tipoveiculo}`;
                             const resVerificarFornecedor = await fetch(urlVerificarFornecedor);
                             const resultadoFornecedor = await resVerificarFornecedor.json();
                             
                             if (resultadoFornecedor.tem_vinculo) {
-
                                 dadosVinculoFornecedor = resultadoFornecedor;
                                 idDemandaParaEmailFornecedor = demandaIdVinculos;
                                 
-                                // esconderSpinnerVinculos();
-
-                                // ===== PERGUNTAR SE QUER ENVIAR EMAIL =====
-                                // (WebSocket já atualizou todos os usuários automaticamente)
+                                esconderSpinnerVinculos();
+                                
                                 mostrarConfirmacao(
                                     '📧 Esta demanda possui vínculo com locação.<br><br>Deseja enviar e-mail de solicitação desta locação?',
                                     async function(respostaEmail) {
@@ -8070,14 +8334,11 @@
                                                 });
                                                 
                                                 const resultLocacao = await resLocacao.json();
-                                                
                                                 esconderSpinner();
                                                 
                                                 if (resultLocacao.success && resultLocacao.id_item) {
-                                                    // Guardar ID_ITEM
                                                     idItemLocacaoFornecedor = resultLocacao.id_item;
                                                     
-                                                    // Guardar dados do fornecedor vindos do backend
                                                     if (resultLocacao.dados) {
                                                         dadosVinculoFornecedor = {
                                                             email_fornecedor: resultLocacao.dados.EMAIL_FORNECEDOR,
@@ -8086,8 +8347,7 @@
                                                         };
                                                     }
                                                     
-                                                    // Abrir modal de email
-                                                    await abrirModalEmailFornecedor(dados);
+                                                    await abrirModalEmailFornecedor(dadosDemandaParaVinculos);
                                                 } else {
                                                     mostrarAlerta(
                                                         'Demanda criada, mas erro ao criar registro de locação.<br><br>Erro: ' + (resultLocacao.erro || 'Desconhecido'),
@@ -8098,68 +8358,23 @@
                                             } catch (errorLocacao) {
                                                 esconderSpinner();
                                                 console.error('Erro ao criar registro de locação:', errorLocacao);
-                                                mostrarAlerta(
-                                                    'Demanda criada, mas erro ao criar registro de locação.',
-                                                    '⚠️ Aviso',
-                                                    '#ffc107'
-                                                );
+                                                mostrarAlerta('Erro ao criar registro de locação.', '⚠️ Aviso', '#ffc107');
                                             }
                                         }
                                     },
                                     '📧 Enviar E-mail?'
                                 );
                                 
-                                // RETORNAR aqui para não continuar
                                 return;
                             }
                         } catch (error) {
-                            console.error('Erro ao verificar fornecedor:', error);
+                            console.error('❌ Erro ao verificar fornecedor:', error);
                         }
                     }
-
-                    // 4. Segunda verificação de Diárias (compatibilidade)
-                    if (dados.id_tipodemanda == 2 && dados.id_motorista && parseInt(dados.id_motorista) > 0 && !temDiarias) {
-                        try {
-                            const urlVerificarDiarias = `/api/verificar_vinculo_diarias?id_motorista=${dados.id_motorista}`;
-                            const resVerificarDiarias = await fetch(urlVerificarDiarias);
-                            const resultadoDiarias = await resVerificarDiarias.json();
-                            
-                            if (resultadoDiarias.tem_vinculo) {
-                                const diarias = calcularDiarias(dados.dt_inicio, dados.dt_fim);
-                                
-                                const resSalvarDiaria = await fetch('/api/salvar_diaria_terceirizado', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        id_ad: demandaIdVinculos,
-                                        id_fornecedor: resultadoDiarias.id_fornecedor,
-                                        id_motorista: dados.id_motorista,
-                                        qt_diarias: diarias.total_diarias,
-                                        vl_diaria: resultadoDiarias.vl_diaria,
-                                        vl_total: diarias.total_diarias * resultadoDiarias.vl_diaria
-                                    })
-                                });
-                                
-                                const resultSalvarDiaria = await resSalvarDiaria.json();
-                                
-                                if (resultSalvarDiaria.success && resultSalvarDiaria.iditem) {
-                                    temDiarias = true;
-                                    dadosVinculoDiarias = resultadoDiarias;
-                                    idDemandaParaDiarias = demandaIdVinculos;
-                                    idItemDiariaSalvo = resultSalvarDiaria.iditem;
-                                    
-                                    // Armazenar IDITEM no campo oculto
-                                    document.getElementById('email_iditem').value = idItemDiariaSalvo;
-                                }
-                            }
-                        } catch (errorDiaria) {
-                            console.error('Erro ao verificar/salvar diária:', errorDiaria);
-                        }
-                    }
-
+                    
                     esconderSpinnerVinculos();
-
-                    // 5. Perguntas finais ao usuário
+                    
+                    // 4. Perguntas finais ao usuário
                     if (temLocacao) {
                         mostrarConfirmacao(
                             '📧 Esta demanda está vinculada a uma locação de veículo.<br><br>Deseja enviar e-mail de solicitação?',
@@ -8175,24 +8390,25 @@
                             '💰 Esta demanda gerou diárias de motorista terceirizado.<br><br>Deseja enviar e-mail de solicitação?',
                             async function(resposta) {
                                 if (resposta) {
-                                    // Guardar IDs
                                     idDemandaParaDiarias = demandaIdVinculos;
                                     
-                                    // Guardar ID_ITEM no campo oculto
                                     if (idItemDiariaSalvo) {
                                         document.getElementById('email_iditem').value = idItemDiariaSalvo;
                                     }
                                     
-                                    // Abrir modal (IGUAL AO OLD - usa dadosDemandaParaVinculos)
                                     await abrirModalEmailDiarias(dadosDemandaParaVinculos);
                                 }
                             },
                             '📧 Enviar E-mail de Diárias?'
                         );
                     }
+                    
+                } else {
+                    mostrarAlerta(result.error || 'Erro ao salvar demanda!', '❌ Erro', '#dc3545');
                 }
                 
             } catch (error) {
+                esconderSpinner();
                 mostrarAlerta('Erro ao salvar demanda!', '❌ Erro', '#dc3545');
                 console.error('Erro:', error);
             }
