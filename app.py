@@ -8171,6 +8171,11 @@ def criar_orcamento_passagem():
 @app.route('/api/orcamento/passagens/<int:id_opa>', methods=['PUT'])
 @login_required
 def atualizar_orcamento_passagem(id_opa):
+    """
+    Atualiza um registro de orçamento de passagens aéreas
+    E atualiza o lançamento inicial correspondente se VL_APROVADO ou NU_EMPENHO forem alterados
+    """
+    cursor = None
     try:
         data = request.get_json()
         cursor = mysql.connection.cursor()
@@ -8179,7 +8184,40 @@ def atualizar_orcamento_passagem(id_opa):
         # Validar e limpar dados
         fonte = ''.join(filter(str.isdigit, data.get('fonte', '')))
         unidade = data.get('unidade', '').upper()
+        vl_aprovado_novo = data.get('vl_aprovado')
+        nu_empenho_novo = data.get('nu_empenho')
         
+        # =========================================
+        # 1. BUSCAR VALORES ATUAIS ANTES DO UPDATE
+        # =========================================
+        cursor.execute("""
+            SELECT VL_APROVADO, NU_EMPENHO 
+            FROM ORCAMENTO_PASSAGENS_AEREAS 
+            WHERE ID_OPA = %s AND ATIVO = 'S'
+        """, (id_opa,))
+        
+        resultado = cursor.fetchone()
+        
+        if not resultado:
+            return jsonify({
+                'success': False,
+                'error': 'Registro não encontrado'
+            }), 404
+        
+        vl_aprovado_antigo = float(resultado[0]) if resultado[0] else 0
+        nu_empenho_antigo = resultado[1]
+        
+        # Verificar se os valores mudaram
+        vl_aprovado_mudou = (vl_aprovado_novo != vl_aprovado_antigo)
+        nu_empenho_mudou = (nu_empenho_novo != nu_empenho_antigo)
+        
+        print(f"📝 Atualizando ID_OPA: {id_opa}")
+        print(f"   VL_APROVADO: {vl_aprovado_antigo} → {vl_aprovado_novo} (mudou: {vl_aprovado_mudou})")
+        print(f"   NU_EMPENHO: '{nu_empenho_antigo}' → '{nu_empenho_novo}' (mudou: {nu_empenho_mudou})")
+        
+        # =========================================
+        # 2. UPDATE na ORCAMENTO_PASSAGENS_AEREAS
+        # =========================================
         cursor.execute("""
             UPDATE ORCAMENTO_PASSAGENS_AEREAS 
             SET EXERCICIO = %s, UO = %s, UNIDADE = %s, FONTE = %s,
@@ -8198,27 +8236,139 @@ def atualizar_orcamento_passagem(id_opa):
             data.get('objetivo'),
             data.get('elemento_despesa', '33.90.33'),
             data.get('id_subitem'),
-            data.get('vl_aprovado'),
-            data.get('nu_empenho'),
+            vl_aprovado_novo,
+            nu_empenho_novo,
             usuario,
             id_opa
         ))
         
+        linhas_afetadas = cursor.rowcount
+        
+        if linhas_afetadas == 0:
+            return jsonify({
+                'success': False,
+                'error': 'Nenhum registro foi atualizado'
+            }), 404
+        
+        print(f"✅ UPDATE realizado na ORCAMENTO_PASSAGENS_AEREAS - ID_OPA: {id_opa}")
+        
+        # =========================================
+        # 3. UPDATE na ORCAMENTO_PASSAGENS_ITEM 
+        #    (apenas se VL_APROVADO ou NU_EMPENHO mudaram)
+        # =========================================
+        if vl_aprovado_mudou or nu_empenho_mudou:
+            
+            # Verificar se existe lançamento inicial
+            cursor.execute("""
+                SELECT IDITEM_OPA, VL_ITEM, NU_EMPENHO
+                FROM ORCAMENTO_PASSAGENS_ITEM
+                WHERE ID_OPA = %s AND IDTIPO_ITEM = 1
+                LIMIT 1
+            """, (id_opa,))
+            
+            lancamento_inicial = cursor.fetchone()
+            
+            if lancamento_inicial:
+                iditem_opa = lancamento_inicial[0]
+                vl_item_antigo = float(lancamento_inicial[1]) if lancamento_inicial[1] else 0
+                nu_empenho_item_antigo = lancamento_inicial[2]
+                
+                print(f"📊 Lançamento Inicial encontrado - IDITEM_OPA: {iditem_opa}")
+                print(f"   Valores antigos: VL_ITEM={vl_item_antigo}, NU_EMPENHO='{nu_empenho_item_antigo}'")
+                
+                # Atualizar o lançamento inicial
+                cursor.execute("""
+                    UPDATE ORCAMENTO_PASSAGENS_ITEM
+                    SET VL_ITEM = %s, 
+                        NU_EMPENHO = %s,
+                        USUARIO = %s,
+                        DT_LANCAMENTO = NOW()
+                    WHERE IDITEM_OPA = %s
+                """, (
+                    vl_aprovado_novo,
+                    nu_empenho_novo,
+                    usuario,
+                    iditem_opa
+                ))
+                
+                linhas_afetadas_item = cursor.rowcount
+                
+                if linhas_afetadas_item > 0:
+                    print(f"✅ UPDATE realizado na ORCAMENTO_PASSAGENS_ITEM - IDITEM_OPA: {iditem_opa}")
+                    print(f"   Novos valores: VL_ITEM={vl_aprovado_novo}, NU_EMPENHO='{nu_empenho_novo}'")
+                else:
+                    print(f"⚠️ Nenhuma linha foi atualizada na ORCAMENTO_PASSAGENS_ITEM")
+                    
+            else:
+                # Lançamento inicial não existe - criar um novo
+                print(f"⚠️ Lançamento Inicial não encontrado para ID_OPA: {id_opa}")
+                print(f"🔨 Criando lançamento inicial automaticamente...")
+                
+                # Obter próximo IDITEM_OPA
+                cursor.execute("""
+                    SELECT COALESCE(MAX(IDITEM_OPA), 0) + 1 
+                    FROM ORCAMENTO_PASSAGENS_ITEM
+                """)
+                proximo_iditem = cursor.fetchone()[0]
+                
+                # Criar lançamento inicial
+                cursor.execute("""
+                    INSERT INTO ORCAMENTO_PASSAGENS_ITEM
+                    (IDITEM_OPA, ID_OPA, IDTIPO_ITEM, FLTIPO, VL_ITEM, 
+                     NU_EMPENHO, OBS, USUARIO, DT_LANCAMENTO)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                """, (
+                    proximo_iditem,
+                    id_opa,
+                    1,                        # IDTIPO_ITEM = 1 (lançamento inicial)
+                    'E',                      # FLTIPO = Entrada
+                    vl_aprovado_novo,
+                    nu_empenho_novo,
+                    'Lançamento Inicial',
+                    usuario
+                ))
+                
+                print(f"✅ Lançamento Inicial criado - IDITEM_OPA: {proximo_iditem}")
+        else:
+            print(f"ℹ️ VL_APROVADO e NU_EMPENHO não mudaram - não há necessidade de atualizar ORCAMENTO_PASSAGENS_ITEM")
+        
+        # =========================================
+        # 4. COMMIT DAS TRANSAÇÕES
+        # =========================================
         mysql.connection.commit()
         
-        if cursor.rowcount > 0:
-            cursor.close()
-            return jsonify({'success': True, 'message': 'Orçamento atualizado com sucesso!'})
-        else:
-            cursor.close()
-            return jsonify({'error': 'Registro não encontrado'}), 404
-            
+        mensagem = 'Orçamento atualizado com sucesso!'
+        if vl_aprovado_mudou or nu_empenho_mudou:
+            mensagem += ' (Lançamento inicial também atualizado)'
+        
+        print(f"🎉 {mensagem}")
+        
+        return jsonify({
+            'success': True, 
+            'message': mensagem,
+            'id_opa': id_opa,
+            'vl_aprovado_mudou': vl_aprovado_mudou,
+            'nu_empenho_mudou': nu_empenho_mudou
+        })
+        
     except Exception as e:
-        mysql.connection.rollback()
-        print(f"Erro ao atualizar orçamento: {str(e)}")
+        # Rollback em caso de erro
+        if cursor:
+            mysql.connection.rollback()
+        
+        print(f"❌ Erro ao atualizar orçamento: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': 'Erro ao atualizar orçamento'
+        }), 500
+        
+    finally:
+        if cursor:
+            cursor.close()
 
 @app.route('/api/orcamento/passagens/listar', methods=['GET'])
 @login_required
@@ -10919,5 +11069,6 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
