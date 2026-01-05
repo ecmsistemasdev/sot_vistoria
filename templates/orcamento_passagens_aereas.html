@@ -636,21 +636,40 @@
                     filtroExercicio.innerHTML = '';
                     const anoAtual = new Date().getFullYear();
                     
+                    // Determinar qual exercício selecionar (priorizar ano atual, senão o mais recente)
+                    let exercicioSelecionado = null;
+                    
                     data.exercicios.forEach(exercicio => {
                         const option = document.createElement('option');
                         option.value = exercicio;
                         option.textContent = exercicio;
+                        
+                        // Selecionar o ano atual se existir, senão o primeiro (mais recente)
                         if (exercicio === anoAtual) {
                             option.selected = true;
+                            exercicioSelecionado = exercicio;
+                        } else if (!exercicioSelecionado && data.exercicios.indexOf(exercicio) === 0) {
+                            option.selected = true;
+                            exercicioSelecionado = exercicio;
                         }
+                        
                         filtroExercicio.appendChild(option);
                     });
 
-                    // Carregar registros do ano atual
-                    carregarRegistros(anoAtual);
+                    // Se nenhum exercício foi selecionado, usar o primeiro da lista
+                    if (!exercicioSelecionado && data.exercicios.length > 0) {
+                        exercicioSelecionado = data.exercicios[0];
+                    }
+
+                    // Carregar registros do exercício selecionado
+                    if (exercicioSelecionado) {
+                        console.log('Carregando registros do exercício:', exercicioSelecionado);
+                        carregarRegistros(exercicioSelecionado);
+                    }
                 }
             } catch (error) {
-                mostrarAlerta('Erro ao carregar dados iniciais: ' + error.message, 'error');
+                console.error('ERRO ao carregar dados iniciais:', error);
+                alert('Erro ao carregar dados iniciais: ' + error.message + '\nVerifique o console para mais detalhes.');
             }
         }
 
@@ -915,15 +934,19 @@
 
         // Carregar registros
         async function carregarRegistros(exercicio) {
+            console.log('🔄 Iniciando carregamento de registros para exercício:', exercicio);
             try {
                 const url = `/api/orcamento/passagens/listar?exercicio=${exercicio}`;
+                console.log('🌐 Fazendo requisição para:', url);
                 const response = await fetch(url);
                 const data = await response.json();
+                console.log('✅ Resposta recebida:', data);
 
                 const tbody = document.querySelector('#tabelaOrcamentos tbody');
                 tbody.innerHTML = '';
 
                 if (data.success && data.registros.length > 0) {
+                    console.log(`📊 ${data.registros.length} registro(s) encontrado(s)`);
                     data.registros.forEach(reg => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
@@ -948,10 +971,13 @@
                     // Popular os filtros com os dados carregados
                     popularFiltros(data.registros);
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado</td></tr>';
+                    console.warn('⚠️ Nenhum registro encontrado para o exercício:', exercicio);
+                    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado para o exercício ' + exercicio + '</td></tr>';
                 }
             } catch (error) {
-                mostrarAlerta('Erro ao carregar registros: ' + error.message, 'error');
+                console.error('ERRO ao carregar registros:', error);
+                const tbody = document.querySelector('#tabelaOrcamentos tbody');
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #e74c3c;">Erro ao carregar registros: ' + error.message + '</td></tr>';
             }
         }
 
