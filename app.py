@@ -8058,48 +8058,67 @@ def obter_orcamento_passagem(id_opa):
 @app.route('/api/orcamento/passagens', methods=['POST'])
 @login_required
 def criar_orcamento_passagem():
+    cursor = None
     try:
         data = request.get_json()
         cursor = mysql.connection.cursor()
         usuario = session.get('usuario_login')
         
-        # Validar e limpar dados
-        fonte = ''.join(filter(str.isdigit, data.get('fonte', '')))
-        unidade = data.get('unidade', '').upper()
+        # Extrair valores necessários
+        id_opa = data['id_opa']
+        vl_aprovado = data.get('vl_aprovado')
+        nu_empenho = data.get('nu_empenho')
         
+        # 1. INSERT na ORCAMENTO_PASSAGENS_AEREAS
         cursor.execute("""
             INSERT INTO ORCAMENTO_PASSAGENS_AEREAS 
             (ID_OPA, EXERCICIO, UO, UNIDADE, FONTE, ID_PROGRAMA, ID_AO, 
              SUBACAO, OBJETIVO, ELEMENTO_DESPESA, ID_SUBITEM, 
              VL_APROVADO, NU_EMPENHO, USUARIO, DT_LANCAMENTO, ATIVO)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), 'S')
+        """, (...valores...))
+        
+        # 2. Obter próximo IDITEM_OPA
+        cursor.execute("""
+            SELECT COALESCE(MAX(IDITEM_OPA), 0) + 1 
+            FROM ORCAMENTO_PASSAGENS_ITEM
+        """)
+        proximo_iditem = cursor.fetchone()[0]
+        
+        # 3. INSERT na ORCAMENTO_PASSAGENS_ITEM (Lançamento Inicial)
+        cursor.execute("""
+            INSERT INTO ORCAMENTO_PASSAGENS_ITEM
+            (IDITEM_OPA, ID_OPA, IDTIPO_ITEM, FLTIPO, VL_ITEM, 
+             NU_EMPENHO, OBS, USUARIO, DT_LANCAMENTO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
         """, (
-            data['id_opa'],
-            data['exercicio'],
-            data['uo'],
-            unidade,
-            fonte,
-            data.get('id_programa'),
-            data.get('id_ao'),
-            data.get('subacao'),
-            data.get('objetivo'),
-            data.get('elemento_despesa', '33.90.33'),
-            data.get('id_subitem'),
-            data.get('vl_aprovado'),
-            data.get('nu_empenho'),
-            usuario
+            proximo_iditem,           # IDITEM_OPA
+            id_opa,                   # ID_OPA
+            1,                        # IDTIPO_ITEM (sempre 1)
+            'E',                      # FLTIPO (Entrada)
+            vl_aprovado,              # VL_ITEM
+            nu_empenho,               # NU_EMPENHO
+            'Lançamento Inicial',     # OBS
+            usuario                   # USUARIO
         ))
         
+        # 4. COMMIT
         mysql.connection.commit()
-        cursor.close()
         
-        return jsonify({'success': True, 'message': 'Orçamento cadastrado com sucesso!'})
+        return jsonify({
+            'success': True, 
+            'message': 'Orçamento cadastrado com sucesso!',
+            'id_opa': id_opa,
+            'iditem_opa': proximo_iditem
+        })
+        
     except Exception as e:
-        mysql.connection.rollback()
-        print(f"Erro ao criar orçamento: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        if cursor:
+            mysql.connection.rollback()
         return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
 
 @app.route('/api/orcamento/passagens/<int:id_opa>', methods=['PUT'])
 @login_required
@@ -10852,3 +10871,4 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
