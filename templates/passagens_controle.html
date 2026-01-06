@@ -1833,10 +1833,10 @@
             linhaTotalizadores.style.backgroundColor = '#e8e8e8';
             linhaTotalizadores.innerHTML = `
                 <td colspan="7" style="text-align: right; padding: 12px;">
-                    Total de Registros: <span id="total-registros">${quantidadeRegistros}</span>
+                    <strong>Total de Registros: <span id="total-registros">${quantidadeRegistros}</span></strong>
                 </td>
                 <td style="padding: 12px;">
-                    R$ <span id="total-valor">${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                    <strong>R$ <span id="total-valor">${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></strong>
                 </td>
                 <td></td>
             `;
