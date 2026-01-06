@@ -490,6 +490,21 @@
                 text-align: center;
             }
         }
+
+        #linha-totalizadores {
+        background-color: #e8e8e8 !important;
+        font-weight: bold;
+        border-top: 2px solid #2c3e50 !important;
+        }
+        
+        #linha-totalizadores td {
+        padding: 12px !important;
+        }
+        
+        #linha-totalizadores:hover {
+        background-color: #e8e8e8 !important;
+        }
+        
     </style>
 </head>
 <body>
@@ -1273,9 +1288,36 @@
         
             // Inicializar autocompletes de aeroportos
             inicializarAutocompletes();
-
+            
             // Inicializar validação de trecho
             inicializarValidacaoTrecho();
+            
+            // Calcular totalizadores iniciais
+            let dadosIniciais = [];
+            $('#tabelaPassagens tbody tr:not(#linha-totalizadores)').each(function() {
+                let cells = $(this).find('td');
+                if (cells.length > 0) {
+                    let valorTexto = cells.eq(7).text().replace('R$ ', '').trim();
+                    let passagem = [
+                        cells.eq(0).text(), // ID
+                        '', '', '', 
+                        cells.eq(1).text(), // Dt Emissão
+                        cells.eq(5).text(), // Dt Embarque
+                        cells.eq(4).find('strong').text(), // Trecho
+                        '', '', '', '', 
+                        cells.eq(6).text(), // CIA
+                        cells.eq(2).text(), // Nu SEI
+                        cells.eq(3).text(), // Nome
+                        '', '', '', '', 
+                        valorTexto // Valor Total
+                    ];
+                    dadosIniciais.push(passagem);
+                }
+            });
+            
+            if (dadosIniciais.length > 0) {
+                atualizarTotalizadores(dadosIniciais);
+            }
         });
         
         // ============================================================================
@@ -1732,14 +1774,14 @@
                         
                         response.data.forEach(function(passagem) {
                             table.row.add([
-                                passagem[0],
-                                passagem[4],
-                                '<span class="badge badge-info">' + (passagem[14] || '-') + '</span>',
-                                passagem[15],
-                                '<strong>' + (passagem[6] || '-') + '</strong>',
-                                passagem[5],
-                                passagem[13],
-                                'R$ ' + passagem[18],
+                                passagem[0],  // ID
+                                passagem[4],  // Dt Emissão
+                                passagem[12], // Nu SEI
+                                passagem[13], // Nome Passageiro
+                                '<strong>' + (passagem[6] || '-') + '</strong>',  // Trecho
+                                passagem[5],  // Dt Embarque
+                                passagem[11], // CIA
+                                'R$ ' + passagem[18], // Valor Total
                                 '<div class="action-buttons">' +
                                 '<button class="btn btn-sm btn-warning" onclick="editarPassagem(' + passagem[0] + ')" title="Editar"><i class="fas fa-edit"></i></button> ' +
                                 '<button class="btn btn-sm btn-danger" onclick="confirmarExclusao(' + passagem[0] + ')" title="Excluir"><i class="fas fa-trash"></i></button>' +
@@ -1748,6 +1790,7 @@
                         });
                         
                         table.draw();
+                        atualizarTotalizadores(response.data);
                         $('#modalFiltros').modal('hide');
                     } else {
                         alert('Erro: ' + response.message);
@@ -1759,6 +1802,44 @@
             });
         }
 
+        // ============================================================================
+        // ATUALIZAR TOTALIZADORES
+        // ============================================================================
+        function atualizarTotalizadores(data) {
+            let totalValor = 0;
+            let quantidadeRegistros = data.length;
+            
+            data.forEach(function(passagem) {
+                // passagem[18] já contém o valor formatado
+                let valor = parseFloat(passagem[18].replace(/\./g, '').replace(',', '.')) || 0;
+                totalValor += valor;
+            });
+            
+            // Atualizar ou criar a linha de totalizadores
+            let tabelaBody = document.querySelector('#tabelaPassagens tbody');
+            let linhaTotalizadores = document.getElementById('linha-totalizadores');
+            
+            if (!linhaTotalizadores) {
+                linhaTotalizadores = document.createElement('tr');
+                linhaTotalizadores.id = 'linha-totalizadores';
+                linhaTotalizadores.style.backgroundColor = '#e8e8e8';
+                linhaTotalizadores.style.fontWeight = 'bold';
+                linhaTotalizadores.innerHTML = `
+                    <td colspan="7" style="text-align: right; padding: 12px;">
+                        <strong>Total de Registros: <span id="total-registros">${quantidadeRegistros}</span></strong>
+                    </td>
+                    <td style="padding: 12px;">
+                        <strong>R$ <span id="total-valor">${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></strong>
+                    </td>
+                    <td></td>
+                `;
+                tabelaBody.appendChild(linhaTotalizadores);
+            } else {
+                document.getElementById('total-registros').textContent = quantidadeRegistros;
+                document.getElementById('total-valor').textContent = totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+        }
+        
         // ============================================================================
         // LIMPAR FILTROS
         // ============================================================================
