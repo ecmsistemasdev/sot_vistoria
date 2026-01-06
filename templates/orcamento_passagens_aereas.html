@@ -233,6 +233,12 @@
             background-color: #f8f9fa;
         }
 
+        /* Desabilitar hover na linha de totais */
+        table tbody tr.linha-totais:hover {
+            background-color: #34495e !important;
+            cursor: default;
+        }
+
         .filtro-select {
             width: 100%;
             padding: 2px 4px;
@@ -422,33 +428,42 @@
                     </select>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="window.location.href='/passagens/controle'">
-                <i class="fas fa-ticket-alt"></i>📋 Controle de Bilhetes
-            </button>
+            
+            <!-- AMBOS OS BOTÕES JUNTOS NO LADO DIREITO -->
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success" onclick="abrirModal()" style="padding: 8px 20px; font-size: 12px;">
+                    <span style="font-size: 14px; margin-right: 5px;">+</span> Adicionar Registro
+                </button>
+                <button class="btn btn-primary" onclick="window.location.href='/passagens/controle'">
+                    <i class="fas fa-ticket-alt"></i>📋 Controle de Bilhetes
+                </button>
+            </div>
         </div>
 
         <div class="table-section">
             <table id="tabelaOrcamentos">
                 <thead>
                     <tr>
+                        <th style="width: 30px; text-align: center;">
+                            <!-- Coluna de expansão -->
+                        </th>
                         <th style="width: 50px;">
                             <select id="filtroUO" class="filtro-select"></select>
                         </th>
                         <th style="width: 70px;">
                             <select id="filtroUnidade" class="filtro-select"></select>
                         </th>
-                        <th style="width: 70px;">Fonte</th>
                         <th style="width: 140px;">
                             <select id="filtroPrograma" class="filtro-select"></select>
                         </th>
                         <th style="width: 140px;">
                             <select id="filtroAcao" class="filtro-select"></select>
                         </th>
-                        <th style="width: 70px;">Elemento</th>
                         <th style="width: 140px;">
                             <select id="filtroSubitem" class="filtro-select"></select>
                         </th>
                         <th style="width: 100px;" class="text-right">Valor Aprovado</th>
+                        <th style="width: 100px;" class="text-right">Valor Atual</th>
                         <th style="width: 100px;" class="text-right">Valor Utilizado</th>
                         <th style="width: 100px;" class="text-right">Saldo</th>
                         <th style="width: 90px;">
@@ -461,11 +476,11 @@
                 </tbody>
             </table>
         </div>
-        <div style="text-align: center; margin-top: 15px;">
+        <!-- <div style="text-align: center; margin-top: 15px;">
             <button class="btn btn-success" onclick="abrirModal()" style="padding: 6px 20px; font-size: 12px;">
                 <span style="font-size: 14px; margin-right: 5px;">+</span> Adicionar Registro
             </button>
-        </div>        
+        </div>         -->
     </div>
 
     <!-- Modal -->
@@ -589,10 +604,102 @@
     
     <script>
         let dadosIniciais = {};
+        let linhasExpandidas = new Set();
 
         function controlarBilhetes() {
             mostrarAlerta('🚧 Funcionalidade em construção', 'success');
         }        
+
+        // Alternar expansão de linha
+        async function toggleExpansao(idOpa, btnElement) {
+            const linhaAtual = btnElement.closest('tr');
+            const idLinha = `subtabela-${idOpa}`;
+            
+            if (linhasExpandidas.has(idOpa)) {
+                // Fechar
+                const subtabelaRow = document.getElementById(idLinha);
+                if (subtabelaRow) subtabelaRow.remove();
+                linhasExpandidas.delete(idOpa);
+                btnElement.innerHTML = '▶';
+                btnElement.style.color = '#3498db';
+            } else {
+                // Abrir
+                btnElement.innerHTML = '⏳';
+                await carregarSubtabela(idOpa, linhaAtual);
+                linhasExpandidas.add(idOpa);
+                btnElement.innerHTML = '▼';
+                btnElement.style.color = '#e74c3c';
+            }
+        }
+
+        // Carregar subtabela
+        async function carregarSubtabela(idOpa, linhaAtual) {
+            try {
+                const response = await fetch(`/api/orcamento/passagens/${idOpa}/itens`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const subtabelaRow = document.createElement('tr');
+                    subtabelaRow.id = `subtabela-${idOpa}`;
+                    subtabelaRow.style.backgroundColor = '#f8f9fa';
+                    
+                    const numColunas = linhaAtual.cells.length;
+                    const subtabelaCell = document.createElement('td');
+                    subtabelaCell.colSpan = numColunas;
+                    subtabelaCell.style.padding = '15px';
+                    
+                    if (data.itens.length > 0) {
+                        let html = `
+                            <div style="background: white; border-radius: 4px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h4 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 13px;">
+                                    📋 Movimentações do Orçamento
+                                </h4>
+                                <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background-color: #34495e;">
+                                            <th style="padding: 6px; color: white; text-align: center; width: 50px;">Item</th>
+                                            <th style="padding: 6px; color: white; text-align: left;">Descrição</th>
+                                            <th style="padding: 6px; color: white; text-align: center; width: 120px;">Empenho</th>
+                                            <th style="padding: 6px; color: white; text-align: right; width: 120px;">Valor</th>
+                                            <th style="padding: 6px; color: white; text-align: left;">Observações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        
+                        data.itens.forEach(item => {
+                            const cor = item.fltipo === 'E' ? '#27ae60' : '#e74c3c';
+                            const simbolo = item.fltipo === 'E' ? '+' : '-';
+                            html += `
+                                <tr style="border-bottom: 1px solid #ecf0f1;">
+                                    <td style="padding: 6px; text-align: center;">${item.item}</td>
+                                    <td style="padding: 6px;">${item.descricao}</td>
+                                    <td style="padding: 6px; text-align: center;">${item.nu_empenho}</td>
+                                    <td style="padding: 6px; text-align: right; color: ${cor}; font-weight: bold;">
+                                        ${simbolo} R$ ${item.vl_item.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                    </td>
+                                    <td style="padding: 6px; font-size: 10px; color: #7f8c8d;">${item.obs}</td>
+                                </tr>
+                            `;
+                        });
+                        html += `</tbody></table></div>`;
+                        subtabelaCell.innerHTML = html;
+                    } else {
+                        subtabelaCell.innerHTML = `
+                            <div style="background: white; border-radius: 4px; padding: 15px; text-align: center; color: #95a5a6;">
+                                Nenhuma movimentação adicional para este orçamento
+                            </div>
+                        `;
+                    }
+                    
+                    subtabelaRow.appendChild(subtabelaCell);
+                    linhaAtual.after(subtabelaRow);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar subtabela:', error);
+                alert('Erro: ' + error.message);
+            }
+        }
 
         // Carregar dados iniciais
         async function carregarDadosIniciais() {
@@ -947,19 +1054,37 @@
 
                 if (data.success && data.registros.length > 0) {
                     console.log(`📊 ${data.registros.length} registro(s) encontrado(s)`);
+                    
+                    // Totalizadores
+                    let totalVlAprovado = 0;
+                    let totalVlAtual = 0;
+                    let totalVlUtilizado = 0;  // ← ADICIONAR ESTA LINHA
+                    let totalVlSaldo = 0;
+
                     data.registros.forEach(reg => {
+                        totalVlAprovado += reg.vl_aprovado;
+                        totalVlAtual += reg.vl_atual;
+                        totalVlUtilizado += reg.vl_utilizado;  // ← ADICIONAR ESTA LINHA
+                        totalVlSaldo += reg.vl_saldo;
+                        
                         const tr = document.createElement('tr');
+                        tr.className = 'linha-orcamento';
                         tr.innerHTML = `
+                            <td style="text-align: center;">
+                                <button onclick="toggleExpansao(${reg.id_opa}, this)" 
+                                        style="background: none; border: none; cursor: pointer; font-size: 14px; color: #3498db; padding: 2px 6px;">
+                                    ▶
+                                </button>
+                            </td>
                             <td>${reg.uo}</td>
                             <td>${reg.unidade}</td>
-                            <td>${reg.fonte}</td>
                             <td style="font-size: 10px;">${reg.programa || ''}</td>
                             <td style="font-size: 10px;">${reg.acao || ''}</td>
-                            <td>${reg.elemento_despesa}</td>
                             <td style="font-size: 10px;">${reg.subitem || ''}</td>
-                            <td class="text-right">R$ ${reg.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                            <td class="text-right">R$ ${reg.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                            <td class="text-right">R$ ${reg.vl_saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            <td class="text-right">R$ ${reg.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right" style="font-weight: 600; color: #2c3e50;">R$ ${reg.vl_atual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right">R$ ${reg.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right" style="font-weight: 600; color: ${reg.vl_saldo >= 0 ? '#27ae60' : '#e74c3c'};">R$ ${reg.vl_saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
                             <td>${reg.nu_empenho || ''}</td>
                             <td class="text-center">
                                 <button class="btn btn-edit" onclick="abrirModal(${reg.id_opa})">Editar</button>
@@ -968,7 +1093,22 @@
                         tbody.appendChild(tr);
                     });
                     
-                    // Popular os filtros com os dados carregados
+                    // Linha de totais
+                    const trTotal = document.createElement('tr');
+                    trTotal.className = 'linha-totais';
+                    trTotal.style.fontWeight = 'bold';
+                    trTotal.style.backgroundColor = '#34495e';  // Cor mais escura
+                    trTotal.style.color = 'white';  // Texto branco
+                    trTotal.innerHTML = `
+                        <td colspan="6" style="text-align: right; padding: 10px; color: white;">TOTAL:</td>
+                        <td class="text-right" style="padding: 10px; color: white;">R$ ${totalVlAprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: #3498db; font-weight: bold;">R$ ${totalVlAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: white;">R$ ${totalVlUtilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: ${totalVlSaldo >= 0 ? '#2ecc71' : '#e74c3c'}; font-weight: bold;">R$ ${totalVlSaldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td colspan="2"></td>
+                    `;
+                    tbody.appendChild(trTotal);
+                    
                     popularFiltros(data.registros);
                 } else {
                     console.warn('⚠️ Nenhum registro encontrado para o exercício:', exercicio);
@@ -998,14 +1138,6 @@
             //     alert.remove();
             // }, 5000);
         }
-
-        // Fechar modal ao clicar fora
-        // window.onclick = function(event) {
-        //     const modal = document.getElementById('modalOrcamento');
-        //     if (event.target === modal) {
-        //         fecharModal();
-        //     }
-        // }
 
         // Carregar ao iniciar
         window.addEventListener('DOMContentLoaded', carregarDadosIniciais);
