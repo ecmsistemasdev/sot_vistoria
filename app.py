@@ -8370,17 +8370,19 @@ def atualizar_orcamento_passagem(id_opa):
         if cursor:
             cursor.close()
 
+
 @app.route('/api/orcamento/passagens/listar', methods=['GET'])
 @login_required
 def listar_orcamento_passagens():
+    """
+    Lista orçamentos com cálculo de Valor Atual
+    Valor Atual = Soma(Entradas 'E') - Soma(Saídas 'S')
+    """
     try:
-        # Obter o exercício dos parâmetros ou usar o ano atual
         exercicio = request.args.get('exercicio')
         if not exercicio:
             from datetime import datetime
             exercicio = datetime.now().year
-        
-        print(f"DEBUG: Buscando orçamentos para exercício: {exercicio}")
         
         cursor = mysql.connection.cursor()
         
@@ -8402,7 +8404,15 @@ def listar_orcamento_passagens():
                 CONCAT(si.ID_SUBITEM, ' - ', si.DE_SUBITEM) as subitem,
                 opa.VL_APROVADO,
                 opa.NU_EMPENHO,
-                COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as vl_utilizado
+                COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as vl_utilizado,
+                -- Calcular Valor Atual: Soma(E) - Soma(S)
+                COALESCE(
+                    (SELECT 
+                        SUM(CASE WHEN FLTIPO = 'E' THEN VL_ITEM ELSE -VL_ITEM END)
+                     FROM ORCAMENTO_PASSAGENS_ITEM 
+                     WHERE ID_OPA = opa.ID_OPA
+                    ), 0
+                ) as vl_atual
             FROM ORCAMENTO_PASSAGENS_AEREAS opa
             LEFT JOIN PROGRAMA_ORCAMENTO p ON opa.ID_PROGRAMA = p.ID_PROGRAMA
             LEFT JOIN ACAO_ORCAMENTARIA ao ON opa.ID_AO = ao.ID_AO
@@ -8410,38 +8420,23 @@ def listar_orcamento_passagens():
             LEFT JOIN PASSAGENS_AEREAS_EMITIDAS pae ON opa.ID_OPA = pae.ID_OPA AND pae.ATIVO = 'S'
             WHERE opa.EXERCICIO = %s
             GROUP BY 
-                opa.ID_OPA,
-                opa.EXERCICIO,
-                opa.UO,
-                opa.UNIDADE,
-                opa.FONTE,
-                opa.ID_PROGRAMA,
-                p.DE_PROGRAMA,
-                opa.ID_AO,
-                ao.DE_AO,
-                opa.SUBACAO,
-                opa.OBJETIVO,
-                opa.ELEMENTO_DESPESA,
-                opa.ID_SUBITEM,
-                si.ID_SUBITEM,
-                si.DE_SUBITEM,
-                opa.VL_APROVADO,
-                opa.NU_EMPENHO
+                opa.ID_OPA, opa.EXERCICIO, opa.UO, opa.UNIDADE, opa.FONTE,
+                opa.ID_PROGRAMA, p.DE_PROGRAMA, opa.ID_AO, ao.DE_AO,
+                opa.SUBACAO, opa.OBJETIVO, opa.ELEMENTO_DESPESA,
+                opa.ID_SUBITEM, si.ID_SUBITEM, si.DE_SUBITEM,
+                opa.VL_APROVADO, opa.NU_EMPENHO
             ORDER BY opa.ID_OPA
         """
         
         cursor.execute(query, (exercicio,))
-        
         rows = cursor.fetchall()
-        print(f"DEBUG: Encontrados {len(rows)} registros")
         
         registros = []
-        
         for row in rows:
-            # Tratar valores None e conversões
-            vl_aprovado = float(row[14]) if row[14] is not None else 0.0
-            vl_utilizado = float(row[16]) if row[16] is not None else 0.0
-            vl_saldo = vl_aprovado - vl_utilizado
+            vl_aprovado = float(row[14]) if row[14] else 0.0
+            vl_utilizado = float(row[16]) if row[16] else 0.0
+            vl_atual = float(row[17]) if row[17] else 0.0
+            vl_saldo = vl_atual - vl_utilizado  # Novo cálculo!
             
             registro = {
                 'id_opa': row[0],
@@ -8460,28 +8455,195 @@ def listar_orcamento_passagens():
                 'subitem': row[13] or '',
                 'vl_aprovado': vl_aprovado,
                 'vl_utilizado': vl_utilizado,
-                'vl_saldo': vl_saldo,
+                'vl_atual': vl_atual,        # NOVO!
+                'vl_saldo': vl_saldo,         # RECALCULADO!
                 'nu_empenho': row[15] or ''
             }
-            
             registros.append(registro)
         
         cursor.close()
-        
-        return jsonify({
-            'success': True, 
-            'registros': registros
-        })
+        return jsonify({'success': True, 'registros': registros})
         
     except Exception as e:
-        print(f"ERRO GERAL ao listar orçamentos: {str(e)}")
+        print(f"ERRO ao listar orçamentos: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({
-            'success': False, 
-            'error': str(e),
-            'message': 'Erro ao carregar orçamentos'
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# NOVA ROTA: Buscar itens de um orçamento específico (para a subtabela)
+# ============================================================================
+
+@app.route('/api/orcamento/passagens/<int:id_opa>/itens', methods=['GET'])
+@login_required
+def listar_itens_orcamento(id_opa):
+    """
+    Lista os itens de um orçamento (para subtabela)
+    Ignora IDTIPO_ITEM = 1 (lançamento inicial)
+    """
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+            SELECT 
+                opi.IDITEM_OPA,
+                opi.IDTIPO_ITEM,
+                t.DESCRICAO as tipo_descricao,
+                opi.FLTIPO,
+                opi.VL_ITEM,
+                opi.NU_EMPENHO,
+                opi.OBS,
+                opi.USUARIO,
+                opi.DT_LANCAMENTO
+            FROM ORCAMENTO_PASSAGENS_ITEM opi
+            INNER JOIN TIPO_ITEMOPA t ON opi.IDTIPO_ITEM = t.IDTIPO_ITEM
+            WHERE opi.ID_OPA = %s 
+              AND opi.IDTIPO_ITEM > 1
+            ORDER BY opi.IDITEM_OPA
+        """
+        
+        cursor.execute(query, (id_opa,))
+        rows = cursor.fetchall()
+        
+        itens = []
+        for idx, row in enumerate(rows, start=1):
+            item = {
+                'item': idx,
+                'iditem_opa': row[0],
+                'idtipo_item': row[1],
+                'descricao': row[2] or '',
+                'fltipo': row[3],
+                'vl_item': float(row[4]) if row[4] else 0.0,
+                'nu_empenho': row[5] or '',
+                'obs': row[6] or '',
+                'usuario': row[7] or '',
+                'dt_lancamento': row[8].strftime('%d/%m/%Y %H:%M') if row[8] else ''
+            }
+            itens.append(item)
+        
+        cursor.close()
+        return jsonify({'success': True, 'itens': itens})
+        
+    except Exception as e:
+        print(f"ERRO ao listar itens: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+
+# @app.route('/api/orcamento/passagens/listar', methods=['GET'])
+# @login_required
+# def listar_orcamento_passagens():
+#     try:
+#         # Obter o exercício dos parâmetros ou usar o ano atual
+#         exercicio = request.args.get('exercicio')
+#         if not exercicio:
+#             from datetime import datetime
+#             exercicio = datetime.now().year
+        
+#         print(f"DEBUG: Buscando orçamentos para exercício: {exercicio}")
+        
+#         cursor = mysql.connection.cursor()
+        
+#         query = """
+#             SELECT 
+#                 opa.ID_OPA,
+#                 opa.EXERCICIO,
+#                 opa.UO,
+#                 opa.UNIDADE,
+#                 opa.FONTE,
+#                 opa.ID_PROGRAMA,
+#                 p.DE_PROGRAMA as programa,
+#                 opa.ID_AO,
+#                 ao.DE_AO as acao,
+#                 opa.SUBACAO,
+#                 opa.OBJETIVO,
+#                 opa.ELEMENTO_DESPESA,
+#                 opa.ID_SUBITEM,
+#                 CONCAT(si.ID_SUBITEM, ' - ', si.DE_SUBITEM) as subitem,
+#                 opa.VL_APROVADO,
+#                 opa.NU_EMPENHO,
+#                 COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as vl_utilizado
+#             FROM ORCAMENTO_PASSAGENS_AEREAS opa
+#             LEFT JOIN PROGRAMA_ORCAMENTO p ON opa.ID_PROGRAMA = p.ID_PROGRAMA
+#             LEFT JOIN ACAO_ORCAMENTARIA ao ON opa.ID_AO = ao.ID_AO
+#             LEFT JOIN SUBITEM_ORCAMENTO si ON opa.ID_SUBITEM = si.ID_SUBITEM
+#             LEFT JOIN PASSAGENS_AEREAS_EMITIDAS pae ON opa.ID_OPA = pae.ID_OPA AND pae.ATIVO = 'S'
+#             WHERE opa.EXERCICIO = %s
+#             GROUP BY 
+#                 opa.ID_OPA,
+#                 opa.EXERCICIO,
+#                 opa.UO,
+#                 opa.UNIDADE,
+#                 opa.FONTE,
+#                 opa.ID_PROGRAMA,
+#                 p.DE_PROGRAMA,
+#                 opa.ID_AO,
+#                 ao.DE_AO,
+#                 opa.SUBACAO,
+#                 opa.OBJETIVO,
+#                 opa.ELEMENTO_DESPESA,
+#                 opa.ID_SUBITEM,
+#                 si.ID_SUBITEM,
+#                 si.DE_SUBITEM,
+#                 opa.VL_APROVADO,
+#                 opa.NU_EMPENHO
+#             ORDER BY opa.ID_OPA
+#         """
+        
+#         cursor.execute(query, (exercicio,))
+        
+#         rows = cursor.fetchall()
+#         print(f"DEBUG: Encontrados {len(rows)} registros")
+        
+#         registros = []
+        
+#         for row in rows:
+#             # Tratar valores None e conversões
+#             vl_aprovado = float(row[14]) if row[14] is not None else 0.0
+#             vl_utilizado = float(row[16]) if row[16] is not None else 0.0
+#             vl_saldo = vl_aprovado - vl_utilizado
+            
+#             registro = {
+#                 'id_opa': row[0],
+#                 'exercicio': row[1],
+#                 'uo': row[2] or '',
+#                 'unidade': row[3] or '',
+#                 'fonte': row[4] or '',
+#                 'id_programa': row[5],
+#                 'programa': row[6] or '',
+#                 'id_ao': row[7],
+#                 'acao': row[8] or '',
+#                 'subacao': row[9] or '',
+#                 'objetivo': row[10] or '',
+#                 'elemento_despesa': row[11] or '',
+#                 'id_subitem': row[12],
+#                 'subitem': row[13] or '',
+#                 'vl_aprovado': vl_aprovado,
+#                 'vl_utilizado': vl_utilizado,
+#                 'vl_saldo': vl_saldo,
+#                 'nu_empenho': row[15] or ''
+#             }
+            
+#             registros.append(registro)
+        
+#         cursor.close()
+        
+#         return jsonify({
+#             'success': True, 
+#             'registros': registros
+#         })
+        
+#     except Exception as e:
+#         print(f"ERRO GERAL ao listar orçamentos: {str(e)}")
+#         import traceback
+#         traceback.print_exc()
+#         return jsonify({
+#             'success': False, 
+#             'error': str(e),
+#             'message': 'Erro ao carregar orçamentos'
+#         }), 500
 
 
 # ============================================================================
@@ -11069,6 +11231,3 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-
-
-
