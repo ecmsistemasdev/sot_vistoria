@@ -1267,34 +1267,6 @@
         // INICIALIZAÇÃO QUANDO O DOCUMENTO ESTIVER PRONTO
         // ============================================================================
         $(document).ready(function() {
-            // Inicializar DataTable
-            $('#tabelaPassagens').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json"
-                },
-                "pageLength": 25,
-                "order": [[0, "asc"]],
-                "columnDefs": [
-                    { "orderable": false, "targets": -1 }
-                ]
-            });
-
-            // Inicializar DataTable
-            var table = $('#tabelaPassagens').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json"
-                },
-                "pageLength": 25,
-                "order": [[0, "asc"]],
-                "columnDefs": [
-                    { "orderable": false, "targets": -1 }
-                ],
-                "drawCallback": function(settings) {
-                    // Recalcular totalizadores após cada draw
-                    calcularTotalizadoresVisiveis();
-                }
-            });
-            
             // Função para calcular totalizadores das linhas visíveis
             function calcularTotalizadoresVisiveis() {
                 let dadosVisiveis = [];
@@ -1320,10 +1292,22 @@
                 }
             }
             
-            // Calcular totalizadores iniciais
-            calcularTotalizadoresVisiveis();
-
-            
+            // Inicializar DataTable (APENAS UMA VEZ)
+            var table = $('#tabelaPassagens').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json"
+                },
+                "pageLength": 25,
+                "order": [[0, "asc"]],
+                "columnDefs": [
+                    { "orderable": false, "targets": -1 }
+                ],
+                "drawCallback": function(settings) {
+                    // Recalcular totalizadores após cada draw
+                    calcularTotalizadoresVisiveis();
+                }
+            });
+        
             // Máscaras de input
             aplicarMascaras();
         
@@ -1338,31 +1322,7 @@
             inicializarValidacaoTrecho();
             
             // Calcular totalizadores iniciais
-            let dadosIniciais = [];
-            $('#tabelaPassagens tbody tr:not(#linha-totalizadores)').each(function() {
-                let cells = $(this).find('td');
-                if (cells.length > 0) {
-                    let valorTexto = cells.eq(7).text().replace('R$ ', '').trim();
-                    let passagem = [
-                        cells.eq(0).text(), // ID
-                        '', '', '', 
-                        cells.eq(1).text(), // Dt Emissão
-                        cells.eq(5).text(), // Dt Embarque
-                        cells.eq(4).find('strong').text(), // Trecho
-                        '', '', '', '', 
-                        cells.eq(6).text(), // CIA
-                        cells.eq(2).text(), // Nu SEI
-                        cells.eq(3).text(), // Nome
-                        '', '', '', '', 
-                        valorTexto // Valor Total
-                    ];
-                    dadosIniciais.push(passagem);
-                }
-            });
-            
-            if (dadosIniciais.length > 0) {
-                atualizarTotalizadores(dadosIniciais);
-            }
+            calcularTotalizadoresVisiveis();
         });
         
         // ============================================================================
