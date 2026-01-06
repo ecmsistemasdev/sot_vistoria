@@ -8531,119 +8531,130 @@ def listar_itens_orcamento(id_opa):
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
     
+@app.route('/api/tipos-item-opa', methods=['GET'])
+def get_tipos_item_opa():
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("""
+            SELECT IDTIPO_ITEM, DESCRICAO, FLTIPO 
+            FROM TIPO_ITEMOPA 
+            ORDER BY DESCRICAO
+        """)
+        tipos = cursor.fetchall()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'tipos': tipos
+        })
+        
+    except Exception as e:
+        print(f"Erro ao buscar tipos: {str(e)}")  # DEBUG
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-# @app.route('/api/orcamento/passagens/listar', methods=['GET'])
-# @login_required
-# def listar_orcamento_passagens():
-#     try:
-#         # Obter o exercício dos parâmetros ou usar o ano atual
-#         exercicio = request.args.get('exercicio')
-#         if not exercicio:
-#             from datetime import datetime
-#             exercicio = datetime.now().year
+
+@app.route('/api/orcamento-passagens-itens/<int:id_opa>', methods=['GET'])
+def get_itens_orcamento(id_opa):
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("""
+            SELECT 
+                opi.IDITEM_OPA,
+                opi.ID_OPA,
+                opi.IDTIPO_ITEM,
+                opi.FLTIPO,
+                opi.VL_ITEM,
+                opi.NU_EMPENHO,
+                opi.OBS,
+                opi.USUARIO,
+                opi.DT_LANCAMENTO,
+                ti.DESCRICAO as DESCRICAO_TIPO
+            FROM ORCAMENTO_PASSAGENS_ITEM opi
+            LEFT JOIN TIPO_ITEMOPA ti ON opi.IDTIPO_ITEM = ti.IDTIPO_ITEM
+            WHERE ti.IDTIPO_ITEM > 1 AND opi.ID_OPA = %s
+            ORDER BY opi.DT_LANCAMENTO DESC
+        """, (id_opa,))
         
-#         print(f"DEBUG: Buscando orçamentos para exercício: {exercicio}")
+        itens = cursor.fetchall()
+        cursor.close()
         
-#         cursor = mysql.connection.cursor()
+        print(f"Itens encontrados: {len(itens)}")  # DEBUG
+        print(f"Dados: {itens}")  # DEBUG
         
-#         query = """
-#             SELECT 
-#                 opa.ID_OPA,
-#                 opa.EXERCICIO,
-#                 opa.UO,
-#                 opa.UNIDADE,
-#                 opa.FONTE,
-#                 opa.ID_PROGRAMA,
-#                 p.DE_PROGRAMA as programa,
-#                 opa.ID_AO,
-#                 ao.DE_AO as acao,
-#                 opa.SUBACAO,
-#                 opa.OBJETIVO,
-#                 opa.ELEMENTO_DESPESA,
-#                 opa.ID_SUBITEM,
-#                 CONCAT(si.ID_SUBITEM, ' - ', si.DE_SUBITEM) as subitem,
-#                 opa.VL_APROVADO,
-#                 opa.NU_EMPENHO,
-#                 COALESCE(SUM(CASE WHEN pae.ATIVO = 'S' THEN pae.VL_TOTAL ELSE 0 END), 0) as vl_utilizado
-#             FROM ORCAMENTO_PASSAGENS_AEREAS opa
-#             LEFT JOIN PROGRAMA_ORCAMENTO p ON opa.ID_PROGRAMA = p.ID_PROGRAMA
-#             LEFT JOIN ACAO_ORCAMENTARIA ao ON opa.ID_AO = ao.ID_AO
-#             LEFT JOIN SUBITEM_ORCAMENTO si ON opa.ID_SUBITEM = si.ID_SUBITEM
-#             LEFT JOIN PASSAGENS_AEREAS_EMITIDAS pae ON opa.ID_OPA = pae.ID_OPA AND pae.ATIVO = 'S'
-#             WHERE opa.EXERCICIO = %s
-#             GROUP BY 
-#                 opa.ID_OPA,
-#                 opa.EXERCICIO,
-#                 opa.UO,
-#                 opa.UNIDADE,
-#                 opa.FONTE,
-#                 opa.ID_PROGRAMA,
-#                 p.DE_PROGRAMA,
-#                 opa.ID_AO,
-#                 ao.DE_AO,
-#                 opa.SUBACAO,
-#                 opa.OBJETIVO,
-#                 opa.ELEMENTO_DESPESA,
-#                 opa.ID_SUBITEM,
-#                 si.ID_SUBITEM,
-#                 si.DE_SUBITEM,
-#                 opa.VL_APROVADO,
-#                 opa.NU_EMPENHO
-#             ORDER BY opa.ID_OPA
-#         """
+        return jsonify({
+            'success': True,
+            'itens': itens
+        })
         
-#         cursor.execute(query, (exercicio,))
+    except Exception as e:
+        print(f"Erro ao buscar itens: {str(e)}")  # DEBUG
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+
+@app.route('/api/orcamento-passagens-itens/adicionar', methods=['POST'])
+def adicionar_item_orcamento():
+    try:
+        dados = request.json
+        print(f"Dados recebidos: {dados}")  # DEBUG
         
-#         rows = cursor.fetchall()
-#         print(f"DEBUG: Encontrados {len(rows)} registros")
+        cursor = mysql.connection.cursor()
         
-#         registros = []
+        # Buscar próximo ID
+        cursor.execute("SELECT IFNULL(MAX(IDITEM_OPA), 0) + 1 as proximo_id FROM ORCAMENTO_PASSAGENS_ITEM")
+        result = cursor.fetchone()
+        proximo_id = result[0] if result else 1
         
-#         for row in rows:
-#             # Tratar valores None e conversões
-#             vl_aprovado = float(row[14]) if row[14] is not None else 0.0
-#             vl_utilizado = float(row[16]) if row[16] is not None else 0.0
-#             vl_saldo = vl_aprovado - vl_utilizado
-            
-#             registro = {
-#                 'id_opa': row[0],
-#                 'exercicio': row[1],
-#                 'uo': row[2] or '',
-#                 'unidade': row[3] or '',
-#                 'fonte': row[4] or '',
-#                 'id_programa': row[5],
-#                 'programa': row[6] or '',
-#                 'id_ao': row[7],
-#                 'acao': row[8] or '',
-#                 'subacao': row[9] or '',
-#                 'objetivo': row[10] or '',
-#                 'elemento_despesa': row[11] or '',
-#                 'id_subitem': row[12],
-#                 'subitem': row[13] or '',
-#                 'vl_aprovado': vl_aprovado,
-#                 'vl_utilizado': vl_utilizado,
-#                 'vl_saldo': vl_saldo,
-#                 'nu_empenho': row[15] or ''
-#             }
-            
-#             registros.append(registro)
+        # Obter usuário da sessão (ajuste conforme seu sistema)
+        usuario = session.get('usuario', 'ADMIN')
         
-#         cursor.close()
+        # Inserir item
+        cursor.execute("""
+            INSERT INTO ORCAMENTO_PASSAGENS_ITEM 
+            (IDITEM_OPA, ID_OPA, IDTIPO_ITEM, FLTIPO, VL_ITEM, NU_EMPENHO, OBS, USUARIO, DT_LANCAMENTO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        """, (
+            proximo_id,
+            dados['id_opa'],
+            dados['idtipo_item'],
+            dados['fltipo'],
+            dados['vl_item'],
+            dados.get('nu_empenho'),
+            dados.get('obs'),
+            usuario
+        ))
         
-#         return jsonify({
-#             'success': True, 
-#             'registros': registros
-#         })
+        mysql.connection.commit()
+        cursor.close()
         
-#     except Exception as e:
-#         print(f"ERRO GERAL ao listar orçamentos: {str(e)}")
-#         import traceback
-#         traceback.print_exc()
-#         return jsonify({
-#             'success': False, 
-#             'error': str(e),
-#             'message': 'Erro ao carregar orçamentos'
-#         }), 500
+        print(f"Item inserido com ID: {proximo_id}")  # DEBUG
+        
+        return jsonify({
+            'success': True,
+            'iditem': proximo_id
+        })
+        
+    except Exception as e:
+        print(f"Erro ao adicionar item: {str(e)}")  # DEBUG
+        mysql.connection.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/orcamento-passagens-itens/excluir/<int:iditem>', methods=['DELETE'])
+def excluir_item_orcamento(iditem):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("DELETE FROM ORCAMENTO_PASSAGENS_ITEM WHERE IDITEM_OPA = %s", (iditem,))
+        mysql.connection.commit()
+        cursor.close()
+        
+        print(f"Item {iditem} excluído")  # DEBUG
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"Erro ao excluir item: {str(e)}")  # DEBUG
+        mysql.connection.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================================================
