@@ -477,6 +477,34 @@
             background: #5aadb8;
         }
 
+        .expand-weeks-btn {
+            background: #f0f0f0;
+            border: 1px solid #c0c0c0;
+            color: #666;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            flex-shrink: 0;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            border-radius: 0 0 6px 6px;
+            border-top: none;
+            border-bottom: 1px solid #c0c0c0;
+        }
+        
+        .expand-weeks-btn:hover {
+            background: #e0e0e0;
+            border-color: #1a73e8;
+            color: #1a73e8;
+        }        
+
         .week-tab:not(.active) {
             box-shadow: inset 0 -2px 3px rgba(0,0,0,0.05);
         }
@@ -2897,7 +2925,10 @@
         let idRecursoSelecao = null;
         let tipoRecursoSelecao = null;
         let secaoSelecao = null;
-
+        
+        let mostrarTodasAnteriores = false;
+        let mostrarTodasPosteriores = false;
+        
         // ========== FUNÇÃO: Verificar Fornecedor ao Selecionar Tipo de Veículo ==========
         async function verificarFornecedorTipoVeiculo(idTipoVeiculo) {
             if (!idTipoVeiculo) {
@@ -5892,24 +5923,60 @@
         
         function renderizarAbas() {
             const tabs = document.getElementById('weekTabs');
-            // console.log('=== RENDERIZAR ABAS ===');
-            // console.log('semanaAtual na renderização:', semanaAtual);
             
-            tabs.innerHTML = semanas.map((s, i) => {
+            // Encontrar índice da semana atual (hoje)
+            const indiceSemanaAtual = semanas.findIndex((s, i) => i === semanaAtual);
+            
+            // Calcular range inicial: 2 semanas antes + atual + 4 semanas depois
+            const rangeInicio = Math.max(0, indiceSemanaAtual - 2);
+            const rangeFim = Math.min(semanas.length - 1, indiceSemanaAtual + 4);
+            
+            // Determinar range final baseado no estado de expansão
+            const inicio = mostrarTodasAnteriores ? 0 : rangeInicio;
+            const fim = mostrarTodasPosteriores ? semanas.length - 1 : rangeFim;
+            
+            let html = '';
+            
+            // Botão expandir anteriores
+            if (!mostrarTodasAnteriores && rangeInicio > 0) {
+                html += `<div class="expand-weeks-btn" onclick="expandirAnteriores()">
+                    ◀ ${rangeInicio} semana${rangeInicio > 1 ? 's' : ''} anterior${rangeInicio > 1 ? 'es' : ''}
+                </div>`;
+            }
+            
+            // Renderizar semanas visíveis
+            for (let i = inicio; i <= fim; i++) {
+                const s = semanas[i];
                 const isActive = i === semanaAtual;
-                // console.log(`Aba ${i} (${s.label}): ${isActive ? 'ACTIVE' : 'inativa'}`);
-                return `<div class="week-tab ${isActive ? 'active' : ''}" 
+                html += `<div class="week-tab ${isActive ? 'active' : ''}" 
                     onclick="mudarSemana(${i})">${s.label}</div>`;
-            }).join('');
+            }
             
-            // console.log('HTML gerado:', tabs.innerHTML.substring(0, 200) + '...');
-            // console.log('=======================');
+            // Botão expandir posteriores
+            if (!mostrarTodasPosteriores && rangeFim < semanas.length - 1) {
+                const qtdPosteriores = semanas.length - 1 - rangeFim;
+                html += `<div class="expand-weeks-btn" onclick="expandirPosteriores()">
+                    ${qtdPosteriores} semana${qtdPosteriores > 1 ? 's' : ''} posterior${qtdPosteriores > 1 ? 'es' : ''} ▶
+                </div>`;
+            }
+            
+            tabs.innerHTML = html;
             
             // Scroll para a aba ativa após renderizar
             setTimeout(() => {
                 scrollToActiveTab();
                 atualizarBotoesNavegacao();
             }, 100);
+        }
+        
+        function expandirAnteriores() {
+            mostrarTodasAnteriores = true;
+            renderizarAbas();
+        }
+        
+        function expandirPosteriores() {
+            mostrarTodasPosteriores = true;
+            renderizarAbas();
         }
         
         // ========== NOVA FUNÇÃO: Encontrar semana de uma data ==========
@@ -9656,3 +9723,4 @@
 </body>
 
 </html>
+
