@@ -7251,16 +7251,18 @@ def get_detalhes_diarias_motorista(id_motorista, tipo):
         
         # Buscar demandas do motorista que geraram diárias
         query = f"""
-            SELECT DISTINCT
-                ad.DT_INICIO,
-                ad.DT_FIM,
-                ad.SETOR,
-                ad.DESTINO,
-                ad.NU_SEI
-            FROM AGENDA_DEMANDAS ad
-            INNER JOIN {tabela_diarias} d ON ad.ID_AD = d.ID_AD
-            WHERE d.ID_MOTORISTA = %s
-            ORDER BY ad.DT_INICIO DESC, ad.DT_FIM DESC
+		    SELECT DISTINCT
+		        ad.DT_INICIO,
+		        ad.DT_FIM,
+		        ad.SETOR,
+		        ad.DESTINO,
+		        ad.NU_SEI,
+		        ad.ID_TIPOVEICULO,
+		        ad.ID_VEICULO
+		    FROM AGENDA_DEMANDAS ad
+		    INNER JOIN {tabela_diarias} d ON ad.ID_AD = d.ID_AD
+		    WHERE d.ID_MOTORISTA = %s
+		    ORDER BY ad.DT_INICIO DESC, ad.DT_FIM DESC
         """
         
         cursor.execute(query, (id_motorista,))
@@ -7268,41 +7270,62 @@ def get_detalhes_diarias_motorista(id_motorista, tipo):
         
         print(f"[DEBUG] Encontradas {len(demandas)} demandas")
         
-        # Converter para dicionários
-        demandas_dict = []
-        for row in demandas:
-            dt_inicio = row[0]
-            dt_fim = row[1]
-            
-            # Calcular quantidade de diárias
-            if dt_inicio and dt_fim:
-                if dt_inicio == dt_fim:
-                    # Mesmo dia = 0.5
-                    qtd_diarias = 0.5
-                else:
-                    # Diferença em dias
-                    diferenca = (dt_fim - dt_inicio).days
-                    # Fórmula: diferenca + 0.5
-                    # Ex: 1 dia = 1.5, 2 dias = 2.5, etc
-                    qtd_diarias = diferenca + 0.5
-            else:
-                qtd_diarias = 0
-            
-            # Formatar período
-            if dt_inicio == dt_fim:
-                periodo = dt_inicio.strftime('%d/%m/%Y') if dt_inicio else ''
-            else:
-                periodo_inicio = dt_inicio.strftime('%d/%m/%Y') if dt_inicio else ''
-                periodo_fim = dt_fim.strftime('%d/%m/%Y') if dt_fim else ''
-                periodo = f"{periodo_inicio} - {periodo_fim}"
-            
-            demandas_dict.append({
-                'PERIODO': periodo,
-                'SETOR': row[2] or '',
-                'DESTINO': row[3] or '',
-                'NU_SEI': row[4] or '',
-                'QTD_DIARIAS': qtd_diarias
-            })
+		# Converter para dicionários
+		demandas_dict = []
+		for row in demandas:
+		    dt_inicio = row[0]
+		    dt_fim = row[1]
+		    id_tipoveiculo = row[5]
+		    id_veiculo = row[6]
+		    
+		    # Buscar informação do veículo
+		    veiculo_info = ''
+		    if id_veiculo:
+		        if id_tipoveiculo == 1:  # Oficial
+		            cursor.execute("""
+		                SELECT CONCAT(DS_MODELO, ' - ', NU_PLACA) 
+		                FROM CAD_VEICULOS 
+		                WHERE ID_VEICULO = %s
+		            """, (id_veiculo,))
+		            result = cursor.fetchone()
+		            if result:
+		                veiculo_info = result[0]
+		        elif id_tipoveiculo == 2:  # Locado
+		            cursor.execute("""
+		                SELECT DS_VEICULO_MOD 
+		                FROM CONTROLE_LOCACAO_ITENS 
+		                WHERE ID_ITEM = %s
+		            """, (id_veiculo,))
+		            result = cursor.fetchone()
+		            if result and result[0]:
+		                veiculo_info = f"Locado: {result[0]}"
+		    
+		    # Calcular quantidade de diárias
+		    if dt_inicio and dt_fim:
+		        if dt_inicio == dt_fim:
+		            qtd_diarias = 0.5
+		        else:
+		            diferenca = (dt_fim - dt_inicio).days
+		            qtd_diarias = diferenca + 0.5
+		    else:
+		        qtd_diarias = 0
+		    
+		    # Formatar período
+		    if dt_inicio == dt_fim:
+		        periodo = dt_inicio.strftime('%d/%m/%Y') if dt_inicio else ''
+		    else:
+		        periodo_inicio = dt_inicio.strftime('%d/%m/%Y') if dt_inicio else ''
+		        periodo_fim = dt_fim.strftime('%d/%m/%Y') if dt_fim else ''
+		        periodo = f"{periodo_inicio} - {periodo_fim}"
+		    
+		    demandas_dict.append({
+		        'PERIODO': periodo,
+		        'SETOR': row[2] or '',
+		        'DESTINO': row[3] or '',
+		        'VEICULO': veiculo_info,
+		        'NU_SEI': row[4] or '',
+		        'QTD_DIARIAS': qtd_diarias
+		    })
         
         cursor.close()
         
@@ -11242,3 +11265,4 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
