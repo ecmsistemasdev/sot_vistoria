@@ -103,16 +103,21 @@
             margin-bottom: 5px;
         }
 
+        /* Ajuste de altura dos inputs nos formulários de orçamento */
         .form-group input,
         .form-group select,
         .form-group textarea {
-            padding: 8px 10px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 13px;
-            transition: border-color 0.2s;
             width: 100%;
-            box-sizing: border-box;
+            padding: 6px 8px;        /* Reduzido de 8px para 6px */
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            height: 32px;            /* Altura fixa para inputs e selects */
+        }
+
+        .form-group textarea {
+            height: auto;            /* Textarea mantém altura automática */
+            min-height: 50px;
         }
 
         .form-group select {
@@ -409,6 +414,50 @@
             font-size: 12px;
         }
 
+        /* Estilos para lista de itens de passagem */
+        .item-passagem {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+
+        .item-passagem:hover {
+            background: #f8f9fa;
+        }
+
+        .item-passagem-info {
+            flex: 1;
+        }
+
+        .item-passagem-tipo {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .item-passagem-detalhes {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .item-passagem-valor {
+            font-weight: 600;
+            color: #28a745;
+            font-size: 14px;
+            margin: 0 15px;
+        }
+
+        .item-passagem-acoes {
+            display: flex;
+            gap: 5px;
+        }
 
     </style>
 </head>
@@ -476,11 +525,6 @@
                 </tbody>
             </table>
         </div>
-        <!-- <div style="text-align: center; margin-top: 15px;">
-            <button class="btn btn-success" onclick="abrirModal()" style="padding: 6px 20px; font-size: 12px;">
-                <span style="font-size: 14px; margin-right: 5px;">+</span> Adicionar Registro
-            </button>
-        </div>         -->
     </div>
 
     <!-- Modal -->
@@ -584,8 +628,69 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
                     <button type="submit" class="btn btn-primary" id="btnSalvar">Salvar</button>
+                    <button type="button" class="btn" id="btnGerenciarItens" onclick="abrirModalItensPassagem()" 
+                            style="background: #17a2b8; color: white; margin-left: 10px; display: none;">
+                        📋 Gerenciar Itens
+                    </button>            
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal Gerenciar Itens do orçamento Passagem -->
+    <div id="modalItensPassagem" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>📋 Gerenciar Itens de Orçamento</h2>
+                <span class="close" onclick="fecharModalItensPassagem()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Formulário de Adição -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <h3 style="font-size: 14px; margin-bottom: 12px; color: #333;">➕ Adicionar Item</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo de Item <span style="color: red;">*</span></label>
+                            <select id="tipoItemPassagem" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Valor do Item (R$) <span style="color: red;">*</span></label>
+                            <input type="number" id="vlItem" min="0" step="0.01" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nº Empenho</label>
+                            <input type="text" id="nuEmpenhoItem" maxlength="12" placeholder="Ex: 2024NE00001">
+                        </div>
+                        <div class="form-group">
+                            <label>Observações</label>
+                            <input type="text" id="obsItem" maxlength="200">
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: right; margin-top: 10px;">
+                        <button type="button" class="btn btn-primary" onclick="adicionarItemPassagem()">
+                            ➕ Adicionar Item
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Lista de Itens -->
+                <div>
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #333;">📦 Itens Cadastrados</h3>
+                    <div id="listaItensPassagem" style="max-height: 400px; overflow-y: auto;">
+                        <div class="loading">Carregando itens...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalItensPassagem()">Fechar</button>
+            </div>
         </div>
     </div>
 
@@ -605,6 +710,8 @@
     <script>
         let dadosIniciais = {};
         let linhasExpandidas = new Set();
+        let idOrcamentoAtual = null;
+        let tiposItemOPA = [];
 
         function controlarBilhetes() {
             mostrarAlerta('🚧 Funcionalidade em construção', 'success');
@@ -930,6 +1037,7 @@
             const modal = document.getElementById('modalOrcamento');
             const titulo = document.getElementById('modalTitulo');
             const btnSalvar = document.getElementById('btnSalvar');
+            const btnGerenciarItens = document.getElementById('btnGerenciarItens');
             
             if (idOpa) {
                 // Modo edição
@@ -937,12 +1045,14 @@
                 btnSalvar.textContent = 'Atualizar';
                 document.getElementById('modoEdicao').value = 'true';
                 carregarRegistroParaEdicao(idOpa);
+                btnGerenciarItens.style.display = 'inline-block'; // Mostrar botão em modo edição
             } else {
                 // Modo inserção
                 titulo.textContent = 'Adicionar Registro de Orçamento';
                 btnSalvar.textContent = 'Salvar';
                 document.getElementById('modoEdicao').value = 'false';
                 limparFormulario();
+                btnGerenciarItens.style.display = 'none'; // Ocultar botão em modo inserção
                 document.getElementById('id_opa').value = dadosIniciais.proximo_id;
                 document.getElementById('exercicio').value = new Date().getFullYear();
             }
@@ -1124,6 +1234,206 @@
         function limparFormulario() {
             document.getElementById('formOrcamento').reset();
             document.getElementById('elemento_despesa').value = '33.90.33';
+        }
+
+        // ==========================================
+        // GERENCIAMENTO DE ITENS DE PASSAGEM
+        // ==========================================
+
+        async function carregarTiposItemOPA() {
+            try {
+                const response = await fetch('/api/tipos-item-opa');
+                const data = await response.json();
+                
+                if (data.success) {
+                    tiposItemOPA = data.tipos;
+                    
+                    const select = document.getElementById('tipoItemPassagem');
+                    select.innerHTML = '<option value="">Selecione...</option>';
+                    
+                    data.tipos.forEach(tipo => {
+                        const option = document.createElement('option');
+                        option.value = tipo.IDTIPO_ITEM;
+                        option.textContent = tipo.DESCRICAO;
+                        option.dataset.fltipo = tipo.FLTIPO;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar tipos de item:', error);
+                alert('Erro ao carregar tipos de item');
+            }
+        }
+
+        async function abrirModalItensPassagem() {
+            // Obter o ID do orçamento atual
+            idOrcamentoAtual = document.getElementById('id_opa').value;
+            
+            if (!idOrcamentoAtual) {
+                alert('Salve o orçamento antes de gerenciar itens');
+                return;
+            }
+            
+            // Carregar tipos de item
+            await carregarTiposItemOPA();
+            
+            // Carregar itens existentes
+            await carregarItensPassagem();
+            
+            // Abrir modal
+            document.getElementById('modalItensPassagem').style.display = 'block';
+        }
+
+        function fecharModalItensPassagem() {
+            document.getElementById('modalItensPassagem').style.display = 'none';
+            limparFormularioItemPassagem();
+        }
+
+        function limparFormularioItemPassagem() {
+            document.getElementById('tipoItemPassagem').value = '';
+            document.getElementById('vlItem').value = '';
+            document.getElementById('nuEmpenhoItem').value = '';
+            document.getElementById('obsItem').value = '';
+        }
+
+        function calcularValorTotalItem() {
+            const qtd = parseFloat(document.getElementById('qtdItemPassagem').value) || 0;
+            const vlUnit = parseFloat(document.getElementById('vlUnitItemPassagem').value) || 0;
+            const total = (qtd * vlUnit).toFixed(2);
+            document.getElementById('vlTotalItemPassagem').value = total;
+        }
+
+        async function carregarItensPassagem() {
+            try {
+                const response = await fetch(`/api/orcamento-passagens-itens/${idOrcamentoAtual}`);
+                const data = await response.json();
+                
+                const container = document.getElementById('listaItensPassagem');
+                
+                if (!data.success || data.itens.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666; font-style: italic;">Nenhum item cadastrado</div>';
+                    return;
+                }
+                
+                let html = '';
+                data.itens.forEach(item => {
+                    const tipoLabel = item.FLTIPO === 'E' ? '📥 Entrada' : '📤 Saída';
+                    const tipoColor = item.FLTIPO === 'E' ? '#28a745' : '#dc3545';
+                    
+                    html += `
+                        <div class="item-passagem">
+                            <div class="item-passagem-info">
+                                <div class="item-passagem-tipo">
+                                    ${item.DESCRICAO_TIPO}
+                                    <span style="background: ${tipoColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 10px; margin-left: 8px;">
+                                        ${tipoLabel}
+                                    </span>
+                                </div>
+                                <div class="item-passagem-detalhes">
+                                    ${item.NU_EMPENHO ? 'Empenho: ' + item.NU_EMPENHO : 'Sem empenho'}
+                                    ${item.OBS ? ' | Obs: ' + item.OBS : ''}
+                                </div>
+                                <div style="font-size: 11px; color: #999; margin-top: 3px;">
+                                    Lançado por ${item.USUARIO} em ${formatarDataHora(item.DT_LANCAMENTO)}
+                                </div>
+                            </div>
+                            <div class="item-passagem-valor">
+                                R$ ${parseFloat(item.VL_ITEM).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            </div>
+                            <div class="item-passagem-acoes">
+                                <button type="button" class="btn btn-danger" onclick="excluirItemPassagem(${item.IDITEM_OPA})" 
+                                        style="padding: 6px 12px; font-size: 12px;">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Erro ao carregar itens:', error);
+                document.getElementById('listaItensPassagem').innerHTML = 
+                    '<div style="color: #dc3545; padding: 10px;">Erro ao carregar itens</div>';
+            }
+        }
+
+        // Função auxiliar para formatar data/hora
+        function formatarDataHora(dataHora) {
+            if (!dataHora) return '';
+            const data = new Date(dataHora);
+            return data.toLocaleString('pt-BR');
+        }
+
+        async function adicionarItemPassagem() {
+            const idTipo = document.getElementById('tipoItemPassagem').value;
+            const vlItem = document.getElementById('vlItem').value;
+            
+            if (!idTipo || !vlItem) {
+                alert('Preencha os campos obrigatórios (Tipo e Valor)');
+                return;
+            }
+            
+            // Obter FLTIPO do select
+            const selectTipo = document.getElementById('tipoItemPassagem');
+            const fltipo = selectTipo.options[selectTipo.selectedIndex].dataset.fltipo;
+            
+            const dados = {
+                id_opa: idOrcamentoAtual,
+                idtipo_item: parseInt(idTipo),
+                fltipo: fltipo,
+                vl_item: parseFloat(vlItem),
+                nu_empenho: document.getElementById('nuEmpenhoItem').value || null,
+                obs: document.getElementById('obsItem').value || null
+            };
+            
+            try {
+                const response = await fetch('/api/orcamento-passagens-itens/adicionar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Item adicionado com sucesso!');
+                    limparFormularioItemPassagem();
+                    await carregarItensPassagem();
+                } else {
+                    alert('Erro ao adicionar item: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao adicionar item:', error);
+                alert('Erro ao adicionar item');
+            }
+        }
+
+        async function excluirItemPassagem(idItem) {
+            if (!confirm('Deseja realmente excluir este item?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/orcamento-passagens-itens/excluir/${idItem}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Item excluído com sucesso!');
+                    await carregarItensPassagem();
+                } else {
+                    alert('Erro ao excluir item: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao excluir item:', error);
+                alert('Erro ao excluir item');
+            }
         }
 
         function mostrarAlerta(mensagem, tipo) {
