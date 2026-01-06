@@ -9524,6 +9524,7 @@
                             </div>
                         </td>
                     </tr>
+                    
                 `;
             });
             
@@ -9672,11 +9673,12 @@
                         <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
                             <thead>
                                 <tr style="background: #e9ecef;">
-                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 18%;">Período</th>
-                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 22%;">Setor</th>
-                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 28%;">Destino</th>
-                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 20%;">SEI</th>
-                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 12%; text-align: center; background: #d4edda;">Qtd. Diárias</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 15%;">Período</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 18%;">Setor</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 22%;">Destino</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 20%;">Veículo</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 15%;">SEI</th>
+                                    <th style="padding: 6px; border: 1px solid #dee2e6; width: 10%; text-align: center; background: #d4edda;">Qtd. Diárias</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -9688,6 +9690,7 @@
                                 <td style="padding: 6px; border: 1px solid #dee2e6;">${d.PERIODO}</td>
                                 <td style="padding: 6px; border: 1px solid #dee2e6;">${d.SETOR}</td>
                                 <td style="padding: 6px; border: 1px solid #dee2e6;">${d.DESTINO}</td>
+                                <td style="padding: 6px; border: 1px solid #dee2e6;">${d.VEICULO}</td>
                                 <td style="padding: 6px; border: 1px solid #dee2e6;">${d.NU_SEI}</td>
                                 <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: 600; background: #d4edda;">${d.QTD_DIARIAS.toFixed(1)}</td>
                             </tr>
@@ -9723,4 +9726,5 @@
 </body>
 
 </html>
+
 
