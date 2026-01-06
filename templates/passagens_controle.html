@@ -1273,12 +1273,57 @@
                     "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json"
                 },
                 "pageLength": 25,
-                "order": [[0, "desc"]],
+                "order": [[0, "asc"]],
                 "columnDefs": [
                     { "orderable": false, "targets": -1 }
                 ]
             });
-        
+
+            // Inicializar DataTable
+            var table = $('#tabelaPassagens').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json"
+                },
+                "pageLength": 25,
+                "order": [[0, "asc"]],
+                "columnDefs": [
+                    { "orderable": false, "targets": -1 }
+                ],
+                "drawCallback": function(settings) {
+                    // Recalcular totalizadores após cada draw
+                    calcularTotalizadoresVisiveis();
+                }
+            });
+            
+            // Função para calcular totalizadores das linhas visíveis
+            function calcularTotalizadoresVisiveis() {
+                let dadosVisiveis = [];
+                $('#tabelaPassagens tbody tr:visible:not(#linha-totalizadores)').each(function() {
+                    let cells = $(this).find('td');
+                    if (cells.length > 0) {
+                        let valorTexto = cells.eq(7).text().replace('R$ ', '').trim();
+                        let passagem = [
+                            cells.eq(0).text(), '', '', '', 
+                            cells.eq(1).text(), cells.eq(5).text(),
+                            cells.eq(4).find('strong').text(),
+                            '', '', '', '', 
+                            cells.eq(6).text(), cells.eq(2).text(),
+                            cells.eq(3).text(), '', '', '', '', 
+                            valorTexto
+                        ];
+                        dadosVisiveis.push(passagem);
+                    }
+                });
+                
+                if (dadosVisiveis.length > 0) {
+                    atualizarTotalizadores(dadosVisiveis);
+                }
+            }
+            
+            // Calcular totalizadores iniciais
+            calcularTotalizadoresVisiveis();
+
+            
             // Máscaras de input
             aplicarMascaras();
         
@@ -1815,28 +1860,27 @@
                 totalValor += valor;
             });
             
-            // Atualizar ou criar a linha de totalizadores
-            let tabelaBody = document.querySelector('#tabelaPassagens tbody');
-            let linhaTotalizadores = document.getElementById('linha-totalizadores');
-            
-            if (!linhaTotalizadores) {
-                linhaTotalizadores = document.createElement('tr');
-                linhaTotalizadores.id = 'linha-totalizadores';
-                linhaTotalizadores.style.backgroundColor = '#e8e8e8';
-                linhaTotalizadores.innerHTML = `
-                    <td colspan="7" style="text-align: right; padding: 12px;">
-                        <strong>Total de Registros: <span id="total-registros">${quantidadeRegistros}</span></strong>
-                    </td>
-                    <td style="padding: 12px;">
-                        <strong>R$ <span id="total-valor">${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></strong>
-                    </td>
-                    <td></td>
-                `;
-                tabelaBody.appendChild(linhaTotalizadores);
-            } else {
-                document.getElementById('total-registros').textContent = quantidadeRegistros;
-                document.getElementById('total-valor').textContent = totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            // Remover linha de totalizadores anterior se existir
+            let linhaExistente = document.getElementById('linha-totalizadores');
+            if (linhaExistente) {
+                linhaExistente.remove();
             }
+            
+            // Criar nova linha de totalizadores
+            let tabelaBody = document.querySelector('#tabelaPassagens tbody');
+            let linhaTotalizadores = document.createElement('tr');
+            linhaTotalizadores.id = 'linha-totalizadores';
+            linhaTotalizadores.style.backgroundColor = '#e8e8e8';
+            linhaTotalizadores.innerHTML = `
+                <td colspan="7" style="text-align: right; padding: 12px;">
+                    Total de Registros: <span id="total-registros">${quantidadeRegistros}</span>
+                </td>
+                <td style="padding: 12px;">
+                    R$ <span id="total-valor">${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </td>
+                <td></td>
+            `;
+            tabelaBody.appendChild(linhaTotalizadores);
         }
         
         // ============================================================================
