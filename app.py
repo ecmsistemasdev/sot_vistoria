@@ -9211,7 +9211,7 @@ def passagens_filtrar():
             query += " AND pae.LOCALIZADOR LIKE %s"
             params.append(f"%{localizador_filtro}%")
         
-        query += " ORDER BY pae.DT_EMISSAO DESC, pae.ID_OF DESC"
+        query += " ORDER BY pae.ID_OF ASC"
         
         cursor.execute(query, tuple(params))
         passagens = cursor.fetchall()
@@ -11264,6 +11264,7 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
