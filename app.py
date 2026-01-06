@@ -8725,7 +8725,7 @@ def passagens_controle():
             LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
             LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
             WHERE pae.ATIVO = 'S'
-            ORDER BY pae.DT_EMISSAO DESC, pae.ID_OF DESC
+            ORDER BY pae.ID_OF
         """)
         passagens = cursor.fetchall()
         
@@ -11264,5 +11264,6 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
