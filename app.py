@@ -7371,6 +7371,169 @@ def agenda_busca_setor():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+@app.route('/api/periodos_diarias_terceirizados')
+@login_required
+def periodos_diarias_terceirizados():
+    """Retorna lista de períodos (mês/ano) disponíveis para o relatório"""
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+        SELECT DISTINCT 
+            CONCAT(
+                CASE MONTH(ad.DT_INICIO)
+                    WHEN 1 THEN 'Janeiro'
+                    WHEN 2 THEN 'Fevereiro'
+                    WHEN 3 THEN 'Março'
+                    WHEN 4 THEN 'Abril'
+                    WHEN 5 THEN 'Maio'
+                    WHEN 6 THEN 'Junho'
+                    WHEN 7 THEN 'Julho'
+                    WHEN 8 THEN 'Agosto'
+                    WHEN 9 THEN 'Setembro'
+                    WHEN 10 THEN 'Outubro'
+                    WHEN 11 THEN 'Novembro'
+                    WHEN 12 THEN 'Dezembro'
+                END,
+                '/',
+                YEAR(ad.DT_INICIO)
+            ) AS MES_ANO
+        FROM DIARIAS_TERCEIRIZADOS dt
+        JOIN AGENDA_DEMANDAS ad ON ad.ID_AD = dt.ID_AD
+        ORDER BY YEAR(ad.DT_INICIO) DESC, MONTH(ad.DT_INICIO) DESC
+        """
+        
+        cursor.execute(query)
+        periodos = [row[0] for row in cursor.fetchall()]
+        cursor.close()
+        
+        return jsonify({'periodos': periodos})
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar períodos: {str(e)}")
+        return jsonify({'erro': str(e)}), 500
+
+
+@app.route('/rel_diarias_terceirizados')
+@login_required
+def rel_diarias_terceirizados():
+    """Gera o relatório de diárias de motoristas terceirizados como PDF"""
+    try:
+        periodos = request.args.getlist('periodos')
+        
+        if not periodos:
+            return "Nenhum período selecionado", 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Construir condições para os períodos selecionados
+        condicoes_periodos = []
+        for periodo in periodos:
+            partes = periodo.split('/')
+            if len(partes) == 2:
+                mes_nome, ano = partes
+                # Mapear nome do mês para número
+                meses = {
+                    'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4,
+                    'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8,
+                    'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
+                }
+                mes_num = meses.get(mes_nome)
+                if mes_num:
+                    condicoes_periodos.append(f"(MONTH(ad.DT_INICIO) = {mes_num} AND YEAR(ad.DT_INICIO) = {ano})")
+        
+        if not condicoes_periodos:
+            return "Períodos inválidos", 400
+        
+        where_periodos = " OR ".join(condicoes_periodos)
+        
+        query = f"""
+        SELECT 
+            m.NM_MOTORISTA,
+            ad.NU_SEI,
+            ad.DT_INICIO,
+            ad.DT_FIM,
+            CONCAT(
+                CASE MONTH(ad.DT_INICIO)
+                    WHEN 1 THEN 'Janeiro'
+                    WHEN 2 THEN 'Fevereiro'
+                    WHEN 3 THEN 'Março'
+                    WHEN 4 THEN 'Abril'
+                    WHEN 5 THEN 'Maio'
+                    WHEN 6 THEN 'Junho'
+                    WHEN 7 THEN 'Julho'
+                    WHEN 8 THEN 'Agosto'
+                    WHEN 9 THEN 'Setembro'
+                    WHEN 10 THEN 'Outubro'
+                    WHEN 11 THEN 'Novembro'
+                    WHEN 12 THEN 'Dezembro'
+                END,
+                '/',
+                YEAR(ad.DT_INICIO)
+            ) as MES_ANO,
+            dt.QT_DIARIAS,
+            dt.VL_TOTAL,
+            CASE WHEN dt.FL_EMAIL='S' THEN 'SIM' ELSE 'NÃO' END as PAGO
+        FROM DIARIAS_TERCEIRIZADOS dt
+        JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = dt.ID_MOTORISTA
+        JOIN AGENDA_DEMANDAS ad ON ad.ID_AD = dt.ID_AD
+        WHERE ({where_periodos})
+        ORDER BY 
+            YEAR(ad.DT_INICIO),
+            MONTH(ad.DT_INICIO),
+            m.NM_MOTORISTA,
+            ad.DT_INICIO
+        """
+        
+        cursor.execute(query)
+        items = cursor.fetchall()
+        cursor.close()
+        
+        # Converter logo para base64
+        import os
+        import base64
+        logo_path = os.path.join(app.root_path, 'static', 'img', 'logo.png')
+        logo_base64 = ""
+        
+        try:
+            with open(logo_path, 'rb') as f:
+                logo_base64 = base64.b64encode(f.read()).decode('utf-8')
+        except Exception as e:
+            app.logger.warning(f"Não foi possível carregar a logo: {str(e)}")
+        
+        # Agrupar por período se múltiplos períodos
+        agrupar = len(periodos) > 1
+        
+        # Renderizar o HTML primeiro
+        html_content = render_template('rel_diarias_terceirizados.html',
+                                      items=items,
+                                      periodos=periodos,
+                                      agrupar=agrupar,
+                                      logo_base64=logo_base64)
+        
+        # Converter para PDF com xhtml2pdf
+        pdf_buffer = BytesIO()
+        pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
+        
+        if pisa_status.err:
+            return "Erro ao gerar PDF", 500
+        
+        pdf_buffer.seek(0)
+        
+        response = make_response(pdf_buffer.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = 'inline; filename=relatorio_diarias_terceirizados.pdf'
+        
+        return response
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao gerar relatório: {str(e)}")
+        return f"Erro ao gerar relatório: {str(e)}", 500
+
+
+### fim das rotas da agenda #############################################
+
+
 
 @app.route('/api/criar_locacao_fornecedor', methods=['POST'])
 @login_required
@@ -11264,6 +11427,7 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
