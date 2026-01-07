@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Diárias - Motoristas Terceirizados</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1.5cm 1cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            color: #333;
+        }
+        
+        .header-container {
+            display: table;
+            width: 100%;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #6f42c1;
+            padding-bottom: 10px;
+        }
+        
+        .header-logo {
+            display: table-cell;
+            width: 80px;
+            vertical-align: middle;
+        }
+        
+        .header-logo img {
+            width: 70px;
+            height: auto;
+        }
+        
+        .header-title {
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
+            padding: 0 10px;
+        }
+        
+        .header-title h1 {
+            font-size: 16pt;
+            color: #6f42c1;
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+        
+        .header-title h2 {
+            font-size: 11pt;
+            color: #555;
+            font-weight: normal;
+        }
+        
+        .periodo-grupo {
+            margin-top: 20px;
+        }
+        
+        .periodo-grupo:first-child {
+            margin-top: 10px;
+        }
+        
+        .periodo-titulo {
+            background: #6f42c1;
+            color: white;
+            padding: 6px 12px;
+            font-size: 11pt;
+            font-weight: 600;
+            margin-bottom: 8px;
+            border-radius: 3px;
+        }
+        
+        .table-container {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+        
+        thead {
+            background: #f0f0f0;
+        }
+        
+        th {
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #ccc;
+            background: #e8e8e8;
+            color: #333;
+        }
+        
+        th.center {
+            text-align: center;
+        }
+        
+        th.right {
+            text-align: right;
+        }
+        
+        td {
+            padding: 6px 6px;
+            border: 1px solid #ddd;
+        }
+        
+        td.center {
+            text-align: center;
+        }
+        
+        td.right {
+            text-align: right;
+        }
+        
+        tbody tr:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+        
+        .total-row {
+            background: #e8f5e9 !important;
+            font-weight: 600;
+            border-top: 2px solid #6f42c1 !important;
+        }
+        
+        .subtotal-row {
+            background: #fff3e0 !important;
+            font-weight: 600;
+            border-top: 1px solid #ff9800 !important;
+        }
+        
+        .footer-info {
+            margin-top: 20px;
+            font-size: 8pt;
+            color: #666;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            padding-top: 8px;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <!-- Cabeçalho -->
+    <div class="header-container">
+        {% if logo_base64 %}
+        <div class="header-logo">
+            <img src="data:image/png;base64,{{ logo_base64 }}" alt="Logo">
+        </div>
+        {% endif %}
+        <div class="header-title">
+            <h1>Controle de Diárias Motoristas Terceirizados</h1>
+            <h2>
+                {% if periodos|length == 1 %}
+                    Período: {{ periodos[0] }}
+                {% else %}
+                    Períodos Selecionados: {{ periodos|length }}
+                {% endif %}
+            </h2>
+        </div>
+        <div class="header-logo"></div> <!-- Espaçador para simetria -->
+    </div>
+
+    <!-- Conteúdo -->
+    {% if items|length == 0 %}
+        <div class="no-data">
+            Nenhum registro encontrado para o(s) período(s) selecionado(s).
+        </div>
+    {% else %}
+        {% if agrupar %}
+            {# Agrupar por período #}
+            {% set periodos_dict = {} %}
+            {% for item in items %}
+                {% if item[4] not in periodos_dict %}
+                    {% set _ = periodos_dict.update({item[4]: []}) %}
+                {% endif %}
+                {% set _ = periodos_dict[item[4]].append(item) %}
+            {% endfor %}
+            
+            {% for periodo in periodos %}
+                {% if periodo in periodos_dict %}
+                    <div class="periodo-grupo">
+                        <div class="periodo-titulo">{{ periodo }}</div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 4%;" class="center">Item</th>
+                                        <th style="width: 28%;">Nome</th>
+                                        <th style="width: 14%;" class="center">Nº SEI</th>
+                                        <th style="width: 18%;" class="center">Período</th>
+                                        <th style="width: 12%;" class="center">Mês/Ano</th>
+                                        <th style="width: 8%;" class="center">Diárias</th>
+                                        <th style="width: 10%;" class="right">Valor Pago</th>
+                                        <th style="width: 6%;" class="center">Pago</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set subtotal_diarias = namespace(value=0) %}
+                                    {% set subtotal_valor = namespace(value=0) %}
+                                    
+                                    {% for item in periodos_dict[periodo] %}
+                                        {% set subtotal_diarias.value = subtotal_diarias.value + (item[5] or 0) %}
+                                        {% set subtotal_valor.value = subtotal_valor.value + (item[6] or 0) %}
+                                        <tr>
+                                            <td class="center">{{ loop.index }}</td>
+                                            <td>{{ item[0] }}</td>
+                                            <td class="center">{{ item[1] }}</td>
+                                            <td class="center">
+                                                {% if item[2] == item[3] %}
+                                                    {{ item[2].strftime('%d/%m/%Y') }}
+                                                {% else %}
+                                                    {{ item[2].strftime('%d/%m/%Y') }} a {{ item[3].strftime('%d/%m/%Y') }}
+                                                {% endif %}
+                                            </td>
+                                            <td class="center">{{ item[4] }}</td>
+                                            <td class="center">{{ item[5] or 0 }}</td>
+                                            <td class="right">R$ {{ "%.2f"|format(item[6] or 0) }}</td>
+                                            <td class="center">{{ item[7] }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    
+                                    <tr class="subtotal-row">
+                                        <td colspan="5" style="text-align: right; padding-right: 10px;">
+                                            <strong>Subtotal {{ periodo }}:</strong>
+                                        </td>
+                                        <td class="center"><strong>{{ subtotal_diarias.value }}</strong></td>
+                                        <td class="right"><strong>R$ {{ "%.2f"|format(subtotal_valor.value) }}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+            {# Total Geral #}
+            {% set total_diarias = namespace(value=0) %}
+            {% set total_valor = namespace(value=0) %}
+            {% for item in items %}
+                {% set total_diarias.value = total_diarias.value + (item[5] or 0) %}
+                {% set total_valor.value = total_valor.value + (item[6] or 0) %}
+            {% endfor %}
+            
+            <div class="table-container">
+                <table>
+                    <tbody>
+                        <tr class="total-row">
+                            <td colspan="5" style="text-align: right; padding-right: 10px; width: 76%;">
+                                <strong>TOTAL GERAL:</strong>
+                            </td>
+                            <td class="center" style="width: 8%;"><strong>{{ total_diarias.value }}</strong></td>
+                            <td class="right" style="width: 10%;"><strong>R$ {{ "%.2f"|format(total_valor.value) }}</strong></td>
+                            <td style="width: 6%;"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+        {% else %}
+            {# Sem agrupamento - período único #}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 4%;" class="center">Item</th>
+                            <th style="width: 28%;">Nome</th>
+                            <th style="width: 14%;" class="center">Nº SEI</th>
+                            <th style="width: 18%;" class="center">Período</th>
+                            <th style="width: 12%;" class="center">Mês/Ano</th>
+                            <th style="width: 8%;" class="center">Diárias</th>
+                            <th style="width: 10%;" class="right">Valor Pago</th>
+                            <th style="width: 6%;" class="center">Pago</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set total_diarias = namespace(value=0) %}
+                        {% set total_valor = namespace(value=0) %}
+                        
+                        {% for item in items %}
+                            {% set total_diarias.value = total_diarias.value + (item[5] or 0) %}
+                            {% set total_valor.value = total_valor.value + (item[6] or 0) %}
+                            <tr>
+                                <td class="center">{{ loop.index }}</td>
+                                <td>{{ item[0] }}</td>
+                                <td class="center">{{ item[1] }}</td>
+                                <td class="center">
+                                    {% if item[2] == item[3] %}
+                                        {{ item[2].strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        {{ item[2].strftime('%d/%m/%Y') }} a {{ item[3].strftime('%d/%m/%Y') }}
+                                    {% endif %}
+                                </td>
+                                <td class="center">{{ item[4] }}</td>
+                                <td class="center">{{ item[5] or 0 }}</td>
+                                <td class="right">R$ {{ "%.2f"|format(item[6] or 0) }}</td>
+                                <td class="center">{{ item[7] }}</td>
+                            </tr>
+                        {% endfor %}
+                        
+                        <tr class="total-row">
+                            <td colspan="5" style="text-align: right; padding-right: 10px;">
+                                <strong>TOTAL:</strong>
+                            </td>
+                            <td class="center"><strong>{{ total_diarias.value }}</strong></td>
+                            <td class="right"><strong>R$ {{ "%.2f"|format(total_valor.value) }}</strong></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    <!-- Rodapé -->
+    <div class="footer-info">
+        Relatório gerado em {{ now().strftime('%d/%m/%Y às %H:%M') }}
+    </div>
+</body>
+</html>
