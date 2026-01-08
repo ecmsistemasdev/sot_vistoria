@@ -7211,7 +7211,7 @@ def rel_diarias_terceirizados():
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
-        from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
         
         periodos = request.args.getlist('periodos')
         
@@ -7263,7 +7263,7 @@ def rel_diarias_terceirizados():
         JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = dt.ID_MOTORISTA
         JOIN AGENDA_DEMANDAS ad ON ad.ID_AD = dt.ID_AD
         WHERE ({where_periodos}) AND ad.DT_INICIO IS NOT NULL AND ad.DT_FIM IS NOT NULL
-        ORDER BY YEAR(ad.DT_INICIO), MONTH(ad.DT_INICIO), m.NM_MOTORISTA, ad.DT_INICIO
+        ORDER BY f.NM_FORNECEDOR, YEAR(ad.DT_INICIO), MONTH(ad.DT_INICIO), m.NM_MOTORISTA, ad.DT_INICIO
         """
         
         cursor.execute(query)
@@ -7297,50 +7297,126 @@ def rel_diarias_terceirizados():
                                        fontSize=12, textColor=colors.grey,
                                        spaceAfter=10, alignment=TA_CENTER)
         
+        empresa_style = ParagraphStyle('Empresa', parent=styles['Normal'],
+                                      fontSize=11, textColor=colors.black,
+                                      spaceAfter=10, alignment=TA_LEFT)
+        
         elements.append(Paragraph('Controle de Diárias Motoristas Terceirizados', title_style))
         
         periodo_texto = periodos[0] if len(periodos) == 1 else f'Períodos Selecionados: {len(periodos)}'
         elements.append(Paragraph(f'Período: {periodo_texto}', subtitle_style))
         elements.append(Spacer(1, 0.5*cm))
         
-        # Agrupar por período se necessário
+        # Agrupar por fornecedor e período se necessário
         agrupar = len(periodos) > 1
         
-        if agrupar:
-            periodos_dict = {}
-            for item in items:
-                periodo = item[4]
-                if periodo not in periodos_dict:
-                    periodos_dict[periodo] = []
-                periodos_dict[periodo].append(item)
+        # Agrupar por fornecedor
+        fornecedores_dict = {}
+        for item in items:
+            fornecedor = item[8]  # NM_FORNECEDOR é o índice 8
+            if fornecedor not in fornecedores_dict:
+                fornecedores_dict[fornecedor] = []
+            fornecedores_dict[fornecedor].append(item)
+        
+        total_geral_diarias = 0
+        total_geral_valor = 0
+        
+        for fornecedor, items_fornecedor in fornecedores_dict.items():
+            # Nome do fornecedor
+            elements.append(Paragraph(f'Empresa: {fornecedor}', empresa_style))
             
-            total_geral_diarias = 0
-            total_geral_valor = 0
-            
-            for periodo in periodos:
-                if periodo not in periodos_dict:
-                    continue
-                    
-                # Título do período
-                periodo_style = ParagraphStyle('Periodo', parent=styles['Normal'],
-                                              fontSize=11, textColor=colors.white,
-                                              backColor=colors.HexColor('#1a73e8'),
-                                              leftIndent=5, spaceAfter=5)
-                elements.append(Paragraph(periodo, periodo_style))
+            if agrupar:
+                periodos_dict = {}
+                for item in items_fornecedor:
+                    periodo = item[4]
+                    if periodo not in periodos_dict:
+                        periodos_dict[periodo] = []
+                    periodos_dict[periodo].append(item)
                 
-                # Cabeçalho da tabela
+                for periodo in periodos:
+                    if periodo not in periodos_dict:
+                        continue
+                        
+                    # Título do período
+                    periodo_style = ParagraphStyle('Periodo', parent=styles['Normal'],
+                                                  fontSize=11, textColor=colors.white,
+                                                  backColor=colors.HexColor('#1a73e8'),
+                                                  leftIndent=5, spaceAfter=5)
+                    elements.append(Paragraph(periodo, periodo_style))
+                    
+                    # Cabeçalho da tabela
+                    data = [['Item', 'Nome', 'Nº SEI', 'Período', 'Mês/Ano', 'Diárias', 'Valor', 'Pago']]
+                    
+                    subtotal_diarias = 0
+                    subtotal_valor = 0
+                    
+                    for idx, item in enumerate(periodos_dict[periodo], 1):
+                        dt_inicio = item[2].strftime('%d/%m/%Y') if item[2] else '-'
+                        dt_fim = item[3].strftime('%d/%m/%Y') if item[3] else '-'
+                        periodo_str = dt_inicio if dt_inicio == dt_fim else f'{dt_inicio} a {dt_fim}'
+                        
+                        subtotal_diarias += item[5]
+                        subtotal_valor += item[6]
+                        
+                        data.append([
+                            str(idx),
+                            item[0] or '-',
+                            item[1] or '-',
+                            periodo_str,
+                            item[4] or '-',
+                            formatar_numero_br(item[5]),
+                            formatar_moeda_br(item[6]),
+                            item[7] or 'NÃO'
+                        ])
+                    
+                    # Subtotal
+                    data.append(['', '', '', '', 'Subtotal:', formatar_numero_br(subtotal_diarias), 
+                                formatar_moeda_br(subtotal_valor), ''])
+                    
+                    total_geral_diarias += subtotal_diarias
+                    total_geral_valor += subtotal_valor
+                    
+                    # Criar tabela
+                    table = Table(data, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+                    table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                        ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('FONTSIZE', (0, 1), (-1, -1), 9),
+                        ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+                        ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+                        ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+                        ('ALIGN', (4, 1), (4, -1), 'CENTER'),
+                        ('ALIGN', (5, 1), (5, -1), 'CENTER'),
+                        ('ALIGN', (6, 1), (6, -1), 'RIGHT'),
+                        ('ALIGN', (7, 1), (7, -1), 'CENTER'),
+                        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#fff3cd')),
+                        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                        ('ALIGN', (4, -1), (4, -1), 'RIGHT'),
+                    ]))
+                    
+                    elements.append(table)
+                    elements.append(Spacer(1, 0.5*cm))
+                    
+            else:
+                # Sem agrupamento por período
                 data = [['Item', 'Nome', 'Nº SEI', 'Período', 'Mês/Ano', 'Diárias', 'Valor', 'Pago']]
                 
-                subtotal_diarias = 0
-                subtotal_valor = 0
+                total_fornecedor_diarias = 0
+                total_fornecedor_valor = 0
                 
-                for idx, item in enumerate(periodos_dict[periodo], 1):
+                for idx, item in enumerate(items_fornecedor, 1):
                     dt_inicio = item[2].strftime('%d/%m/%Y') if item[2] else '-'
                     dt_fim = item[3].strftime('%d/%m/%Y') if item[3] else '-'
                     periodo_str = dt_inicio if dt_inicio == dt_fim else f'{dt_inicio} a {dt_fim}'
                     
-                    subtotal_diarias += item[5]
-                    subtotal_valor += item[6]
+                    total_fornecedor_diarias += item[5]
+                    total_fornecedor_valor += item[6]
                     
                     data.append([
                         str(idx),
@@ -7353,14 +7429,12 @@ def rel_diarias_terceirizados():
                         item[7] or 'NÃO'
                     ])
                 
-                # Subtotal
-                data.append(['', '', '', '', 'Subtotal:', formatar_numero_br(subtotal_diarias), 
-                            formatar_moeda_br(subtotal_valor), ''])
+                data.append(['', '', '', '', 'TOTAL:', formatar_numero_br(total_fornecedor_diarias), 
+                            formatar_moeda_br(total_fornecedor_valor), ''])
                 
-                total_geral_diarias += subtotal_diarias
-                total_geral_valor += subtotal_valor
+                total_geral_diarias += total_fornecedor_diarias
+                total_geral_valor += total_fornecedor_valor
                 
-                # Criar tabela
                 table = Table(data, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
@@ -7379,15 +7453,17 @@ def rel_diarias_terceirizados():
                     ('ALIGN', (5, 1), (5, -1), 'CENTER'),
                     ('ALIGN', (6, 1), (6, -1), 'RIGHT'),
                     ('ALIGN', (7, 1), (7, -1), 'CENTER'),
-                    ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#fff3cd')),
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#d4edda')),
                     ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, -1), (-1, -1), 11),
                     ('ALIGN', (4, -1), (4, -1), 'RIGHT'),
                 ]))
                 
                 elements.append(table)
                 elements.append(Spacer(1, 0.5*cm))
-            
-            # Total geral
+        
+        # Total geral (apenas se houver múltiplos fornecedores ou períodos)
+        if len(fornecedores_dict) > 1 or agrupar:
             data_total = [['', '', '', '', 'TOTAL GERAL:', formatar_numero_br(total_geral_diarias), 
                           formatar_moeda_br(total_geral_valor), '']]
             table_total = Table(data_total, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
@@ -7401,61 +7477,6 @@ def rel_diarias_terceirizados():
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ]))
             elements.append(table_total)
-            
-        else:
-            # Sem agrupamento
-            data = [['Item', 'Nome', 'Nº SEI', 'Período', 'Mês/Ano', 'Diárias', 'Valor', 'Pago']]
-            
-            total_diarias = 0
-            total_valor = 0
-            
-            for idx, item in enumerate(items, 1):
-                dt_inicio = item[2].strftime('%d/%m/%Y') if item[2] else '-'
-                dt_fim = item[3].strftime('%d/%m/%Y') if item[3] else '-'
-                periodo_str = dt_inicio if dt_inicio == dt_fim else f'{dt_inicio} a {dt_fim}'
-                
-                total_diarias += item[5]
-                total_valor += item[6]
-                
-                data.append([
-                    str(idx),
-                    item[0] or '-',
-                    item[1] or '-',
-                    periodo_str,
-                    item[4] or '-',
-                    formatar_numero_br(item[5]),
-                    formatar_moeda_br(item[6]),
-                    item[7] or 'NÃO'
-                ])
-            
-            data.append(['', '', '', '', 'TOTAL:', formatar_numero_br(total_diarias), 
-                        formatar_moeda_br(total_valor), ''])
-            
-            table = Table(data, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-                ('BACKGROUND', (0, 1), (-1, -2), colors.white),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
-                ('ALIGN', (0, 1), (0, -1), 'CENTER'),
-                ('ALIGN', (2, 1), (2, -1), 'CENTER'),
-                ('ALIGN', (3, 1), (3, -1), 'CENTER'),
-                ('ALIGN', (4, 1), (4, -1), 'CENTER'),
-                ('ALIGN', (5, 1), (5, -1), 'CENTER'),
-                ('ALIGN', (6, 1), (6, -1), 'RIGHT'),
-                ('ALIGN', (7, 1), (7, -1), 'CENTER'),
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#d4edda')),
-                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, -1), (-1, -1), 11),
-                ('ALIGN', (4, -1), (4, -1), 'RIGHT'),
-            ]))
-            
-            elements.append(table)
         
         # Rodapé
         elements.append(Spacer(1, 0.5*cm))
@@ -7480,7 +7501,6 @@ def rel_diarias_terceirizados():
         import traceback
         app.logger.error(traceback.format_exc())
         return f"Erro ao gerar relatório: {str(e)}", 500
-
 ### fim das rotas da agenda #############################################
 
 
@@ -10975,4 +10995,5 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
