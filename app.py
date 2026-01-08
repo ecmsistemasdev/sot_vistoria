@@ -7377,8 +7377,8 @@ def rel_diarias_terceirizados():
                     total_geral_diarias += subtotal_diarias
                     total_geral_valor += subtotal_valor
                     
-                    # Criar tabela - LARGURAS AJUSTADAS (aumentado campo Nome)
-                    table = Table(data, colWidths=[1.5*cm, 7*cm, 4*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+                    # Criar tabela - LARGURAS AJUSTADAS (aumentado campo Nº SEI)
+                    table = Table(data, colWidths=[1.5*cm, 6.3*cm, 4.7*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
                     table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
                         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -7436,8 +7436,8 @@ def rel_diarias_terceirizados():
                 total_geral_diarias += total_fornecedor_diarias
                 total_geral_valor += total_fornecedor_valor
                 
-                # LARGURAS AJUSTADAS (aumentado campo Nome)
-                table = Table(data, colWidths=[1.5*cm, 7*cm, 4*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+                # LARGURAS AJUSTADAS (aumentado campo Nº SEI)
+                table = Table(data, colWidths=[1.5*cm, 6.3*cm, 4.7*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -7468,7 +7468,7 @@ def rel_diarias_terceirizados():
         if len(fornecedores_dict) > 1 or agrupar:
             data_total = [['', '', '', '', 'TOTAL GERAL:', formatar_numero_br(total_geral_diarias), 
                           formatar_moeda_br(total_geral_valor), '']]
-            table_total = Table(data_total, colWidths=[1.5*cm, 7*cm, 4*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+            table_total = Table(data_total, colWidths=[1.5*cm, 6.3*cm, 4.7*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
             table_total.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4edda')),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -10998,6 +10998,7 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
 
