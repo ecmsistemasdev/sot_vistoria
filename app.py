@@ -7614,17 +7614,6 @@ def rel_passagens_emitidas():
                                           alignment=TA_CENTER, spaceAfter=30)
             elements.append(Paragraph('Nenhum registro encontrado para o período selecionado.', no_data_style))
         else:
-            # Estilos para células
-            cell_style = ParagraphStyle('CellStyle', parent=styles['Normal'],
-                                       fontSize=6.5, leading=7.5,
-                                       alignment=TA_LEFT, wordWrap='CJK')
-            cell_center_style = ParagraphStyle('CellCenterStyle', parent=styles['Normal'],
-                                               fontSize=6.5, leading=7.5,
-                                               alignment=TA_CENTER, wordWrap='CJK')
-            cell_right_style = ParagraphStyle('CellRightStyle', parent=styles['Normal'],
-                                             fontSize=6.5, leading=7.5,
-                                             alignment=TA_RIGHT, wordWrap='CJK')
-            
             # Cabeçalho da tabela
             data = [['OF\nSEI', 'Nº SEI', 'Passageiro', 'Data\nEmissão', 'Rota\nOrigem', 
                      'Rota\nDestino', 'Dt.\nEmbarque', 'CIA', 'Localizador', 'Tarifa', 
@@ -7658,19 +7647,16 @@ def rel_passagens_emitidas():
                 # - Coluna "Assento" receberá VL_ASSENTO
                 
                 # Tratar valores que podem ser None antes de usar
-                passageiro_texto = str(item[2]) if item[2] else '-'
-                projeto_texto = (str(item[14])[:40] if len(str(item[14])) > 40 else str(item[14])) if item[14] else '-'
-                origem_texto = (str(item[4])[:15] if len(str(item[4])) > 15 else str(item[4])) if item[4] else '-'
-                destino_texto = (str(item[5])[:15] if len(str(item[5])) > 15 else str(item[5])) if item[5] else '-'
-                gestor_texto = (str(item[15])[:10] if len(str(item[15])) > 10 else str(item[15])) if item[15] else '-'
-                
-                passageiro = Paragraph(passageiro_texto, cell_style)
-                projeto = Paragraph(projeto_texto, cell_style)
+                passageiro_texto = str(item[2])[:25] if item[2] is not None else '-'
+                projeto_texto = str(item[14])[:35] if item[14] is not None else '-'
+                origem_texto = str(item[4])[:13] if item[4] is not None else '-'
+                destino_texto = str(item[5])[:13] if item[5] is not None else '-'
+                gestor_texto = str(item[15])[:8] if item[15] is not None else '-'
                 
                 data.append([
                     str(item[0]) if item[0] else '-',           # OF SEI
                     str(item[1]) if item[1] else '-',           # Nº SEI  
-                    passageiro,                                  # Passageiro (com quebra)
+                    passageiro_texto,                            # Passageiro (limitado)
                     formatar_data(item[3]),                      # Data Emissão
                     origem_texto,                                # Rota Origem (limitado)
                     destino_texto,                               # Rota Destino (limitado)
@@ -7683,7 +7669,7 @@ def rel_passagens_emitidas():
                     formatar_moeda_br(item[11]),                 # Assento (VL_ASSENTO)
                     formatar_moeda_br(item[12]),                 # Taxa Emb. (VL_TAXA_EMBARQUE)
                     formatar_moeda_br(item[13]),                 # Total R$ (VL_TOTAL)
-                    projeto,                                     # Projeto (com quebra, limitado)
+                    projeto_texto,                               # Projeto (limitado)
                     gestor_texto,                                # Gestor Projeto (UNIDADE, limitado)
                     str(item[16]) if item[16] else '-'          # Empenho (NU_EMPENHO)
                 ])
@@ -7791,7 +7777,7 @@ def rel_passagens_emitidas():
         traceback.print_exc()
         return f"Erro ao gerar relatório: {str(e)}", 500
 
-######################### fim relatorio de passagem
+######################### fim relatorio de passagem ##################
 
 @app.route('/api/criar_locacao_fornecedor', methods=['POST'])
 @login_required
@@ -11284,6 +11270,7 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
 
