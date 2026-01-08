@@ -7506,6 +7506,7 @@ def rel_diarias_terceirizados():
 		
 ### fim das rotas da agenda #############################################
 
+
 @app.route('/rel_passagens_emitidas')
 @login_required
 def rel_passagens_emitidas():
@@ -7629,21 +7630,21 @@ def rel_passagens_emitidas():
                     str(item[0]) if item[0] else '-',
                     str(item[1]) if item[1] else '-',
                     str(item[2]) if item[2] else '-',
-                    str(item[3]) if item[3] else '-',
-                    str(item[4]) if item[4] else '-',
-                    str(item[5]) if item[5] else '-',
-                    str(item[6]) if item[6] else '-',
-                    str(item[7]) if item[7] else '-',
-                    str(item[8]) if item[8] else '-',
+                    item[3] if item[3] else '-',
+                    item[4] if item[4] else '-',
+                    item[5] if item[5] else '-',
+                    item[6] if item[6] else '-',
+                    item[7] if item[7] else '-',
+                    item[8] if item[8] else '-',
                     f'R$ {item[9]}' if item[9] else 'R$ 0,00',
                     f'R$ {item[10]}' if item[10] else 'R$ 0,00',
                     f'R$ {item[11]}' if item[11] else 'R$ 0,00',
                     f'R$ {item[12]}' if item[12] else 'R$ 0,00',
                     f'R$ {item[13]}' if item[13] else 'R$ 0,00',
                     f'R$ {item[14]}' if item[14] else 'R$ 0,00',
-                    str(item[15]) if item[15] else '-',
-                    str(item[16]) if item[16] else '-',
-                    str(item[17]) if item[17] else '-'
+                    item[15] if item[15] else '-',
+                    item[16] if item[16] else '-',
+                    item[16] if item[16] else '-'
                 ])
             
             # Linha de total
@@ -7728,7 +7729,6 @@ def rel_passagens_emitidas():
     except Exception as e:
         print(f"Erro ao gerar relatório de passagens: {str(e)}")
         return f"Erro ao gerar relatório: {str(e)}", 500
-
 
 
 @app.route('/api/criar_locacao_fornecedor', methods=['POST'])
@@ -11222,6 +11222,7 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
 
