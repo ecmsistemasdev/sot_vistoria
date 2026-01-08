@@ -7256,8 +7256,10 @@ def rel_diarias_terceirizados():
             ) as MES_ANO,
             COALESCE(dt.QT_DIARIAS, 0) as QT_DIARIAS,
             COALESCE(dt.VL_TOTAL, 0) as VL_TOTAL,
-            CASE WHEN dt.FL_EMAIL='S' THEN 'SIM' ELSE 'NÃO' END as PAGO
+            CASE WHEN dt.FL_EMAIL='S' THEN 'SIM' ELSE 'NÃO' END as PAGO, 
+            f.NM_FORNECEDOR
         FROM DIARIAS_TERCEIRIZADOS dt
+        JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = dt.ID_FORNECEDOR
         JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = dt.ID_MOTORISTA
         JOIN AGENDA_DEMANDAS ad ON ad.ID_AD = dt.ID_AD
         WHERE ({where_periodos}) AND ad.DT_INICIO IS NOT NULL AND ad.DT_FIM IS NOT NULL
@@ -10973,3 +10975,4 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
