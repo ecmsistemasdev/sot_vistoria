@@ -6734,7 +6734,6 @@
                             }
                             
                             // ===== NOVO: Exibir aviso "DIÁRIA NÃO SOLICITADA" para viagens de terceirizados =====
-                            const ehViagem = demanda.id_tipodemanda === 2;
                             const ehTerceirizado = m.tipo === 'Terceirizado';
 
                             if (ehViagem && ehTerceirizado && dadosAgenda.diarias_terceirizados) {
@@ -10073,6 +10072,7 @@
 </body>
 
 </html>
+
 
 
 
