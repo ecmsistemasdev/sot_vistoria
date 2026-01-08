@@ -2715,16 +2715,19 @@ def get_rel_locacao_analitico(id_cl):
         app.logger.error(f"Erro ao buscar locações finalizadas: {str(e)}")
         return jsonify({"error": str(e)}), 500
         
-# @app.route('/rel_locacao_analitico')
-# @login_required
-# def rel_locacao_analitico():
-#     return render_template('rel_locacao_analitico.html')
 
 @app.route('/rel_locacao_analitico')
 @login_required
-def rel_locacao_analitico_page():
-    """Gera o relatório analítico como PDF"""
+def rel_locacao_analitico():
+    """Gera o relatório analítico de locações como PDF usando ReportLab"""
     try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+        
         id_cl = request.args.get('id_cl')
         mes_ano = request.args.get('mes_ano')  # Filtro opcional
         
@@ -2772,32 +2775,236 @@ def rel_locacao_analitico_page():
         
         cursor.close()
         
-        # Converter logo para base64
-        import os
-        import base64
-        logo_path = os.path.join(app.root_path, 'static', 'img', 'logo.png')
-        logo_base64 = ""
-        
-        try:
-            with open(logo_path, 'rb') as f:
-                logo_base64 = base64.b64encode(f.read()).decode('utf-8')
-        except Exception as e:
-            app.logger.warning(f"Não foi possível carregar a logo: {str(e)}")
-        
-        # Renderizar o HTML primeiro
-        html_content = render_template('rel_locacao_analitico.html', 
-                                      items=items, 
-                                      processo_info=processo_info,
-                                      mes_ano_filtro=mes_ano,
-                                      logo_base64=logo_base64)
-        
-        # Converter para PDF com xhtml2pdf
+        # Criar PDF
         pdf_buffer = BytesIO()
-        pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(A4), 
+                               rightMargin=0.8*cm, leftMargin=0.8*cm,
+                               topMargin=1*cm, bottomMargin=1*cm)
         
-        if pisa_status.err:
-            return "Erro ao gerar PDF", 500
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Título
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
+                                     fontSize=16, textColor=colors.HexColor('#1a73e8'),
+                                     spaceAfter=8, alignment=TA_CENTER, fontName='Helvetica-Bold')
+        
+        elements.append(Paragraph('Relatório de Locações - Analítico', title_style))
+        
+        # Informações do fornecedor
+        if processo_info:
+            info_style = ParagraphStyle('InfoStyle', parent=styles['Normal'],
+                                       fontSize=10, spaceAfter=3, alignment=TA_LEFT)
             
+            fornecedor_text = f'<b>Fornecedor:</b> {processo_info[2]}'
+            elements.append(Paragraph(fornecedor_text, info_style))
+            
+            if mes_ano and mes_ano != 'Todos':
+                periodo_text = f'<b>Período:</b> {mes_ano}'
+                elements.append(Paragraph(periodo_text, info_style))
+        
+        elements.append(Spacer(1, 0.5*cm))
+        
+        # Verificar se deve agrupar por mês (quando não tem filtro)
+        agrupar_mes = not (mes_ano and mes_ano != 'Todos')
+        
+        if items:
+            if agrupar_mes:
+                # Agrupar itens por mês/ano
+                meses_dict = {}
+                for item in items:
+                    mes_ano_key = item[1]  # MES_ANO
+                    if mes_ano_key not in meses_dict:
+                        meses_dict[mes_ano_key] = []
+                    meses_dict[mes_ano_key].append(item)
+                
+                total_geral_diarias = 0
+                total_geral_valor = 0
+                total_geral_km = 0
+                
+                for mes_ano_key in sorted(meses_dict.keys()):
+                    # Título do mês
+                    mes_style = ParagraphStyle('MesStyle', parent=styles['Normal'],
+                                              fontSize=11, textColor=colors.white,
+                                              backColor=colors.HexColor('#4472C4'),
+                                              leftIndent=5, spaceAfter=5, spaceBefore=10)
+                    elements.append(Paragraph(mes_ano_key, mes_style))
+                    
+                    # Cabeçalho da tabela
+                    data = [['Item', 'Mês/Ano', 'Período', 'Veículo', 'Motorista', 
+                            'Qtde', 'Valor Diária', 'Valor Dif.', 'Valor Total', 'Km Rodado']]
+                    
+                    subtotal_diarias = 0
+                    subtotal_valor = 0
+                    subtotal_km = 0
+                    
+                    for idx, item in enumerate(meses_dict[mes_ano_key], 1):
+                        subtotal_diarias += item[5] if item[5] else 0
+                        subtotal_valor += item[8] if item[8] else 0
+                        subtotal_km += item[9] if item[9] else 0
+                        
+                        data.append([
+                            str(idx),
+                            item[1] or '-',
+                            item[2] or '-',
+                            item[3] or '-',
+                            item[4] or '-',
+                            f"{item[5]:.2f}" if item[5] else '0',
+                            f"R$ {item[6]:.2f}" if item[6] else 'R$ 0,00',
+                            f"R$ {item[7]:.2f}" if item[7] else 'R$ 0,00',
+                            f"R$ {item[8]:.2f}" if item[8] else 'R$ 0,00',
+                            f"{item[9]:.0f}" if item[9] else '-'
+                        ])
+                    
+                    # Subtotal do mês
+                    data.append(['', '', '', '', f'Subtotal {mes_ano_key}:', 
+                                f"{subtotal_diarias:.2f}", '', '', 
+                                f"R$ {subtotal_valor:.2f}", f"{subtotal_km:.0f}"])
+                    
+                    total_geral_diarias += subtotal_diarias
+                    total_geral_valor += subtotal_valor
+                    total_geral_km += subtotal_km
+                    
+                    # Criar tabela
+                    table = Table(data, colWidths=[1*cm, 2*cm, 3*cm, 6*cm, 5.5*cm, 
+                                                   1.3*cm, 2.2*cm, 2*cm, 2.2*cm, 1.8*cm])
+                    table.setStyle(TableStyle([
+                        # Cabeçalho
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                        ('TOPPADDING', (0, 0), (-1, 0), 6),
+                        # Corpo da tabela
+                        ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+                        ('FONTSIZE', (0, 1), (-1, -1), 8),
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        # Alinhamentos
+                        ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Item
+                        ('ALIGN', (1, 1), (1, -1), 'CENTER'),  # Mês/Ano
+                        ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # Período
+                        ('ALIGN', (5, 1), (5, -1), 'CENTER'),  # Qtde
+                        ('ALIGN', (6, 1), (6, -1), 'RIGHT'),   # Valor Diária
+                        ('ALIGN', (7, 1), (7, -1), 'RIGHT'),   # Valor Dif
+                        ('ALIGN', (8, 1), (8, -1), 'RIGHT'),   # Valor Total
+                        ('ALIGN', (9, 1), (9, -1), 'CENTER'),  # Km Rodado
+                        # Subtotal
+                        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#D9E1F2')),
+                        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                        ('ALIGN', (4, -1), (4, -1), 'RIGHT'),
+                    ]))
+                    
+                    elements.append(table)
+                    elements.append(Spacer(1, 0.3*cm))
+                
+                # Total geral
+                data_total = [['', '', '', '', 'Total Geral:', 
+                              f"{total_geral_diarias:.2f}", '', '', 
+                              f"R$ {total_geral_valor:.2f}", f"{total_geral_km:.0f}"]]
+                
+                table_total = Table(data_total, colWidths=[1*cm, 2*cm, 3*cm, 6*cm, 5.5*cm, 
+                                                           1.3*cm, 2.2*cm, 2*cm, 2.2*cm, 1.8*cm])
+                table_total.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#B4C7E7')),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('ALIGN', (4, 0), (4, 0), 'RIGHT'),
+                    ('ALIGN', (5, 0), (5, 0), 'CENTER'),
+                    ('ALIGN', (8, 0), (8, 0), 'RIGHT'),
+                    ('ALIGN', (9, 0), (9, 0), 'CENTER'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+                    ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, 0), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ]))
+                elements.append(table_total)
+                
+            else:
+                # Sem agrupamento - mostrar tudo numa tabela única
+                data = [['Item', 'Mês/Ano', 'Período', 'Veículo', 'Motorista', 
+                        'Qtde', 'Valor Diária', 'Valor Dif.', 'Valor Total', 'Km Rodado']]
+                
+                total_diarias = 0
+                total_valor = 0
+                total_km = 0
+                
+                for idx, item in enumerate(items, 1):
+                    total_diarias += item[5] if item[5] else 0
+                    total_valor += item[8] if item[8] else 0
+                    total_km += item[9] if item[9] else 0
+                    
+                    data.append([
+                        str(idx),
+                        item[1] or '-',
+                        item[2] or '-',
+                        item[3] or '-',
+                        item[4] or '-',
+                        f"{item[5]:.2f}" if item[5] else '0',
+                        f"R$ {item[6]:.2f}" if item[6] else 'R$ 0,00',
+                        f"R$ {item[7]:.2f}" if item[7] else 'R$ 0,00',
+                        f"R$ {item[8]:.2f}" if item[8] else 'R$ 0,00',
+                        f"{item[9]:.0f}" if item[9] else '-'
+                    ])
+                
+                # Total
+                data.append(['', '', '', '', 'Total Geral:', 
+                            f"{total_diarias:.2f}", '', '', 
+                            f"R$ {total_valor:.2f}", f"{total_km:.0f}"])
+                
+                table = Table(data, colWidths=[1*cm, 2*cm, 3*cm, 6*cm, 5.5*cm, 
+                                               1.3*cm, 2.2*cm, 2*cm, 2.2*cm, 1.8*cm])
+                table.setStyle(TableStyle([
+                    # Cabeçalho
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                    ('TOPPADDING', (0, 0), (-1, 0), 6),
+                    # Corpo da tabela
+                    ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    # Alinhamentos
+                    ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+                    ('ALIGN', (1, 1), (1, -1), 'CENTER'),
+                    ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+                    ('ALIGN', (5, 1), (5, -1), 'CENTER'),
+                    ('ALIGN', (6, 1), (6, -1), 'RIGHT'),
+                    ('ALIGN', (7, 1), (7, -1), 'RIGHT'),
+                    ('ALIGN', (8, 1), (8, -1), 'RIGHT'),
+                    ('ALIGN', (9, 1), (9, -1), 'CENTER'),
+                    # Total
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#B4C7E7')),
+                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, -1), (-1, -1), 10),
+                    ('ALIGN', (4, -1), (4, -1), 'RIGHT'),
+                ]))
+                
+                elements.append(table)
+        else:
+            # Sem dados
+            sem_dados_style = ParagraphStyle('SemDados', parent=styles['Normal'],
+                                            fontSize=11, textColor=colors.grey,
+                                            alignment=TA_CENTER, spaceAfter=20, spaceBefore=20)
+            elements.append(Paragraph('Nenhuma locação finalizada encontrada para os critérios selecionados.', 
+                                    sem_dados_style))
+        
+        # Rodapé
+        elements.append(Spacer(1, 0.5*cm))
+        data_geracao = datetime.now().strftime('%d/%m/%Y às %H:%M')
+        footer_style = ParagraphStyle('Footer', parent=styles['Normal'],
+                                     fontSize=9, textColor=colors.grey,
+                                     alignment=TA_CENTER)
+        elements.append(Paragraph(f'Relatório gerado em {data_geracao}', footer_style))
+        
+        # Gerar PDF
+        doc.build(elements)
         pdf_buffer.seek(0)
         
         response = make_response(pdf_buffer.getvalue())
@@ -2808,8 +3015,9 @@ def rel_locacao_analitico_page():
         
     except Exception as e:
         app.logger.error(f"Erro ao gerar relatório: {str(e)}")
-        return f"Erro ao gerar relatório: {str(e)}", 500
-		
+        import traceback
+        app.logger.error(traceback.format_exc())
+        return f"Erro ao gerar relatório: {str(e)}", 500		
 
 # Rota para listar veículos disponíveis por ID_CL
 @app.route('/api/lista_veiculo')
@@ -11580,3 +11788,4 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
