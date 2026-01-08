@@ -57,6 +57,7 @@ from flask_socketio import (
 
 from werkzeug.utils import secure_filename
 from xhtml2pdf import pisa
+# from weasyprint import HTML
 from pytz import timezone
 import PyPDF2
 import airportsdata
@@ -7419,6 +7420,13 @@ def periodos_diarias_terceirizados():
 def rel_diarias_terceirizados():
     """Gera o relatório de diárias de motoristas terceirizados como PDF"""
     try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+        
         periodos = request.args.getlist('periodos')
         
         if not periodos:
@@ -7432,7 +7440,6 @@ def rel_diarias_terceirizados():
             partes = periodo.split('/')
             if len(partes) == 2:
                 mes_nome, ano = partes
-                # Mapear nome do mês para número
                 meses = {
                     'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4,
                     'Maio': 5, 'Junho': 6, 'Julho': 7, 'Agosto': 8,
@@ -7449,75 +7456,220 @@ def rel_diarias_terceirizados():
         
         query = f"""
         SELECT 
-            m.NM_MOTORISTA,
-            ad.NU_SEI,
+            COALESCE(m.NM_MOTORISTA, 'Não informado') as NM_MOTORISTA,
+            COALESCE(ad.NU_SEI, '-') as NU_SEI,
             ad.DT_INICIO,
             ad.DT_FIM,
             CONCAT(
                 CASE MONTH(ad.DT_INICIO)
-                    WHEN 1 THEN 'Janeiro'
-                    WHEN 2 THEN 'Fevereiro'
-                    WHEN 3 THEN 'Março'
-                    WHEN 4 THEN 'Abril'
-                    WHEN 5 THEN 'Maio'
-                    WHEN 6 THEN 'Junho'
-                    WHEN 7 THEN 'Julho'
-                    WHEN 8 THEN 'Agosto'
-                    WHEN 9 THEN 'Setembro'
-                    WHEN 10 THEN 'Outubro'
-                    WHEN 11 THEN 'Novembro'
-                    WHEN 12 THEN 'Dezembro'
-                END,
-                '/',
-                YEAR(ad.DT_INICIO)
+                    WHEN 1 THEN 'Janeiro' WHEN 2 THEN 'Fevereiro' WHEN 3 THEN 'Março'
+                    WHEN 4 THEN 'Abril' WHEN 5 THEN 'Maio' WHEN 6 THEN 'Junho'
+                    WHEN 7 THEN 'Julho' WHEN 8 THEN 'Agosto' WHEN 9 THEN 'Setembro'
+                    WHEN 10 THEN 'Outubro' WHEN 11 THEN 'Novembro' WHEN 12 THEN 'Dezembro'
+                END, '/', YEAR(ad.DT_INICIO)
             ) as MES_ANO,
-            dt.QT_DIARIAS,
-            dt.VL_TOTAL,
+            COALESCE(dt.QT_DIARIAS, 0) as QT_DIARIAS,
+            COALESCE(dt.VL_TOTAL, 0) as VL_TOTAL,
             CASE WHEN dt.FL_EMAIL='S' THEN 'SIM' ELSE 'NÃO' END as PAGO
         FROM DIARIAS_TERCEIRIZADOS dt
         JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = dt.ID_MOTORISTA
         JOIN AGENDA_DEMANDAS ad ON ad.ID_AD = dt.ID_AD
-        WHERE ({where_periodos})
-        ORDER BY 
-            YEAR(ad.DT_INICIO),
-            MONTH(ad.DT_INICIO),
-            m.NM_MOTORISTA,
-            ad.DT_INICIO
+        WHERE ({where_periodos}) AND ad.DT_INICIO IS NOT NULL AND ad.DT_FIM IS NOT NULL
+        ORDER BY YEAR(ad.DT_INICIO), MONTH(ad.DT_INICIO), m.NM_MOTORISTA, ad.DT_INICIO
         """
         
         cursor.execute(query)
-        items = cursor.fetchall()
+        raw_items = cursor.fetchall()
         cursor.close()
         
-        # Converter logo para base64
-        import os
-        import base64
-        logo_path = os.path.join(app.root_path, 'static', 'img', 'logo.png')
-        logo_base64 = ""
+        # Filtrar dados válidos
+        items = [item for item in raw_items if item[2] is not None and item[3] is not None]
         
-        try:
-            with open(logo_path, 'rb') as f:
-                logo_base64 = base64.b64encode(f.read()).decode('utf-8')
-        except Exception as e:
-            app.logger.warning(f"Não foi possível carregar a logo: {str(e)}")
+        # Criar PDF
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(A4), 
+                               rightMargin=1*cm, leftMargin=1*cm,
+                               topMargin=1*cm, bottomMargin=1*cm)
         
-        # Agrupar por período se múltiplos períodos
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Título
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
+                                     fontSize=18, textColor=colors.HexColor('#1a73e8'),
+                                     spaceAfter=5, alignment=TA_CENTER)
+        subtitle_style = ParagraphStyle('CustomSubtitle', parent=styles['Normal'],
+                                       fontSize=12, textColor=colors.grey,
+                                       spaceAfter=10, alignment=TA_CENTER)
+        
+        elements.append(Paragraph('Controle de Diárias Motoristas Terceirizados', title_style))
+        
+        periodo_texto = periodos[0] if len(periodos) == 1 else f'Períodos Selecionados: {len(periodos)}'
+        elements.append(Paragraph(f'Período: {periodo_texto}', subtitle_style))
+        elements.append(Spacer(1, 0.5*cm))
+        
+        # Agrupar por período se necessário
         agrupar = len(periodos) > 1
         
-        # Renderizar o HTML primeiro
-        html_content = render_template('rel_diarias_terceirizados.html',
-                                      items=items,
-                                      periodos=periodos,
-                                      agrupar=agrupar,
-                                      logo_base64=logo_base64)
+        if agrupar:
+            periodos_dict = {}
+            for item in items:
+                periodo = item[4]
+                if periodo not in periodos_dict:
+                    periodos_dict[periodo] = []
+                periodos_dict[periodo].append(item)
+            
+            total_geral_diarias = 0
+            total_geral_valor = 0
+            
+            for periodo in periodos:
+                if periodo not in periodos_dict:
+                    continue
+                    
+                # Título do período
+                periodo_style = ParagraphStyle('Periodo', parent=styles['Normal'],
+                                              fontSize=11, textColor=colors.white,
+                                              backColor=colors.HexColor('#1a73e8'),
+                                              leftIndent=5, spaceAfter=5)
+                elements.append(Paragraph(periodo, periodo_style))
+                
+                # Cabeçalho da tabela
+                data = [['Item', 'Nome', 'Nº SEI', 'Período', 'Mês/Ano', 'Diárias', 'Valor', 'Pago']]
+                
+                subtotal_diarias = 0
+                subtotal_valor = 0
+                
+                for idx, item in enumerate(periodos_dict[periodo], 1):
+                    dt_inicio = item[2].strftime('%d/%m/%Y') if item[2] else '-'
+                    dt_fim = item[3].strftime('%d/%m/%Y') if item[3] else '-'
+                    periodo_str = dt_inicio if dt_inicio == dt_fim else f'{dt_inicio} a {dt_fim}'
+                    
+                    subtotal_diarias += item[5]
+                    subtotal_valor += item[6]
+                    
+                    data.append([
+                        str(idx),
+                        item[0] or '-',
+                        item[1] or '-',
+                        periodo_str,
+                        item[4] or '-',
+                        f"{item[5]:.2f}",
+                        f"R$ {item[6]:.2f}",
+                        item[7] or 'NÃO'
+                    ])
+                
+                # Subtotal
+                data.append(['', '', '', '', 'Subtotal:', f"{subtotal_diarias:.2f}", f"R$ {subtotal_valor:.2f}", ''])
+                
+                total_geral_diarias += subtotal_diarias
+                total_geral_valor += subtotal_valor
+                
+                # Criar tabela
+                table = Table(data, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                    ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+                    ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+                    ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+                    ('ALIGN', (4, 1), (4, -1), 'CENTER'),
+                    ('ALIGN', (5, 1), (5, -1), 'CENTER'),
+                    ('ALIGN', (6, 1), (6, -1), 'RIGHT'),
+                    ('ALIGN', (7, 1), (7, -1), 'CENTER'),
+                    ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#fff3cd')),
+                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                    ('ALIGN', (4, -1), (4, -1), 'RIGHT'),
+                ]))
+                
+                elements.append(table)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # Total geral
+            data_total = [['', '', '', '', 'TOTAL GERAL:', f"{total_geral_diarias:.2f}", 
+                          f"R$ {total_geral_valor:.2f}", '']]
+            table_total = Table(data_total, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+            table_total.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4edda')),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('ALIGN', (4, 0), (4, 0), 'RIGHT'),
+                ('ALIGN', (5, 0), (5, 0), 'CENTER'),
+                ('ALIGN', (6, 0), (6, 0), 'RIGHT'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ]))
+            elements.append(table_total)
+            
+        else:
+            # Sem agrupamento
+            data = [['Item', 'Nome', 'Nº SEI', 'Período', 'Mês/Ano', 'Diárias', 'Valor', 'Pago']]
+            
+            total_diarias = 0
+            total_valor = 0
+            
+            for idx, item in enumerate(items, 1):
+                dt_inicio = item[2].strftime('%d/%m/%Y') if item[2] else '-'
+                dt_fim = item[3].strftime('%d/%m/%Y') if item[3] else '-'
+                periodo_str = dt_inicio if dt_inicio == dt_fim else f'{dt_inicio} a {dt_fim}'
+                
+                total_diarias += item[5]
+                total_valor += item[6]
+                
+                data.append([
+                    str(idx),
+                    item[0] or '-',
+                    item[1] or '-',
+                    periodo_str,
+                    item[4] or '-',
+                    f"{item[5]:.2f}",
+                    f"R$ {item[6]:.2f}",
+                    item[7] or 'NÃO'
+                ])
+            
+            data.append(['', '', '', '', 'TOTAL:', f"{total_diarias:.2f}", f"R$ {total_valor:.2f}", ''])
+            
+            table = Table(data, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('ALIGN', (0, 1), (0, -1), 'CENTER'),
+                ('ALIGN', (2, 1), (2, -1), 'CENTER'),
+                ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+                ('ALIGN', (4, 1), (4, -1), 'CENTER'),
+                ('ALIGN', (5, 1), (5, -1), 'CENTER'),
+                ('ALIGN', (6, 1), (6, -1), 'RIGHT'),
+                ('ALIGN', (7, 1), (7, -1), 'CENTER'),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#d4edda')),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -1), (-1, -1), 11),
+                ('ALIGN', (4, -1), (4, -1), 'RIGHT'),
+            ]))
+            
+            elements.append(table)
         
-        # Converter para PDF com xhtml2pdf
-        pdf_buffer = BytesIO()
-        pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
+        # Rodapé
+        elements.append(Spacer(1, 0.5*cm))
+        data_geracao = datetime.now().strftime('%d/%m/%Y às %H:%M')
+        footer_style = ParagraphStyle('Footer', parent=styles['Normal'],
+                                     fontSize=9, textColor=colors.grey,
+                                     alignment=TA_CENTER)
+        elements.append(Paragraph(f'Relatório gerado em {data_geracao}', footer_style))
         
-        if pisa_status.err:
-            return "Erro ao gerar PDF", 500
-        
+        # Gerar PDF
+        doc.build(elements)
         pdf_buffer.seek(0)
         
         response = make_response(pdf_buffer.getvalue())
@@ -7528,8 +7680,9 @@ def rel_diarias_terceirizados():
         
     except Exception as e:
         app.logger.error(f"Erro ao gerar relatório: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
         return f"Erro ao gerar relatório: {str(e)}", 500
-
 
 ### fim das rotas da agenda #############################################
 
@@ -11427,8 +11580,3 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-
-
-
-
-
