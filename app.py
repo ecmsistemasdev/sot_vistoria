@@ -7744,6 +7744,13 @@ def rel_diarias_terceirizados():
         # Filtrar dados válidos
         items = [item for item in raw_items if item[2] is not None and item[3] is not None]
         
+        # Função para formatar números no padrão brasileiro
+        def formatar_numero_br(valor):
+            return f"{valor:.2f}".replace('.', ',')
+        
+        def formatar_moeda_br(valor):
+            return f"R$ {valor:.2f}".replace('.', ',')
+        
         # Criar PDF
         pdf_buffer = BytesIO()
         doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(A4), 
@@ -7812,13 +7819,14 @@ def rel_diarias_terceirizados():
                         item[1] or '-',
                         periodo_str,
                         item[4] or '-',
-                        f"{item[5]:.2f}",
-                        f"R$ {item[6]:.2f}",
+                        formatar_numero_br(item[5]),
+                        formatar_moeda_br(item[6]),
                         item[7] or 'NÃO'
                     ])
                 
                 # Subtotal
-                data.append(['', '', '', '', 'Subtotal:', f"{subtotal_diarias:.2f}", f"R$ {subtotal_valor:.2f}", ''])
+                data.append(['', '', '', '', 'Subtotal:', formatar_numero_br(subtotal_diarias), 
+                            formatar_moeda_br(subtotal_valor), ''])
                 
                 total_geral_diarias += subtotal_diarias
                 total_geral_valor += subtotal_valor
@@ -7851,8 +7859,8 @@ def rel_diarias_terceirizados():
                 elements.append(Spacer(1, 0.5*cm))
             
             # Total geral
-            data_total = [['', '', '', '', 'TOTAL GERAL:', f"{total_geral_diarias:.2f}", 
-                          f"R$ {total_geral_valor:.2f}", '']]
+            data_total = [['', '', '', '', 'TOTAL GERAL:', formatar_numero_br(total_geral_diarias), 
+                          formatar_moeda_br(total_geral_valor), '']]
             table_total = Table(data_total, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
             table_total.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4edda')),
@@ -7886,12 +7894,13 @@ def rel_diarias_terceirizados():
                     item[1] or '-',
                     periodo_str,
                     item[4] or '-',
-                    f"{item[5]:.2f}",
-                    f"R$ {item[6]:.2f}",
+                    formatar_numero_br(item[5]),
+                    formatar_moeda_br(item[6]),
                     item[7] or 'NÃO'
                 ])
             
-            data.append(['', '', '', '', 'TOTAL:', f"{total_diarias:.2f}", f"R$ {total_valor:.2f}", ''])
+            data.append(['', '', '', '', 'TOTAL:', formatar_numero_br(total_diarias), 
+                        formatar_moeda_br(total_valor), ''])
             
             table = Table(data, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
             table.setStyle(TableStyle([
@@ -7944,7 +7953,6 @@ def rel_diarias_terceirizados():
         return f"Erro ao gerar relatório: {str(e)}", 500
 
 ### fim das rotas da agenda #############################################
-
 
 
 @app.route('/api/criar_locacao_fornecedor', methods=['POST'])
@@ -11839,6 +11847,3 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-
-
-
