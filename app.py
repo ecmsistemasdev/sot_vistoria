@@ -7657,16 +7657,23 @@ def rel_passagens_emitidas():
                 # - Coluna "Extra" receberá VL_TAXA_EXTRA
                 # - Coluna "Assento" receberá VL_ASSENTO
                 
-                passageiro = Paragraph(str(item[2]) if item[2] else '-', cell_style)
-                projeto = Paragraph(str(item[14])[:40] if item[14] else '-', cell_style)  # Limita a 40 caracteres
+                # Tratar valores que podem ser None antes de usar
+                passageiro_texto = str(item[2]) if item[2] else '-'
+                projeto_texto = (str(item[14])[:40] if len(str(item[14])) > 40 else str(item[14])) if item[14] else '-'
+                origem_texto = (str(item[4])[:15] if len(str(item[4])) > 15 else str(item[4])) if item[4] else '-'
+                destino_texto = (str(item[5])[:15] if len(str(item[5])) > 15 else str(item[5])) if item[5] else '-'
+                gestor_texto = (str(item[15])[:10] if len(str(item[15])) > 10 else str(item[15])) if item[15] else '-'
+                
+                passageiro = Paragraph(passageiro_texto, cell_style)
+                projeto = Paragraph(projeto_texto, cell_style)
                 
                 data.append([
                     str(item[0]) if item[0] else '-',           # OF SEI
                     str(item[1]) if item[1] else '-',           # Nº SEI  
                     passageiro,                                  # Passageiro (com quebra)
                     formatar_data(item[3]),                      # Data Emissão
-                    str(item[4])[:15] if item[4] else '-',      # Rota Origem (limita)
-                    str(item[5])[:15] if item[5] else '-',      # Rota Destino (limita)
+                    origem_texto,                                # Rota Origem (limitado)
+                    destino_texto,                               # Rota Destino (limitado)
                     formatar_data(item[6]),                      # Dt. Embarque
                     str(item[7]) if item[7] else '-',           # CIA
                     str(item[8]) if item[8] else '-',           # Localizador
@@ -7677,7 +7684,7 @@ def rel_passagens_emitidas():
                     formatar_moeda_br(item[12]),                 # Taxa Emb. (VL_TAXA_EMBARQUE)
                     formatar_moeda_br(item[13]),                 # Total R$ (VL_TOTAL)
                     projeto,                                     # Projeto (com quebra, limitado)
-                    str(item[15])[:10] if item[15] else '-',    # Gestor Projeto (UNIDADE, limitado)
+                    gestor_texto,                                # Gestor Projeto (UNIDADE, limitado)
                     str(item[16]) if item[16] else '-'          # Empenho (NU_EMPENHO)
                 ])
             
@@ -11277,6 +11284,7 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
 
