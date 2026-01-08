@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Passagens Aéreas Emitidas</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 0.8cm 0.6cm;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 8pt;
+            color: #000;
+        }
+        
+        .header {
+            width: 100%;
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            font-size: 16pt;
+            color: #1a73e8;
+            margin: 0 0 4px 0;
+            font-weight: bold;
+        }
+
+        .header h2 {
+            font-size: 11pt;
+            color: #555;
+            margin: 0;
+            font-weight: normal;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+            margin-bottom: 10px;
+        }
+        
+        th {
+            background-color: #d0d0d0;
+            border: 1px solid #666;
+            padding: 6px 4px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 8pt;
+            white-space: nowrap;
+        }
+        
+        td {
+            border: 1px solid #999;
+            padding: 5px 4px;
+            font-size: 8pt;
+            white-space: nowrap;
+        }
+        
+        /* AJUSTE DAS LARGURAS DAS COLUNAS */
+        table th:nth-child(1), table td:nth-child(1) { width: 3%; }   /* OF SEI */
+        table th:nth-child(2), table td:nth-child(2) { width: 7%; }   /* Nº SEI */
+        table th:nth-child(3), table td:nth-child(3) { width: 12%; }  /* Passageiro */
+        table th:nth-child(4), table td:nth-child(4) { width: 5%; }   /* Dt. Emissão */
+        table th:nth-child(5), table td:nth-child(5) { width: 9%; }   /* Rota Origem */
+        table th:nth-child(6), table td:nth-child(6) { width: 9%; }   /* Rota Destino */
+        table th:nth-child(7), table td:nth-child(7) { width: 5%; }   /* Dt. Embarque */
+        table th:nth-child(8), table td:nth-child(8) { width: 4%; }   /* CIA */
+        table th:nth-child(9), table td:nth-child(9) { width: 6%; }   /* Localizador */
+        table th:nth-child(10), table td:nth-child(10) { width: 5%; } /* Tarifa */
+        table th:nth-child(11), table td:nth-child(11) { width: 4%; } /* Taxa */
+        table th:nth-child(12), table td:nth-child(12) { width: 4%; } /* Extra */
+        table th:nth-child(13), table td:nth-child(13) { width: 4%; } /* Assento */
+        table th:nth-child(14), table td:nth-child(14) { width: 4%; } /* Taxa Emb. */
+        table th:nth-child(15), table td:nth-child(15) { width: 5%; } /* Total R$ */
+        table th:nth-child(16), table td:nth-child(16) { width: 9%; } /* Projeto */
+        table th:nth-child(17), table td:nth-child(17) { width: 4%; } /* Gestor Projeto */
+        table th:nth-child(18), table td:nth-child(18) { width: 6%; } /* Empenho */
+        
+        .centro {
+            text-align: center;
+        }
+        
+        .direita {
+            text-align: right;
+        }
+        
+        .zebra1 {
+            background-color: #f9f9f9;
+        }
+        
+        .zebra2 {
+            background-color: #ffffff;
+        }
+        
+        .linha-total {
+            background-color: #d4edda;
+            font-weight: bold;
+            border-top: 2px solid #1a73e8;
+            font-size: 9pt;
+        }
+        
+        .rodape {
+            margin-top: 15px;
+            font-size: 8pt;
+            color: #666;
+            text-align: center;
+            border-top: 1px solid #ccc;
+            padding-top: 8px;
+        }
+        
+        .sem-dados {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Relatório de Passagens Aéreas Emitidas</h1>
+        <h2>Período: {{ dt_inicio }} a {{ dt_fim }} | UO: {{ uo }}</h2>
+    </div>
+
+    {% if items|length == 0 %}
+        <div class="sem-dados">
+            Nenhum registro encontrado para o período selecionado.
+        </div>
+    {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th class="centro">OF SEI</th>
+                    <th class="centro">Nº SEI</th>
+                    <th>Passageiro</th>
+                    <th class="centro">Data Emissão</th>
+                    <th class="centro">Rota Origem</th>
+                    <th class="centro">Rota Destino</th>
+                    <th class="centro">Dt. Embarque</th>
+                    <th class="centro">CIA</th>
+                    <th class="centro">Localizador</th>
+                    <th class="direita">Tarifa</th>
+                    <th class="direita">Taxa</th>
+                    <th class="direita">Extra</th>
+                    <th class="direita">Assento</th>
+                    <th class="direita">Taxa Emb.</th>
+                    <th class="direita">Total R$</th>
+                    <th>Projeto</th>
+                    <th class="centro">Gestor Projeto</th>
+                    <th class="centro">Empenho</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set total_tarifa = namespace(value=0) %}
+                {% set total_taxa_extra = namespace(value=0) %}
+                {% set total_assento = namespace(value=0) %}
+                {% set total_taxa_emb = namespace(value=0) %}
+                {% set total_geral = namespace(value=0) %}
+                
+                {% for item in items %}
+                    {% set total_tarifa.value = total_tarifa.value + (item[17] if item[17] else 0) %}
+                    {% set total_taxa_extra.value = total_taxa_extra.value + (item[18] if item[18] else 0) %}
+                    {% set total_assento.value = total_assento.value + (item[19] if item[19] else 0) %}
+                    {% set total_taxa_emb.value = total_taxa_emb.value + (item[20] if item[20] else 0) %}
+                    {% set total_geral.value = total_geral.value + (item[21] if item[21] else 0) %}
+                    
+                    <tr class="{% if loop.index % 2 == 1 %}zebra1{% else %}zebra2{% endif %}">
+                        <td class="centro">{{ item[0] if item[0] else '-' }}</td>
+                        <td class="centro">{{ item[1] if item[1] else '-' }}</td>
+                        <td>{{ item[2] if item[2] else '-' }}</td>
+                        <td class="centro">{{ item[3] if item[3] else '-' }}</td>
+                        <td class="centro">{{ item[4] if item[4] else '-' }}</td>
+                        <td class="centro">{{ item[5] if item[5] else '-' }}</td>
+                        <td class="centro">{{ item[6] if item[6] else '-' }}</td>
+                        <td class="centro">{{ item[7] if item[7] else '-' }}</td>
+                        <td class="centro">{{ item[8] if item[8] else '-' }}</td>
+                        <td class="direita">R$ {{ item[9] if item[9] else '0,00' }}</td>
+                        <td class="direita">R$ {{ item[10] if item[10] else '0,00' }}</td>
+                        <td class="direita">R$ {{ item[11] if item[11] else '0,00' }}</td>
+                        <td class="direita">R$ {{ item[12] if item[12] else '0,00' }}</td>
+                        <td class="direita">R$ {{ item[13] if item[13] else '0,00' }}</td>
+                        <td class="direita">R$ {{ item[14] if item[14] else '0,00' }}</td>
+                        <td>{{ item[15] if item[15] else '-' }}</td>
+                        <td class="centro">{{ item[15] if item[15] else '-' }}</td>
+                        <td class="centro">{{ item[16] if item[16] else '-' }}</td>
+                    </tr>
+                {% endfor %}
+                
+                <tr class="linha-total">
+                    <td colspan="9" class="direita">VALOR TOTAL:</td>
+                    <td class="direita">R$ {{ "%.2f"|format(total_tarifa.value)|replace('.', ',') }}</td>
+                    <td class="direita">R$ {{ "%.2f"|format(total_taxa_extra.value)|replace('.', ',') }}</td>
+                    <td class="direita">R$ {{ "%.2f"|format(total_assento.value)|replace('.', ',') }}</td>
+                    <td class="direita">R$ {{ "%.2f"|format(total_taxa_emb.value)|replace('.', ',') }}</td>
+                    <td class="direita">R$ {{ "%.2f"|format(total_geral.value)|replace('.', ',') }}</td>
+                    <td colspan="4"></td>
+                </tr>
+            </tbody>
+        </table>
+    {% endif %}
+
+    <div class="rodape">
+        Relatório gerado em {{ data_geracao }}
+    </div>
+</body>
+</html>
