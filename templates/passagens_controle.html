@@ -147,15 +147,89 @@
         }
         
         .btn-warning {
-            background-color: #f39c12;
-            border-color: #f39c12;
-            color: white;
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
         }
         
         .btn-warning:hover {
-            background-color: #e67e22;
-            border-color: #e67e22;
-            color: white;
+            background-color: #e0a800;
+            border-color: #d39e00;
+            color: #000;
+        }
+        
+        /* Ajuste no espaçamento dos botões */
+        .row.mb-3 .btn {
+            margin-right: 8px;
+        }
+        
+        .row.mb-3 .btn:last-child {
+            margin-right: 0;
+        }
+        
+        /* Modal Relatório Passagens */
+        .modal-relatorio {
+            display: none;
+            position: fixed;
+            z-index: 10001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        
+        .modal-relatorio-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 0;
+            border: 1px solid #888;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .modal-relatorio-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #000;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-relatorio-header h5 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .modal-relatorio-close {
+            color: #000;
+            font-size: 28px;
+            font-weight: bold;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .modal-relatorio-close:hover,
+        .modal-relatorio-close:focus {
+            opacity: 0.7;
+        }
+        
+        .modal-relatorio-body {
+            padding: 20px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 5px;
         }
         
         .btn-danger {
@@ -560,12 +634,12 @@
                 <button class="btn btn-success" onclick="limparFiltros()">
                     <i class="fas fa-sync"></i> Limpar Filtros
                 </button>
-                <button class="btn btn-warning" data-toggle="modal" data-target="#modalRelatorioPassagens">
+                <button class="btn btn-warning" onclick="abrirModalRelatorioPassagens()">
                     <i class="fas fa-file-pdf"></i> Relatório de Passagens
                 </button>
             </div>
-        </div>   
-        
+        </div>  
+                
         <!-- Card com Tabela -->
         <div class="card">
             <div class="card-header">
@@ -1129,51 +1203,62 @@
         </div>
     </div>
 
-    <!-- Modal Relatório de Passagens -->
-    <div class="modal fade" id="modalRelatorioPassagens" tabindex="-1" role="dialog" aria-labelledby="modalRelatorioPassagensLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-white">
-                    <h5 class="modal-title" id="modalRelatorioPassagensLabel">
-                        <i class="fas fa-file-pdf"></i> Relatório de Passagens Aéreas
-                    </h5>
-                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="formRelatorioPassagens">
-                        <div class="form-group">
-                            <label for="relUO">Unidade Orçamentária (UO) *</label>
-                            <select class="form-control" id="relUO" required>
-                                <option value="">Selecione uma UO</option>
-                                <option value="FUJU">FUJU</option>
-                                <option value="TJRO">TJRO</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group col-md-6">
-                                <label for="relDataInicio">Data Início *</label>
+    <!-- Modal Seleção Relatório Passagens -->
+    <div id="modalRelatorioPassagens" class="modal-relatorio">
+        <div class="modal-relatorio-content" style="max-width: 600px;">
+            <div class="modal-relatorio-header">
+                <h5>📊 Relatório de Passagens Aéreas</h5>
+                <button class="modal-relatorio-close" onclick="fecharModalRelatorioPassagens()">&times;</button>
+            </div>
+            <div class="modal-relatorio-body">
+                <form id="formRelatorioPassagens">
+                    <div class="form-group mb-3">
+                        <label for="relUO" class="form-label">Unidade Orçamentária (UO) *</label>
+                        <select class="form-control" id="relUO" required>
+                            <option value="">Selecione uma UO</option>
+                            <option value="FUJU">FUJU</option>
+                            <option value="TJRO">TJRO</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="relDataInicio" class="form-label">Data Início *</label>
                                 <input type="date" class="form-control" id="relDataInicio" required>
                             </div>
-                            <div class="form-group col-md-6">
-                                <label for="relDataFim">Data Fim *</label>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="relDataFim" class="form-label">Data Fim *</label>
                                 <input type="date" class="form-control" id="relDataFim" required>
                             </div>
                         </div>
-                        <div class="alert alert-info" role="alert">
-                            <i class="fas fa-info-circle"></i> O relatório será gerado com base na data de emissão das passagens.
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    </div>
+                    <div class="alert alert-info" role="alert" style="font-size: 13px;">
+                        <i class="fas fa-info-circle"></i> O relatório será gerado com base na data de emissão das passagens.
+                    </div>
+                </form>
+                <div class="d-flex justify-content-end gap-2 mt-4" style="gap: 10px;">
+                    <button class="btn btn-secondary" onclick="fecharModalRelatorioPassagens()">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
-                    <button type="button" class="btn btn-warning" onclick="gerarRelatorioPassagens()">
+                    <button class="btn btn-warning" onclick="gerarRelatorioPassagens()">
                         <i class="fas fa-file-pdf"></i> Gerar Relatório
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Exibição PDF Relatório Passagens -->
+    <div id="modalPdfPassagens" class="modal-relatorio">
+        <div class="modal-relatorio-content" style="max-width: 95%; width: 1200px;">
+            <div class="modal-relatorio-header">
+                <h5>Relatório de Passagens Aéreas Emitidas</h5>
+                <button class="modal-relatorio-close" onclick="fecharModalPdfPassagens()">&times;</button>
+            </div>
+            <div class="modal-relatorio-body" style="padding: 0;">
+                <iframe id="iframePdfPassagens" style="width: 100%; height: 600px; border: none;" allowfullscreen></iframe>
             </div>
         </div>
     </div>
@@ -2668,8 +2753,36 @@
         }
 
         /**
-         * Gera o relatório de passagens aéreas em PDF
+         * Abre o modal para seleção de parâmetros do relatório
          */
+        function abrirModalRelatorioPassagens() {
+            document.getElementById('modalRelatorioPassagens').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        /**
+         * Fecha o modal de seleção
+         */
+        function fecharModalRelatorioPassagens() {
+            document.getElementById('modalRelatorioPassagens').style.display = 'none';
+            document.getElementById('formRelatorioPassagens').reset();
+            document.body.style.overflow = 'auto';
+        }
+
+
+        /**
+         * Fecha o modal de exibição do PDF
+         */
+        function fecharModalPdfPassagens() {
+            document.getElementById('modalPdfPassagens').style.display = 'none';
+            document.getElementById('iframePdfPassagens').src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        
+        /**
+         * Gera o relatório de passagens aéreas em PDF
+        */
         function gerarRelatorioPassagens() {
             const uo = document.getElementById('relUO').value;
             const dataInicio = document.getElementById('relDataInicio').value;
@@ -2708,14 +2821,13 @@
             // Montar URL
             const url = `/rel_passagens_emitidas?uo=${encodeURIComponent(uo)}&dt_inicio=${encodeURIComponent(dtInicioFormatada)}&dt_fim=${encodeURIComponent(dtFimFormatada)}`;
             
-            // Fechar modal
-            $('#modalRelatorioPassagens').modal('hide');
+            // Carregar PDF no iframe
+            document.getElementById('iframePdfPassagens').src = url;
             
-            // Abrir relatório em nova aba
-            window.open(url, '_blank');
-            
-            // Limpar formulário
-            document.getElementById('formRelatorioPassagens').reset();
+            // Fechar modal de seleção e abrir modal de visualização
+            fecharModalRelatorioPassagens();
+            document.getElementById('modalPdfPassagens').style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
         
         /**
@@ -2724,6 +2836,20 @@
         function formatarDataParaBR(dataISO) {
             const [ano, mes, dia] = dataISO.split('-');
             return `${dia}/${mes}/${ano}`;
+        }
+        
+        // Fechar modais ao clicar fora
+        window.onclick = function(event) {
+            const modalRelatorio = document.getElementById('modalRelatorioPassagens');
+            const modalPdf = document.getElementById('modalPdfPassagens');
+            
+            if (event.target === modalRelatorio) {
+                fecharModalRelatorioPassagens();
+            }
+            
+            if (event.target === modalPdf) {
+                fecharModalPdfPassagens();
+            }
         }
         
         // Limpar formulário ao fechar o modal
