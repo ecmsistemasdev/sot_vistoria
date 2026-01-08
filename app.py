@@ -2775,10 +2775,10 @@ def rel_locacao_analitico():
         
         cursor.close()
         
-        # Criar PDF
+        # Criar PDF com margens ajustadas
         pdf_buffer = BytesIO()
         doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(A4), 
-                               rightMargin=0.8*cm, leftMargin=0.8*cm,
+                               rightMargin=1*cm, leftMargin=1*cm,
                                topMargin=1*cm, bottomMargin=1*cm)
         
         elements = []
@@ -2791,10 +2791,11 @@ def rel_locacao_analitico():
         
         elements.append(Paragraph('Relatório de Locações - Analítico', title_style))
         
-        # Informações do fornecedor
+        # Informações do fornecedor (alinhado à esquerda como a tabela)
         if processo_info:
             info_style = ParagraphStyle('InfoStyle', parent=styles['Normal'],
-                                       fontSize=10, spaceAfter=3, alignment=TA_LEFT)
+                                       fontSize=9, spaceAfter=2, alignment=TA_LEFT,
+                                       leftIndent=0)
             
             fornecedor_text = f'<b>Fornecedor:</b> {processo_info[2]}'
             elements.append(Paragraph(fornecedor_text, info_style))
@@ -2843,45 +2844,62 @@ def rel_locacao_analitico():
                         subtotal_valor += item[8] if item[8] else 0
                         subtotal_km += item[9] if item[9] else 0
                         
+                        # Formatar valores no padrão brasileiro
+                        qtde_str = f"{item[5]:.2f}".replace('.', ',') if item[5] else '0,00'
+                        vl_diaria_str = f"R$ {item[6]:.2f}".replace('.', ',') if item[6] else 'R$ 0,00'
+                        vl_dif_str = f"R$ {item[7]:.2f}".replace('.', ',') if item[7] else 'R$ 0,00'
+                        vl_total_str = f"R$ {item[8]:.2f}".replace('.', ',') if item[8] else 'R$ 0,00'
+                        
+                        # Criar parágrafos para permitir quebra de linha
+                        veiculo_para = Paragraph(item[3] or '-', ParagraphStyle('Normal', fontSize=7, leading=9))
+                        motorista_para = Paragraph(item[4] or '-', ParagraphStyle('Normal', fontSize=7, leading=9))
+                        
                         data.append([
                             str(idx),
                             item[1] or '-',
                             item[2] or '-',
-                            item[3] or '-',
-                            item[4] or '-',
-                            f"{item[5]:.2f}" if item[5] else '0',
-                            f"R$ {item[6]:.2f}" if item[6] else 'R$ 0,00',
-                            f"R$ {item[7]:.2f}" if item[7] else 'R$ 0,00',
-                            f"R$ {item[8]:.2f}" if item[8] else 'R$ 0,00',
+                            veiculo_para,
+                            motorista_para,
+                            qtde_str,
+                            vl_diaria_str,
+                            vl_dif_str,
+                            vl_total_str,
                             f"{item[9]:.0f}" if item[9] else '-'
                         ])
                     
-                    # Subtotal do mês
+                    # Subtotal do mês (formato brasileiro)
+                    subtotal_qtde = f"{subtotal_diarias:.2f}".replace('.', ',')
+                    subtotal_vl = f"R$ {subtotal_valor:.2f}".replace('.', ',')
+                    subtotal_km_str = f"{subtotal_km:.0f}"
+                    
                     data.append(['', '', '', '', f'Subtotal {mes_ano_key}:', 
-                                f"{subtotal_diarias:.2f}", '', '', 
-                                f"R$ {subtotal_valor:.2f}", f"{subtotal_km:.0f}"])
+                                subtotal_qtde, '', '', subtotal_vl, subtotal_km_str])
                     
                     total_geral_diarias += subtotal_diarias
                     total_geral_valor += subtotal_valor
                     total_geral_km += subtotal_km
                     
-                    # Criar tabela
-                    table = Table(data, colWidths=[1*cm, 2*cm, 3*cm, 6*cm, 5.5*cm, 
-                                                   1.3*cm, 2.2*cm, 2*cm, 2.2*cm, 1.8*cm])
+                    # Criar tabela com larguras ajustadas
+                    table = Table(data, colWidths=[0.8*cm, 2*cm, 2.8*cm, 5.5*cm, 5*cm, 
+                                                   1.2*cm, 2*cm, 1.8*cm, 2*cm, 1.7*cm])
                     table.setStyle(TableStyle([
                         # Cabeçalho
                         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
                         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 0), (-1, 0), 8),
-                        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-                        ('TOPPADDING', (0, 0), (-1, 0), 6),
+                        ('FONTSIZE', (0, 0), (-1, 0), 7),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
+                        ('TOPPADDING', (0, 0), (-1, 0), 5),
                         # Corpo da tabela
                         ('BACKGROUND', (0, 1), (-1, -2), colors.white),
                         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
-                        ('FONTSIZE', (0, 1), (-1, -1), 8),
+                        ('FONTSIZE', (0, 1), (-1, -1), 7),
                         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                        ('TOPPADDING', (0, 1), (-1, -2), 2),
+                        ('BOTTOMPADDING', (0, 1), (-1, -2), 2),
                         # Alinhamentos
                         ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Item
                         ('ALIGN', (1, 1), (1, -1), 'CENTER'),  # Mês/Ano
@@ -2894,31 +2912,37 @@ def rel_locacao_analitico():
                         # Subtotal
                         ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#D9E1F2')),
                         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, -1), (-1, -1), 7),
                         ('ALIGN', (4, -1), (4, -1), 'RIGHT'),
                     ]))
                     
                     elements.append(table)
                     elements.append(Spacer(1, 0.3*cm))
                 
-                # Total geral
-                data_total = [['', '', '', '', 'Total Geral:', 
-                              f"{total_geral_diarias:.2f}", '', '', 
-                              f"R$ {total_geral_valor:.2f}", f"{total_geral_km:.0f}"]]
+                # Total geral (formato brasileiro e fonte reduzida)
+                total_qtde = f"{total_geral_diarias:.2f}".replace('.', ',')
+                total_vl = f"R$ {total_geral_valor:.2f}".replace('.', ',')
+                total_km_str = f"{total_geral_km:.0f}"
                 
-                table_total = Table(data_total, colWidths=[1*cm, 2*cm, 3*cm, 6*cm, 5.5*cm, 
-                                                           1.3*cm, 2.2*cm, 2*cm, 2.2*cm, 1.8*cm])
+                data_total = [['', '', '', '', 'Total Geral:', 
+                              total_qtde, '', '', total_vl, total_km_str]]
+                
+                table_total = Table(data_total, colWidths=[0.8*cm, 2*cm, 2.8*cm, 5.5*cm, 5*cm, 
+                                                           1.2*cm, 2*cm, 1.8*cm, 2*cm, 1.7*cm])
                 table_total.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#B4C7E7')),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('FONTSIZE', (0, 0), (-1, 0), 8),
                     ('ALIGN', (4, 0), (4, 0), 'RIGHT'),
                     ('ALIGN', (5, 0), (5, 0), 'CENTER'),
                     ('ALIGN', (8, 0), (8, 0), 'RIGHT'),
                     ('ALIGN', (9, 0), (9, 0), 'CENTER'),
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
                     ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-                    ('TOPPADDING', (0, 0), (-1, 0), 6),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                    ('LEFTPADDING', (0, 0), (-1, 0), 3),
+                    ('RIGHTPADDING', (0, 0), (-1, 0), 3),
+                    ('TOPPADDING', (0, 0), (-1, 0), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
                 ]))
                 elements.append(table_total)
                 
@@ -11788,4 +11812,5 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
