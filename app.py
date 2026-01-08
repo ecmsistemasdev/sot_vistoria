@@ -7636,36 +7636,46 @@ def rel_passagens_emitidas():
                 total_taxa_emb += item[12] if item[12] else 0
                 total_geral += item[13] if item[13] else 0
                 
+                # Ordem das colunas conforme PDF:
+                # OF SEI, Nº SEI, Passageiro, Data Emissão, Rota Origem, Rota Destino, 
+                # Dt. Embarque, CIA, Localizador, Tarifa, Taxa, Extra, Assento, Taxa Emb., Total R$, 
+                # Projeto, Gestor Projeto, Empenho
+                # 
+                # NOTA: Como temos apenas VL_TAXA_EXTRA na tabela, vamos dividir visualmente:
+                # - Coluna "Taxa" ficará vazia (R$ 0,00)
+                # - Coluna "Extra" receberá VL_TAXA_EXTRA
+                # - Coluna "Assento" receberá VL_ASSENTO
                 data.append([
-                    str(item[0]) if item[0] else '-',
-                    str(item[1]) if item[1] else '-',
-                    str(item[2]) if item[2] else '-',
-                    formatar_data(item[3]),
-                    str(item[4]) if item[4] else '-',
-                    str(item[5]) if item[5] else '-',
-                    formatar_data(item[6]),
-                    str(item[7]) if item[7] else '-',
-                    str(item[8]) if item[8] else '-',
-                    formatar_moeda_br(item[9]),
-                    formatar_moeda_br(item[10]),
-                    formatar_moeda_br(item[11]),
-                    formatar_moeda_br(item[12]),
-                    formatar_moeda_br(item[13]),
-                    formatar_moeda_br(item[13]),  # Total é VL_TOTAL mesmo
-                    str(item[14]) if item[14] else '-',
-                    str(item[15]) if item[15] else '-',
-                    str(item[16]) if item[16] else '-'
+                    str(item[0]) if item[0] else '-',           # OF SEI
+                    str(item[1]) if item[1] else '-',           # Nº SEI  
+                    str(item[2]) if item[2] else '-',           # Passageiro
+                    formatar_data(item[3]),                      # Data Emissão
+                    str(item[4]) if item[4] else '-',           # Rota Origem
+                    str(item[5]) if item[5] else '-',           # Rota Destino
+                    formatar_data(item[6]),                      # Dt. Embarque
+                    str(item[7]) if item[7] else '-',           # CIA
+                    str(item[8]) if item[8] else '-',           # Localizador
+                    formatar_moeda_br(item[9]),                  # Tarifa
+                    formatar_moeda_br(0),                        # Taxa (sempre R$ 0,00 - não existe na tabela)
+                    formatar_moeda_br(item[10]),                 # Extra (VL_TAXA_EXTRA)
+                    formatar_moeda_br(item[11]),                 # Assento (VL_ASSENTO)
+                    formatar_moeda_br(item[12]),                 # Taxa Emb. (VL_TAXA_EMBARQUE)
+                    formatar_moeda_br(item[13]),                 # Total R$ (VL_TOTAL)
+                    str(item[14]) if item[14] else '-',         # Projeto (SUBACAO)
+                    str(item[15]) if item[15] else '-',         # Gestor Projeto (UNIDADE)
+                    str(item[16]) if item[16] else '-'          # Empenho (NU_EMPENHO)
                 ])
             
             # Linha de total
             data.append([
                 'VALOR TOTAL:', '', '', '', '', '', '', '', '',
                 formatar_moeda_br(total_tarifa),
+                formatar_moeda_br(0),  # Taxa (sempre R$ 0,00)
                 formatar_moeda_br(total_taxa_extra),
                 formatar_moeda_br(total_assento),
                 formatar_moeda_br(total_taxa_emb),
                 formatar_moeda_br(total_geral),
-                '', '', '', ''
+                '', '', ''
             ])
             
             # Criar tabela com larguras específicas (em cm)
@@ -7738,6 +7748,8 @@ def rel_passagens_emitidas():
         import traceback
         traceback.print_exc()
         return f"Erro ao gerar relatório: {str(e)}", 500
+
+######################### fim relatorio de passagem
 
 @app.route('/api/criar_locacao_fornecedor', methods=['POST'])
 @login_required
@@ -11230,6 +11242,7 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
 
