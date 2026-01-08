@@ -7614,6 +7614,17 @@ def rel_passagens_emitidas():
                                           alignment=TA_CENTER, spaceAfter=30)
             elements.append(Paragraph('Nenhum registro encontrado para o período selecionado.', no_data_style))
         else:
+            # Estilos para células
+            cell_style = ParagraphStyle('CellStyle', parent=styles['Normal'],
+                                       fontSize=6.5, leading=7.5,
+                                       alignment=TA_LEFT, wordWrap='CJK')
+            cell_center_style = ParagraphStyle('CellCenterStyle', parent=styles['Normal'],
+                                               fontSize=6.5, leading=7.5,
+                                               alignment=TA_CENTER, wordWrap='CJK')
+            cell_right_style = ParagraphStyle('CellRightStyle', parent=styles['Normal'],
+                                             fontSize=6.5, leading=7.5,
+                                             alignment=TA_RIGHT, wordWrap='CJK')
+            
             # Cabeçalho da tabela
             data = [['OF\nSEI', 'Nº SEI', 'Passageiro', 'Data\nEmissão', 'Rota\nOrigem', 
                      'Rota\nDestino', 'Dt.\nEmbarque', 'CIA', 'Localizador', 'Tarifa', 
@@ -7645,13 +7656,17 @@ def rel_passagens_emitidas():
                 # - Coluna "Taxa" ficará vazia (R$ 0,00)
                 # - Coluna "Extra" receberá VL_TAXA_EXTRA
                 # - Coluna "Assento" receberá VL_ASSENTO
+                
+                passageiro = Paragraph(str(item[2]) if item[2] else '-', cell_style)
+                projeto = Paragraph(str(item[14])[:40] if item[14] else '-', cell_style)  # Limita a 40 caracteres
+                
                 data.append([
                     str(item[0]) if item[0] else '-',           # OF SEI
                     str(item[1]) if item[1] else '-',           # Nº SEI  
-                    str(item[2]) if item[2] else '-',           # Passageiro
+                    passageiro,                                  # Passageiro (com quebra)
                     formatar_data(item[3]),                      # Data Emissão
-                    str(item[4]) if item[4] else '-',           # Rota Origem
-                    str(item[5]) if item[5] else '-',           # Rota Destino
+                    str(item[4])[:15] if item[4] else '-',      # Rota Origem (limita)
+                    str(item[5])[:15] if item[5] else '-',      # Rota Destino (limita)
                     formatar_data(item[6]),                      # Dt. Embarque
                     str(item[7]) if item[7] else '-',           # CIA
                     str(item[8]) if item[8] else '-',           # Localizador
@@ -7661,8 +7676,8 @@ def rel_passagens_emitidas():
                     formatar_moeda_br(item[11]),                 # Assento (VL_ASSENTO)
                     formatar_moeda_br(item[12]),                 # Taxa Emb. (VL_TAXA_EMBARQUE)
                     formatar_moeda_br(item[13]),                 # Total R$ (VL_TOTAL)
-                    str(item[14]) if item[14] else '-',         # Projeto (SUBACAO)
-                    str(item[15]) if item[15] else '-',         # Gestor Projeto (UNIDADE)
+                    projeto,                                     # Projeto (com quebra, limitado)
+                    str(item[15])[:10] if item[15] else '-',    # Gestor Projeto (UNIDADE, limitado)
                     str(item[16]) if item[16] else '-'          # Empenho (NU_EMPENHO)
                 ])
             
@@ -7678,8 +7693,28 @@ def rel_passagens_emitidas():
                 '', '', ''
             ])
             
-            # Criar tabela com larguras específicas (em cm)
-            col_widths = [0.8, 1.4, 2.4, 1.0, 1.8, 1.8, 1.0, 0.8, 1.2, 1.0, 0.8, 0.8, 0.8, 0.8, 1.0, 1.8, 0.8, 1.2]
+            # Criar tabela com larguras específicas (em cm) - AJUSTADO para 18 colunas
+            # Total disponível: ~27cm (A4 landscape - margens)
+            col_widths = [
+                0.7,   # OF SEI
+                1.2,   # Nº SEI
+                2.3,   # Passageiro
+                0.95,  # Data Emissão
+                1.6,   # Rota Origem
+                1.6,   # Rota Destino
+                0.95,  # Dt. Embarque
+                0.65,  # CIA
+                1.1,   # Localizador
+                1.0,   # Tarifa
+                0.8,   # Taxa
+                0.8,   # Extra
+                0.8,   # Assento
+                0.8,   # Taxa Emb.
+                1.0,   # Total R$
+                2.5,   # Projeto
+                0.8,   # Gestor Projeto
+                1.3    # Empenho
+            ]
             
             table = Table(data, colWidths=col_widths)
             
@@ -7690,12 +7725,12 @@ def rel_passagens_emitidas():
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
                 ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
                 
                 # Corpo da tabela
                 ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -2), 7),
+                ('FONTSIZE', (0, 1), (-1, -2), 6.5),
                 ('ALIGN', (0, 1), (0, -2), 'CENTER'),  # OF SEI
                 ('ALIGN', (1, 1), (1, -2), 'CENTER'),  # Nº SEI
                 ('ALIGN', (3, 1), (3, -2), 'CENTER'),  # Data Emissão
@@ -7704,19 +7739,19 @@ def rel_passagens_emitidas():
                 ('ALIGN', (6, 1), (6, -2), 'CENTER'),  # Dt. Embarque
                 ('ALIGN', (7, 1), (7, -2), 'CENTER'),  # CIA
                 ('ALIGN', (8, 1), (8, -2), 'CENTER'),  # Localizador
-                ('ALIGN', (9, 1), (14, -2), 'RIGHT'),  # Valores
+                ('ALIGN', (9, 1), (14, -2), 'RIGHT'),  # Todos os valores (Tarifa até Total)
                 ('ALIGN', (16, 1), (16, -2), 'CENTER'),  # Gestor Projeto
                 ('ALIGN', (17, 1), (17, -2), 'CENTER'),  # Empenho
                 
                 # Linha de total
                 ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#d4edda')),
                 ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, -1), (-1, -1), 9),
+                ('FONTSIZE', (0, -1), (-1, -1), 8),
                 ('ALIGN', (0, -1), (8, -1), 'RIGHT'),
                 ('ALIGN', (9, -1), (14, -1), 'RIGHT'),
                 
                 # Bordas
-                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#666666')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#666666')),
                 ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#1a73e8')),
                 
                 # Zebrado
@@ -11242,6 +11277,7 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
 
