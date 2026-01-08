@@ -7506,6 +7506,230 @@ def rel_diarias_terceirizados():
 		
 ### fim das rotas da agenda #############################################
 
+@app.route('/rel_passagens_emitidas')
+@login_required
+def rel_passagens_emitidas():
+    """Gera o relatório de passagens aéreas emitidas como PDF"""
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+        
+        # Obter parâmetros
+        uo = request.args.get('uo')
+        dt_inicio = request.args.get('dt_inicio')
+        dt_fim = request.args.get('dt_fim')
+        
+        if not uo or not dt_inicio or not dt_fim:
+            return "Parâmetros obrigatórios: uo, dt_inicio, dt_fim", 400
+        
+        cursor = mysql.connection.cursor()
+        
+        # Converter datas do formato dd/mm/yyyy para yyyy-mm-dd
+        try:
+            dt_inicio_obj = datetime.strptime(dt_inicio, '%d/%m/%Y')
+            dt_fim_obj = datetime.strptime(dt_fim, '%d/%m/%Y')
+            dt_inicio_sql = dt_inicio_obj.strftime('%Y-%m-%d')
+            dt_fim_sql = dt_fim_obj.strftime('%Y-%m-%d')
+        except ValueError:
+            return "Formato de data inválido. Use dd/mm/yyyy", 400
+        
+        query = """
+            SELECT 
+                pae.ID_OF,
+                pae.NU_SEI,
+                pae.NOME_PASSAGEIRO,
+                DATE_FORMAT(pae.DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
+                CONCAT(ao.CIDADE, '-', ao.UF_ESTADO) as ORIGEM_FORMATADA,
+                CONCAT(ad.CIDADE, '-', ad.UF_ESTADO) as DESTINO_FORMATADO,
+                DATE_FORMAT(pae.DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
+                pae.CIA,
+                pae.LOCALIZADOR,
+                FORMAT(pae.VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
+                FORMAT(pae.VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
+                FORMAT(pae.VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
+                FORMAT(pae.VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
+                FORMAT(pae.VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F,
+                opa.SUBACAO AS PROJETO,
+                opa.UNIDADE,
+                opa.NU_EMPENHO,
+                pae.VL_TARIFA,
+                pae.VL_TAXA_EXTRA,
+                pae.VL_ASSENTO,
+                pae.VL_TAXA_EMBARQUE,
+                pae.VL_TOTAL,
+                pae.DT_EMISSAO,
+                pae.DT_EMBARQUE
+            FROM PASSAGENS_AEREAS_EMITIDAS pae
+            JOIN ORCAMENTO_PASSAGENS_AEREAS opa ON opa.ID_OPA = pae.ID_OPA
+            LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
+            LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
+            WHERE opa.UO = %s
+            AND pae.ATIVO = 'S'
+            AND pae.DT_EMISSAO BETWEEN %s AND %s
+            ORDER BY pae.ID_OF
+        """
+        
+        cursor.execute(query, (uo, dt_inicio_sql, dt_fim_sql))
+        items = cursor.fetchall()
+        cursor.close()
+        
+        # Criar PDF
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(A4), 
+                               rightMargin=0.6*cm, leftMargin=0.6*cm,
+                               topMargin=0.8*cm, bottomMargin=0.8*cm)
+        
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Título
+        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
+                                     fontSize=16, textColor=colors.HexColor('#1a73e8'),
+                                     spaceAfter=5, alignment=TA_CENTER)
+        subtitle_style = ParagraphStyle('CustomSubtitle', parent=styles['Normal'],
+                                       fontSize=11, textColor=colors.grey,
+                                       spaceAfter=10, alignment=TA_CENTER)
+        
+        elements.append(Paragraph('Relatório de Passagens Aéreas Emitidas', title_style))
+        elements.append(Paragraph(f'Período: {dt_inicio} a {dt_fim} | UO: {uo}', subtitle_style))
+        elements.append(Spacer(1, 0.5*cm))
+        
+        if len(items) == 0:
+            no_data_style = ParagraphStyle('NoData', parent=styles['Normal'],
+                                          fontSize=12, textColor=colors.grey,
+                                          alignment=TA_CENTER, spaceAfter=30)
+            elements.append(Paragraph('Nenhum registro encontrado para o período selecionado.', no_data_style))
+        else:
+            # Cabeçalho da tabela
+            data = [['OF\nSEI', 'Nº SEI', 'Passageiro', 'Data\nEmissão', 'Rota\nOrigem', 
+                     'Rota\nDestino', 'Dt.\nEmbarque', 'CIA', 'Localizador', 'Tarifa', 
+                     'Taxa', 'Extra', 'Assento', 'Taxa\nEmb.', 'Total R$', 'Projeto', 
+                     'Gestor\nProjeto', 'Empenho']]
+            
+            # Totalizadores
+            total_tarifa = 0
+            total_taxa_extra = 0
+            total_assento = 0
+            total_taxa_emb = 0
+            total_geral = 0
+            
+            # Adicionar linhas
+            for item in items:
+                total_tarifa += item[17] if item[17] else 0
+                total_taxa_extra += item[18] if item[18] else 0
+                total_assento += item[19] if item[19] else 0
+                total_taxa_emb += item[20] if item[20] else 0
+                total_geral += item[21] if item[21] else 0
+                
+                data.append([
+                    str(item[0]) if item[0] else '-',
+                    str(item[1]) if item[1] else '-',
+                    str(item[2]) if item[2] else '-',
+                    str(item[3]) if item[3] else '-',
+                    str(item[4]) if item[4] else '-',
+                    str(item[5]) if item[5] else '-',
+                    str(item[6]) if item[6] else '-',
+                    str(item[7]) if item[7] else '-',
+                    str(item[8]) if item[8] else '-',
+                    f'R$ {item[9]}' if item[9] else 'R$ 0,00',
+                    f'R$ {item[10]}' if item[10] else 'R$ 0,00',
+                    f'R$ {item[11]}' if item[11] else 'R$ 0,00',
+                    f'R$ {item[12]}' if item[12] else 'R$ 0,00',
+                    f'R$ {item[13]}' if item[13] else 'R$ 0,00',
+                    f'R$ {item[14]}' if item[14] else 'R$ 0,00',
+                    str(item[15]) if item[15] else '-',
+                    str(item[16]) if item[16] else '-',
+                    str(item[17]) if item[17] else '-'
+                ])
+            
+            # Linha de total
+            def formatar_moeda_br(valor):
+                return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            
+            data.append([
+                'VALOR TOTAL:', '', '', '', '', '', '', '', '',
+                formatar_moeda_br(total_tarifa),
+                formatar_moeda_br(total_taxa_extra),
+                formatar_moeda_br(total_assento),
+                formatar_moeda_br(total_taxa_emb),
+                formatar_moeda_br(total_geral),
+                '', '', '', ''
+            ])
+            
+            # Criar tabela com larguras específicas (em cm)
+            col_widths = [0.8, 1.4, 2.4, 1.0, 1.8, 1.8, 1.0, 0.8, 1.2, 1.0, 0.8, 0.8, 0.8, 0.8, 1.0, 1.8, 0.8, 1.2]
+            
+            table = Table(data, colWidths=col_widths)
+            
+            # Estilo da tabela
+            table_style = TableStyle([
+                # Cabeçalho
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+                
+                # Corpo da tabela
+                ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -2), 7),
+                ('ALIGN', (0, 1), (0, -2), 'CENTER'),  # OF SEI
+                ('ALIGN', (1, 1), (1, -2), 'CENTER'),  # Nº SEI
+                ('ALIGN', (3, 1), (3, -2), 'CENTER'),  # Data Emissão
+                ('ALIGN', (4, 1), (4, -2), 'CENTER'),  # Rota Origem
+                ('ALIGN', (5, 1), (5, -2), 'CENTER'),  # Rota Destino
+                ('ALIGN', (6, 1), (6, -2), 'CENTER'),  # Dt. Embarque
+                ('ALIGN', (7, 1), (7, -2), 'CENTER'),  # CIA
+                ('ALIGN', (8, 1), (8, -2), 'CENTER'),  # Localizador
+                ('ALIGN', (9, 1), (14, -2), 'RIGHT'),  # Valores
+                ('ALIGN', (16, 1), (16, -2), 'CENTER'),  # Gestor Projeto
+                ('ALIGN', (17, 1), (17, -2), 'CENTER'),  # Empenho
+                
+                # Linha de total
+                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#d4edda')),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -1), (-1, -1), 9),
+                ('ALIGN', (0, -1), (8, -1), 'RIGHT'),
+                ('ALIGN', (9, -1), (14, -1), 'RIGHT'),
+                
+                # Bordas
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#666666')),
+                ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#1a73e8')),
+                
+                # Zebrado
+                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.HexColor('#f9f9f9'), colors.white]),
+            ])
+            
+            table.setStyle(table_style)
+            elements.append(table)
+        
+        # Rodapé
+        rodape_style = ParagraphStyle('Rodape', parent=styles['Normal'],
+                                     fontSize=8, textColor=colors.grey,
+                                     alignment=TA_CENTER, spaceAfter=0)
+        elements.append(Spacer(1, 0.5*cm))
+        data_geracao = datetime.now().strftime('%d/%m/%Y às %H:%M:%S')
+        elements.append(Paragraph(f'Relatório gerado em {data_geracao}', rodape_style))
+        
+        # Gerar PDF
+        doc.build(elements)
+        pdf_buffer.seek(0)
+        
+        # Retornar PDF
+        return send_file(pdf_buffer, mimetype='application/pdf', 
+                        as_attachment=False, 
+                        download_name=f'relatorio_passagens_{uo}_{dt_inicio.replace("/", "")}_{dt_fim.replace("/", "")}.pdf')
+    
+    except Exception as e:
+        print(f"Erro ao gerar relatório de passagens: {str(e)}")
+        return f"Erro ao gerar relatório: {str(e)}", 500
+
+
 
 @app.route('/api/criar_locacao_fornecedor', methods=['POST'])
 @login_required
@@ -10998,6 +11222,7 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
 
