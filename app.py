@@ -7507,6 +7507,8 @@ def rel_diarias_terceirizados():
 ### fim das rotas da agenda #############################################
 
 
+# ADICIONAR ESTA ROTA NO app.py APÓS A ROTA rel_diarias_terceirizados
+
 @app.route('/rel_passagens_emitidas')
 @login_required
 def rel_passagens_emitidas():
@@ -7543,27 +7545,20 @@ def rel_passagens_emitidas():
                 pae.ID_OF,
                 pae.NU_SEI,
                 pae.NOME_PASSAGEIRO,
-                DATE_FORMAT(pae.DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
+                pae.DT_EMISSAO,
                 CONCAT(ao.CIDADE, '-', ao.UF_ESTADO) as ORIGEM_FORMATADA,
                 CONCAT(ad.CIDADE, '-', ad.UF_ESTADO) as DESTINO_FORMATADO,
-                DATE_FORMAT(pae.DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
+                pae.DT_EMBARQUE,
                 pae.CIA,
                 pae.LOCALIZADOR,
-                FORMAT(pae.VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
-                FORMAT(pae.VL_TAXA_EXTRA, 2, 'de_DE') as VL_TAXA_EXTRA_F,
-                FORMAT(pae.VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
-                FORMAT(pae.VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
-                FORMAT(pae.VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F,
-                opa.SUBACAO AS PROJETO,
-                opa.UNIDADE,
-                opa.NU_EMPENHO,
                 pae.VL_TARIFA,
                 pae.VL_TAXA_EXTRA,
                 pae.VL_ASSENTO,
                 pae.VL_TAXA_EMBARQUE,
                 pae.VL_TOTAL,
-                pae.DT_EMISSAO,
-                pae.DT_EMBARQUE
+                opa.SUBACAO AS PROJETO,
+                opa.UNIDADE,
+                opa.NU_EMPENHO
             FROM PASSAGENS_AEREAS_EMITIDAS pae
             JOIN ORCAMENTO_PASSAGENS_AEREAS opa ON opa.ID_OPA = pae.ID_OPA
             LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
@@ -7577,6 +7572,20 @@ def rel_passagens_emitidas():
         cursor.execute(query, (uo, dt_inicio_sql, dt_fim_sql))
         items = cursor.fetchall()
         cursor.close()
+        
+        # Função para formatar moeda brasileira
+        def formatar_moeda_br(valor):
+            if valor is None:
+                return "R$ 0,00"
+            return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        
+        # Função para formatar data
+        def formatar_data(data):
+            if data is None:
+                return '-'
+            if isinstance(data, str):
+                return data
+            return data.strftime('%d/%m/%Y')
         
         # Criar PDF
         pdf_buffer = BytesIO()
@@ -7620,37 +7629,35 @@ def rel_passagens_emitidas():
             
             # Adicionar linhas
             for item in items:
-                total_tarifa += item[17] if item[17] else 0
-                total_taxa_extra += item[18] if item[18] else 0
-                total_assento += item[19] if item[19] else 0
-                total_taxa_emb += item[20] if item[20] else 0
-                total_geral += item[21] if item[21] else 0
+                # Somar totais
+                total_tarifa += item[9] if item[9] else 0
+                total_taxa_extra += item[10] if item[10] else 0
+                total_assento += item[11] if item[11] else 0
+                total_taxa_emb += item[12] if item[12] else 0
+                total_geral += item[13] if item[13] else 0
                 
                 data.append([
                     str(item[0]) if item[0] else '-',
                     str(item[1]) if item[1] else '-',
                     str(item[2]) if item[2] else '-',
-                    item[3] if item[3] else '-',
-                    item[4] if item[4] else '-',
-                    item[5] if item[5] else '-',
-                    item[6] if item[6] else '-',
-                    item[7] if item[7] else '-',
-                    item[8] if item[8] else '-',
-                    f'R$ {item[9]}' if item[9] else 'R$ 0,00',
-                    f'R$ {item[10]}' if item[10] else 'R$ 0,00',
-                    f'R$ {item[11]}' if item[11] else 'R$ 0,00',
-                    f'R$ {item[12]}' if item[12] else 'R$ 0,00',
-                    f'R$ {item[13]}' if item[13] else 'R$ 0,00',
-                    f'R$ {item[14]}' if item[14] else 'R$ 0,00',
-                    item[15] if item[15] else '-',
-                    item[16] if item[16] else '-',
-                    item[16] if item[16] else '-'
+                    formatar_data(item[3]),
+                    str(item[4]) if item[4] else '-',
+                    str(item[5]) if item[5] else '-',
+                    formatar_data(item[6]),
+                    str(item[7]) if item[7] else '-',
+                    str(item[8]) if item[8] else '-',
+                    formatar_moeda_br(item[9]),
+                    formatar_moeda_br(item[10]),
+                    formatar_moeda_br(item[11]),
+                    formatar_moeda_br(item[12]),
+                    formatar_moeda_br(item[13]),
+                    formatar_moeda_br(item[13]),  # Total é VL_TOTAL mesmo
+                    str(item[14]) if item[14] else '-',
+                    str(item[15]) if item[15] else '-',
+                    str(item[16]) if item[16] else '-'
                 ])
             
             # Linha de total
-            def formatar_moeda_br(valor):
-                return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-            
             data.append([
                 'VALOR TOTAL:', '', '', '', '', '', '', '', '',
                 formatar_moeda_br(total_tarifa),
@@ -7728,8 +7735,9 @@ def rel_passagens_emitidas():
     
     except Exception as e:
         print(f"Erro ao gerar relatório de passagens: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return f"Erro ao gerar relatório: {str(e)}", 500
-
 
 @app.route('/api/criar_locacao_fornecedor', methods=['POST'])
 @login_required
@@ -11222,6 +11230,7 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
 
