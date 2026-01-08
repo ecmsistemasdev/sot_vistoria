@@ -153,7 +153,7 @@
         {% set total_geral_valor = namespace(value=0) %}
         
         {% for fornecedor, items_fornecedor in fornecedores_dict.items() %}
-            <div class="empresa">Empresa: {{ fornecedor }}</div>
+            <div class="empresa">   Empresa: {{ fornecedor }}</div>
             
             {% if agrupar %}
                 {% set periodos_dict = {} %}
@@ -300,3 +300,4 @@
     </div>
 </body>
 </html>
+
