@@ -7299,7 +7299,8 @@ def rel_diarias_terceirizados():
         
         empresa_style = ParagraphStyle('Empresa', parent=styles['Normal'],
                                       fontSize=11, textColor=colors.black,
-                                      spaceAfter=10, alignment=TA_LEFT)
+                                      spaceAfter=10, alignment=TA_LEFT,
+                                      leftIndent=0)  # Remove qualquer indentação
         
         elements.append(Paragraph('Controle de Diárias Motoristas Terceirizados', title_style))
         
@@ -7344,7 +7345,7 @@ def rel_diarias_terceirizados():
                                                   leftIndent=5, spaceAfter=5)
                     elements.append(Paragraph(periodo, periodo_style))
                     
-                    # Cabeçalho da tabela
+                    # Cabeçalho da tabela - LARGURAS AJUSTADAS
                     data = [['Item', 'Nome', 'Nº SEI', 'Período', 'Mês/Ano', 'Diárias', 'Valor', 'Pago']]
                     
                     subtotal_diarias = 0
@@ -7376,8 +7377,8 @@ def rel_diarias_terceirizados():
                     total_geral_diarias += subtotal_diarias
                     total_geral_valor += subtotal_valor
                     
-                    # Criar tabela
-                    table = Table(data, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+                    # Criar tabela - LARGURAS AJUSTADAS (aumentado campo Nome)
+                    table = Table(data, colWidths=[1.5*cm, 7*cm, 4*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
                     table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
                         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -7435,7 +7436,8 @@ def rel_diarias_terceirizados():
                 total_geral_diarias += total_fornecedor_diarias
                 total_geral_valor += total_fornecedor_valor
                 
-                table = Table(data, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+                # LARGURAS AJUSTADAS (aumentado campo Nome)
+                table = Table(data, colWidths=[1.5*cm, 7*cm, 4*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d0d0d0')),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
@@ -7466,7 +7468,7 @@ def rel_diarias_terceirizados():
         if len(fornecedores_dict) > 1 or agrupar:
             data_total = [['', '', '', '', 'TOTAL GERAL:', formatar_numero_br(total_geral_diarias), 
                           formatar_moeda_br(total_geral_valor), '']]
-            table_total = Table(data_total, colWidths=[1.5*cm, 6*cm, 4.5*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
+            table_total = Table(data_total, colWidths=[1.5*cm, 7*cm, 4*cm, 4.5*cm, 3*cm, 2*cm, 3*cm, 2*cm])
             table_total.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4edda')),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -7501,6 +7503,7 @@ def rel_diarias_terceirizados():
         import traceback
         app.logger.error(traceback.format_exc())
         return f"Erro ao gerar relatório: {str(e)}", 500
+		
 ### fim das rotas da agenda #############################################
 
 
@@ -10995,5 +10998,6 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
+
 
 
