@@ -36,6 +36,13 @@
             font-weight: normal;
         }
         
+        .empresa {
+            font-size: 11pt;
+            color: #000;
+            margin: 15px 0 10px 0;
+            font-weight: normal;
+        }
+        
         .periodo-titulo {
             background-color: #1a73e8;
             color: white;
@@ -132,138 +139,155 @@
             Nenhum registro encontrado para o(s) período(s) selecionado(s).
         </div>
     {% else %}
-        {% if agrupar %}
-            {% set periodos_dict = {} %}
-            {% for item in items %}
-                {% if item[4] and item[4] not in periodos_dict %}
-                    {% set _ = periodos_dict.update({item[4]: []}) %}
-                {% endif %}
-                {% if item[4] %}
-                    {% set _ = periodos_dict[item[4]].append(item) %}
-                {% endif %}
-            {% endfor %}
+        {% set fornecedores_dict = {} %}
+        {% for item in items %}
+            {% if item[8] and item[8] not in fornecedores_dict %}
+                {% set _ = fornecedores_dict.update({item[8]: []}) %}
+            {% endif %}
+            {% if item[8] %}
+                {% set _ = fornecedores_dict[item[8]].append(item) %}
+            {% endif %}
+        {% endfor %}
+        
+        {% set total_geral_diarias = namespace(value=0) %}
+        {% set total_geral_valor = namespace(value=0) %}
+        
+        {% for fornecedor, items_fornecedor in fornecedores_dict.items() %}
+            <div class="empresa">Empresa: {{ fornecedor }}</div>
             
-            {% for periodo in periodos %}
-                {% if periodo in periodos_dict %}
-                    <div class="periodo-titulo">{{ periodo }}</div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="centro" width="4%">Item</th>
-                                <th width="22%">Nome do Motorista</th>
-                                <th class="centro" width="18%">Nº SEI</th>
-                                <th class="centro" width="18%">Período</th>
-                                <th class="centro" width="11%">Mês/Ano</th>
-                                <th class="centro" width="8%">Diárias</th>
-                                <th class="direita" width="12%">Valor Pago</th>
-                                <th class="centro" width="7%">Pago</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% set subtotal_diarias = namespace(value=0) %}
-                            {% set subtotal_valor = namespace(value=0) %}
-                            
-                            {% for item in periodos_dict[periodo] %}
-                                {% set subtotal_diarias.value = subtotal_diarias.value + (item[5] if item[5] else 0) %}
-                                {% set subtotal_valor.value = subtotal_valor.value + (item[6] if item[6] else 0) %}
-                                <tr class="{% if loop.index % 2 == 1 %}zebra1{% else %}zebra2{% endif %}">
-                                    <td class="centro">{{ loop.index }}</td>
-                                    <td>{{ item[0] if item[0] else '-' }}</td>
-                                    <td class="centro">{{ item[1] if item[1] else '-' }}</td>
-                                    <td class="centro">
-                                        {% if item[2] and item[3] %}
-                                            {% if item[2].strftime('%d/%m/%Y') == item[3].strftime('%d/%m/%Y') %}
-                                                {{ item[2].strftime('%d/%m/%Y') }}
-                                            {% else %}
-                                                {{ item[2].strftime('%d/%m/%Y') }} a {{ item[3].strftime('%d/%m/%Y') }}
-                                            {% endif %}
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                    <td class="centro">{{ item[4] if item[4] else '-' }}</td>
-                                    <td class="centro">{{ "%.2f"|format(item[5] if item[5] else 0) }}</td>
-                                    <td class="direita">R$ {{ "%.2f"|format(item[6] if item[6] else 0) }}</td>
-                                    <td class="centro">{{ item[7] if item[7] else 'NÃO' }}</td>
+            {% if agrupar %}
+                {% set periodos_dict = {} %}
+                {% for item in items_fornecedor %}
+                    {% if item[4] and item[4] not in periodos_dict %}
+                        {% set _ = periodos_dict.update({item[4]: []}) %}
+                    {% endif %}
+                    {% if item[4] %}
+                        {% set _ = periodos_dict[item[4]].append(item) %}
+                    {% endif %}
+                {% endfor %}
+                
+                {% for periodo in periodos %}
+                    {% if periodo in periodos_dict %}
+                        <div class="periodo-titulo">{{ periodo }}</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th class="centro" width="4%">Item</th>
+                                    <th width="22%">Nome do Motorista</th>
+                                    <th class="centro" width="18%">Nº SEI</th>
+                                    <th class="centro" width="18%">Período</th>
+                                    <th class="centro" width="11%">Mês/Ano</th>
+                                    <th class="centro" width="8%">Diárias</th>
+                                    <th class="direita" width="12%">Valor Pago</th>
+                                    <th class="centro" width="7%">Pago</th>
                                 </tr>
-                            {% endfor %}
-                            
-                            <tr class="linha-subtotal">
-                                <td colspan="5" class="direita">Subtotal {{ periodo }}:</td>
-                                <td class="centro">{{ "%.2f"|format(subtotal_diarias.value) }}</td>
-                                <td class="direita">R$ {{ "%.2f"|format(subtotal_valor.value) }}</td>
-                                <td></td>
+                            </thead>
+                            <tbody>
+                                {% set subtotal_diarias = namespace(value=0) %}
+                                {% set subtotal_valor = namespace(value=0) %}
+                                
+                                {% for item in periodos_dict[periodo] %}
+                                    {% set subtotal_diarias.value = subtotal_diarias.value + (item[5] if item[5] else 0) %}
+                                    {% set subtotal_valor.value = subtotal_valor.value + (item[6] if item[6] else 0) %}
+                                    <tr class="{% if loop.index % 2 == 1 %}zebra1{% else %}zebra2{% endif %}">
+                                        <td class="centro">{{ loop.index }}</td>
+                                        <td>{{ item[0] if item[0] else '-' }}</td>
+                                        <td class="centro">{{ item[1] if item[1] else '-' }}</td>
+                                        <td class="centro">
+                                            {% if item[2] and item[3] %}
+                                                {% if item[2].strftime('%d/%m/%Y') == item[3].strftime('%d/%m/%Y') %}
+                                                    {{ item[2].strftime('%d/%m/%Y') }}
+                                                {% else %}
+                                                    {{ item[2].strftime('%d/%m/%Y') }} a {{ item[3].strftime('%d/%m/%Y') }}
+                                                {% endif %}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td class="centro">{{ item[4] if item[4] else '-' }}</td>
+                                        <td class="centro">{{ "%.2f"|format(item[5] if item[5] else 0) }}</td>
+                                        <td class="direita">R$ {{ "%.2f"|format(item[6] if item[6] else 0) }}</td>
+                                        <td class="centro">{{ item[7] if item[7] else 'NÃO' }}</td>
+                                    </tr>
+                                {% endfor %}
+                                
+                                {% set total_geral_diarias.value = total_geral_diarias.value + subtotal_diarias.value %}
+                                {% set total_geral_valor.value = total_geral_valor.value + subtotal_valor.value %}
+                                
+                                <tr class="linha-subtotal">
+                                    <td colspan="5" class="direita">Subtotal {{ periodo }}:</td>
+                                    <td class="centro">{{ "%.2f"|format(subtotal_diarias.value) }}</td>
+                                    <td class="direita">R$ {{ "%.2f"|format(subtotal_valor.value) }}</td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="centro" width="4%">Item</th>
+                            <th width="22%">Nome do Motorista</th>
+                            <th class="centro" width="18%">Nº SEI</th>
+                            <th class="centro" width="18%">Período</th>
+                            <th class="centro" width="11%">Mês/Ano</th>
+                            <th class="centro" width="8%">Diárias</th>
+                            <th class="direita" width="12%">Valor Pago</th>
+                            <th class="centro" width="7%">Pago</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set total_fornecedor_diarias = namespace(value=0) %}
+                        {% set total_fornecedor_valor = namespace(value=0) %}
+                        
+                        {% for item in items_fornecedor %}
+                            {% set total_fornecedor_diarias.value = total_fornecedor_diarias.value + (item[5] if item[5] else 0) %}
+                            {% set total_fornecedor_valor.value = total_fornecedor_valor.value + (item[6] if item[6] else 0) %}
+                            <tr class="{% if loop.index % 2 == 1 %}zebra1{% else %}zebra2{% endif %}">
+                                <td class="centro">{{ loop.index }}</td>
+                                <td>{{ item[0] if item[0] else '-' }}</td>
+                                <td class="centro">{{ item[1] if item[1] else '-' }}</td>
+                                <td class="centro">
+                                    {% if item[2] and item[3] %}
+                                        {% if item[2].strftime('%d/%m/%Y') == item[3].strftime('%d/%m/%Y') %}
+                                            {{ item[2].strftime('%d/%m/%Y') }}
+                                        {% else %}
+                                            {{ item[2].strftime('%d/%m/%Y') }} a {{ item[3].strftime('%d/%m/%Y') }}
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="centro">{{ item[4] if item[4] else '-' }}</td>
+                                <td class="centro">{{ "%.2f"|format(item[5] if item[5] else 0) }}</td>
+                                <td class="direita">R$ {{ "%.2f"|format(item[6] if item[6] else 0) }}</td>
+                                <td class="centro">{{ item[7] if item[7] else 'NÃO' }}</td>
                             </tr>
-                        </tbody>
-                    </table>
-                {% endif %}
-            {% endfor %}
-            
-            {% set total_diarias = namespace(value=0) %}
-            {% set total_valor = namespace(value=0) %}
-            {% for item in items %}
-                {% set total_diarias.value = total_diarias.value + (item[5] if item[5] else 0) %}
-                {% set total_valor.value = total_valor.value + (item[6] if item[6] else 0) %}
-            {% endfor %}
-            
+                        {% endfor %}
+                        
+                        {% set total_geral_diarias.value = total_geral_diarias.value + total_fornecedor_diarias.value %}
+                        {% set total_geral_valor.value = total_geral_valor.value + total_fornecedor_valor.value %}
+                        
+                        <tr class="linha-total">
+                            <td colspan="5" class="direita">TOTAL:</td>
+                            <td class="centro">{{ "%.2f"|format(total_fornecedor_diarias.value) }}</td>
+                            <td class="direita">R$ {{ "%.2f"|format(total_fornecedor_valor.value) }}</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            {% endif %}
+        {% endfor %}
+        
+        {% if fornecedores_dict|length > 1 or agrupar %}
             <table>
                 <tbody>
                     <tr class="linha-total">
                         <td colspan="5" class="direita">TOTAL GERAL:</td>
-                        <td class="centro">{{ "%.2f"|format(total_diarias.value) }}</td>
-                        <td class="direita">R$ {{ "%.2f"|format(total_valor.value) }}</td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
-            
-        {% else %}
-            <table>
-                <thead>
-                    <tr>
-                        <th class="centro" width="4%">Item</th>
-                        <th width="22%">Nome do Motorista</th>
-                        <th class="centro" width="18%">Nº SEI</th>
-                        <th class="centro" width="18%">Período</th>
-                        <th class="centro" width="11%">Mês/Ano</th>
-                        <th class="centro" width="8%">Diárias</th>
-                        <th class="direita" width="12%">Valor Pago</th>
-                        <th class="centro" width="7%">Pago</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set total_diarias = namespace(value=0) %}
-                    {% set total_valor = namespace(value=0) %}
-                    
-                    {% for item in items %}
-                        {% set total_diarias.value = total_diarias.value + (item[5] if item[5] else 0) %}
-                        {% set total_valor.value = total_valor.value + (item[6] if item[6] else 0) %}
-                        <tr class="{% if loop.index % 2 == 1 %}zebra1{% else %}zebra2{% endif %}">
-                            <td class="centro">{{ loop.index }}</td>
-                            <td>{{ item[0] if item[0] else '-' }}</td>
-                            <td class="centro">{{ item[1] if item[1] else '-' }}</td>
-                            <td class="centro">
-                                {% if item[2] and item[3] %}
-                                    {% if item[2].strftime('%d/%m/%Y') == item[3].strftime('%d/%m/%Y') %}
-                                        {{ item[2].strftime('%d/%m/%Y') }}
-                                    {% else %}
-                                        {{ item[2].strftime('%d/%m/%Y') }} a {{ item[3].strftime('%d/%m/%Y') }}
-                                    {% endif %}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td class="centro">{{ item[4] if item[4] else '-' }}</td>
-                            <td class="centro">{{ "%.2f"|format(item[5] if item[5] else 0) }}</td>
-                            <td class="direita">R$ {{ "%.2f"|format(item[6] if item[6] else 0) }}</td>
-                            <td class="centro">{{ item[7] if item[7] else 'NÃO' }}</td>
-                        </tr>
-                    {% endfor %}
-                    
-                    <tr class="linha-total">
-                        <td colspan="5" class="direita">TOTAL:</td>
-                        <td class="centro">{{ "%.2f"|format(total_diarias.value) }}</td>
-                        <td class="direita">R$ {{ "%.2f"|format(total_valor.value) }}</td>
+                        <td class="centro">{{ "%.2f"|format(total_geral_diarias.value) }}</td>
+                        <td class="direita">R$ {{ "%.2f"|format(total_geral_valor.value) }}</td>
                         <td></td>
                     </tr>
                 </tbody>
