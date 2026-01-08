@@ -498,6 +498,18 @@
             border-top: none;
             border-bottom: 1px solid #c0c0c0;
         }
+
+        /* Estilo para aviso de SEI faltante em viagens */
+        .falta-sei {
+            color: #dc3545;
+            font-size: 11px;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        
+        .falta-sei strong {
+            font-weight: 700;
+        }
         
         .expand-weeks-btn:hover {
             background: #e0e0e0;
@@ -6713,6 +6725,14 @@
                                 html += '<div class="informar-veiculo">(INFORMAR VEÍCULO)</div>';
                             }
                             
+                            // ===== NOVO: Exibir aviso "FALTA Nº DO SEI" para viagens sem SEI =====
+                            const ehViagem = demanda.id_tipodemanda === 2;
+                            const semSEI = !demanda.nu_sei || demanda.nu_sei.trim() === '';
+                            
+                            if (ehViagem && semSEI) {
+                                html += '<div class="falta-sei"><strong>(FALTA Nº DO SEI)</strong></div>';
+                            }
+                            
                             // ===== NOVO: Exibir aviso "DIÁRIA NÃO SOLICITADA" para viagens de terceirizados =====
                             const ehViagem = demanda.id_tipodemanda === 2;
                             const ehTerceirizado = m.tipo === 'Terceirizado';
@@ -10053,5 +10073,6 @@
 </body>
 
 </html>
+
 
 
