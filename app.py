@@ -8738,15 +8738,20 @@ def listar_orcamento_passagens():
     """
     Lista orçamentos com cálculo de Valor Atual
     Valor Atual = Soma(Entradas 'E') - Soma(Saídas 'S')
+    MODIFICADO: Agora aceita filtro por id_controle
     """
     try:
+        # ✅ MODIFICADO: Agora aceita tanto exercicio quanto id_controle
         exercicio = request.args.get('exercicio')
+        id_controle = request.args.get('id_controle')  # NOVO!
+        
         if not exercicio:
             from datetime import datetime
             exercicio = datetime.now().year
         
         cursor = mysql.connection.cursor()
         
+        # ✅ MODIFICADO: Query agora inclui filtro opcional por ID_CONTROLE
         query = """
             SELECT 
                 opa.ID_OPA,
@@ -8780,6 +8785,15 @@ def listar_orcamento_passagens():
             LEFT JOIN SUBITEM_ORCAMENTO si ON opa.ID_SUBITEM = si.ID_SUBITEM
             LEFT JOIN PASSAGENS_AEREAS_EMITIDAS pae ON opa.ID_OPA = pae.ID_OPA AND pae.ATIVO = 'S'
             WHERE opa.EXERCICIO = %s
+        """
+        
+        # ✅ NOVO: Adicionar filtro por ID_CONTROLE se fornecido
+        params = [exercicio]
+        if id_controle:
+            query += " AND opa.ID_CONTROLE = %s"
+            params.append(id_controle)
+        
+        query += """
             GROUP BY 
                 opa.ID_OPA, opa.EXERCICIO, opa.UO, opa.UNIDADE, opa.FONTE,
                 opa.ID_PROGRAMA, p.DE_PROGRAMA, opa.ID_AO, ao.DE_AO,
@@ -8789,7 +8803,8 @@ def listar_orcamento_passagens():
             ORDER BY opa.ID_OPA
         """
         
-        cursor.execute(query, (exercicio,))
+        # ✅ MODIFICADO: Usar tuple de params em vez de apenas exercicio
+        cursor.execute(query, tuple(params))
         rows = cursor.fetchall()
         
         registros = []
@@ -8797,7 +8812,7 @@ def listar_orcamento_passagens():
             vl_aprovado = float(row[14]) if row[14] else 0.0
             vl_utilizado = float(row[16]) if row[16] else 0.0
             vl_atual = float(row[17]) if row[17] else 0.0
-            vl_saldo = vl_atual - vl_utilizado  # Novo cálculo!
+            vl_saldo = vl_atual - vl_utilizado
             
             registro = {
                 'id_opa': row[0],
@@ -8816,8 +8831,8 @@ def listar_orcamento_passagens():
                 'subitem': row[13] or '',
                 'vl_aprovado': vl_aprovado,
                 'vl_utilizado': vl_utilizado,
-                'vl_atual': vl_atual,        # NOVO!
-                'vl_saldo': vl_saldo,         # RECALCULADO!
+                'vl_atual': vl_atual,
+                'vl_saldo': vl_saldo,
                 'nu_empenho': row[15] or ''
             }
             registros.append(registro)
@@ -11451,6 +11466,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
