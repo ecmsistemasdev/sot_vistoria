@@ -7756,16 +7756,15 @@ def rel_passagens_emitidas():
                 ('ALIGN', (0, -1), (0, -1), 'RIGHT'),   # "VALOR TOTAL:" alinhado à direita
                 ('ALIGN', (9, -1), (13, -1), 'RIGHT'),  # Valores alinhados à direita
                 
-                # 3 últimas colunas: fundo branco, SEM grades internas, mas com bordas externas na mesma cor
+                # Remove linha vertical direita da coluna Total R$ (entre col 13 e 14)
+                ('LINEAFTER', (13, -1), (13, -1), 0, colors.white),
+                
+                # 3 últimas colunas: fundo branco, SEM bordas
                 ('BACKGROUND', (14, -1), (16, -1), colors.white),
-                # Bordas superior e inferior com mesma cor da tabela
-                ('LINEABOVE', (14, -1), (16, -1), 0.5, colors.HexColor('#666666')),
-                ('LINEBELOW', (14, -1), (16, -1), 0.5, colors.HexColor('#666666')),
-                # Borda direita da última coluna com mesma cor
-                ('LINEAFTER', (16, -1), (16, -1), 0.5, colors.HexColor('#666666')),
-                # Remove grades verticais internas entre as 3 últimas
-                ('LINEBEFORE', (14, -1), (16, -1), 0, colors.white),
-                ('LINEAFTER', (14, -1), (15, -1), 0, colors.white),
+                ('LINEABOVE', (14, -1), (16, -1), 0, colors.white),   # Remove linha superior
+                ('LINEBELOW', (14, -1), (16, -1), 0, colors.white),   # Remove linha inferior
+                ('LINEBEFORE', (14, -1), (16, -1), 0, colors.white),  # Remove linhas verticais
+                ('LINEAFTER', (14, -1), (16, -1), 0, colors.white),   # Remove linha direita
                 
                 # Zebrado
                 ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.HexColor('#f9f9f9'), colors.white]),
@@ -7795,8 +7794,7 @@ def rel_passagens_emitidas():
         print(f"Erro ao gerar relatório de passagens: {str(e)}")
         import traceback
         traceback.print_exc()
-        return f"Erro ao gerar relatório: {str(e)}", 500
-    
+        return f"Erro ao gerar relatório: {str(e)}", 500    
 
 ######################### fim relatorio de passagem ##################
 
@@ -11290,4 +11288,5 @@ def enviar_email_fornecedor_v2():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 	
