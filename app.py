@@ -20,9 +20,9 @@ import uuid
 import base64
 import re
 import unicodedata
-import time
+import time  # ✅ Módulo time para time.time()
 from io import BytesIO
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta  # ✅ SEM 'time' aqui!
 from math import radians, cos, sin, asin, sqrt
 from functools import wraps
 
@@ -11501,6 +11501,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
