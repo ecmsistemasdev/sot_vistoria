@@ -1,0 +1,2863 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Bilhetes - Passagens Aéreas</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/dataTables.bootstrap4.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            font-size: 13px;
+            padding-top: 20px;
+        }
+        
+        .content-wrapper {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Container principal */
+        .main-container {
+            max-width: 1600px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        /* Ajuste para o link Voltar ao Orçamento */
+        .page-header {
+            position: relative;
+        }
+        
+        /* Cabeçalho da página */
+        .page-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .page-header .btn-voltar {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .page-header .btn-voltar:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .page-header .btn-voltar i {
+            margin-right: 5px;
+        }
+        
+        .page-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .page-header p {
+            font-size: 12px;
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .page-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        /* Card */
+        .card {
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 5px 5px 0 0 !important;
+            padding: 12px 20px;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Botões */
+        .btn {
+            font-size: 13px;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: #27ae60;
+            border-color: #27ae60;
+        }
+        
+        .btn-success:hover {
+            background-color: #229954;
+            border-color: #229954;
+        }
+        
+        .btn-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e0a800;
+            border-color: #d39e00;
+            color: #000;
+        }
+        
+        /* Ajuste no espaçamento dos botões */
+        .row.mb-3 .btn {
+            margin-right: 8px;
+        }
+        
+        .row.mb-3 .btn:last-child {
+            margin-right: 0;
+        }
+        
+        /* Modal Relatório Passagens */
+        .modal-relatorio {
+            display: none;
+            position: fixed;
+            z-index: 10001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        
+        .modal-relatorio-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 0;
+            border: 1px solid #888;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        .modal-relatorio-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #000;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-relatorio-header h5 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .modal-relatorio-close {
+            color: #000;
+            font-size: 28px;
+            font-weight: bold;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .modal-relatorio-close:hover,
+        .modal-relatorio-close:focus {
+            opacity: 0.7;
+        }
+        
+        .modal-relatorio-body {
+            padding: 20px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            border-color: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+        
+        .btn-info {
+            background-color: #16a085;
+            border-color: #16a085;
+        }
+        
+        .btn-info:hover {
+            background-color: #138d75;
+            border-color: #138d75;
+        }
+        
+        .btn-secondary {
+            background-color: #95a5a6;
+            border-color: #95a5a6;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+            border-color: #7f8c8d;
+        }
+        
+        /* Tabela */
+        .table {
+            font-size: 12px;
+        }
+        
+        .table thead th {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            font-weight: 600;
+            border-bottom: 2px solid #bdc3c7;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        
+        /* Badge */
+        .badge {
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .badge-info {
+            background-color: #16a085;
+        }
+        
+        .badge-success {
+            background-color: #27ae60;
+        }
+        
+        /* Modais */
+        .modal-header {
+            background-color: #2c3e50;
+            color: white;
+        }
+        
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .close {
+            color: white;
+            opacity: 0.9;
+        }
+        
+        .close:hover {
+            color: white;
+            opacity: 1;
+        }
+
+        /* Ajustes para o select de paginação do DataTables */
+        .dataTables_length select {
+            min-width: 70px !important;
+            padding-right: 25px !important;
+            margin: 0 5px;
+        }
+        
+        /* Autocomplete personalizado */
+        .autocomplete-suggestions {
+            border: 1px solid #d4d4d4;
+            background: #fff;
+            overflow: auto;
+            max-height: 200px;
+            position: absolute;
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .autocomplete-suggestion {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .autocomplete-suggestion:hover {
+            background-color: #e8f4f8;
+        }
+        
+        .autocomplete-suggestion.selected {
+            background-color: #d4e9f7;
+        }
+
+        
+        /* Modal formulário (tamanho padrão para cadastro e edição) */
+        .modal-form {
+            max-width: 750px !important;
+        }
+        
+        /* Formulários */
+        .form-group label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .form-group label.required::after {
+            content: ' *';
+            color: #e74c3c;
+        }
+        
+        .form-control {
+            font-size: 13px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            padding: 8px 12px;
+        }
+        
+        .form-control:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        
+        .form-control-sm {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        
+        /* Info box */
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* Valor total display */
+        .valor-total {
+            font-size: 20px;
+            font-weight: bold;
+            color: #27ae60;
+            text-align: center;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            border: 2px solid #27ae60;
+        }
+        
+        /* Valor total inline (na mesma linha dos outros campos) */
+        .valor-total-inline {
+            font-size: 13px;
+            font-weight: bold;
+            color: #27ae60;
+            text-align: center;
+            padding: 8px 12px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            border: 2px solid #27ae60;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Autocomplete de aeroportos */
+        .aeroporto-autocomplete {
+            position: relative;
+        }
+        
+        .aeroporto-autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #bdc3c7;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .aeroporto-autocomplete-list.show {
+            display: block;
+        }
+        
+        .aeroporto-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #ecf0f1;
+            transition: background-color 0.2s;
+        }
+        
+        .aeroporto-item:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .aeroporto-item:last-child {
+            border-bottom: none;
+        }
+        
+        .aeroporto-codigo {
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .aeroporto-cidade {
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        .aeroporto-pais {
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-left: 5px;
+        }
+        
+        .autocomplete-loading {
+            padding: 10px 12px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+        
+        /* Modal de seleção de orçamento - MESMO TAMANHO DO FORMULÁRIO */
+        .modal-orcamento {
+            max-width: 750px !important;
+        }
+        
+        /* Aumentar z-index do modal de orçamento para ficar na frente */
+        #modalSeletorOrcamento {
+            z-index: 1060 !important;
+        }
+        
+        #modalSeletorOrcamento .modal-backdrop {
+            z-index: 1059 !important;
+        }
+        
+        /* DataTables customização */
+        .dataTables_wrapper {
+            font-size: 12px;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 5px 10px;
+            margin-left: 2px;
+        }
+
+        /* Dropdown customizado para CIA Aérea */
+        .cia-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ced4da;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .cia-suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        
+        .cia-suggestion-item:hover {
+            background-color: #e8f4f8;
+        }
+        
+        .cia-suggestion-item.selected {
+            background-color: #d4e9f7;
+        }
+
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .page-actions {
+                flex-direction: column;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .page-header .btn-voltar {
+                position: static;
+                display: block;
+                margin-top: 10px;
+                text-align: center;
+            }
+        }
+
+        #linha-totalizadores {
+        background-color: #e8e8e8 !important;
+        /* font-weight: bold; */
+        border-top: 2px solid #2c3e50 !important;
+        }
+        
+        #linha-totalizadores td {
+        padding: 12px !important;
+        }
+        
+        #linha-totalizadores:hover {
+        background-color: #e8e8e8 !important;
+        }
+
+        /* Estilo para o botão de relatório */
+        .btn-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e0a800;
+            border-color: #d39e00;
+            color: #000;
+        }
+        
+        /* Estilo para o header do modal */
+        .modal-header.bg-warning {
+            background-color: #ffc107 !important;
+        }
+        
+        /* Ajuste no espaçamento dos botões */
+        .row.mb-3 .btn {
+            margin-right: 8px;
+        }
+        
+        .row.mb-3 .btn:last-child {
+            margin-right: 0;
+        }
+        
+    </style>
+</head>
+<body>
+    <!-- Conteúdo Principal -->
+    <div class="container-fluid content-wrapper">
+        <!-- Cabeçalho -->
+        <div class="page-header">
+            <a href="/controle_passagens_aereas" class="btn-voltar">
+                <i class="fas fa-arrow-left"></i> Voltar ao Orçamento
+            </a>
+            <div>
+                <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes Emitidos</h2>
+                <p>Gerencie os bilhetes de passagens aéreas emitidas</p>
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <button class="btn btn-primary" data-toggle="modal" data-target="#modalCadastro">
+                    <i class="fas fa-plus"></i> Adicionar Bilhete
+                </button>
+                <button class="btn btn-info" data-toggle="modal" data-target="#modalFiltros">
+                    <i class="fas fa-filter"></i> Filtros
+                </button>
+                <button class="btn btn-success" onclick="limparFiltros()">
+                    <i class="fas fa-sync"></i> Limpar Filtros
+                </button>
+                <button class="btn btn-warning" onclick="abrirModalRelatorioPassagens()">
+                    <i class="fas fa-file-pdf"></i> Relatório de Passagens
+                </button>
+            </div>
+        </div>  
+                
+        <!-- Card com Tabela -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Bilhetes Emitidos</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="tabelaPassagens" class="table table-striped table-bordered table-hover" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>OF</th>
+                                <th>Passageiro</th>
+                                <th>CIA</th>
+                                <th>Localizador</th>
+                                <th>Trecho</th>
+                                <th>Emissão</th>
+                                <th>Embarque</th>
+                                <th>Valor Total</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in passagens %}
+                            <tr>
+                                <td>{{ p[0] }}</td>
+                                <td>{{ p[4] }}</td>
+                                <td>{{ p[12] }}</td>
+                                <!-- <td><span class="badge badge-info">{{ p[12] }}</span></td> -->
+                                <td>{{ p[13] }}</td>
+                                <td><strong>{{ p[6] }}</strong></td>
+                                <td>{{ p[5] }}</td>
+                                <td>{{ p[11] }}</td>
+                                <td>R$ {{ p[18] }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-warning" onclick="editarPassagem({{ p[0] }})" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="confirmarExclusao({{ p[0] }})" title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cadastro -->
+    <div class="modal fade" id="modalCadastro" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-form">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus"></i> Adicionar Bilhete</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">                    
+                    <form id="formCadastro" onsubmit="salvarPassagem(event)">
+                        <input type="hidden" id="id_opa" name="id_opa">
+                        <input type="hidden" name="id_controle" value="0">
+
+                        <!-- UPLOAD DE BILHETE PDF -->
+                        <div class="alert alert-info" style="background-color: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px; margin-bottom: 20px;">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <i class="fas fa-file-pdf" style="color: #2196F3; margin-right: 8px;"></i>
+                                    <strong>Importar dados do bilhete:</strong>
+                                    <p style="margin: 5px 0 0 28px; font-size: 12px; color: #666;">
+                                        Faça upload do PDF do bilhete para preencher automaticamente os campos.
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-right">
+                                    <input type="file" id="bilhete_pdf" accept=".pdf" style="display: none;" onchange="processarBilhetePDF()">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('bilhete_pdf').click()">
+                                        <i class="fas fa-upload"></i> Carregar PDF
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="upload_status" style="margin-top: 10px; display: none;"></div>
+                        </div>
+
+                        <!-- Unidade/Programa/Empenho -->
+                        <div class="form-group">
+                            <label class="required">Unidade/Programa/Empenho</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="orcamento_display" readonly placeholder="Clique em buscar para selecionar" required>
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-info" onclick="abrirSeletorOrcamento()">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LINHA 1: Nº SEI, Data Emissão, Data Embarque -->
+                        <div class="row">
+                            <div class="col-6"> 
+                                <div class="form-group">
+                                    <label>Nº SEI</label>
+                                    <input type="text" class="form-control sei-mask" id="nu_sei" name="nu_sei" placeholder="0000000-00.0000.0.00.0000">
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label class="required">Data Emissão</label>
+                                    <input type="date" class="form-control" id="dt_emissao" name="dt_emissao" required>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label class="required">Data Embarque</label>
+                                    <input type="date" class="form-control" id="dt_embarque" name="dt_embarque" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LINHA 2: Nome do Passageiro -->
+                        <div class="form-group">
+                            <label class="required">Nome do Passageiro</label>
+                            <input type="text" class="form-control" id="nome_passageiro" name="nome_passageiro" autocomplete="off" maxlength="100" required>
+                        </div>
+
+                        <!-- LINHA 3: Origem, Destino, Trecho -->
+                        <div class="row">
+                            <!-- Campo Origem com Autocomplete -->
+                            <div class="col-4">
+                                <div class="form-group aeroporto-autocomplete">
+                                    <label for="origem">Origem *</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="origem" 
+                                        name="origem"
+                                        placeholder="Ex: PVH ou Porto Velho"
+                                        required
+                                        autocomplete="off">
+                                    <input type="hidden" id="codigo_origem" name="codigo_origem">
+                                    <div class="aeroporto-autocomplete-list" id="origem-list"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Campo Destino com Autocomplete -->
+                            <div class="col-4">
+                                <div class="form-group aeroporto-autocomplete">
+                                    <label for="destino">Destino *</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="destino" 
+                                        name="destino"
+                                        placeholder="Ex: GRU ou São Paulo"
+                                        required
+                                        autocomplete="off">
+                                    <input type="hidden" id="codigo_destino" name="codigo_destino">
+                                    <div class="aeroporto-autocomplete-list" id="destino-list"></div>
+                                </div>
+                            </div>
+                        
+                            <!-- Campo Trecho -->
+                            <div class="col-4">
+                                <label for="trecho" class="form-label">Trecho <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                    class="form-control" 
+                                    id="trecho" 
+                                    name="trecho" 
+                                    placeholder="Ex: PVH-BSB ou POA-GRU/GRU-PVH"
+                                    maxlength="100"
+                                    required>
+                                <small class="form-text" style="font-size: 0.69rem; color: #6c757d;">
+                                    📋 Formato: <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">XXX-XXX</code> ou <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">XXX-XXX/XXX-XXX</code>
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- LINHA 4: CIA Aérea, Localizador, Distância (Km) -->
+                        <div class="row">
+                            <div class="col-4">     
+                                <div class="form-group">
+                                    <label class="required">Cia Aérea</label>
+                                    <div style="position: relative;"> 
+                                        <input type="text" class="form-control" id="cia" name="cia" maxlength="10"
+                                            autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
+                                        <div id="cia-suggestions" class="cia-suggestions" style="display: none;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label>Localizador</label>
+                                    <input type="text" class="form-control" id="localizador" name="localizador" maxlength="10" style="text-transform: uppercase;">
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <label for="distancia_km" class="form-label">Distância (km)</label>
+                                <input type="text" 
+                                    class="form-control" 
+                                    id="distancia_km" 
+                                    name="distancia_km" 
+                                    placeholder="0,00"
+                                    readonly>
+                                <small class="form-text text-muted" style="font-size: 0.69rem;">
+                                    <i class="fas fa-calculator"></i> Calculado automaticamente
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6 style="font-size: 13px; margin-bottom: 10px;"><i class="fas fa-dollar-sign"></i> Valores</h6>
+
+                        <!-- VALORES -->
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label class="required">Tarifa</label>
+                                    <input type="text" class="form-control money-mask" id="vl_tarifa" name="vl_tarifa" value="0,00" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Taxa Extra</label>
+                                    <input type="text" class="form-control money-mask" id="vl_taxa_extra" name="vl_taxa_extra" value="0,00">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Assento</label>
+                                    <input type="text" class="form-control money-mask" id="vl_assento" name="vl_assento" value="0,00">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Taxa Embarque</label>
+                                    <input type="text" class="form-control money-mask" id="vl_taxa_embarque" name="vl_taxa_embarque" value="0,00">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Valor Total</label>
+                                    <input type="hidden" id="vl_total" name="vl_total" value="0,00">
+                                    <div class="valor-total-inline" id="vl_total_display">R$ 0,00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-right mt-3">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salvar
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Seletor de Orçamento - MESMO TAMANHO DO FORMULÁRIO -->
+    <div class="modal fade" id="modalSeletorOrcamento" tabindex="-1">
+        <div class="modal-dialog modal-orcamento">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-search"></i> Selecionar Orçamento</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table id="tabelaOrcamentos" class="table table-striped table-bordered table-hover table-sm" style="width:100%; font-size: 11px;">
+                            <thead>
+                                <tr>
+                                    <th>UO</th>
+                                    <th>Unidade</th>
+                                    <th>Programa</th>
+                                    <th>Subitem</th>
+                                    <th>Aprovado</th>
+                                    <th>Utilizado</th>
+                                    <th>Saldo</th>
+                                    <th>Empenho</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyOrcamentos">
+                                <!-- Será preenchido via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edição - MESMO TAMANHO DO CADASTRO -->
+    <div class="modal fade" id="modalEdicao" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-form">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit"></i> Editar Passagem</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEdicao" onsubmit="atualizarPassagem(event)">
+                        <input type="hidden" id="id_of_edit" name="id_of_edit">
+                        <input type="hidden" id="id_opa_edit" name="id_opa_edit">
+                        <input type="hidden" name="id_controle_edit" value="0">
+
+                        <!-- Unidade/Programa/Empenho -->
+                        <div class="form-group">
+                            <label>Unidade/Programa/Empenho</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="orcamento_display_edit" readonly placeholder="Orçamento vinculado">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-info" onclick="abrirSeletorOrcamentoEdit()" title="Alterar orçamento">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Clique em buscar para alterar o orçamento vinculado
+                            </small>
+                        </div>
+
+                        <!-- LINHA 1: Nº SEI, Data Emissão, Data Embarque -->
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Nº SEI</label>
+                                    <input type="text" class="form-control sei-mask" id="nu_sei_edit" name="nu_sei_edit" placeholder="0000000-00.0000.0.00.0000">
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label class="required">Data Emissão</label>
+                                    <input type="date" class="form-control" id="dt_emissao_edit" name="dt_emissao_edit" required>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label class="required">Data Embarque</label>
+                                    <input type="date" class="form-control" id="dt_embarque_edit" name="dt_embarque_edit" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LINHA 2: Nome do Passageiro -->
+                        <div class="form-group">
+                            <label class="required">Nome do Passageiro</label>
+                            <input type="text" class="form-control" id="nome_passageiro_edit" name="nome_passageiro_edit" autocomplete="off" maxlength="100" required>
+                        </div>
+
+                        <!-- LINHA 3: Origem, Destino, Trecho -->
+                        <div class="row">
+                            <!-- Campo Origem com Autocomplete (Edição) -->
+                            <div class="col-4">
+                                <div class="form-group aeroporto-autocomplete">
+                                    <label for="origem_edit">Origem *</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="origem_edit" 
+                                        name="origem_edit"
+                                        placeholder="Ex: PVH ou Porto Velho"
+                                        required
+                                        autocomplete="off">
+                                    <input type="hidden" id="codigo_origem_edit" name="codigo_origem_edit">
+                                    <div class="aeroporto-autocomplete-list" id="origem-list-edit"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Campo Destino com Autocomplete (Edição) -->
+                            <div class="col-4">
+                                <div class="form-group aeroporto-autocomplete">
+                                    <label for="destino_edit">Destino *</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="destino_edit" 
+                                        name="destino_edit"
+                                        placeholder="Ex: GRU ou São Paulo"
+                                        required
+                                        autocomplete="off">
+                                    <input type="hidden" id="codigo_destino_edit" name="codigo_destino_edit">
+                                    <div class="aeroporto-autocomplete-list" id="destino-list-edit"></div>
+                                </div>
+                            </div>
+                        
+                            <!-- Campo Trecho (Edição) -->
+                            <div class="col-4">
+                                <label for="trecho_edit" class="form-label">Trecho <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                    class="form-control" 
+                                    id="trecho_edit" 
+                                    name="trecho_edit" 
+                                    placeholder="Ex: PVH-BSB ou POA-GRU/GRU-PVH"
+                                    maxlength="100"
+                                    required>
+                                <small class="form-text" style="font-size: 0.69rem; color: #6c757d;">
+                                    📋 Formato: <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">XXX-XXX</code> ou <code style="background: #e9ecef; padding: 2px 4px; border-radius: 3px;">XXX-XXX/XXX-XXX</code>
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- LINHA 4: CIA Aérea, Localizador, Distância (Km) -->
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label class="required">Cia Aérea</label>
+                                    <div style="position: relative;">
+                                        <input type="text" class="form-control" id="cia_edit" name="cia_edit" maxlength="10" 
+                                            autocomplete="off" list="cia-list" style="text-transform: uppercase;" required>
+                                        <div id="cia-suggestions-edit" class="cia-suggestions" style="display: none;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label>Localizador</label>
+                                    <input type="text" class="form-control" id="localizador_edit" name="localizador_edit" maxlength="10" style="text-transform: uppercase;">
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <label for="distancia_km_edit" class="form-label">Distância (km)</label>
+                                <input type="text" 
+                                    class="form-control" 
+                                    id="distancia_km_edit" 
+                                    name="distancia_km_edit" 
+                                    placeholder="0,00"
+                                    readonly>
+                                <small class="form-text text-muted" style="font-size: 0.69rem;">
+                                    <i class="fas fa-calculator"></i> Calculado automaticamente
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <h6 style="font-size: 13px; margin-bottom: 10px;"><i class="fas fa-dollar-sign"></i> Valores</h6>
+
+                        <!-- VALORES -->
+                        <div class="row">
+                            <div class="col">
+                                <div class="form-group">
+                                    <label class="required">Tarifa</label>
+                                    <input type="text" class="form-control money-mask" id="vl_tarifa_edit" name="vl_tarifa_edit" value="0,00" required>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Taxa Extra</label>
+                                    <input type="text" class="form-control money-mask" id="vl_taxa_extra_edit" name="vl_taxa_extra_edit" value="0,00">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Assento</label>
+                                    <input type="text" class="form-control money-mask" id="vl_assento_edit" name="vl_assento_edit" value="0,00">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Taxa Embarque</label>
+                                    <input type="text" class="form-control money-mask" id="vl_taxa_embarque_edit" name="vl_taxa_embarque_edit" value="0,00">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="form-group">
+                                    <label>Valor Total</label>
+                                    <input type="hidden" id="vl_total_edit" name="vl_total_edit" value="0,00">
+                                    <div class="valor-total-inline" id="vl_total_display_edit">R$ 0,00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-right mt-3">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Atualizar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Filtros -->
+    <div class="modal fade" id="modalFiltros" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-filter"></i> Filtros</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formFiltros" onsubmit="aplicarFiltros(event)">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Data Início</label>
+                                    <input type="date" class="form-control" id="dt_inicio_filtro" name="dt_inicio_filtro">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Data Fim</label>
+                                    <input type="date" class="form-control" id="dt_fim_filtro" name="dt_fim_filtro">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Companhia Aérea</label>
+                                    <select class="form-control" id="cia_filtro" name="cia_filtro">
+                                        <option value="">Todas</option>
+                                        {% for cia in cias %}
+                                        <option value="{{ cia[0] }}">{{ cia[0] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label>Passageiro</label>
+                                    <input type="text" class="form-control" id="passageiro_filtro" name="passageiro_filtro" placeholder="Nome do passageiro">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Localizador</label>
+                            <input type="text" class="form-control" id="localizador_filtro" name="localizador_filtro" placeholder="Código do localizador">
+                        </div>
+
+                        <div class="text-right mt-3">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Aplicar Filtros
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Seleção Relatório Passagens -->
+    <div id="modalRelatorioPassagens" class="modal-relatorio">
+        <div class="modal-relatorio-content" style="max-width: 600px;">
+            <div class="modal-relatorio-header">
+                <h5>📊 Relatório de Passagens Aéreas</h5>
+                <button class="modal-relatorio-close" onclick="fecharModalRelatorioPassagens()">&times;</button>
+            </div>
+            <div class="modal-relatorio-body">
+                <form id="formRelatorioPassagens">
+                    <div class="form-group mb-3">
+                        <label for="relUO" class="form-label">Unidade Orçamentária (UO) *</label>
+                        <select class="form-control" id="relUO" required>
+                            <option value="">Selecione uma UO</option>
+                            <option value="FUJU">FUJU</option>
+                            <option value="TJRO">TJRO</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="relDataInicio" class="form-label">Data Início *</label>
+                                <input type="date" class="form-control" id="relDataInicio" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="relDataFim" class="form-label">Data Fim *</label>
+                                <input type="date" class="form-control" id="relDataFim" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info" role="alert" style="font-size: 13px;">
+                        <i class="fas fa-info-circle"></i> O relatório será gerado com base na data de emissão das passagens.
+                    </div>
+                </form>
+                <div class="d-flex justify-content-end gap-2 mt-4" style="gap: 10px;">
+                    <button class="btn btn-secondary" onclick="fecharModalRelatorioPassagens()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button class="btn btn-warning" onclick="gerarRelatorioPassagens()">
+                        <i class="fas fa-file-pdf"></i> Gerar Relatório
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Exibição PDF Relatório Passagens -->
+    <div id="modalPdfPassagens" class="modal-relatorio">
+        <div class="modal-relatorio-content" style="max-width: 95%; width: 1200px;">
+            <div class="modal-relatorio-header">
+                <h5>Relatório de Passagens Aéreas Emitidas</h5>
+                <button class="modal-relatorio-close" onclick="fecharModalPdfPassagens()">&times;</button>
+            </div>
+            <div class="modal-relatorio-body" style="padding: 0;">
+                <iframe id="iframePdfPassagens" style="width: 100%; height: 600px; border: none;" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    
+    <!-- jQuery Mask Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap4.min.js"></script>
+
+    <script>
+        // ============================================================================
+        // CLASSE PARA AUTOCOMPLETE DE AEROPORTOS
+        // ============================================================================
+        class AeroportoAutocomplete {
+            constructor(inputId, hiddenCodeId, listId) {
+                this.input = document.getElementById(inputId);
+                this.hiddenCode = document.getElementById(hiddenCodeId);
+                this.list = document.getElementById(listId);
+                this.timeout = null;
+                this.isEdit = inputId.includes('_edit');
+                
+                this.input.addEventListener('input', () => this.handleInput());
+                this.input.addEventListener('focus', () => {
+                    if (this.input.value.length >= 2) {
+                        this.search(this.input.value);
+                    }
+                });
+                
+                // Fechar lista ao clicar fora
+                document.addEventListener('click', (e) => {
+                    if (!this.input.contains(e.target) && !this.list.contains(e.target)) {
+                        this.hideList();
+                    }
+                });
+            }
+            
+            handleInput() {
+                clearTimeout(this.timeout);
+                const termo = this.input.value.trim();
+                
+                if (termo.length < 2) {
+                    this.hideList();
+                    this.hiddenCode.value = '';
+                    return;
+                }
+                
+                this.timeout = setTimeout(() => {
+                    this.search(termo);
+                }, 300);
+            }
+            
+            search(termo) {
+                this.showLoading();
+                
+                fetch('/api/aeroportos/buscar?termo=' + encodeURIComponent(termo))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.aeroportos.length > 0) {
+                            this.showResults(data.aeroportos);
+                        } else {
+                            this.showEmpty();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao buscar aeroportos:', error);
+                        this.showError();
+                    });
+            }
+            
+            showResults(aeroportos) {
+                this.list.innerHTML = '';
+                
+                aeroportos.forEach(aero => {
+                    const item = document.createElement('div');
+                    item.className = 'aeroporto-item';
+                    
+                    const uf = aero.uf ? `/${aero.uf}` : '';
+                    item.innerHTML = `
+                        <span class="aeroporto-codigo">${aero.codigo_iata}</span>
+                        <span class="aeroporto-cidade"> - ${aero.cidade}${uf}</span>
+                        <span class="aeroporto-pais">(${aero.pais})</span>
+                    `;
+                    
+                    item.addEventListener('click', () => {
+                        this.selecionar(aero);
+                    });
+                    
+                    this.list.appendChild(item);
+                });
+                
+                this.list.classList.add('show');
+            }
+            
+            selecionar(aeroporto) {
+                // Preencher campo visível
+                const uf = aeroporto.uf ? `/${aeroporto.uf}` : '';
+                this.input.value = `${aeroporto.codigo_iata} - ${aeroporto.cidade}${uf}`;
+                
+                // Preencher campo oculto com código IATA
+                this.hiddenCode.value = aeroporto.codigo_iata;
+                
+                this.hideList();
+                
+                // ATUALIZAR TRECHO APENAS NO CAMPO DESTINO
+                if (this.hiddenCode.id === 'codigo_destino' || this.hiddenCode.id === 'codigo_destino_edit') {
+                    atualizarTrechoComDestinoselecionado(this.isEdit);
+                }
+            }
+            
+            showLoading() {
+                this.list.innerHTML = '<div class="autocomplete-loading">Buscando aeroportos...</div>';
+                this.list.classList.add('show');
+            }
+            
+            showEmpty() {
+                this.list.innerHTML = '<div class="autocomplete-loading">Nenhum aeroporto encontrado</div>';
+                this.list.classList.add('show');
+            }
+            
+            showError() {
+                this.list.innerHTML = '<div class="autocomplete-loading" style="color: #dc3545;">Erro ao buscar aeroportos</div>';
+                this.list.classList.add('show');
+            }
+            
+            hideList() {
+                this.list.classList.remove('show');
+            }
+        }
+        
+        // ============================================================================
+        // ATUALIZAR CAMPO TRECHO QUANDO DESTINO É SELECIONADO
+        // ============================================================================
+        async function atualizarTrechoComDestinoselecionado(isEdit) {
+            const sufixo = isEdit ? '_edit' : '';
+            const codigoOrigem = $('#codigo_origem' + sufixo).val();
+            const codigoDestino = $('#codigo_destino' + sufixo).val();
+            const campoTrecho = $('#trecho' + sufixo);
+            
+            if (codigoOrigem && codigoDestino) {
+                const trecho = codigoOrigem + '-' + codigoDestino;
+                campoTrecho.val(trecho);
+                
+                // NOVO: Validar e calcular distância automaticamente
+                aplicarValidacaoVisualTrecho('trecho' + sufixo, true);
+                
+                const resultado = await calcularDistanciaTrecho(trecho);
+                if (resultado.sucesso) {
+                    atualizarCampoDistancia('distancia_km' + sufixo, resultado.distancia_km);
+                    console.log(`✅ Distância ${trecho}: ${resultado.distancia_km} km`);
+                }
+                
+                if (isEdit) {
+                    controlarBotaoAtualizar(true);
+                } else {
+                    controlarBotaoSalvar(true);
+                }
+            }
+        }
+        
+        // ============================================================================
+        // INICIALIZAÇÃO QUANDO O DOCUMENTO ESTIVER PRONTO
+        // ============================================================================
+        $(document).ready(function() {
+            // Função para calcular totalizadores das linhas visíveis
+            function calcularTotalizadoresVisiveis() {
+                let dadosVisiveis = [];
+                $('#tabelaPassagens tbody tr:visible:not(#linha-totalizadores)').each(function() {
+                    let cells = $(this).find('td');
+                    if (cells.length > 0) {
+                        let valorTexto = cells.eq(7).text().replace('R$ ', '').trim();
+                        let passagem = [
+                            cells.eq(0).text(), '', '', '', 
+                            cells.eq(1).text(), cells.eq(5).text(),
+                            cells.eq(4).find('strong').text(),
+                            '', '', '', '', 
+                            cells.eq(6).text(), cells.eq(2).text(),
+                            cells.eq(3).text(), '', '', '', '', 
+                            valorTexto
+                        ];
+                        dadosVisiveis.push(passagem);
+                    }
+                });
+                
+                if (dadosVisiveis.length > 0) {
+                    atualizarTotalizadores(dadosVisiveis);
+                }
+            }
+            
+            // Inicializar DataTable (APENAS UMA VEZ)
+            var table = $('#tabelaPassagens').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json"
+                },
+                "pageLength": 25,
+                "order": [[0, "asc"]],
+                "columnDefs": [
+                    { "orderable": false, "targets": -1 }
+                ],
+                "drawCallback": function(settings) {
+                    // Recalcular totalizadores após cada draw
+                    calcularTotalizadoresVisiveis();
+                }
+            });
+        
+            // Máscaras de input
+            aplicarMascaras();
+        
+            // Listeners de cálculo automático
+            $('#vl_tarifa, #vl_taxa_extra, #vl_assento, #vl_taxa_embarque').on('input', calcularTotal);
+            $('#vl_tarifa_edit, #vl_taxa_extra_edit, #vl_assento_edit, #vl_taxa_embarque_edit').on('input', calcularTotalEdit);
+        
+            // Inicializar autocompletes de aeroportos
+            inicializarAutocompletes();
+            
+            // Inicializar validação de trecho
+            inicializarValidacaoTrecho();
+            
+            // Calcular totalizadores iniciais
+            calcularTotalizadoresVisiveis();
+        });
+        
+        // ============================================================================
+        // INICIALIZAÇÃO DOS AUTOCOMPLETES DE AEROPORTOS
+        // ============================================================================
+        function inicializarAutocompletes() {
+            // Autocomplete para ORIGEM (modal de cadastro)
+            if (document.getElementById('origem')) {
+                window.autocompleteOrigem = new AeroportoAutocomplete(
+                    'origem',
+                    'codigo_origem',
+                    'origem-list'
+                );
+            }
+            
+            // Autocomplete para DESTINO (modal de cadastro)
+            if (document.getElementById('destino')) {
+                window.autocompleteDestino = new AeroportoAutocomplete(
+                    'destino',
+                    'codigo_destino',
+                    'destino-list'
+                );
+            }
+            
+            // Autocomplete para ORIGEM (modal de edição)
+            if (document.getElementById('origem_edit')) {
+                window.autocompleteOrigemEdit = new AeroportoAutocomplete(
+                    'origem_edit',
+                    'codigo_origem_edit',
+                    'origem-list-edit'
+                );
+            }
+            
+            // Autocomplete para DESTINO (modal de edição)
+            if (document.getElementById('destino_edit')) {
+                window.autocompleteDestinoEdit = new AeroportoAutocomplete(
+                    'destino_edit',
+                    'codigo_destino_edit',
+                    'destino-list-edit'
+                );
+            }
+        }
+
+
+        // ============================================================================
+        // ABRIR SELETOR DE ORÇAMENTO
+        // ============================================================================
+        function abrirSeletorOrcamento() {
+            $.ajax({
+                url: '/api/orcamento/passagens/disponiveis',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var tbody = $('#tbodyOrcamentos');
+                        tbody.empty();
+                        
+                        response.registros.forEach(function(orcamento) {
+                            var row = '<tr>' +
+                                '<td>' + orcamento.uo + '</td>' +
+                                '<td>' + orcamento.unidade + '</td>' +
+                                '<td>' + orcamento.programa + '</td>' +
+                                '<td>' + orcamento.subitem + '</td>' +
+                                '<td>R$ ' + orcamento.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                                '<td>R$ ' + orcamento.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                                '<td><span class="badge badge-success">R$ ' + orcamento.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</span></td>' +
+                                '<td>' + orcamento.nu_empenho + '</td>' +
+                                '<td><button type="button" class="btn btn-sm btn-primary" onclick="selecionarOrcamento(' + 
+                                    orcamento.id_opa + ', \'' + orcamento.unidade + '\', \'' + orcamento.programa + '\', \'' + orcamento.nu_empenho + '\')">Selecionar</button></td>' +
+                                '</tr>';
+                            tbody.append(row);
+                        });
+                        
+                        // Destruir DataTable anterior se existir
+                        if ($.fn.DataTable.isDataTable('#tabelaOrcamentos')) {
+                            $('#tabelaOrcamentos').DataTable().destroy();
+                        }
+                        
+                        // Inicializar DataTable do modal
+                        $('#tabelaOrcamentos').DataTable({
+                            language: {
+                                url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
+                            },
+                            pageLength: 10,
+                            order: [[0, 'asc']]
+                        });
+                        
+                        $('#modalSeletorOrcamento').modal('show');
+                    } else {
+                        alert('Erro ao carregar orçamentos: ' + response.error);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao buscar orçamentos disponíveis');
+                }
+            });
+        }
+
+        // ============================================================================
+        // SELECIONAR ORÇAMENTO (CADASTRO)
+        // ============================================================================
+        function selecionarOrcamento(idOpa, unidade, programa, empenho) {
+            $('#id_opa').val(idOpa);
+            $('#orcamento_display').val(unidade + ' - ' + programa + ' - ' + empenho);
+            $('#modalSeletorOrcamento').modal('hide');
+        }
+
+        // ============================================================================
+        // ABRIR MODAL SELETOR DE ORÇAMENTO (EDIÇÃO)
+        // ============================================================================
+        function abrirSeletorOrcamentoEdit() {
+            // Carregar orçamentos disponíveis
+            $.ajax({
+                url: '/api/orcamento/passagens/disponiveis',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var tbody = $('#tbodyOrcamentos');
+                        tbody.empty();
+                        
+                        if (response.registros.length === 0) {
+                            tbody.append('<tr><td colspan="9" class="text-center">Nenhum orçamento disponível</td></tr>');
+                        } else {
+                            response.registros.forEach(function(orc) {
+                                var row = '<tr>' +
+                                    '<td>' + orc.uo + '</td>' +
+                                    '<td>' + orc.unidade + '</td>' +
+                                    '<td>' + orc.programa + '</td>' +
+                                    '<td>' + orc.subitem + '</td>' +
+                                    '<td>R$ ' + orc.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                                    '<td>R$ ' + orc.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</td>' +
+                                    '<td class="text-success"><strong>R$ ' + orc.saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</strong></td>' +
+                                    '<td>' + orc.nu_empenho + '</td>' +
+                                    '<td><button type="button" class="btn btn-sm btn-primary" onclick="selecionarOrcamentoEdit(' + 
+                                        orc.id_opa + ', \'' + orc.unidade + '\', \'' + orc.programa + '\', \'' + orc.nu_empenho + '\')">Selecionar</button></td>' +
+                                    '</tr>';
+                                tbody.append(row);
+                            });
+                        }
+                        
+                        // Destruir DataTable anterior se existir
+                        if ($.fn.DataTable.isDataTable('#tabelaOrcamentos')) {
+                            $('#tabelaOrcamentos').DataTable().destroy();
+                        }
+                        
+                        // Inicializar DataTable do modal
+                        $('#tabelaOrcamentos').DataTable({
+                            language: {
+                                url: '//cdn.datatables.net/plug-ins/1.10.21/i18n/Portuguese-Brasil.json'
+                            },
+                            pageLength: 10,
+                            order: [[7, 'desc']]
+                        });
+                        
+                        $('#modalSeletorOrcamento').modal('show');
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao carregar orçamentos disponíveis');
+                }
+            });
+        }
+
+        // ============================================================================
+        // SELECIONAR ORÇAMENTO (EDIÇÃO)
+        // ============================================================================
+        function selecionarOrcamentoEdit(idOpa, unidade, programa, empenho) {
+            $('#id_opa_edit').val(idOpa);
+            $('#orcamento_display_edit').val(unidade + ' - ' + programa + ' - ' + empenho);
+            $('#modalSeletorOrcamento').modal('hide');
+        }
+        
+        // ============================================================================
+        // MÁSCARAS DE INPUT
+        // ============================================================================
+        function aplicarMascaras() {
+            // Máscara de moeda
+            $('.money-mask').mask('#.##0,00', {reverse: true});
+            
+            // Máscara de Nº SEI: 0000000-00.0000.0.00.0000
+            $('.sei-mask').mask('0000000-00.0000.0.00.0000');
+            
+            // Listeners para calcular total automaticamente
+            $('.money-mask').on('blur', function() {
+                var id = $(this).attr('id');
+                if (id.includes('_edit')) {
+                    calcularTotalEdit();
+                } else {
+                    calcularTotal();
+                }
+            });
+        }
+        
+        // ============================================================================
+        // CALCULAR VALOR TOTAL (CADASTRO)
+        // ============================================================================
+        function calcularTotal() {
+            var tarifa = parseFloat($('#vl_tarifa').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var taxaExtra = parseFloat($('#vl_taxa_extra').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var assento = parseFloat($('#vl_assento').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var taxaEmbarque = parseFloat($('#vl_taxa_embarque').val().replace(/\./g, '').replace(',', '.')) || 0;
+            
+            var total = tarifa + taxaExtra + assento + taxaEmbarque;
+            
+            $('#vl_total').val(total.toFixed(2).replace('.', ','));
+            $('#vl_total_display').text('R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+        }
+        
+        // ============================================================================
+        // CALCULAR VALOR TOTAL (EDIÇÃO)
+        // ============================================================================
+        function calcularTotalEdit() {
+            var tarifa = parseFloat($('#vl_tarifa_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var taxaExtra = parseFloat($('#vl_taxa_extra_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var assento = parseFloat($('#vl_assento_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
+            var taxaEmbarque = parseFloat($('#vl_taxa_embarque_edit').val().replace(/\./g, '').replace(',', '.')) || 0;
+            
+            var total = tarifa + taxaExtra + assento + taxaEmbarque;
+            
+            $('#vl_total_edit').val(total.toFixed(2).replace('.', ','));
+            $('#vl_total_display_edit').text('R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+        }
+        
+        // ============================================================================
+        // SALVAR NOVA PASSAGEM
+        // ============================================================================
+        function salvarPassagem(event) {
+            event.preventDefault();
+            
+            // Validar orçamento selecionado
+            if (!$('#id_opa').val()) {
+                alert('Por favor, selecione um orçamento (Unidade/Programa/Empenho)');
+                return;
+            }
+            
+            // Validar aeroportos selecionados
+            if (!$('#codigo_origem').val()) {
+                alert('Por favor, selecione um aeroporto de origem válido');
+                return;
+            }
+            
+            if (!$('#codigo_destino').val()) {
+                alert('Por favor, selecione um aeroporto de destino válido');
+                return;
+            }
+            
+            $.ajax({
+                url: '/passagens/salvar',
+                type: 'POST',
+                data: $('#formCadastro').serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        alert('Passagem cadastrada com sucesso!');
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Erro:', xhr);
+                    alert('Erro ao salvar passagem');
+                }
+            });
+        }
+        
+        // ============================================================================
+        // EDITAR PASSAGEM
+        // ============================================================================
+        function editarPassagem(id) {
+            $.ajax({
+                url: '/api/passagens/obter/' + id,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var p = response.passagem;
+                        
+                        // Preencher campos básicos
+                        $('#id_of_edit').val(p.id_of);
+                        $('#id_opa_edit').val(p.id_opa);
+                        $('#nu_sei_edit').val(p.nu_sei || '');
+                        $('#nome_passageiro_edit').val(p.nome_passageiro || '');
+                        $('#dt_emissao_edit').val(p.dt_emissao || '');
+                        $('#trecho_edit').val(p.trecho || '');
+                        $('#dt_embarque_edit').val(p.dt_embarque || '');
+                        $('#cia_edit').val(p.cia || '');
+                        $('#localizador_edit').val(p.localizador || '');
+                        
+                        // Preencher origem com autocomplete
+                        if (p.origem_display) {
+                            $('#origem_edit').val(p.origem_display);
+                        } else if (p.origem) {
+                            $('#origem_edit').val(p.origem);
+                        }
+                        $('#codigo_origem_edit').val(p.codigo_origem || '');
+                        
+                        // Preencher destino com autocomplete
+                        if (p.destino_display) {
+                            $('#destino_edit').val(p.destino_display);
+                        } else if (p.destino) {
+                            $('#destino_edit').val(p.destino);
+                        }
+                        $('#codigo_destino_edit').val(p.codigo_destino || '');
+                        
+                        // Preencher valores financeiros
+                        $('#vl_tarifa_edit').val(formatarMoeda(p.vl_tarifa));
+                        $('#vl_taxa_extra_edit').val(formatarMoeda(p.vl_taxa_extra));
+                        $('#vl_assento_edit').val(formatarMoeda(p.vl_assento));
+                        $('#vl_taxa_embarque_edit').val(formatarMoeda(p.vl_taxa_embarque));
+                        $('#vl_total_edit').val(formatarMoeda(p.vl_total));
+                        $('#distancia_km_edit').val(p.distancia_km || '0');
+
+                        // Calcular e exibir total
+                        calcularTotalEdit();
+                        
+                        // Carregar informações do orçamento
+                        carregarInfoOrcamento(p.id_opa, true);
+                        
+                        // Abrir modal
+                        $('#modalEdicao').modal('show');
+                    } else {
+                        alert('Erro ao buscar dados: ' + (response.message || 'Erro desconhecido'));
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Erro completo:', xhr);
+                    alert('Erro ao buscar dados da passagem');
+                }
+            });
+        }
+        
+        // ============================================================================
+        // CARREGAR INFORMAÇÕES DO ORÇAMENTO PARA EXIBIÇÃO
+        // ============================================================================
+        function carregarInfoOrcamento(id_opa, isEdit) {
+            $.ajax({
+                url: '/api/orcamento/passagens/' + id_opa,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        var orc = response.registro;
+                        
+                        // Buscar descrições de programa
+                        $.ajax({
+                            url: '/api/orcamento/dados_iniciais',
+                            type: 'GET',
+                            success: function(dadosResponse) {
+                                if (dadosResponse.success) {
+                                    var programa = dadosResponse.programas.find(p => p.id === orc.id_programa);
+                                    var programaDesc = programa ? programa.descricao : '';
+                                    
+                                    var displayText = orc.unidade + ' - ' + programaDesc + ' - ' + orc.nu_empenho;
+                                    
+                                    if (isEdit) {
+                                        $('#orcamento_display_edit').val(displayText);
+                                    } else {
+                                        $('#orcamento_display').val(displayText);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        }
+        
+        // ============================================================================
+        // ATUALIZAR PASSAGEM
+        // ============================================================================
+        function atualizarPassagem(event) {
+            event.preventDefault();
+            
+            // Validar aeroportos selecionados
+            if (!$('#codigo_origem_edit').val()) {
+                alert('Por favor, selecione um aeroporto de origem válido');
+                return false;
+            }
+            
+            if (!$('#codigo_destino_edit').val()) {
+                alert('Por favor, selecione um aeroporto de destino válido');
+                return false;
+            }
+            
+            // Obter dados do formulário
+            var formData = $('#formEdicao').serialize();
+            
+            // Adicionar distancia_km manualmente (readonly não é enviado por serialize)
+            var distanciaValor = $('#distancia_km_edit').val() || '0';
+            console.log('🔍 Distância original:', distanciaValor);
+            
+            // Converter formato BR para formato padrão
+            var distanciaKm = distanciaValor.replace(/\./g, '').replace(',', '.');
+            console.log('🔍 Distância convertida:', distanciaKm);
+            
+            formData += '&distancia_km_edit=' + encodeURIComponent(distanciaKm);
+            console.log('📤 Enviando distancia_km_edit:', distanciaKm);
+            
+            $.ajax({
+                url: '/passagens/atualizar',
+                type: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.success) {
+                        alert('Passagem atualizada com sucesso!');
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Erro na requisição:', xhr);
+                    alert('Erro ao atualizar passagem');
+                }
+            });
+            
+            return false;
+        }
+        
+        // ============================================================================
+        // CONFIRMAR EXCLUSÃO
+        // ============================================================================
+        function confirmarExclusao(id) {
+            if (confirm('Tem certeza que deseja excluir esta passagem?')) {
+                $.ajax({
+                    url: '/passagens/excluir/' + id,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Passagem excluída com sucesso!');
+                            location.reload();
+                        } else {
+                            alert('Erro: ' + response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        alert('Erro ao excluir passagem');
+                    }
+                });
+            }
+        }
+        
+        // ============================================================================
+        // APLICAR FILTROS
+        // ============================================================================
+        function aplicarFiltros(event) {
+            event.preventDefault();
+            
+            $.ajax({
+                url: '/passagens/filtrar',
+                type: 'POST',
+                data: $('#formFiltros').serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        var table = $('#tabelaPassagens').DataTable();
+                        table.clear();
+                        
+                        response.data.forEach(function(passagem) {
+                            table.row.add([
+                                passagem[0],  // ID
+                                passagem[4],  // Dt Emissão
+                                passagem[12], // Nu SEI
+                                passagem[13], // Nome Passageiro
+                                '<strong>' + (passagem[6] || '-') + '</strong>',  // Trecho
+                                passagem[5],  // Dt Embarque
+                                passagem[11], // CIA
+                                'R$ ' + passagem[18], // Valor Total
+                                '<div class="action-buttons">' +
+                                '<button class="btn btn-sm btn-warning" onclick="editarPassagem(' + passagem[0] + ')" title="Editar"><i class="fas fa-edit"></i></button> ' +
+                                '<button class="btn btn-sm btn-danger" onclick="confirmarExclusao(' + passagem[0] + ')" title="Excluir"><i class="fas fa-trash"></i></button>' +
+                                '</div>'
+                            ]);
+                        });
+                        
+                        table.draw();
+                        atualizarTotalizadores(response.data);
+                        $('#modalFiltros').modal('hide');
+                    } else {
+                        alert('Erro: ' + response.message);
+                    }
+                },
+                error: function(xhr) {
+                    alert('Erro ao aplicar filtros');
+                }
+            });
+        }
+
+        // ============================================================================
+        // ATUALIZAR TOTALIZADORES
+        // ============================================================================
+        function atualizarTotalizadores(data) {
+            let totalValor = 0;
+            let quantidadeRegistros = data.length;
+            
+            data.forEach(function(passagem) {
+                // passagem[18] já contém o valor formatado
+                let valor = parseFloat(passagem[18].replace(/\./g, '').replace(',', '.')) || 0;
+                totalValor += valor;
+            });
+            
+            // Remover linha de totalizadores anterior se existir
+            let linhaExistente = document.getElementById('linha-totalizadores');
+            if (linhaExistente) {
+                linhaExistente.remove();
+            }
+            
+            // Criar nova linha de totalizadores
+            let tabelaBody = document.querySelector('#tabelaPassagens tbody');
+            let linhaTotalizadores = document.createElement('tr');
+            linhaTotalizadores.id = 'linha-totalizadores';
+            linhaTotalizadores.style.backgroundColor = '#e8e8e8';
+            linhaTotalizadores.innerHTML = `
+                <td colspan="7" style="text-align: right; padding: 12px;">
+                    <strong>Total de Registros: <span id="total-registros">${quantidadeRegistros}</span></strong>
+                </td>
+                <td style="padding: 12px;">
+                    <strong>R$ <span id="total-valor">${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></strong>
+                </td>
+                <td></td>
+            `;
+            tabelaBody.appendChild(linhaTotalizadores);
+        }
+        
+        // ============================================================================
+        // LIMPAR FILTROS
+        // ============================================================================
+        function limparFiltros() {
+            location.reload();
+        }
+        
+        // ============================================================================
+        // FUNÇÃO AUXILIAR: FORMATAR VALOR COMO MOEDA
+        // ============================================================================
+        function formatarMoeda(valor) {
+            if (!valor) return '0,00';
+            return parseFloat(valor).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        // ============================================================================
+        // AUTOCOMPLETE PARA NOME DO PASSAGEIRO
+        // ============================================================================
+        var passageirosCache = [];
+        
+        // Carregar lista de passageiros ao carregar a página
+        function carregarPassageiros() {
+            $.ajax({
+                url: '/api/passageiros/listar',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        passageirosCache = response.passageiros;
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Erro ao carregar passageiros:', xhr);
+                }
+            });
+        }
+        
+        // Função para criar e exibir sugestões
+        function criarSugestoes(inputElement, sugestoes) {
+            // Remover sugestões anteriores
+            $('.autocomplete-suggestions').remove();
+            
+            if (sugestoes.length === 0) return;
+            
+            var $input = $(inputElement);
+            var offset = $input.offset();
+            var height = $input.outerHeight();
+            var width = $input.outerWidth();
+            
+            var $suggestions = $('<div class="autocomplete-suggestions"></div>');
+            $suggestions.css({
+                'top': offset.top + height + 'px',
+                'left': offset.left + 'px',
+                'width': width + 'px'
+            });
+            
+            sugestoes.forEach(function(sugestao) {
+                var $item = $('<div class="autocomplete-suggestion"></div>');
+                $item.text(sugestao);
+                $item.on('click', function() {
+                    $input.val(sugestao);
+                    $('.autocomplete-suggestions').remove();
+                });
+                $suggestions.append($item);
+            });
+            
+            $('body').append($suggestions);
+        }
+        
+        // Configurar autocomplete para campos de passageiro
+        function configurarAutocompletePassageiro(inputId) {
+            var $input = $('#' + inputId);
+            var selectedIndex = -1;
+            
+            $input.on('input', function() {
+                var valor = $(this).val().toUpperCase();
+                
+                if (valor.length < 2) {
+                    $('.autocomplete-suggestions').remove();
+                    return;
+                }
+                
+                var sugestoesFiltradas = passageirosCache.filter(function(nome) {
+                    return nome.toUpperCase().indexOf(valor) !== -1;
+                });
+                
+                criarSugestoes(this, sugestoesFiltradas.slice(0, 10));
+                selectedIndex = -1;
+            });
+            
+            $input.on('keydown', function(e) {
+                var $suggestions = $('.autocomplete-suggestions');
+                var $items = $suggestions.find('.autocomplete-suggestion');
+                
+                if ($items.length === 0) return;
+                
+                if (e.keyCode === 40) { // Seta para baixo
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, $items.length - 1);
+                    $items.removeClass('selected');
+                    $items.eq(selectedIndex).addClass('selected');
+                    $items.eq(selectedIndex)[0].scrollIntoView({ block: 'nearest' });
+                } else if (e.keyCode === 38) { // Seta para cima
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    $items.removeClass('selected');
+                    $items.eq(selectedIndex).addClass('selected');
+                    $items.eq(selectedIndex)[0].scrollIntoView({ block: 'nearest' });
+                } else if (e.keyCode === 13) { // Enter
+                    if (selectedIndex >= 0) {
+                        e.preventDefault();
+                        $input.val($items.eq(selectedIndex).text());
+                        $('.autocomplete-suggestions').remove();
+                    }
+                } else if (e.keyCode === 27) { // Esc
+                    $('.autocomplete-suggestions').remove();
+                }
+            });
+            
+            $input.on('blur', function() {
+                setTimeout(function() {
+                    $('.autocomplete-suggestions').remove();
+                }, 200);
+            });
+        }
+        
+        $('#modalCadastro').on('show.bs.modal', function() {
+            // Limpar todos os campos do formulário
+            $('#formCadastro')[0].reset();
+            
+            // Limpar campos específicos (garantia extra)
+            $('#id_opa').val('');
+            $('#orcamento_display').val('');
+            $('#nu_sei').val('');
+            $('#nome_passageiro').val('');
+            $('#dt_emissao').val('');
+            $('#origem').val('');
+            $('#codigo_origem').val('');
+            $('#destino').val('');
+            $('#codigo_destino').val('');
+            $('#trecho').val('');
+            $('#dt_embarque').val('');
+            $('#cia').val('');
+            $('#localizador').val('');
+            $('#vl_tarifa').val('');
+            $('#vl_taxa_extra').val('0,00');
+            $('#vl_assento').val('0,00');
+            $('#vl_taxa_embarque').val('0,00');
+            $('#vl_total').val('0,00');
+            $('#distancia_km').val('0');
+
+            // Limpar status de upload de PDF
+            $('#upload_status').hide();
+            $('#bilhete_pdf').val('');
+            
+            // Resetar display do valor total
+            $('#vl_total_display').text('R$ 0,00');
+            
+            console.log('Formulário limpo!');
+        });
+
+        // Inicializar autocomplete ao abrir modais
+        $('#modalCadastro').on('shown.bs.modal', function() {
+            configurarAutocompletePassageiro('nome_passageiro');
+        });
+        
+        $('#modalEdicao').on('shown.bs.modal', function() {
+            configurarAutocompletePassageiro('nome_passageiro_edit');
+        });
+        
+        // Carregar passageiros ao iniciar
+        $(document).ready(function() {
+            carregarPassageiros();
+        });
+
+        // ============================================================================
+        // DROPDOWN CUSTOMIZADO PARA CIA AÉREA (SEMPRE MOSTRA AS 3 OPÇÕES)
+        // ============================================================================
+        var ciasDisponiveis = ['AZUL', 'GOL', 'LATAM'];
+        
+        function configurarDropdownCia(inputId, suggestionsId) {
+            var $input = $('#' + inputId);
+            var $suggestions = $('#' + suggestionsId);
+            var selectedIndex = -1;
+            
+            // Criar itens do dropdown
+            function criarDropdown() {
+                $suggestions.empty();
+                ciasDisponiveis.forEach(function(cia) {
+                    var $item = $('<div class="cia-suggestion-item"></div>').text(cia);
+                    $item.on('click', function(e) {
+                        e.stopPropagation();
+                        $input.val(cia);
+                        $suggestions.hide();
+                        selectedIndex = -1;
+                    });
+                    $suggestions.append($item);
+                });
+            }
+            
+            // Mostrar dropdown ao focar no campo
+            $input.on('focus', function() {
+                criarDropdown();
+                $suggestions.show();
+                selectedIndex = -1;
+            });
+            
+            // Esconder dropdown ao clicar fora
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#' + inputId).length && 
+                    !$(e.target).closest('#' + suggestionsId).length) {
+                    $suggestions.hide();
+                }
+            });
+            
+            // Navegação com teclado
+            $input.on('keydown', function(e) {
+                if (!$suggestions.is(':visible')) {
+                    if (e.keyCode === 40) { // Seta para baixo
+                        e.preventDefault();
+                        criarDropdown();
+                        $suggestions.show();
+                    }
+                    return;
+                }
+                
+                var $items = $suggestions.find('.cia-suggestion-item');
+                
+                if (e.keyCode === 40) { // Seta para baixo
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, $items.length - 1);
+                    $items.removeClass('selected');
+                    if (selectedIndex >= 0) {
+                        $items.eq(selectedIndex).addClass('selected');
+                    }
+                } else if (e.keyCode === 38) { // Seta para cima
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    $items.removeClass('selected');
+                    if (selectedIndex >= 0) {
+                        $items.eq(selectedIndex).addClass('selected');
+                    }
+                } else if (e.keyCode === 13) { // Enter
+                    if (selectedIndex >= 0) {
+                        e.preventDefault();
+                        $input.val($items.eq(selectedIndex).text());
+                        $suggestions.hide();
+                        selectedIndex = -1;
+                    }
+                } else if (e.keyCode === 27) { // Esc
+                    $suggestions.hide();
+                    selectedIndex = -1;
+                }
+            });
+            
+            // Manter dropdown visível durante digitação
+            $input.on('input', function() {
+                if (!$suggestions.is(':visible')) {
+                    criarDropdown();
+                    $suggestions.show();
+                }
+            });
+        }
+        
+        // Inicializar dropdowns ao abrir os modais
+        $('#modalCadastro').on('shown.bs.modal', function() {
+            configurarDropdownCia('cia', 'cia-suggestions');
+        });
+        
+        $('#modalEdicao').on('shown.bs.modal', function() {
+            configurarDropdownCia('cia_edit', 'cia-suggestions-edit');
+        });
+        
+        // ============================================================================
+        // FUNÇÃO: PROCESSAR UPLOAD DE BILHETE PDF
+        // ============================================================================
+        
+        function processarBilhetePDF() {
+            const fileInput = document.getElementById('bilhete_pdf');
+            const uploadStatus = document.getElementById('upload_status');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                return;
+            }
+            
+            // Verificar se é PDF
+            if (file.type !== 'application/pdf') {
+                uploadStatus.innerHTML = '<div class="alert alert-danger alert-sm"><i class="fas fa-exclamation-circle"></i> Por favor, selecione um arquivo PDF.</div>';
+                uploadStatus.style.display = 'block';
+                fileInput.value = '';
+                return;
+            }
+            
+            // Mostrar loading
+            uploadStatus.innerHTML = '<div class="alert alert-info alert-sm"><i class="fas fa-spinner fa-spin"></i> Processando bilhete... Aguarde.</div>';
+            uploadStatus.style.display = 'block';
+            
+            // Criar FormData
+            const formData = new FormData();
+            formData.append('bilhete_pdf', file);
+            
+            // Enviar para o servidor
+            fetch('/passagens/upload_bilhete', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Sucesso - preencher campos
+                    uploadStatus.innerHTML = `<div class="alert alert-success alert-sm"><i class="fas fa-check-circle"></i> ${data.message}</div>`;
+                    
+                    // Preencher os campos do formulário
+                    preencherCampos(data.data);
+                    
+                    // Limpar input file
+                    fileInput.value = '';
+                    
+                    // Ocultar status após 3 segundos
+                    setTimeout(() => {
+                        uploadStatus.style.display = 'none';
+                    }, 3000);
+                } else {
+                    // Erro
+                    uploadStatus.innerHTML = `<div class="alert alert-danger alert-sm"><i class="fas fa-exclamation-circle"></i> ${data.message}</div>`;
+                    fileInput.value = '';
+                }
+            })
+            .catch(error => {
+                uploadStatus.innerHTML = '<div class="alert alert-danger alert-sm"><i class="fas fa-exclamation-circle"></i> Erro ao processar arquivo. Tente novamente.</div>';
+                console.error('Erro:', error);
+                fileInput.value = '';
+            });
+        }
+
+        async function buscarEPreencherAeroporto(codigo, campoVisivel, campoOculto) {
+            /**
+             * Busca dados do aeroporto no banco e preenche o campo com formato completo
+             * Ex: PVH → PVH - Porto Velho/RO
+             */
+            
+            if (!codigo || codigo.length !== 3) {
+                console.warn(`Código inválido: ${codigo}`);
+                return;
+            }
+            
+            try {
+                console.log(`🔍 Buscando dados do aeroporto: ${codigo}`);
+                
+                const response = await fetch(`/api/aeroportos/buscar?termo=${encodeURIComponent(codigo)}`);
+                const data = await response.json();
+                
+                if (data.success && data.aeroportos.length > 0) {
+                    const aeroporto = data.aeroportos[0];
+                    const uf = aeroporto.uf ? `/${aeroporto.uf}` : '';
+                    const displayCompleto = `${aeroporto.codigo_iata} - ${aeroporto.cidade}${uf}`;
+                    
+                    document.getElementById(campoVisivel).value = displayCompleto;
+                    document.getElementById(campoOculto).value = aeroporto.codigo_iata;
+                    
+                    console.log(`✅ Aeroporto preenchido: ${displayCompleto}`);
+                } else {
+                    console.warn(`⚠️ Aeroporto ${codigo} não encontrado no banco`);
+                    document.getElementById(campoVisivel).value = codigo;
+                    document.getElementById(campoOculto).value = codigo;
+                }
+            } catch (error) {
+                console.error(`❌ Erro ao buscar aeroporto ${codigo}:`, error);
+                document.getElementById(campoVisivel).value = codigo;
+                document.getElementById(campoOculto).value = codigo;
+            }
+        }
+
+        async function preencherCampos(dados) {
+            // Data de Emissão (converter de dd/mm/yyyy para yyyy-mm-dd)
+            if (dados.dt_emissao) {
+                const partes = dados.dt_emissao.split('/');
+                if (partes.length === 3) {
+                    const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+                    document.getElementById('dt_emissao').value = dataFormatada;
+                }
+            }
+            
+            // Nº SEI
+            if (dados.nu_sei) {
+                document.getElementById('nu_sei').value = dados.nu_sei;
+            }
+            
+            // Nome do Passageiro
+            if (dados.nome_passageiro) {
+                document.getElementById('nome_passageiro').value = dados.nome_passageiro;
+            }
+            
+            // Localizador
+            if (dados.localizador) {
+                document.getElementById('localizador').value = dados.localizador;
+            }
+            
+            // Trecho - COM VALIDAÇÃO E CÁLCULO AUTOMÁTICO
+            if (dados.trecho) {
+                document.getElementById('trecho').value = dados.trecho;
+                validarECalcularDistancia(dados.trecho);
+            }
+            
+            // Origem - BUSCAR DADOS COMPLETOS DO AEROPORTO
+            if (dados.origem) {
+                await buscarEPreencherAeroporto(dados.origem, 'origem', 'codigo_origem');
+            }
+            
+            // Destino - BUSCAR DADOS COMPLETOS DO AEROPORTO
+            if (dados.destino) {
+                await buscarEPreencherAeroporto(dados.destino, 'destino', 'codigo_destino');
+            }
+            
+            // Companhia Aérea
+            if (dados.cia) {
+                document.getElementById('cia').value = dados.cia;
+            }
+            
+            // Valores
+            if (dados.vl_tarifa) {
+                document.getElementById('vl_tarifa').value = dados.vl_tarifa;
+            }
+            
+            if (dados.vl_taxa_extra) {
+                document.getElementById('vl_taxa_embarque').value = dados.vl_taxa_extra;
+            }
+            
+            if (dados.vl_total) {
+                document.getElementById('vl_total').value = dados.vl_total;
+            }
+            
+            // Data de Embarque
+            if (dados.dt_embarque) {
+                const partes = dados.dt_embarque.split('/');
+                if (partes.length === 3) {
+                    const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+                    document.getElementById('dt_embarque').value = dataFormatada;
+                }
+            }
+            
+            // Trigger de recálculo de total se houver
+            if (typeof calcularTotal === 'function') {
+                calcularTotal();
+            }
+            
+            // Scroll suave para o topo do formulário
+            document.querySelector('.modal-body').scrollTop = 0;
+            
+            // Destacar campos preenchidos com animação
+            highlightPreenchidos();
+        }
+
+        async function validarECalcularDistancia(trecho) {
+            /**
+             * Valida trecho e calcula distância automaticamente
+             * Usada ao fazer upload de PDF
+             */
+            if (!trecho) return;
+            
+            console.log(`📏 Upload PDF - Validando trecho: ${trecho}`);
+            
+            const validacao = validarFormatoTrecho(trecho);
+            
+            if (!validacao.valido) {
+                console.warn(`⚠️ Trecho inválido: ${validacao.erro}`);
+                aplicarValidacaoVisualTrecho('trecho', false, validacao.erro);
+                controlarBotaoSalvar(false);
+                return;
+            }
+            
+            aplicarValidacaoVisualTrecho('trecho', true);
+            
+            console.log(`📏 Calculando distância: ${trecho}`);
+            const resultado = await calcularDistanciaTrecho(trecho);
+            
+            if (resultado.sucesso) {
+                atualizarCampoDistancia('distancia_km', resultado.distancia_km);
+                console.log(`✅ Distância calculada automaticamente: ${resultado.distancia_km} km`);
+            } else {
+                console.warn(`⚠️ Não foi possível calcular distância: ${resultado.erro}`);
+            }
+            
+            controlarBotaoSalvar(true);
+        }
+
+        async function validarECalcularDistancia(trecho) {
+            /**
+             * Valida trecho e calcula distância automaticamente
+             * Usada ao fazer upload de PDF
+             */
+            if (!trecho) return;
+            
+            console.log(`📏 Upload PDF - Validando trecho: ${trecho}`);
+            
+            // Validar formato
+            const validacao = validarFormatoTrecho(trecho);
+            
+            if (!validacao.valido) {
+                console.warn(`⚠️ Trecho inválido: ${validacao.erro}`);
+                aplicarValidacaoVisualTrecho('trecho', false, validacao.erro);
+                controlarBotaoSalvar(false);
+                return;
+            }
+            
+            // Aplicar validação visual
+            aplicarValidacaoVisualTrecho('trecho', true);
+            
+            // Calcular distância
+            console.log(`📏 Calculando distância: ${trecho}`);
+            const resultado = await calcularDistanciaTrecho(trecho);
+            
+            if (resultado.sucesso) {
+                atualizarCampoDistancia('distancia_km', resultado.distancia_km);
+                console.log(`✅ Distância calculada automaticamente: ${resultado.distancia_km} km`);
+            } else {
+                console.warn(`⚠️ Não foi possível calcular distância: ${resultado.erro}`);
+            }
+            
+            // Habilitar botão salvar
+            controlarBotaoSalvar(true);
+        }
+
+        function highlightPreenchidos() {
+            const campos = [
+                'dt_emissao', 'nu_sei', 'nome_passageiro', 'localizador',
+                'trecho', 'origem', 'destino', 'cia', 'vl_tarifa',
+                'vl_taxa_embarque', 'vl_total', 'dt_embarque', 'distancia_km'
+            ];
+            
+            campos.forEach(campoId => {
+                const campo = document.getElementById(campoId);
+                if (campo && campo.value) {
+                    campo.style.transition = 'all 0.3s';
+                    campo.style.backgroundColor = '#d4edda';
+                    campo.style.borderColor = '#28a745';
+                    
+                    setTimeout(() => {
+                        campo.style.backgroundColor = '';
+                        campo.style.borderColor = '';
+                    }, 2000);
+                }
+            });
+        }
+
+        // CSS adicional para alertas pequenos
+        const style = document.createElement('style');
+        style.textContent = `
+            .alert-sm {
+                padding: 8px 12px;
+                margin-bottom: 0;
+                font-size: 12px;
+            }
+        `;
+        document.head.appendChild(style);
+
+        function validarFormatoTrecho(trecho) {
+            if (!trecho || trecho.trim() === '') {
+                return { valido: false, erro: 'Trecho não pode estar vazio' };
+            }
+            
+            trecho = trecho.trim().toUpperCase();
+            const regex = /^[A-Z]{3}-[A-Z]{3}(\/[A-Z]{3}-[A-Z]{3})*$/;
+            
+            if (!regex.test(trecho)) {
+                return { valido: false, erro: 'Formato inválido! Use: XXX-XXX ou XXX-XXX/XXX-XXX' };
+            }
+            
+            return { valido: true, trecho: trecho };
+        }
+
+        function aplicarValidacaoVisualTrecho(campoId, valido, mensagemErro = '') {
+            const campo = document.getElementById(campoId);
+            if (!campo) return;
+            
+            const feedbackId = `${campoId}_feedback`;
+            campo.classList.remove('is-valid', 'is-invalid');
+            
+            let feedbackExistente = document.getElementById(feedbackId);
+            if (feedbackExistente) feedbackExistente.remove();
+            
+            if (valido) {
+                campo.classList.add('is-valid');
+            } else {
+                campo.classList.add('is-invalid');
+                const feedback = document.createElement('div');
+                feedback.id = feedbackId;
+                feedback.className = 'invalid-feedback';
+                feedback.style.display = 'block';
+                feedback.textContent = mensagemErro;
+                campo.parentNode.appendChild(feedback);
+            }
+        }
+
+        async function calcularDistanciaTrecho(trecho) {
+            try {
+                const response = await fetch(`/calcular_distancia_trecho?trecho=${encodeURIComponent(trecho)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    return { sucesso: true, distancia_km: data.distancia_total_km, trechos: data.trechos };
+                } else {
+                    return { sucesso: false, erro: data.error || 'Erro ao calcular distância' };
+                }
+            } catch (error) {
+                console.error('Erro ao calcular distância:', error);
+                return { sucesso: false, erro: 'Erro de conexão' };
+            }
+        }
+
+        function atualizarCampoDistancia(campoDistanciaId, distanciaKm) {
+            const campo = document.getElementById(campoDistanciaId);
+            if (campo) {
+                const valorFormatado = distanciaKm.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                campo.value = valorFormatado;
+            }
+        }
+
+        function controlarBotaoSalvar(habilitar) {
+            const btnSalvar = document.querySelector('#modalCadastro .btn-primary');
+            if (btnSalvar) {
+                btnSalvar.disabled = !habilitar;
+                btnSalvar.style.opacity = habilitar ? '1' : '0.5';
+                btnSalvar.style.cursor = habilitar ? 'pointer' : 'not-allowed';
+            }
+        }
+
+        function controlarBotaoAtualizar(habilitar) {
+            const btnAtualizar = document.querySelector('#modalEdicao .btn-primary');
+            if (btnAtualizar) {
+                btnAtualizar.disabled = !habilitar;
+                btnAtualizar.style.opacity = habilitar ? '1' : '0.5';
+                btnAtualizar.style.cursor = habilitar ? 'pointer' : 'not-allowed';
+            }
+        }
+
+        function inicializarValidacaoTrecho() {
+            // MODAL DE CADASTRO
+            const campoTrecho = document.getElementById('trecho');
+            if (campoTrecho) {
+                campoTrecho.addEventListener('blur', async function() {
+                    const valor = this.value.trim().toUpperCase();
+                    
+                    if (!valor) {
+                        aplicarValidacaoVisualTrecho('trecho', false, 'Trecho é obrigatório');
+                        controlarBotaoSalvar(false);
+                        return;
+                    }
+                    
+                    const validacao = validarFormatoTrecho(valor);
+                    
+                    if (!validacao.valido) {
+                        aplicarValidacaoVisualTrecho('trecho', false, validacao.erro);
+                        controlarBotaoSalvar(false);
+                        return;
+                    }
+                    
+                    this.value = validacao.trecho;
+                    aplicarValidacaoVisualTrecho('trecho', true);
+                    
+                    console.log(`📏 Calculando distância: ${validacao.trecho}`);
+                    const resultado = await calcularDistanciaTrecho(validacao.trecho);
+                    
+                    if (resultado.sucesso) {
+                        atualizarCampoDistancia('distancia_km', resultado.distancia_km);
+                        console.log(`✅ Distância: ${resultado.distancia_km} km`);
+                    }
+                    
+                    controlarBotaoSalvar(true);
+                });
+                
+                campoTrecho.addEventListener('keyup', function() {
+                    const valor = this.value.trim().toUpperCase();
+                    if (!valor) {
+                        campoTrecho.classList.remove('is-valid', 'is-invalid');
+                        return;
+                    }
+                    
+                    const validacao = validarFormatoTrecho(valor);
+                    if (validacao.valido) {
+                        campoTrecho.classList.remove('is-invalid');
+                        campoTrecho.classList.add('is-valid');
+                    } else {
+                        campoTrecho.classList.remove('is-valid');
+                        campoTrecho.classList.add('is-invalid');
+                    }
+                });
+            }
+            
+            // MODAL DE EDIÇÃO
+            const campoTrechoEdit = document.getElementById('trecho_edit');
+            if (campoTrechoEdit) {
+                campoTrechoEdit.addEventListener('blur', async function() {
+                    const valor = this.value.trim().toUpperCase();
+                    
+                    if (!valor) {
+                        aplicarValidacaoVisualTrecho('trecho_edit', false, 'Trecho é obrigatório');
+                        controlarBotaoAtualizar(false);
+                        return;
+                    }
+                    
+                    const validacao = validarFormatoTrecho(valor);
+                    
+                    if (!validacao.valido) {
+                        aplicarValidacaoVisualTrecho('trecho_edit', false, validacao.erro);
+                        controlarBotaoAtualizar(false);
+                        return;
+                    }
+                    
+                    this.value = validacao.trecho;
+                    aplicarValidacaoVisualTrecho('trecho_edit', true);
+                    
+                    const resultado = await calcularDistanciaTrecho(validacao.trecho);
+                    
+                    if (resultado.sucesso) {
+                        atualizarCampoDistancia('distancia_km_edit', resultado.distancia_km);
+                    }
+                    
+                    controlarBotaoAtualizar(true);
+                });
+                
+                campoTrechoEdit.addEventListener('keyup', function() {
+                    const valor = this.value.trim().toUpperCase();
+                    if (!valor) {
+                        campoTrechoEdit.classList.remove('is-valid', 'is-invalid');
+                        return;
+                    }
+                    
+                    const validacao = validarFormatoTrecho(valor);
+                    if (validacao.valido) {
+                        campoTrechoEdit.classList.remove('is-invalid');
+                        campoTrechoEdit.classList.add('is-valid');
+                    } else {
+                        campoTrechoEdit.classList.remove('is-valid');
+                        campoTrechoEdit.classList.add('is-invalid');
+                    }
+                });
+            }
+            
+            console.log('✅ Validação de trecho inicializada');
+        }
+
+        /**
+         * Abre o modal para seleção de parâmetros do relatório
+         */
+        function abrirModalRelatorioPassagens() {
+            document.getElementById('modalRelatorioPassagens').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        /**
+         * Fecha o modal de seleção
+         */
+        function fecharModalRelatorioPassagens() {
+            document.getElementById('modalRelatorioPassagens').style.display = 'none';
+            document.getElementById('formRelatorioPassagens').reset();
+            document.body.style.overflow = 'auto';
+        }
+
+
+        /**
+         * Fecha o modal de exibição do PDF
+         */
+        function fecharModalPdfPassagens() {
+            document.getElementById('modalPdfPassagens').style.display = 'none';
+            document.getElementById('iframePdfPassagens').src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        
+        /**
+         * Gera o relatório de passagens aéreas em PDF
+        */
+        function gerarRelatorioPassagens() {
+            const uo = document.getElementById('relUO').value;
+            const dataInicio = document.getElementById('relDataInicio').value;
+            const dataFim = document.getElementById('relDataFim').value;
+            
+            // Validações
+            if (!uo) {
+                alert('Por favor, selecione uma Unidade Orçamentária (UO).');
+                document.getElementById('relUO').focus();
+                return;
+            }
+            
+            if (!dataInicio) {
+                alert('Por favor, informe a Data Início.');
+                document.getElementById('relDataInicio').focus();
+                return;
+            }
+            
+            if (!dataFim) {
+                alert('Por favor, informe a Data Fim.');
+                document.getElementById('relDataFim').focus();
+                return;
+            }
+            
+            // Validar se data fim é maior ou igual a data início
+            if (new Date(dataFim) < new Date(dataInicio)) {
+                alert('A Data Fim deve ser maior ou igual à Data Início.');
+                document.getElementById('relDataFim').focus();
+                return;
+            }
+            
+            // Converter datas para formato dd/mm/yyyy
+            const dtInicioFormatada = formatarDataParaBR(dataInicio);
+            const dtFimFormatada = formatarDataParaBR(dataFim);
+            
+            // Montar URL
+            const url = `/rel_passagens_emitidas?uo=${encodeURIComponent(uo)}&dt_inicio=${encodeURIComponent(dtInicioFormatada)}&dt_fim=${encodeURIComponent(dtFimFormatada)}`;
+            
+            // Carregar PDF no iframe
+            document.getElementById('iframePdfPassagens').src = url;
+            
+            // Fechar modal de seleção e abrir modal de visualização
+            fecharModalRelatorioPassagens();
+            document.getElementById('modalPdfPassagens').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        /**
+         * Formata data de yyyy-mm-dd para dd/mm/yyyy
+         */
+        function formatarDataParaBR(dataISO) {
+            const [ano, mes, dia] = dataISO.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+        
+        // Fechar modais ao clicar fora
+        window.onclick = function(event) {
+            const modalRelatorio = document.getElementById('modalRelatorioPassagens');
+            const modalPdf = document.getElementById('modalPdfPassagens');
+            
+            if (event.target === modalRelatorio) {
+                fecharModalRelatorioPassagens();
+            }
+            
+            if (event.target === modalPdf) {
+                fecharModalPdfPassagens();
+            }
+        }
+        
+        // Limpar formulário ao fechar o modal
+        $('#modalRelatorioPassagens').on('hidden.bs.modal', function () {
+            document.getElementById('formRelatorioPassagens').reset();
+        });
+
+        
+    </script>
+</body>
+</html>
