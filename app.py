@@ -5721,73 +5721,62 @@ def buscar_dados_agenda():
 
         cursor = mysql.connection.cursor()
 
-        # ========== 1. MOTORISTAS SEGEOP ==========
-        t1 = time.time()
+        # ========== QUERY UNIFICADA DE MOTORISTAS (1 query ao invés de 4) ==========
+        t_motoristas = time.time()
         cursor.execute("""
-            SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
-            FROM CAD_MOTORISTA
-            WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado')
-            AND ATIVO = 'S'
-            AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-            AND (DT_FIM IS NULL OR DT_FIM >= %s)
-            ORDER BY ORDEM_LISTA, NM_MOTORISTA
-        """, (fim, inicio))
-        motoristas = []
-        for r in cursor.fetchall():
-            motoristas.append({
-                'id': r[0], 
-                'nome': r[1], 
-                'cad': r[2] if len(r) > 2 else '', 
-                'telefone': r[3] if len(r) > 3 else '', 
-                'tipo': r[4] if len(r) > 4 else ''
-            })
-        tempos['motoristas_segeop'] = (time.time() - t1) * 1000
-        print(f"✅ Motoristas SEGEOP: {tempos['motoristas_segeop']:.2f}ms ({len(motoristas)} registros)")
-
-        # ========== 2. MOTORISTAS ADMINISTRATIVO ==========
-        t2 = time.time()
-        cursor.execute("""
-            SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
-            FROM CAD_MOTORISTA
-            WHERE TIPO_CADASTRO = 'Administrativo'
-            AND ATIVO = 'S'
-            AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-            AND (DT_FIM IS NULL OR DT_FIM >= %s)
-            ORDER BY ORDEM_LISTA, NM_MOTORISTA
-        """, (fim, inicio))
-        motoristas_administrativo = []
-        for r in cursor.fetchall():
-            motoristas_administrativo.append({
-                'id': r[0], 
-                'nome': r[1], 
-                'cad': r[2] if len(r) > 2 else '', 
-                'telefone': r[3] if len(r) > 3 else '', 
-                'tipo': r[4] if len(r) > 4 else ''
-            })
-        tempos['motoristas_admin'] = (time.time() - t2) * 1000
-        print(f"✅ Motoristas Admin: {tempos['motoristas_admin']:.2f}ms ({len(motoristas_administrativo)} registros)")
-
-        # ========== 3. TODOS OS MOTORISTAS ==========
-        t3 = time.time()
-        cursor.execute("""
-            SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
+            SELECT 
+                ID_MOTORISTA, 
+                NM_MOTORISTA, 
+                CAD_MOTORISTA, 
+                NU_TELEFONE, 
+                TIPO_CADASTRO,
+                ORDEM_LISTA,
+                CASE 
+                    WHEN TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado') THEN 'SEGEOP'
+                    WHEN TIPO_CADASTRO = 'Administrativo' THEN 'ADMIN'
+                    ELSE 'TODOS'
+                END as CATEGORIA
             FROM CAD_MOTORISTA
             WHERE ATIVO = 'S'
             AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
             AND (DT_FIM IS NULL OR DT_FIM >= %s)
-            ORDER BY NM_MOTORISTA
+            ORDER BY 
+                CASE 
+                    WHEN TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado') THEN 1
+                    WHEN TIPO_CADASTRO = 'Administrativo' THEN 2
+                    ELSE 3
+                END,
+                ORDEM_LISTA, 
+                NM_MOTORISTA
         """, (fim, inicio))
+        
+        # Separar motoristas por categoria
+        motoristas = []
+        motoristas_administrativo = []
         todos_motoristas = []
+        
         for r in cursor.fetchall():
-            todos_motoristas.append({
+            motorista_obj = {
                 'id': r[0], 
                 'nome': r[1], 
                 'cad': r[2] if len(r) > 2 else '', 
                 'telefone': r[3] if len(r) > 3 else '', 
                 'tipo': r[4] if len(r) > 4 else ''
-            })
-        tempos['todos_motoristas'] = (time.time() - t3) * 1000
-        print(f"✅ Todos Motoristas: {tempos['todos_motoristas']:.2f}ms ({len(todos_motoristas)} registros)")
+            }
+            
+            categoria = r[6] if len(r) > 6 else 'TODOS'
+            
+            if categoria == 'SEGEOP':
+                motoristas.append(motorista_obj)
+            elif categoria == 'ADMIN':
+                motoristas_administrativo.append(motorista_obj)
+            
+            # Todos recebem todos os motoristas
+            todos_motoristas.append(motorista_obj)
+        
+        tempos['motoristas_unificado'] = (time.time() - t_motoristas) * 1000
+        print(f"✅ Motoristas Unificados: {tempos['motoristas_unificado']:.2f}ms")
+        print(f"   → SEGEOP: {len(motoristas)} | Admin: {len(motoristas_administrativo)} | Todos: {len(todos_motoristas)}")
 
         # ========== 4. OUTROS MOTORISTAS ==========
         t4 = time.time()
@@ -5936,56 +5925,61 @@ def buscar_dados_agenda():
         tempos['diarias'] = (time.time() - t6) * 1000
         print(f"✅ Diárias Terceirizados: {tempos['diarias']:.2f}ms ({len(diarias_terceirizados)} registros)")
 
-        # ========== 7. VEÍCULOS PADRÃO ==========
-        t7 = time.time()
+        # ========== QUERY UNIFICADA DE VEÍCULOS (1 query ao invés de 2) ==========
+        t_veiculos = time.time()
         cursor.execute("""
-            SELECT v.ID_VEICULO, 
-            CASE WHEN ORIGEM_VEICULO='Propria' then v.DS_MODELO
-            ELSE CONCAT(v.DS_MODELO,' (',v.PROPRIEDADE,')') END AS DS_MODELO, v.NU_PLACA
-            FROM CAD_VEICULOS v, CATEGORIA_VEICULO cv 
-            WHERE v.FL_ATENDIMENTO = 'S' 
-              AND v.ATIVO = 'S'
-              AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
-              AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
-              AND cv.ID_CAT_VEICULO = v.ID_CATEGORIA
-            ORDER BY v.ORIGEM_VEICULO DESC, cv.ORDEM_CAT, v.DS_MODELO
-        """, (fim, inicio))
-        veiculos = []
-        for r in cursor.fetchall():
-            veiculos.append({
-                'id': r[0], 
-                'veiculo': f"{r[1]} - {r[2]}", 
-                'modelo': r[1], 
-                'placa': r[2]
-            })
-        tempos['veiculos'] = (time.time() - t7) * 1000
-        print(f"✅ Veículos Padrão: {tempos['veiculos']:.2f}ms ({len(veiculos)} registros)")
-
-        # ========== 8. VEÍCULOS EXTRAS ==========
-        t8 = time.time()
-        cursor.execute("""
-            SELECT DISTINCT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
+            SELECT 
+                v.ID_VEICULO, 
+                CASE WHEN v.ORIGEM_VEICULO='Propria' THEN v.DS_MODELO
+                ELSE CONCAT(v.DS_MODELO,' (',v.PROPRIEDADE,')') END AS DS_MODELO, 
+                v.NU_PLACA,
+                v.FL_ATENDIMENTO,
+                CASE WHEN v.FL_ATENDIMENTO = 'S' THEN 1 ELSE 2 END as ORDEM_TIPO,
+                cv.ORDEM_CAT,
+                CASE WHEN v.ORIGEM_VEICULO = 'Propria' THEN 1 ELSE 2 END as ORDEM_ORIGEM
             FROM CAD_VEICULOS v
-            INNER JOIN AGENDA_DEMANDAS ad ON ad.ID_VEICULO = v.ID_VEICULO
-            WHERE v.FL_ATENDIMENTO = 'N' 
-              AND v.ATIVO = 'S'
-              AND ad.DT_INICIO <= %s 
-              AND ad.DT_FIM >= %s
+            LEFT JOIN CATEGORIA_VEICULO cv ON cv.ID_CAT_VEICULO = v.ID_CATEGORIA
+            LEFT JOIN AGENDA_DEMANDAS ad ON ad.ID_VEICULO = v.ID_VEICULO 
+                AND ad.DT_INICIO <= %s 
+                AND ad.DT_FIM >= %s
+            WHERE v.ATIVO = 'S'
               AND (v.DT_INICIO IS NULL OR v.DT_INICIO <= %s)
               AND (v.DT_FIM IS NULL OR v.DT_FIM >= %s)
-            ORDER BY v.DS_MODELO, v.NU_PLACA
+              AND (
+                  v.FL_ATENDIMENTO = 'S' 
+                  OR (v.FL_ATENDIMENTO = 'N' AND ad.ID_VEICULO IS NOT NULL)
+              )
+            GROUP BY v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA, v.FL_ATENDIMENTO, 
+                     v.ORIGEM_VEICULO, cv.ORDEM_CAT
+            ORDER BY 
+                ORDEM_TIPO,
+                ORDEM_ORIGEM DESC,
+                cv.ORDEM_CAT,
+                v.DS_MODELO,
+                v.NU_PLACA
         """, (fim, inicio, fim, inicio))
         
+        veiculos = []
         veiculos_extras = []
+        
         for r in cursor.fetchall():
-            veiculos_extras.append({
+            veiculo_obj = {
                 'id': r[0],
                 'veiculo': f"{r[1]} - {r[2]}",
                 'modelo': r[1],
                 'placa': r[2]
-            })
-        tempos['veiculos_extras'] = (time.time() - t8) * 1000
-        print(f"✅ Veículos Extras: {tempos['veiculos_extras']:.2f}ms ({len(veiculos_extras)} registros)")
+            }
+            
+            fl_atendimento = r[3] if len(r) > 3 else 'N'
+            
+            if fl_atendimento == 'S':
+                veiculos.append(veiculo_obj)
+            else:
+                veiculos_extras.append(veiculo_obj)
+        
+        tempos['veiculos_unificado'] = (time.time() - t_veiculos) * 1000
+        print(f"✅ Veículos Unificados: {tempos['veiculos_unificado']:.2f}ms")
+        print(f"   → Padrão: {len(veiculos)} | Extras: {len(veiculos_extras)}")
 
         # ========== RESUMO FINAL ==========
         tempo_total = (time.time() - tempo_total_inicio) * 1000
@@ -11503,6 +11497,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
