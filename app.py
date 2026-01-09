@@ -5687,25 +5687,49 @@ def listar_semanas():
         if cursor:
             cursor.close()
 
-# API: Buscar dados da agenda por semana (CORRIGIDA - VERSÃO FINAL)
+import time
+from functools import wraps
+
+# Decorator para medir tempo de queries
+def log_query_time(query_name):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start = time.time()
+            result = func(*args, **kwargs)
+            elapsed = (time.time() - start) * 1000  # em milissegundos
+            print(f"⏱️  [{query_name}] levou {elapsed:.2f}ms")
+            return result
+        return wrapper
+    return decorator
+
 @app.route('/api/agenda/dados', methods=['GET'])
 @login_required
 def buscar_dados_agenda():
+    tempo_total_inicio = time.time()
     cursor = None
+    tempos = {}  # Dicionário para armazenar os tempos
+    
     try:
         inicio = request.args.get('inicio')
         fim = request.args.get('fim')
+        
+        print(f"\n{'='*60}")
+        print(f"🔍 DIAGNÓSTICO DE PERFORMANCE - Agenda")
+        print(f"📅 Período: {inicio} até {fim}")
+        print(f"{'='*60}\n")
 
         cursor = mysql.connection.cursor()
 
-        # 1. Lista de Motoristas SEGEOP (SEM Administrativo)
+        # ========== 1. MOTORISTAS SEGEOP ==========
+        t1 = time.time()
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM CAD_MOTORISTA
             WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado')
             AND ATIVO = 'S'
-			AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-			AND (DT_FIM IS NULL OR DT_FIM >= %s)
+            AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
+            AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
         """, (fim, inicio))
         motoristas = []
@@ -5717,15 +5741,18 @@ def buscar_dados_agenda():
                 'telefone': r[3] if len(r) > 3 else '', 
                 'tipo': r[4] if len(r) > 4 else ''
             })
+        tempos['motoristas_segeop'] = (time.time() - t1) * 1000
+        print(f"✅ Motoristas SEGEOP: {tempos['motoristas_segeop']:.2f}ms ({len(motoristas)} registros)")
 
-        # 1.1 Lista de Motoristas ADMINISTRATIVO (NOVO)
+        # ========== 2. MOTORISTAS ADMINISTRATIVO ==========
+        t2 = time.time()
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM CAD_MOTORISTA
             WHERE TIPO_CADASTRO = 'Administrativo'
             AND ATIVO = 'S'
-			AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-			AND (DT_FIM IS NULL OR DT_FIM >= %s)
+            AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
+            AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
         """, (fim, inicio))
         motoristas_administrativo = []
@@ -5736,15 +5763,18 @@ def buscar_dados_agenda():
                 'cad': r[2] if len(r) > 2 else '', 
                 'telefone': r[3] if len(r) > 3 else '', 
                 'tipo': r[4] if len(r) > 4 else ''
-            })          
-        
-        # 1.1 TODOS os Motoristas Ativos (para select na edição/outros)
+            })
+        tempos['motoristas_admin'] = (time.time() - t2) * 1000
+        print(f"✅ Motoristas Admin: {tempos['motoristas_admin']:.2f}ms ({len(motoristas_administrativo)} registros)")
+
+        # ========== 3. TODOS OS MOTORISTAS ==========
+        t3 = time.time()
         cursor.execute("""
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM CAD_MOTORISTA
             WHERE ATIVO = 'S'
-			AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-			AND (DT_FIM IS NULL OR DT_FIM >= %s)
+            AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
+            AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY NM_MOTORISTA
         """, (fim, inicio))
         todos_motoristas = []
@@ -5756,9 +5786,11 @@ def buscar_dados_agenda():
                 'telefone': r[3] if len(r) > 3 else '', 
                 'tipo': r[4] if len(r) > 4 else ''
             })
+        tempos['todos_motoristas'] = (time.time() - t3) * 1000
+        print(f"✅ Todos Motoristas: {tempos['todos_motoristas']:.2f}ms ({len(todos_motoristas)} registros)")
 
-        # 1.2 Outros Motoristas (NÃO SEGEOP) com demandas no período + Não Cadastrados
-		# Alteração: Não exibir demanda na lista de outros motoristas quando a demanda for 'id=8 - Cedência'
+        # ========== 4. OUTROS MOTORISTAS ==========
+        t4 = time.time()
         query_outros = """
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
                 m.NU_TELEFONE, m.TIPO_CADASTRO
@@ -5767,8 +5799,8 @@ def buscar_dados_agenda():
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado','Administrativo')
             AND ae.ID_TIPODEMANDA != 8
             AND m.ATIVO = 'S'
-			AND (m.DT_INICIO IS NULL OR m.DT_INICIO <= %s)
-			AND (m.DT_FIM IS NULL OR m.DT_FIM >= %s)
+            AND (m.DT_INICIO IS NULL OR m.DT_INICIO <= %s)
+            AND (m.DT_FIM IS NULL OR m.DT_FIM >= %s)
             AND ae.DT_INICIO <= %s 
             AND ae.DT_FIM >= %s
             UNION 
@@ -5786,9 +5818,7 @@ def buscar_dados_agenda():
             AND NC_MOTORISTA != ''
             ORDER BY NM_MOTORISTA
         """
-        
         cursor.execute(query_outros, (fim, inicio, fim, inicio, fim, inicio))
-        
         outros_motoristas = []
         for r in cursor.fetchall():
             outros_motoristas.append({
@@ -5798,8 +5828,11 @@ def buscar_dados_agenda():
                 'telefone': r[3] if len(r) > 3 else '', 
                 'tipo': r[4] if len(r) > 4 else ''
             })
+        tempos['outros_motoristas'] = (time.time() - t4) * 1000
+        print(f"✅ Outros Motoristas: {tempos['outros_motoristas']:.2f}ms ({len(outros_motoristas)} registros)")
 
-        # 2. Demandas dos Motoristas
+        # ========== 5. DEMANDAS (GERALMENTE A MAIS PESADA) ==========
+        t5 = time.time()
         cursor.execute("""
             SELECT ae.ID_AD, ae.ID_MOTORISTA, 
                    CASE 
@@ -5826,6 +5859,7 @@ def buscar_dados_agenda():
                 ae.ID_AD ASC
         """, (fim, inicio))
         
+        t5_processamento = time.time()
         demandas = []
         for r in cursor.fetchall():
             dt_lancamento = r[14].strftime('%Y-%m-%d %H:%M:%S') if r[14] else ''
@@ -5872,8 +5906,16 @@ def buscar_dados_agenda():
                 'todos_veiculos': r[19] or 'N',
                 'nc_motorista': r[20] or ''
             })
+        
+        tempos['demandas_query'] = (t5_processamento - t5) * 1000
+        tempos['demandas_processamento'] = (time.time() - t5_processamento) * 1000
+        tempos['demandas_total'] = (time.time() - t5) * 1000
+        print(f"✅ Demandas - Query: {tempos['demandas_query']:.2f}ms")
+        print(f"✅ Demandas - Processamento: {tempos['demandas_processamento']:.2f}ms")
+        print(f"🔥 Demandas - TOTAL: {tempos['demandas_total']:.2f}ms ({len(demandas)} registros)")
 
-        # 2.1 NOVO: Buscar dados das diárias terceirizadas
+        # ========== 6. DIÁRIAS TERCEIRIZADOS ==========
+        t6 = time.time()
         cursor.execute("""
             SELECT 
                 dt.IDITEM,
@@ -5891,10 +5933,13 @@ def buscar_dados_agenda():
                 'id_ad': r[1],
                 'fl_email': r[2] or 'N'
             })
-		
-        # 3. Lista de Veículos PADRÃO (COM VALIDAÇÃO DE PERÍODO)
+        tempos['diarias'] = (time.time() - t6) * 1000
+        print(f"✅ Diárias Terceirizados: {tempos['diarias']:.2f}ms ({len(diarias_terceirizados)} registros)")
+
+        # ========== 7. VEÍCULOS PADRÃO ==========
+        t7 = time.time()
         cursor.execute("""
-			SELECT v.ID_VEICULO, 
+            SELECT v.ID_VEICULO, 
             CASE WHEN ORIGEM_VEICULO='Propria' then v.DS_MODELO
             ELSE CONCAT(v.DS_MODELO,' (',v.PROPRIEDADE,')') END AS DS_MODELO, v.NU_PLACA
             FROM CAD_VEICULOS v, CATEGORIA_VEICULO cv 
@@ -5913,8 +5958,11 @@ def buscar_dados_agenda():
                 'modelo': r[1], 
                 'placa': r[2]
             })
+        tempos['veiculos'] = (time.time() - t7) * 1000
+        print(f"✅ Veículos Padrão: {tempos['veiculos']:.2f}ms ({len(veiculos)} registros)")
 
-        # 4. Veículos EXTRAS (COM VALIDAÇÃO DE PERÍODO)
+        # ========== 8. VEÍCULOS EXTRAS ==========
+        t8 = time.time()
         cursor.execute("""
             SELECT DISTINCT v.ID_VEICULO, v.DS_MODELO, v.NU_PLACA
             FROM CAD_VEICULOS v
@@ -5936,6 +5984,32 @@ def buscar_dados_agenda():
                 'modelo': r[1],
                 'placa': r[2]
             })
+        tempos['veiculos_extras'] = (time.time() - t8) * 1000
+        print(f"✅ Veículos Extras: {tempos['veiculos_extras']:.2f}ms ({len(veiculos_extras)} registros)")
+
+        # ========== RESUMO FINAL ==========
+        tempo_total = (time.time() - tempo_total_inicio) * 1000
+        tempos['total'] = tempo_total
+        
+        print(f"\n{'='*60}")
+        print(f"📊 RESUMO DE PERFORMANCE")
+        print(f"{'='*60}")
+        
+        # Ordena por tempo (mais lento primeiro)
+        sorted_tempos = sorted(
+            [(k, v) for k, v in tempos.items() if k != 'total'],
+            key=lambda x: x[1],
+            reverse=True
+        )
+        
+        for nome, tempo_ms in sorted_tempos:
+            percentual = (tempo_ms / tempo_total) * 100
+            barra = '█' * int(percentual / 2)
+            print(f"{nome:25} {tempo_ms:8.2f}ms [{percentual:5.1f}%] {barra}")
+        
+        print(f"{'='*60}")
+        print(f"⏱️  TEMPO TOTAL: {tempo_total:.2f}ms ({tempo_total/1000:.2f}s)")
+        print(f"{'='*60}\n")
 
         return jsonify({
             'motoristas': motoristas,
@@ -5943,23 +6017,28 @@ def buscar_dados_agenda():
             'outros_motoristas': outros_motoristas,
             'todos_motoristas': todos_motoristas,
             'demandas': demandas,
-			'diarias_terceirizados': diarias_terceirizados,
+            'diarias_terceirizados': diarias_terceirizados,
             'veiculos': veiculos,
-            'veiculos_extras': veiculos_extras
+            'veiculos_extras': veiculos_extras,
+            '_debug': {
+                'tempo_total_ms': tempo_total,
+                'tempo_total_s': tempo_total / 1000,
+                'detalhamento': tempos
+            }
         })
 
     except Exception as e:
-        print(f"Erro em buscar_dados_agenda: {str(e)}")
+        print(f"❌ ERRO em buscar_dados_agenda: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
             'error': str(e), 
             'motoristas': [],
-            'motoristas_administrativo': [],  # NOVO
+            'motoristas_administrativo': [],
             'outros_motoristas': [],
             'todos_motoristas': [],
             'demandas': [], 
-			'diarias_terceirizados': [],
+            'diarias_terceirizados': [],
             'veiculos': [],
             'veiculos_extras': []
         }), 500
@@ -11424,6 +11503,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
