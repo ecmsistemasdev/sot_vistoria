@@ -1084,36 +1084,6 @@
                         selectSubitem.appendChild(option);
                     })
 
-                    // Preencher filtro de exercícios (sem opção "Todos")
-                    const filtroExercicio = document.getElementById('filtroExercicio');
-                    filtroExercicio.innerHTML = '';
-                    const anoAtual = new Date().getFullYear();
-                    
-                    // Determinar qual exercício selecionar (priorizar ano atual, senão o mais recente)
-                    let exercicioSelecionado = null;
-                    
-                    data.exercicios.forEach(exercicio => {
-                        const option = document.createElement('option');
-                        option.value = exercicio;
-                        option.textContent = exercicio;
-                        
-                        // Selecionar o ano atual se existir, senão o primeiro (mais recente)
-                        if (exercicio === anoAtual) {
-                            option.selected = true;
-                            exercicioSelecionado = exercicio;
-                        } else if (!exercicioSelecionado && data.exercicios.indexOf(exercicio) === 0) {
-                            option.selected = true;
-                            exercicioSelecionado = exercicio;
-                        }
-                        
-                        filtroExercicio.appendChild(option);
-                    });
-
-                    // Se nenhum exercício foi selecionado, usar o primeiro da lista
-                    if (!exercicioSelecionado && data.exercicios.length > 0) {
-                        exercicioSelecionado = data.exercicios[0];
-                    }
-
                     // Registros serão carregados após selecionar um contrato
                 }
             } catch (error) {
@@ -1255,9 +1225,6 @@
         });
 
         // Filtro de exercício
-        document.getElementById('filtroExercicio').addEventListener('change', function() {
-            carregarRegistros(this.value);
-        });
         // Event listeners para filtros da tabela
         document.getElementById('filtroUO').addEventListener('change', aplicarFiltros);
         document.getElementById('filtroUnidade').addEventListener('change', aplicarFiltros);
