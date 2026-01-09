@@ -7744,11 +7744,10 @@ def rel_passagens_emitidas():
                 ('TOPPADDING', (0, 0), (-1, -1), 3),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                 
-                # Bordas - APLICAR ANTES DOS AJUSTES DA LINHA TOTAL
-                ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#666666')),  # Grid apenas até penúltima linha
-                ('GRID', (0, -1), (13, -1), 0.5, colors.HexColor('#666666')),  # Grid na linha total só até coluna 13
+                # Bordas normais em toda a tabela
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#666666')),  # Grid em TODAS as linhas
                 
-                # Linha de total - AJUSTADO COM SPAN (SEM linha azul)
+                # Linha de total - AJUSTADO COM SPAN
                 ('SPAN', (0, -1), (8, -1)),  # Mescla células de OF até Localiz.
                 ('BACKGROUND', (0, -1), (13, -1), colors.HexColor('#d4edda')),  # Verde só até Total R$
                 ('FONTNAME', (0, -1), (13, -1), 'Helvetica-Bold'),
@@ -7756,15 +7755,18 @@ def rel_passagens_emitidas():
                 ('ALIGN', (0, -1), (0, -1), 'RIGHT'),   # "VALOR TOTAL:" alinhado à direita
                 ('ALIGN', (9, -1), (13, -1), 'RIGHT'),  # Valores alinhados à direita
                 
-                # Remove linha vertical direita da coluna Total R$ (entre col 13 e 14)
+                # Remove linha vertical direita da coluna Total R$ na linha TOTAL
                 ('LINEAFTER', (13, -1), (13, -1), 0, colors.white),
                 
-                # 3 últimas colunas: fundo branco, SEM bordas
+                # 3 últimas colunas na linha TOTAL: fundo branco, SEM bordas
                 ('BACKGROUND', (14, -1), (16, -1), colors.white),
-                ('LINEABOVE', (14, -1), (16, -1), 0, colors.white),   # Remove linha superior
-                ('LINEBELOW', (14, -1), (16, -1), 0, colors.white),   # Remove linha inferior
-                ('LINEBEFORE', (14, -1), (16, -1), 0, colors.white),  # Remove linhas verticais
-                ('LINEAFTER', (14, -1), (16, -1), 0, colors.white),   # Remove linha direita
+                ('LINEABOVE', (14, -1), (16, -1), 0, colors.white),
+                ('LINEBELOW', (14, -1), (16, -1), 0, colors.white),
+                ('LINEBEFORE', (14, -1), (16, -1), 0, colors.white),
+                ('LINEAFTER', (14, -1), (16, -1), 0, colors.white),
+                
+                # Reaplica grid nas 3 últimas colunas APENAS nas linhas de dados (não na total)
+                ('GRID', (14, 0), (16, -2), 0.5, colors.HexColor('#666666')),
                 
                 # Zebrado
                 ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.HexColor('#f9f9f9'), colors.white]),
@@ -7794,7 +7796,7 @@ def rel_passagens_emitidas():
         print(f"Erro ao gerar relatório de passagens: {str(e)}")
         import traceback
         traceback.print_exc()
-        return f"Erro ao gerar relatório: {str(e)}", 500    
+        return f"Erro ao gerar relatório: {str(e)}", 500   
 
 ######################### fim relatorio de passagem ##################
 
@@ -11290,3 +11292,4 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
