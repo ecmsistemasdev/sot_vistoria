@@ -1203,7 +1203,7 @@
         
         function aplicarFiltros() {
             const tbody = document.querySelector('#tabelaOrcamentos tbody');
-            const linhas = tbody.querySelectorAll('tr.linha-orcamento'); // ✅ Apenas linhas de orçamento, não a linha de totais
+            const linhas = tbody.querySelectorAll('tr.linha-orcamento'); // Apenas linhas de orçamento, não a linha de totais
             
             const filtroUO = document.getElementById('filtroUO').value.toLowerCase();
             const filtroUnidade = document.getElementById('filtroUnidade').value.toLowerCase();
@@ -1212,24 +1212,17 @@
             const filtroSubitem = document.getElementById('filtroSubitem').value.toLowerCase();
             const filtroEmpenho = document.getElementById('filtroEmpenho').value.toLowerCase();
             
+            // Totalizadores para linhas visíveis
+            let totalVlAprovado = 0;
+            let totalVlAtual = 0;
+            let totalVlUtilizado = 0;
+            let totalVlSaldo = 0;
+            
             linhas.forEach(linha => {
                 const colunas = linha.querySelectorAll('td');
                 if (colunas.length === 0) return; // Pular linha vazia
                 
-                // ✅ CORRIGIDO: Ajustar índices por causa da coluna de expansão
-                // Coluna 0: Expansão (▶)
-                // Coluna 1: UO
-                // Coluna 2: Unidade
-                // Coluna 3: Programa
-                // Coluna 4: Ação
-                // Coluna 5: Subitem
-                // Coluna 6: Valor Aprovado
-                // Coluna 7: Valor Atual
-                // Coluna 8: Valor Utilizado
-                // Coluna 9: Saldo
-                // Coluna 10: Empenho
-                // Coluna 11: Ações
-                
+                // Índices das colunas
                 const uo = colunas[1].textContent.toLowerCase();
                 const unidade = colunas[2].textContent.toLowerCase();
                 const programa = colunas[3].textContent.toLowerCase();
@@ -1246,7 +1239,36 @@
                     (filtroEmpenho === '' || empenho.includes(filtroEmpenho));
                 
                 linha.style.display = mostrar ? '' : 'none';
+                
+                // ✅ NOVO: Se a linha está visível, somar aos totais
+                if (mostrar) {
+                    // Extrair valores das colunas (remover R$ e converter)
+                    const vlAprovado = parseFloat(colunas[6].textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+                    const vlAtual = parseFloat(colunas[7].textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+                    const vlUtilizado = parseFloat(colunas[8].textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+                    const vlSaldo = parseFloat(colunas[9].textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+                    
+                    totalVlAprovado += vlAprovado;
+                    totalVlAtual += vlAtual;
+                    totalVlUtilizado += vlUtilizado;
+                    totalVlSaldo += vlSaldo;
+                }
             });
+            
+            // ✅ NOVO: Atualizar linha de totais
+            const linhaTotais = tbody.querySelector('tr.linha-totais');
+            if (linhaTotais) {
+                const colunasTotais = linhaTotais.querySelectorAll('td');
+                // Coluna 1 (após colspan 6): Valor Aprovado
+                colunasTotais[1].textContent = 'R$ ' + totalVlAprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                // Coluna 2: Valor Atual
+                colunasTotais[2].textContent = 'R$ ' + totalVlAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                // Coluna 3: Valor Utilizado
+                colunasTotais[3].textContent = 'R$ ' + totalVlUtilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                // Coluna 4: Saldo
+                colunasTotais[4].textContent = 'R$ ' + totalVlSaldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                colunasTotais[4].style.color = totalVlSaldo >= 0 ? '#2ecc71' : '#e74c3c';
+            }
         }
 
         // Máscaras e validações
