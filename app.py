@@ -8271,7 +8271,8 @@ def listar_contratos_passagens():
     """
     cursor = None
     try:
-        cursor = mysql.connection.cursor()
+        # ✅ MODIFICADO: Usar DictCursor para retornar dicionários
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
         cursor.execute("""
             SELECT 
@@ -11466,6 +11467,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
