@@ -5704,8 +5704,10 @@ def buscar_dados_agenda():
             FROM CAD_MOTORISTA
             WHERE TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado')
             AND ATIVO = 'S'
+			AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
+			AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
-        """)
+        """, (fim, inicio))
         motoristas = []
         for r in cursor.fetchall():
             motoristas.append({
@@ -5722,8 +5724,10 @@ def buscar_dados_agenda():
             FROM CAD_MOTORISTA
             WHERE TIPO_CADASTRO = 'Administrativo'
             AND ATIVO = 'S'
+			AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
+			AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY ORDEM_LISTA, NM_MOTORISTA
-        """)
+        """, (fim, inicio))
         motoristas_administrativo = []
         for r in cursor.fetchall():
             motoristas_administrativo.append({
@@ -5739,8 +5743,10 @@ def buscar_dados_agenda():
             SELECT ID_MOTORISTA, NM_MOTORISTA, CAD_MOTORISTA, NU_TELEFONE, TIPO_CADASTRO
             FROM CAD_MOTORISTA
             WHERE ATIVO = 'S'
+			AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
+			AND (DT_FIM IS NULL OR DT_FIM >= %s)
             ORDER BY NM_MOTORISTA
-        """)
+        """, (fim, inicio))
         todos_motoristas = []
         for r in cursor.fetchall():
             todos_motoristas.append({
@@ -5761,6 +5767,8 @@ def buscar_dados_agenda():
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado','Administrativo')
             AND ae.ID_TIPODEMANDA != 8
             AND m.ATIVO = 'S'
+			AND (m.DT_INICIO IS NULL OR m.DT_INICIO <= %s)
+			AND (m.DT_FIM IS NULL OR m.DT_FIM >= %s)
             AND ae.DT_INICIO <= %s 
             AND ae.DT_FIM >= %s
             UNION 
@@ -5779,7 +5787,7 @@ def buscar_dados_agenda():
             ORDER BY NM_MOTORISTA
         """
         
-        cursor.execute(query_outros, (fim, inicio, fim, inicio))
+        cursor.execute(query_outros, (fim, inicio, fim, inicio, fim, inicio))
         
         outros_motoristas = []
         for r in cursor.fetchall():
@@ -11289,6 +11297,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
