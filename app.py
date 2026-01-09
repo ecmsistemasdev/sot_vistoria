@@ -8369,7 +8369,6 @@ def listar_orcamentos_por_contrato(id_controle):
 def criar_orcamento_passagem():
     """
     Cria um novo registro de orçamento de passagens aéreas
-    Agora inclui o campo ID_CONTROLE
     E automaticamente cria o registro inicial na ORCAMENTO_PASSAGENS_ITEM
     """
     cursor = None
@@ -8381,11 +8380,10 @@ def criar_orcamento_passagem():
         # Validar e limpar dados
         fonte = ''.join(filter(str.isdigit, data.get('fonte', '')))
         unidade = data.get('unidade', '').upper()
-        id_opa = data.get('id_opa')
+        id_opa = data['id_opa']
         vl_aprovado = data.get('vl_aprovado')
         nu_empenho = data.get('nu_empenho')
-        id_controle = data.get('id_controle')  # ✅ NOVO CAMPO
-        exercicio = data.get('exercicio')
+        id_controle = data.get('id_controle')
         
         # Validar ID_CONTROLE obrigatório
         if not id_controle:
@@ -8394,133 +8392,91 @@ def criar_orcamento_passagem():
                 'error': 'ID_CONTROLE é obrigatório'
             }), 400
         
-        if id_opa:
-            # ========================================
-            # MODO EDIÇÃO - UPDATE
-            # ========================================
-            cursor.execute("""
-                UPDATE ORCAMENTO_PASSAGENS_AEREAS 
-                SET ID_CONTROLE = %s,
-                    EXERCICIO = %s,
-                    UO = %s,
-                    UNIDADE = %s,
-                    FONTE = %s,
-                    ID_PROGRAMA = %s,
-                    ID_AO = %s,
-                    SUBACAO = %s,
-                    OBJETIVO = %s,
-                    ELEMENTO_DESPESA = %s,
-                    ID_SUBITEM = %s,
-                    VL_APROVADO = %s,
-                    NU_EMPENHO = %s,
-                    USUARIO = %s,
-                    DT_LANCAMENTO = NOW()
-                WHERE ID_OPA = %s
-            """, (
-                id_controle,
-                exercicio,
-                data.get('uo'),
-                unidade,
-                fonte,
-                data.get('id_programa'),
-                data.get('id_ao'),
-                data.get('subacao'),
-                data.get('objetivo'),
-                data.get('elemento_despesa', '33.90.33'),
-                data.get('id_subitem'),
-                vl_aprovado,
-                nu_empenho,
-                usuario,
-                id_opa
-            ))
-            
-            mysql.connection.commit()
-            
-            print(f"✅ UPDATE realizado na ORCAMENTO_PASSAGENS_AEREAS - ID_OPA: {id_opa}")
-            
-            return jsonify({
-                'success': True,
-                'message': 'Orçamento atualizado com sucesso',
-                'id_opa': id_opa
-            })
+        # ✅ NOVO: Buscar EXERCICIO da tabela CONTROLE_PASSAGENS_AEREAS
+        cursor.execute("""
+            SELECT EXERCICIO 
+            FROM CONTROLE_PASSAGENS_AEREAS 
+            WHERE ID_CONTROLE = %s
+        """, (id_controle,))
         
-        else:
-            # ========================================
-            # MODO CRIAÇÃO - INSERT
-            # ========================================
-            
-            # 1. Obter próximo ID_OPA
-            cursor.execute("""
-                SELECT COALESCE(MAX(ID_OPA), 0) + 1 
-                FROM ORCAMENTO_PASSAGENS_AEREAS
-            """)
-            id_opa = cursor.fetchone()[0]
-            
-            print(f"📊 Próximo ID_OPA: {id_opa}")
-            
-            # 2. INSERT na ORCAMENTO_PASSAGENS_AEREAS
-            cursor.execute("""
-                INSERT INTO ORCAMENTO_PASSAGENS_AEREAS 
-                (ID_OPA, ID_CONTROLE, EXERCICIO, UO, UNIDADE, FONTE, ID_PROGRAMA, ID_AO, 
-                 SUBACAO, OBJETIVO, ELEMENTO_DESPESA, ID_SUBITEM, 
-                 VL_APROVADO, NU_EMPENHO, USUARIO, DT_LANCAMENTO, ATIVO)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), 'S')
-            """, (
-                id_opa,
-                id_controle,  # ✅ NOVO CAMPO
-                exercicio,
-                data.get('uo'),
-                unidade,
-                fonte,
-                data.get('id_programa'),
-                data.get('id_ao'),
-                data.get('subacao'),
-                data.get('objetivo'),
-                data.get('elemento_despesa', '33.90.33'),
-                data.get('id_subitem'),
-                vl_aprovado,
-                nu_empenho,
-                usuario
-            ))
-            
-            print(f"✅ INSERT realizado na ORCAMENTO_PASSAGENS_AEREAS - ID_OPA: {id_opa}")
-            
-            # 3. OBTER PRÓXIMO IDITEM_OPA
-            cursor.execute("""
-                SELECT COALESCE(MAX(IDITEM_OPA), 0) + 1 
-                FROM ORCAMENTO_PASSAGENS_ITEM
-            """)
-            proximo_iditem = cursor.fetchone()[0]
-            
-            print(f"📊 Próximo IDITEM_OPA: {proximo_iditem}")
-            
-            # 4. INSERT na ORCAMENTO_PASSAGENS_ITEM (registro inicial)
-            cursor.execute("""
-                INSERT INTO ORCAMENTO_PASSAGENS_ITEM
-                (IDITEM_OPA, ID_OPA, IDTIPO_ITEM, FLTIPO, VL_ITEM, NU_EMPENHO, 
-                 OBS, USUARIO, DT_LANCAMENTO, ATIVO)
-                VALUES (%s, %s, 1, 'E', 0.00, NULL, 'Registro inicial', %s, NOW(), 'S')
-            """, (
-                proximo_iditem,
-                id_opa,
-                usuario
-            ))
-            
-            print(f"✅ INSERT realizado na ORCAMENTO_PASSAGENS_ITEM - IDITEM_OPA: {proximo_iditem}")
-            
-            # 5. Commit das transações
-            mysql.connection.commit()
-            
+        resultado = cursor.fetchone()
+        if not resultado:
             return jsonify({
-                'success': True,
-                'message': 'Orçamento criado com sucesso',
-                'id_opa': id_opa
-            })
+                'success': False,
+                'error': 'Contrato não encontrado'
+            }), 404
+        
+        exercicio = resultado[0]  # ✅ EXERCICIO vem do contrato
+        
+        # ========================================
+        # INSERT na ORCAMENTO_PASSAGENS_AEREAS
+        # ========================================
+        cursor.execute("""
+            INSERT INTO ORCAMENTO_PASSAGENS_AEREAS 
+            (ID_OPA, ID_CONTROLE, EXERCICIO, UO, UNIDADE, FONTE, ID_PROGRAMA, ID_AO, 
+             SUBACAO, OBJETIVO, ELEMENTO_DESPESA, ID_SUBITEM, 
+             VL_APROVADO, NU_EMPENHO, USUARIO, DT_LANCAMENTO, ATIVO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), 'S')
+        """, (
+            id_opa,
+            id_controle,
+            exercicio,  # ✅ Usando o EXERCICIO do contrato
+            data.get('uo'),
+            unidade,
+            fonte,
+            data.get('id_programa'),
+            data.get('id_ao'),
+            data.get('subacao'),
+            data.get('objetivo'),
+            data.get('elemento_despesa', '33.90.33'),
+            data.get('id_subitem'),
+            vl_aprovado,
+            nu_empenho,
+            usuario
+        ))
+        
+        print(f"✅ INSERT realizado na ORCAMENTO_PASSAGENS_AEREAS - ID_OPA: {id_opa}, EXERCICIO: {exercicio}")
+        
+        # =========================================
+        # OBTER PRÓXIMO IDITEM_OPA
+        # =========================================
+        cursor.execute("""
+            SELECT COALESCE(MAX(IDITEM_OPA), 0) + 1 
+            FROM ORCAMENTO_PASSAGENS_ITEM
+        """)
+        proximo_iditem = cursor.fetchone()[0]
+        
+        print(f"📊 Próximo IDITEM_OPA: {proximo_iditem}")
+        
+        # =========================================
+        # INSERT na ORCAMENTO_PASSAGENS_ITEM
+        # =========================================
+        cursor.execute("""
+            INSERT INTO ORCAMENTO_PASSAGENS_ITEM
+            (IDITEM_OPA, ID_OPA, IDTIPO_ITEM, FLTIPO, VL_ITEM, NU_EMPENHO, 
+             OBS, USUARIO, DT_LANCAMENTO, ATIVO)
+            VALUES (%s, %s, 1, 'E', 0.00, NULL, 'Registro inicial', %s, NOW(), 'S')
+        """, (
+            proximo_iditem,
+            id_opa,
+            usuario
+        ))
+        
+        print(f"✅ INSERT realizado na ORCAMENTO_PASSAGENS_ITEM - IDITEM_OPA: {proximo_iditem}")
+        
+        # Commit das transações
+        mysql.connection.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Orçamento criado com sucesso',
+            'id_opa': id_opa
+        })
         
     except Exception as e:
         if mysql.connection:
             mysql.connection.rollback()
-        print(f"❌ Erro ao salvar orçamento: {str(e)}")
+        print(f"❌ Erro ao criar orçamento: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -8529,6 +8485,7 @@ def criar_orcamento_passagem():
     finally:
         if cursor:
             cursor.close()
+			
 
 @app.route('/api/orcamento/passagens/<int:id_opa>', methods=['PUT'])
 @login_required
@@ -11467,6 +11424,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
