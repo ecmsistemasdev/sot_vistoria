@@ -1203,7 +1203,7 @@
         
         function aplicarFiltros() {
             const tbody = document.querySelector('#tabelaOrcamentos tbody');
-            const linhas = tbody.querySelectorAll('tr');
+            const linhas = tbody.querySelectorAll('tr.linha-orcamento'); // ✅ Apenas linhas de orçamento, não a linha de totais
             
             const filtroUO = document.getElementById('filtroUO').value.toLowerCase();
             const filtroUnidade = document.getElementById('filtroUnidade').value.toLowerCase();
@@ -1216,11 +1216,25 @@
                 const colunas = linha.querySelectorAll('td');
                 if (colunas.length === 0) return; // Pular linha vazia
                 
-                const uo = colunas[0].textContent.toLowerCase();
-                const unidade = colunas[1].textContent.toLowerCase();
+                // ✅ CORRIGIDO: Ajustar índices por causa da coluna de expansão
+                // Coluna 0: Expansão (▶)
+                // Coluna 1: UO
+                // Coluna 2: Unidade
+                // Coluna 3: Programa
+                // Coluna 4: Ação
+                // Coluna 5: Subitem
+                // Coluna 6: Valor Aprovado
+                // Coluna 7: Valor Atual
+                // Coluna 8: Valor Utilizado
+                // Coluna 9: Saldo
+                // Coluna 10: Empenho
+                // Coluna 11: Ações
+                
+                const uo = colunas[1].textContent.toLowerCase();
+                const unidade = colunas[2].textContent.toLowerCase();
                 const programa = colunas[3].textContent.toLowerCase();
                 const acao = colunas[4].textContent.toLowerCase();
-                const subitem = colunas[6].textContent.toLowerCase();
+                const subitem = colunas[5].textContent.toLowerCase();
                 const empenho = colunas[10].textContent.toLowerCase();
                 
                 const mostrar = 
