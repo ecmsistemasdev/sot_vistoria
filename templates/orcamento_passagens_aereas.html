@@ -6,13 +6,8 @@
     <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
     <title>Gerenciamento de Passagens Aéreas</title>
     
-    <!-- ✅ Bootstrap CSS (APENAS UMA VEZ) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- ✅ CSS do Menu (se você tiver um arquivo separado) -->
     <link rel="stylesheet" href="/static/css/menu-styles.css">
-    
-    <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
@@ -31,10 +26,6 @@
             min-height: 100vh;
         }
 
-        /* ========================================= */
-        /* ESTILOS DO MENU - FORÇAR ALTURA CORRETA */
-        /* ========================================= */
-
         .navbar-nav {
             height: 100% !important;
             align-items: center !important;
@@ -49,8 +40,6 @@
         .navbar-collapse {
             height: auto !important;
         }
-
-        /* FIM ESTILOS DO MENU - FORÇAR ALTURA CORRETA */
         
         .container {
             max-width: 1600px;
@@ -75,9 +64,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* ========================================= */
-        /* SEÇÃO DE SELEÇÃO DE CONTRATO */
-        /* ========================================= */
+        /* Seção de seleção de contrato */
         .selection-section {
             background-color: white;
             padding: 15px;
@@ -119,9 +106,6 @@
             font-weight: 500;
         }
 
-        /* ========================================= */
-        /* GROUPBOX PARA TABELA DE CONTRATOS */
-        /* ========================================= */
         .groupbox {
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -178,7 +162,6 @@
             margin-bottom: 5px;
         }
 
-        /* Ajuste de altura dos inputs nos formulários de orçamento */
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -193,12 +176,7 @@
         .form-group textarea {
             height: auto;
             min-height: 50px;
-        }
-
-        .form-group select {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            resize: vertical;
         }
 
         .form-group input:focus,
@@ -206,11 +184,6 @@
         .form-group textarea:focus {
             outline: none;
             border-color: #3498db;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 60px;
         }
 
         .form-group input[readonly] {
@@ -266,7 +239,6 @@
             background-color: #e67e22;
         }
 
-        /* Botões de ação na tabela de contratos */
         .btn-action {
             padding: 4px 8px;
             margin: 0 2px;
@@ -277,10 +249,6 @@
             transition: all 0.2s;
         }
 
-        .btn-action i {
-            pointer-events: none;
-        }
-
         .btn-select {
             background-color: #0d6efd;
             color: white;
@@ -288,15 +256,6 @@
 
         .btn-select:hover {
             background-color: #0b5ed7;
-        }
-
-        .btn-close-selection {
-            background-color: #dc3545;
-            color: white;
-        }
-
-        .btn-close-selection:hover {
-            background-color: #bb2d3b;
         }
 
         .table-section {
@@ -340,25 +299,6 @@
         table tbody tr:hover {
             background-color: #d5dbdb;
             cursor: pointer;
-        }
-
-        .alert {
-            padding: 12px 20px;
-            margin-bottom: 15px;
-            border: 1px solid transparent;
-            border-radius: 4px;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
-        }
-
-        .alert-error {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
         }
 
         .modal {
@@ -437,56 +377,10 @@
             border-top: 1px solid #ddd;
         }
 
-        /* Estilos específicos para itens de passagem */
-        .item-passagem {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            background-color: #f9f9f9;
-        }
-
-        .item-passagem:hover {
-            background-color: #f0f0f0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .item-passagem-info {
-            flex: 1;
-        }
-
-        .item-passagem-tipo {
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .item-passagem-detalhes {
-            font-size: 11px;
-            color: #666;
-        }
-
-        .item-passagem-valor {
-            font-size: 16px;
-            font-weight: 700;
-            color: #27ae60;
-            margin: 0 15px;
-        }
-
-        .item-passagem-acoes {
-            display: flex;
-            gap: 5px;
-        }
-
-        /* Ocultar seção de orçamento inicialmente */
         #orcamentoSection {
             display: none;
         }
 
-        /* Scrollbar personalizada */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -508,9 +402,6 @@
     </style>
 </head>
 <body>
-    <!-- INCLUSÃO DO MENU -->
-    <!-- Seu menu aqui -->
-
     <div class="container">
         <div class="header">
             <h1>📋 Gerenciamento de Passagens Aéreas</h1>
@@ -518,9 +409,7 @@
 
         <div id="alertContainer"></div>
 
-        <!-- ========================================= -->
         <!-- SEÇÃO DE SELEÇÃO DE CONTRATO -->
-        <!-- ========================================= -->
         <div class="selection-section">
             <div class="groupbox">
                 <div class="groupbox-header">
@@ -535,7 +424,7 @@
                                 <th>Empresa</th>
                                 <th>Processo</th>
                                 <th style="width: 120px;">Contrato</th>
-                                <th style="width: 100px; text-align: center;">Ações</th>
+                                <th style="width: 80px; text-align: center;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tabelaContratos">
@@ -581,9 +470,7 @@
             </div>
         </div>
 
-        <!-- ========================================= -->
         <!-- SEÇÃO DE ORÇAMENTO (oculta até selecionar contrato) -->
-        <!-- ========================================= -->
         <div id="orcamentoSection">
             <div class="filter-section">
                 <div class="filter-group">
@@ -623,9 +510,7 @@
             </div>
         </div>
 
-        <!-- ========================================= -->
-        <!-- MODAL - CADASTRO/EDIÇÃO DE ORÇAMENTO -->
-        <!-- ========================================= -->
+        <!-- MODAL ORÇAMENTO -->
         <div id="modalOrcamento" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -675,15 +560,15 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="id_programa">Programa *</label>
-                                <select id="id_programa" name="id_programa" required onchange="carregarAcoes()">
+                                <select id="id_programa" name="id_programa" required>
                                     <option value="">Selecione...</option>
                                 </select>
                             </div>
 
                             <div class="form-group">
                                 <label for="id_ao">Ação Orçamentária *</label>
-                                <select id="id_ao" name="id_ao" required onchange="carregarSubacoes()">
-                                    <option value="">Selecione um programa primeiro...</option>
+                                <select id="id_ao" name="id_ao" required>
+                                    <option value="">Selecione...</option>
                                 </select>
                             </div>
                         </div>
@@ -735,98 +620,26 @@
                             <button type="submit" class="btn btn-success">
                                 💾 Salvar
                             </button>
-                            <button type="button" class="btn btn-primary" onclick="abrirModalItensPassagem()" 
-                                    style="display: none;" id="btnGerenciarItens">
-                                📦 Gerenciar Itens
-                            </button>
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- ========================================= -->
-        <!-- MODAL - GERENCIAMENTO DE ITENS -->
-        <!-- ========================================= -->
-        <div id="modalItensPassagem" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>📦 Gerenciamento de Itens de Passagem</h2>
-                    <button type="button" class="close" onclick="fecharModalItensPassagem()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <h3 style="margin-bottom: 15px; font-size: 14px; color: #555;">Adicionar Novo Item</h3>
-                    <form onsubmit="adicionarItemPassagem(); return false;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="tipoItemPassagem">Tipo de Item *</label>
-                                <select id="tipoItemPassagem" name="tipoItemPassagem" required>
-                                    <option value="">Selecione...</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="vlItem">Valor *</label>
-                                <input type="number" step="0.01" id="vlItem" name="vlItem" required>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="nuEmpenhoItem">Nº Empenho</label>
-                                <input type="text" id="nuEmpenhoItem" name="nuEmpenhoItem" maxlength="12">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="obsItem">Observação</label>
-                                <input type="text" id="obsItem" name="obsItem" maxlength="200">
-                            </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-success">➕ Adicionar Item</button>
-                        </div>
-                    </form>
-
-                    <hr style="margin: 20px 0;">
-
-                    <h3 style="margin-bottom: 15px; font-size: 14px; color: #555;">Itens Cadastrados</h3>
-                    <div id="listaItensPassagem">
-                        <div style="text-align: center; padding: 20px; color: #666; font-style: italic;">
-                            Nenhum item cadastrado
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ✅ Bootstrap JS (APENAS UMA VEZ, NO FINAL) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // ==========================================
-        // VARIÁVEIS GLOBAIS
-        // ==========================================
-        let programas = [];
-        let acoes = [];
-        let subitens = [];
-        let tiposItemOPA = [];
-        let idOrcamentoAtual = null;
+        let dadosIniciais = null;
         let contratoSelecionado = null;
 
-        // ==========================================
-        // FUNÇÕES DE INICIALIZAÇÃO
-        // ==========================================
+        // Carregar dados iniciais
         async function carregarDadosIniciais() {
             await carregarContratos();
-            await carregarProgramas();
-            await carregarSubitens();
+            await carregarDadosOrcamento();
         }
 
-        // ==========================================
-        // GERENCIAMENTO DE CONTRATOS
-        // ==========================================
+        // Carregar lista de contratos
         async function carregarContratos() {
             try {
                 const response = await fetch('/api/contratos-passagens');
@@ -850,7 +663,7 @@
                             <td>${contrato.CONTRATO || '-'}</td>
                             <td style="text-align: center;">
                                 <button type="button" class="btn-action btn-select" 
-                                        onclick="selecionarContrato(${contrato.ID_CONTROLE}, '${contrato.EXERCICIO}', '${contrato.NM_FORNECEDOR || ''}', '${contrato.PROCESSO || ''}', '${contrato.CONTRATO || ''}')"
+                                        onclick='selecionarContrato(${JSON.stringify(contrato)})'
                                         title="Selecionar">
                                     <i class="fas fa-check"></i>
                                 </button>
@@ -868,21 +681,59 @@
             }
         }
 
-        function selecionarContrato(idControle, exercicio, empresa, processo, contrato) {
-            contratoSelecionado = {
-                id: idControle,
-                exercicio: exercicio,
-                empresa: empresa,
-                processo: processo,
-                contrato: contrato
-            };
+        // Carregar dados para formulário (programas, ações, subitens)
+        async function carregarDadosOrcamento() {
+            try {
+                const response = await fetch('/api/orcamento/dados_iniciais');
+                const data = await response.json();
+                
+                if (data.success) {
+                    dadosIniciais = data;
+                    
+                    // Preencher select de programas
+                    const selectPrograma = document.getElementById('id_programa');
+                    selectPrograma.innerHTML = '<option value="">Selecione...</option>';
+                    data.programas.forEach(prog => {
+                        const option = document.createElement('option');
+                        option.value = prog.id;
+                        option.textContent = prog.descricao;
+                        selectPrograma.appendChild(option);
+                    });
+
+                    // Preencher select de ações
+                    const selectAcao = document.getElementById('id_ao');
+                    selectAcao.innerHTML = '<option value="">Selecione...</option>';
+                    data.acoes.forEach(acao => {
+                        const option = document.createElement('option');
+                        option.value = acao.id;
+                        option.textContent = acao.descricao;
+                        selectAcao.appendChild(option);
+                    });
+
+                    // Preencher select de subitens
+                    const selectSubitem = document.getElementById('id_subitem');
+                    selectSubitem.innerHTML = '<option value="">Selecione...</option>';
+                    data.subitens.forEach(subitem => {
+                        const option = document.createElement('option');
+                        option.value = subitem.id;
+                        option.textContent = `${subitem.id} - ${subitem.descricao}`;
+                        selectSubitem.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados de orçamento:', error);
+            }
+        }
+
+        function selecionarContrato(contrato) {
+            contratoSelecionado = contrato;
 
             // Atualizar informações visuais
-            document.getElementById('infoIdControle').textContent = idControle;
-            document.getElementById('infoExercicio').textContent = exercicio;
-            document.getElementById('infoEmpresa').textContent = empresa;
-            document.getElementById('infoProcesso').textContent = processo;
-            document.getElementById('infoContrato').textContent = contrato;
+            document.getElementById('infoIdControle').textContent = contrato.ID_CONTROLE;
+            document.getElementById('infoExercicio').textContent = contrato.EXERCICIO;
+            document.getElementById('infoEmpresa').textContent = contrato.NM_FORNECEDOR || '-';
+            document.getElementById('infoProcesso').textContent = contrato.PROCESSO || '-';
+            document.getElementById('infoContrato').textContent = contrato.CONTRATO || '-';
 
             // Mostrar seção de informações do contrato
             document.getElementById('contratoSelecionadoInfo').style.display = 'block';
@@ -896,171 +747,106 @@
 
         function limparSelecaoContrato() {
             contratoSelecionado = null;
-
-            // Ocultar seção de informações do contrato
             document.getElementById('contratoSelecionadoInfo').style.display = 'none';
-
-            // Ocultar seção de orçamento
             document.getElementById('orcamentoSection').style.display = 'none';
-
-            // Limpar tabela de orçamentos
             document.getElementById('tabelaOrcamentos').innerHTML = 
                 '<tr><td colspan="10" style="text-align: center; padding: 30px; color: #999;">Selecione um contrato para visualizar os orçamentos</td></tr>';
         }
 
-        // ==========================================
-        // CARREGAMENTO DE DADOS AUXILIARES
-        // ==========================================
-        async function carregarProgramas() {
-            try {
-                const response = await fetch('/api/programas');
-                const data = await response.json();
-                
-                if (data.success) {
-                    programas = data.programas;
-                    
-                    const select = document.getElementById('id_programa');
-                    select.innerHTML = '<option value="">Selecione...</option>';
-                    
-                    data.programas.forEach(programa => {
-                        const option = document.createElement('option');
-                        option.value = programa.ID_PROGRAMA;
-                        option.textContent = `${programa.NU_PROGRAMA} - ${programa.NM_PROGRAMA}`;
-                        select.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Erro ao carregar programas:', error);
-            }
-        }
-
-        async function carregarAcoes() {
-            const idPrograma = document.getElementById('id_programa').value;
-            const selectAcao = document.getElementById('id_ao');
-            
-            selectAcao.innerHTML = '<option value="">Carregando...</option>';
-            
-            if (!idPrograma) {
-                selectAcao.innerHTML = '<option value="">Selecione um programa primeiro...</option>';
+        async function carregarRegistros() {
+            if (!contratoSelecionado) {
                 return;
             }
-            
+
             try {
-                const response = await fetch(`/api/acoes/${idPrograma}`);
+                // Carregar orçamentos filtrados por ID_CONTROLE e EXERCICIO
+                const response = await fetch(`/api/orcamento/passagens/listar?id_controle=${contratoSelecionado.ID_CONTROLE}&exercicio=${contratoSelecionado.EXERCICIO}`);
                 const data = await response.json();
-                
-                if (data.success) {
-                    acoes = data.acoes;
-                    
-                    selectAcao.innerHTML = '<option value="">Selecione...</option>';
-                    
-                    data.acoes.forEach(acao => {
-                        const option = document.createElement('option');
-                        option.value = acao.ID_AO;
-                        option.textContent = `${acao.NU_AO} - ${acao.NM_AO}`;
-                        selectAcao.appendChild(option);
-                    });
+
+                const tbody = document.getElementById('tabelaOrcamentos');
+
+                if (!data.success || data.registros.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #999;">Nenhum orçamento encontrado para este contrato</td></tr>';
+                    return;
                 }
+
+                let html = '';
+                data.registros.forEach(orc => {
+                    html += `
+                        <tr onclick="editarOrcamento(${orc.id_opa})">
+                            <td>${orc.id_opa}</td>
+                            <td>${orc.uo || '-'}</td>
+                            <td>${orc.unidade || '-'}</td>
+                            <td>${orc.fonte || '-'}</td>
+                            <td>${orc.programa || '-'}</td>
+                            <td>${orc.acao || '-'}</td>
+                            <td>${orc.subacao || '-'}</td>
+                            <td>R$ ${orc.vl_aprovado ? parseFloat(orc.vl_aprovado).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '0,00'}</td>
+                            <td>${orc.nu_empenho || '-'}</td>
+                            <td>
+                                <button type="button" class="btn-edit" onclick="event.stopPropagation(); editarOrcamento(${orc.id_opa})">
+                                    ✏️
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+
             } catch (error) {
-                console.error('Erro ao carregar ações:', error);
-                selectAcao.innerHTML = '<option value="">Erro ao carregar</option>';
+                console.error('Erro ao carregar registros:', error);
+                document.getElementById('tabelaOrcamentos').innerHTML = 
+                    '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #e74c3c;">Erro ao carregar registros</td></tr>';
             }
         }
 
-        async function carregarSubacoes() {
-            const idAo = document.getElementById('id_ao').value;
-            
-            if (!idAo) return;
-            
-            const acao = acoes.find(a => a.ID_AO == idAo);
-            if (acao && acao.SUBACAO) {
-                document.getElementById('subacao').value = acao.SUBACAO;
-            }
-        }
-
-        async function carregarSubitens() {
-            try {
-                const response = await fetch('/api/subitens');
-                const data = await response.json();
-                
-                if (data.success) {
-                    subitens = data.subitens;
-                    
-                    const select = document.getElementById('id_subitem');
-                    select.innerHTML = '<option value="">Selecione...</option>';
-                    
-                    data.subitens.forEach(subitem => {
-                        const option = document.createElement('option');
-                        option.value = subitem.ID_SUBITEM;
-                        option.textContent = `${subitem.CD_SUBITEM} - ${subitem.DS_SUBITEM}`;
-                        select.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Erro ao carregar subitens:', error);
-            }
-        }
-
-        // ==========================================
-        // MODAL DE ORÇAMENTO
-        // ==========================================
-        async function abrirModalOrcamento(id = null) {
+        function abrirModalOrcamento() {
             if (!contratoSelecionado) {
                 alert('Selecione um contrato primeiro!');
                 return;
             }
 
-            const modal = document.getElementById('modalOrcamento');
-            const form = document.getElementById('formOrcamento');
-            const btnGerenciarItens = document.getElementById('btnGerenciarItens');
+            document.getElementById('tituloModal').textContent = '📝 Novo Orçamento de Passagens';
+            limparFormulario();
+            
+            // Preencher campos do contrato selecionado
+            document.getElementById('id_controle').value = contratoSelecionado.ID_CONTROLE;
+            document.getElementById('exercicio').value = contratoSelecionado.EXERCICIO;
 
-            if (id) {
-                // Modo edição
-                document.getElementById('tituloModal').textContent = '✏️ Editar Orçamento de Passagens';
-                btnGerenciarItens.style.display = 'inline-block';
+            document.getElementById('modalOrcamento').style.display = 'block';
+        }
+
+        async function editarOrcamento(id_opa) {
+            try {
+                const response = await fetch(`/api/orcamento/passagens/${id_opa}`);
+                const data = await response.json();
                 
-                try {
-                    const response = await fetch(`/api/orcamento/passagens/${id}`);
-                    const data = await response.json();
+                if (data.success) {
+                    const orc = data.registro;
                     
-                    if (data.success) {
-                        const orcamento = data.orcamento;
-                        
-                        document.getElementById('id_opa').value = orcamento.ID_OPA;
-                        document.getElementById('id_controle').value = orcamento.ID_CONTROLE;
-                        document.getElementById('exercicio').value = orcamento.EXERCICIO;
-                        document.getElementById('uo').value = orcamento.UO || '';
-                        document.getElementById('unidade').value = orcamento.UNIDADE || '';
-                        document.getElementById('fonte').value = orcamento.FONTE || '';
-                        document.getElementById('id_programa').value = orcamento.ID_PROGRAMA || '';
-                        
-                        await carregarAcoes();
-                        document.getElementById('id_ao').value = orcamento.ID_AO || '';
-                        
-                        document.getElementById('subacao').value = orcamento.SUBACAO || '';
-                        document.getElementById('objetivo').value = orcamento.OBJETIVO || '';
-                        document.getElementById('elemento_despesa').value = orcamento.ELEMENTO_DESPESA || '33.90.33';
-                        document.getElementById('id_subitem').value = orcamento.ID_SUBITEM || '';
-                        document.getElementById('vl_aprovado').value = orcamento.VL_APROVADO || '';
-                        document.getElementById('nu_empenho').value = orcamento.NU_EMPENHO || '';
-                    }
-                } catch (error) {
-                    console.error('Erro ao carregar orçamento:', error);
-                    alert('Erro ao carregar orçamento para edição');
-                    return;
+                    document.getElementById('tituloModal').textContent = '✏️ Editar Orçamento de Passagens';
+                    document.getElementById('id_opa').value = orc.id_opa;
+                    document.getElementById('id_controle').value = contratoSelecionado.ID_CONTROLE;
+                    document.getElementById('exercicio').value = orc.exercicio;
+                    document.getElementById('uo').value = orc.uo || '';
+                    document.getElementById('unidade').value = orc.unidade || '';
+                    document.getElementById('fonte').value = orc.fonte || '';
+                    document.getElementById('id_programa').value = orc.id_programa || '';
+                    document.getElementById('id_ao').value = orc.id_ao || '';
+                    document.getElementById('subacao').value = orc.subacao || '';
+                    document.getElementById('objetivo').value = orc.objetivo || '';
+                    document.getElementById('elemento_despesa').value = orc.elemento_despesa || '33.90.33';
+                    document.getElementById('id_subitem').value = orc.id_subitem || '';
+                    document.getElementById('vl_aprovado').value = orc.vl_aprovado || '';
+                    document.getElementById('nu_empenho').value = orc.nu_empenho || '';
+                    
+                    document.getElementById('modalOrcamento').style.display = 'block';
                 }
-            } else {
-                // Modo criação
-                document.getElementById('tituloModal').textContent = '📝 Novo Orçamento de Passagens';
-                btnGerenciarItens.style.display = 'none';
-                limparFormulario();
-                
-                // Preencher campos do contrato selecionado
-                document.getElementById('id_controle').value = contratoSelecionado.id;
-                document.getElementById('exercicio').value = contratoSelecionado.exercicio;
+            } catch (error) {
+                console.error('Erro ao carregar orçamento:', error);
+                alert('Erro ao carregar orçamento para edição');
             }
-
-            modal.style.display = 'block';
         }
 
         function fecharModalOrcamento() {
@@ -1115,253 +901,9 @@
             }
         }
 
-        async function carregarRegistros() {
-            if (!contratoSelecionado) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/orcamentos-passagens/contrato/${contratoSelecionado.id}`);
-                const data = await response.json();
-
-                const tbody = document.getElementById('tabelaOrcamentos');
-
-                if (!data.success || data.orcamentos.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #999;">Nenhum orçamento encontrado para este contrato</td></tr>';
-                    return;
-                }
-
-                let html = '';
-                data.orcamentos.forEach(orc => {
-                    const programa = programas.find(p => p.ID_PROGRAMA == orc.ID_PROGRAMA);
-                    const acao = acoes.find(a => a.ID_AO == orc.ID_AO);
-                    const subitem = subitens.find(s => s.ID_SUBITEM == orc.ID_SUBITEM);
-
-                    html += `
-                        <tr onclick="abrirModalOrcamento(${orc.ID_OPA})">
-                            <td>${orc.ID_OPA}</td>
-                            <td>${orc.UO || '-'}</td>
-                            <td>${orc.UNIDADE || '-'}</td>
-                            <td>${orc.FONTE || '-'}</td>
-                            <td>${programa ? programa.NM_PROGRAMA : '-'}</td>
-                            <td>${acao ? acao.NM_AO : '-'}</td>
-                            <td>${orc.SUBACAO || '-'}</td>
-                            <td>R$ ${orc.VL_APROVADO ? parseFloat(orc.VL_APROVADO).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '0,00'}</td>
-                            <td>${orc.NU_EMPENHO || '-'}</td>
-                            <td>
-                                <button type="button" class="btn-edit" onclick="event.stopPropagation(); abrirModalOrcamento(${orc.ID_OPA})">
-                                    ✏️
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                tbody.innerHTML = html;
-
-            } catch (error) {
-                console.error('Erro ao carregar registros:', error);
-                const tbody = document.getElementById('tabelaOrcamentos');
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #e74c3c;">Erro ao carregar registros: ' + error.message + '</td></tr>';
-            }
-        }
-
         function limparFormulario() {
             document.getElementById('formOrcamento').reset();
             document.getElementById('elemento_despesa').value = '33.90.33';
-        }
-
-        // ==========================================
-        // GERENCIAMENTO DE ITENS DE PASSAGEM
-        // ==========================================
-
-        async function carregarTiposItemOPA() {
-            try {
-                const response = await fetch('/api/tipos-item-opa');
-                const data = await response.json();
-                
-                if (data.success) {
-                    tiposItemOPA = data.tipos;
-                    
-                    const select = document.getElementById('tipoItemPassagem');
-                    select.innerHTML = '<option value="">Selecione...</option>';
-                    
-                    data.tipos.forEach(tipo => {
-                        const option = document.createElement('option');
-                        option.value = tipo.IDTIPO_ITEM;
-                        option.textContent = tipo.DESCRICAO;
-                        option.dataset.fltipo = tipo.FLTIPO;
-                        select.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Erro ao carregar tipos de item:', error);
-                alert('Erro ao carregar tipos de item');
-            }
-        }
-
-        async function abrirModalItensPassagem() {
-            // Obter o ID do orçamento atual
-            idOrcamentoAtual = document.getElementById('id_opa').value;
-            
-            if (!idOrcamentoAtual) {
-                alert('Salve o orçamento antes de gerenciar itens');
-                return;
-            }
-            
-            // Carregar tipos de item
-            await carregarTiposItemOPA();
-            
-            // Carregar itens existentes
-            await carregarItensPassagem();
-            
-            // Abrir modal
-            document.getElementById('modalItensPassagem').style.display = 'block';
-        }
-
-        function fecharModalItensPassagem() {
-            document.getElementById('modalItensPassagem').style.display = 'none';
-            limparFormularioItemPassagem();
-        }
-
-        function limparFormularioItemPassagem() {
-            document.getElementById('tipoItemPassagem').value = '';
-            document.getElementById('vlItem').value = '';
-            document.getElementById('nuEmpenhoItem').value = '';
-            document.getElementById('obsItem').value = '';
-        }
-
-        async function carregarItensPassagem() {
-            try {
-                const response = await fetch(`/api/orcamento-passagens-itens/${idOrcamentoAtual}`);
-                const data = await response.json();
-                
-                const container = document.getElementById('listaItensPassagem');
-                
-                if (!data.success || data.itens.length === 0) {
-                    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666; font-style: italic;">Nenhum item cadastrado</div>';
-                    return;
-                }
-                
-                let html = '';
-                data.itens.forEach(item => {
-                    const tipoLabel = item.FLTIPO === 'E' ? '📥 Entrada' : '📤 Saída';
-                    const tipoColor = item.FLTIPO === 'E' ? '#28a745' : '#dc3545';
-                    
-                    html += `
-                        <div class="item-passagem">
-                            <div class="item-passagem-info">
-                                <div class="item-passagem-tipo">
-                                    ${item.DESCRICAO_TIPO}
-                                    <span style="background: ${tipoColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 10px; margin-left: 8px;">
-                                        ${tipoLabel}
-                                    </span>
-                                </div>
-                                <div class="item-passagem-detalhes">
-                                    ${item.NU_EMPENHO ? 'Empenho: ' + item.NU_EMPENHO : 'Sem empenho'}
-                                    ${item.OBS ? ' | Obs: ' + item.OBS : ''}
-                                </div>
-                                <div style="font-size: 11px; color: #999; margin-top: 3px;">
-                                    Lançado por ${item.USUARIO} em ${formatarDataHora(item.DT_LANCAMENTO)}
-                                </div>
-                            </div>
-                            <div class="item-passagem-valor">
-                                R$ ${parseFloat(item.VL_ITEM).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                            </div>
-                            <div class="item-passagem-acoes">
-                                <button type="button" class="btn btn-danger" onclick="excluirItemPassagem(${item.IDITEM_OPA})" 
-                                        style="padding: 6px 12px; font-size: 12px;">
-                                    🗑️
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                container.innerHTML = html;
-                
-            } catch (error) {
-                console.error('Erro ao carregar itens:', error);
-                document.getElementById('listaItensPassagem').innerHTML = 
-                    '<div style="color: #dc3545; padding: 10px;">Erro ao carregar itens</div>';
-            }
-        }
-
-        // Função auxiliar para formatar data/hora
-        function formatarDataHora(dataHora) {
-            if (!dataHora) return '';
-            const data = new Date(dataHora);
-            return data.toLocaleString('pt-BR');
-        }
-
-        async function adicionarItemPassagem() {
-            const idTipo = document.getElementById('tipoItemPassagem').value;
-            const vlItem = document.getElementById('vlItem').value;
-            
-            if (!idTipo || !vlItem) {
-                alert('Preencha os campos obrigatórios (Tipo e Valor)');
-                return;
-            }
-            
-            // Obter FLTIPO do select
-            const selectTipo = document.getElementById('tipoItemPassagem');
-            const fltipo = selectTipo.options[selectTipo.selectedIndex].dataset.fltipo;
-            
-            const dados = {
-                id_opa: idOrcamentoAtual,
-                idtipo_item: parseInt(idTipo),
-                fltipo: fltipo,
-                vl_item: parseFloat(vlItem),
-                nu_empenho: document.getElementById('nuEmpenhoItem').value || null,
-                obs: document.getElementById('obsItem').value || null
-            };
-            
-            try {
-                const response = await fetch('/api/orcamento-passagens-itens/adicionar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dados)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('Item adicionado com sucesso!');
-                    limparFormularioItemPassagem();
-                    await carregarItensPassagem();
-                } else {
-                    alert('Erro ao adicionar item: ' + result.error);
-                }
-                
-            } catch (error) {
-                console.error('Erro ao adicionar item:', error);
-                alert('Erro ao adicionar item');
-            }
-        }
-
-        async function excluirItemPassagem(idItem) {
-            if (!confirm('Deseja realmente excluir este item?')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/orcamento-passagens-itens/excluir/${idItem}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert('Item excluído com sucesso!');
-                    await carregarItensPassagem();
-                } else {
-                    alert('Erro ao excluir item: ' + result.error);
-                }
-                
-            } catch (error) {
-                console.error('Erro ao excluir item:', error);
-                alert('Erro ao excluir item');
-            }
         }
 
         // Carregar ao iniciar
