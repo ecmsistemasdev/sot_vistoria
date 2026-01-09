@@ -2816,7 +2816,7 @@ def rel_locacao_analitico():
         agrupar_mes = not (mes_ano and mes_ano != 'Todos')
         
         # Larguras de colunas padronizadas para ambos os modos
-        col_widths = [0.9*cm, 2.5*cm, 3.5*cm, 4.3*cm, 4.2*cm, 1.5*cm, 2.3*cm, 2.0*cm, 2.3*cm, 2.3*cm]
+        col_widths = [0.9*cm, 2.5*cm, 5*cm, 4.5*cm, 4.2*cm, 1.5*cm, 2.3*cm, 2.0*cm, 2.3*cm, 2.3*cm]
         
         if items:
             if agrupar_mes:
@@ -11504,6 +11504,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
