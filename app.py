@@ -7768,6 +7768,9 @@ def rel_passagens_emitidas():
                 # Reaplica grid nas 3 últimas colunas APENAS nas linhas de dados (não na total)
                 ('GRID', (14, 0), (16, -2), 0.5, colors.HexColor('#666666')),
                 
+                # Reaplica linha vertical entre Total R$ e Projeto APENAS nas linhas de dados
+                ('LINEAFTER', (13, 1), (13, -2), 0.5, colors.HexColor('#666666')),
+                
                 # Zebrado
                 ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.HexColor('#f9f9f9'), colors.white]),
             ])
@@ -11292,4 +11295,5 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
