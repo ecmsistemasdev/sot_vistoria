@@ -7747,6 +7747,9 @@ def rel_passagens_emitidas():
                 # Bordas normais em toda a tabela
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#666666')),  # Grid em TODAS as linhas
                 
+                # Zebrado
+                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.HexColor('#f9f9f9'), colors.white]),
+                
                 # Linha de total - AJUSTADO COM SPAN
                 ('SPAN', (0, -1), (8, -1)),  # Mescla células de OF até Localiz.
                 ('BACKGROUND', (0, -1), (13, -1), colors.HexColor('#d4edda')),  # Verde só até Total R$
@@ -7755,9 +7758,6 @@ def rel_passagens_emitidas():
                 ('ALIGN', (0, -1), (0, -1), 'RIGHT'),   # "VALOR TOTAL:" alinhado à direita
                 ('ALIGN', (9, -1), (13, -1), 'RIGHT'),  # Valores alinhados à direita
                 
-                # Remove linha vertical direita da coluna Total R$ na linha TOTAL
-                ('LINEAFTER', (13, -1), (13, -1), 0, colors.white),
-                
                 # 3 últimas colunas na linha TOTAL: fundo branco, SEM bordas
                 ('BACKGROUND', (14, -1), (16, -1), colors.white),
                 ('LINEABOVE', (14, -1), (16, -1), 0, colors.white),
@@ -7765,14 +7765,8 @@ def rel_passagens_emitidas():
                 ('LINEBEFORE', (14, -1), (16, -1), 0, colors.white),
                 ('LINEAFTER', (14, -1), (16, -1), 0, colors.white),
                 
-                # Reaplica grid nas 3 últimas colunas APENAS nas linhas de dados (não na total)
-                ('GRID', (14, 0), (16, -2), 0.5, colors.HexColor('#666666')),
-                
-                # Reaplica linha vertical entre Total R$ e Projeto APENAS nas linhas de dados
-                ('LINEAFTER', (13, 1), (13, -2), 0.5, colors.HexColor('#666666')),
-                
-                # Zebrado
-                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.HexColor('#f9f9f9'), colors.white]),
+                # Remove linha vertical direita da coluna Total R$ APENAS na linha TOTAL
+                ('LINEAFTER', (13, -1), (13, -1), 0, colors.white),
             ])
             
             table.setStyle(table_style)
@@ -11295,5 +11289,6 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
