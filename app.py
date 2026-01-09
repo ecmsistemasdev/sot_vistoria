@@ -20,6 +20,7 @@ import uuid
 import base64
 import re
 import unicodedata
+import time
 from io import BytesIO
 from datetime import datetime, timedelta, time
 from math import radians, cos, sin, asin, sqrt
@@ -43,6 +44,7 @@ from flask import (
     send_file, 
     session
 )
+from flask_caching import Cache
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 
@@ -68,6 +70,10 @@ import airportsdata
 # ============================================================
 app = Flask(__name__)
 
+# ============================================================
+# INICIALIZAR CACHE (DEPOIS DO APP)
+# ============================================================
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 
 # ============================================================
 # CONFIGURAÇÕES DO SISTEMA
@@ -5687,9 +5693,6 @@ def listar_semanas():
         if cursor:
             cursor.close()
 
-import time
-from functools import wraps
-
 # Decorator para medir tempo de queries
 def log_query_time(query_name):
     def decorator(func):
@@ -5704,6 +5707,7 @@ def log_query_time(query_name):
     return decorator
 
 @app.route('/api/agenda/dados', methods=['GET'])
+@cache.cached(timeout=30, query_string=True)
 @login_required
 def buscar_dados_agenda():
     tempo_total_inicio = time.time()
@@ -11497,6 +11501,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
