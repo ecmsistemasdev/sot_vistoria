@@ -7507,8 +7507,6 @@ def rel_diarias_terceirizados():
 ### fim das rotas da agenda #############################################
 
 
-# ADICIONAR ESTA ROTA NO app.py APÓS A ROTA rel_diarias_terceirizados
-
 @app.route('/rel_passagens_emitidas')
 @login_required
 def rel_passagens_emitidas():
@@ -7587,18 +7585,18 @@ def rel_passagens_emitidas():
                 return data
             return data.strftime('%d/%m/%Y')
         
-        # Criar PDF
+        # Criar PDF com margens mínimas
         pdf_buffer = BytesIO()
         doc = SimpleDocTemplate(pdf_buffer, pagesize=landscape(A4), 
-                               rightMargin=0.6*cm, leftMargin=0.6*cm,
-                               topMargin=0.8*cm, bottomMargin=0.8*cm)
+                               rightMargin=0.5*cm, leftMargin=0.5*cm,
+                               topMargin=0.5*cm, bottomMargin=0.5*cm)
         
         elements = []
         styles = getSampleStyleSheet()
         
         # Título
         title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
-                                     fontSize=16, textColor=colors.HexColor('#1a73e8'),
+                                     fontSize=14, textColor=colors.HexColor("#0c4999"),
                                      spaceAfter=5, alignment=TA_CENTER)
         subtitle_style = ParagraphStyle('CustomSubtitle', parent=styles['Normal'],
                                        fontSize=11, textColor=colors.grey,
@@ -7614,10 +7612,18 @@ def rel_passagens_emitidas():
                                           alignment=TA_CENTER, spaceAfter=30)
             elements.append(Paragraph('Nenhum registro encontrado para o período selecionado.', no_data_style))
         else:
-            # Cabeçalho da tabela
-            data = [['OF\nSEI', 'Nº SEI', 'Passageiro', 'Data\nEmissão', 'Rota\nOrigem', 
-                     'Rota\nDestino', 'Dt.\nEmbarque', 'CIA', 'Localizador', 'Tarifa', 
-                     'Taxa', 'Extra', 'Assento', 'Taxa\nEmb.', 'Total R$', 'Projeto', 
+            # Estilos para Paragraph nas células
+            cell_left_style = ParagraphStyle('CellLeft', parent=styles['Normal'],
+                                            fontSize=6.5, leading=8, alignment=TA_LEFT,
+                                            wordWrap='LTR', splitLongWords=True)
+            cell_center_style = ParagraphStyle('CellCenter', parent=styles['Normal'],
+                                              fontSize=6.5, leading=8, alignment=TA_CENTER,
+                                              wordWrap='LTR', splitLongWords=True)
+            
+            # Cabeçalho da tabela (17 colunas - REMOVIDA coluna "Taxa")
+            data = [['OF', 'Nº SEI', 'Passageiro', 'Data\nEmissão', 'Rota\nOrigem', 
+                     'Rota\nDestino', 'Data\nEmbarque', 'CIA', 'Localiz.', 'Tarifa', 
+                     'Extra', 'Assento', 'Taxa\nEmb.', 'Total R$', 'Projeto', 
                      'Gestor\nProjeto', 'Empenho']]
             
             # Totalizadores
@@ -7636,80 +7642,75 @@ def rel_passagens_emitidas():
                 total_taxa_emb += item[12] if item[12] else 0
                 total_geral += item[13] if item[13] else 0
                 
-                # Ordem das colunas conforme PDF:
-                # OF SEI, Nº SEI, Passageiro, Data Emissão, Rota Origem, Rota Destino, 
-                # Dt. Embarque, CIA, Localizador, Tarifa, Taxa, Extra, Assento, Taxa Emb., Total R$, 
+                # Ordem das colunas (17 colunas - SEM "Taxa"):
+                # OF, Nº SEI, Passageiro, Data Emissão, Rota Origem, Rota Destino, 
+                # Dt. Emb., CIA, Loc., Tarifa, Extra, Assento, Taxa Emb., Total R$, 
                 # Projeto, Gestor Projeto, Empenho
-                # 
-                # NOTA: Como temos apenas VL_TAXA_EXTRA na tabela, vamos dividir visualmente:
-                # - Coluna "Taxa" ficará vazia (R$ 0,00)
-                # - Coluna "Extra" receberá VL_TAXA_EXTRA
-                # - Coluna "Assento" receberá VL_ASSENTO
                 
-                # Tratar valores que podem ser None antes de usar
-                passageiro_texto = str(item[2])[:25] if item[2] is not None else '-'
-                projeto_texto = str(item[14])[:35] if item[14] is not None else '-'
-                origem_texto = str(item[4])[:13] if item[4] is not None else '-'
-                destino_texto = str(item[5])[:13] if item[5] is not None else '-'
-                gestor_texto = str(item[15])[:8] if item[15] is not None else '-'
+                # Tratar valores que podem ser None e criar Paragraphs para células que precisam quebrar
+                passageiro_texto = str(item[2]) if item[2] is not None else '-'
+                projeto_texto = str(item[14]) if item[14] is not None else '-'
+                
+                # Criar Paragraphs para permitir quebra de linha
+                passageiro_para = Paragraph(passageiro_texto, cell_left_style)
+                projeto_para = Paragraph(projeto_texto, cell_left_style)
                 
                 data.append([
-                    str(item[0]) if item[0] else '-',           # OF SEI
+                    str(item[0]) if item[0] else '-',           # OF
                     str(item[1]) if item[1] else '-',           # Nº SEI  
-                    passageiro_texto,                            # Passageiro (limitado)
+                    passageiro_para,                             # Passageiro (com quebra)
                     formatar_data(item[3]),                      # Data Emissão
-                    origem_texto,                                # Rota Origem (limitado)
-                    destino_texto,                               # Rota Destino (limitado)
-                    formatar_data(item[6]),                      # Dt. Embarque
+                    str(item[4]) if item[4] else '-',           # Rota Origem
+                    str(item[5]) if item[5] else '-',           # Rota Destino
+                    formatar_data(item[6]),                      # Dt. Emb.
                     str(item[7]) if item[7] else '-',           # CIA
-                    str(item[8]) if item[8] else '-',           # Localizador
+                    str(item[8]) if item[8] else '-',           # Loc.
                     formatar_moeda_br(item[9]),                  # Tarifa
-                    formatar_moeda_br(0),                        # Taxa (sempre R$ 0,00 - não existe na tabela)
                     formatar_moeda_br(item[10]),                 # Extra (VL_TAXA_EXTRA)
                     formatar_moeda_br(item[11]),                 # Assento (VL_ASSENTO)
                     formatar_moeda_br(item[12]),                 # Taxa Emb. (VL_TAXA_EMBARQUE)
                     formatar_moeda_br(item[13]),                 # Total R$ (VL_TOTAL)
-                    projeto_texto,                               # Projeto (limitado)
-                    gestor_texto,                                # Gestor Projeto (UNIDADE, limitado)
-                    str(item[16]) if item[16] else '-'          # Empenho (NU_EMPENHO)
+                    projeto_para,                                # Projeto (com quebra)
+                    str(item[15])[:6] if item[15] else '-',     # Gestor Projeto
+                    str(item[16]) if item[16] else '-'          # Empenho
                 ])
             
-            # Linha de total
+            # Linha de total (17 colunas)
+            # Mescla da coluna 0 até 8 (OF até Localiz.) = 9 colunas
+            # Colunas 9-13: valores (Tarifa, Extra, Assento, Taxa Emb., Total)
+            # Colunas 14-16: vazias SEM formatação (Projeto, Gestor, Empenho)
             data.append([
-                'VALOR TOTAL:', '', '', '', '', '', '', '', '',
-                formatar_moeda_br(total_tarifa),
-                formatar_moeda_br(0),  # Taxa (sempre R$ 0,00)
-                formatar_moeda_br(total_taxa_extra),
-                formatar_moeda_br(total_assento),
-                formatar_moeda_br(total_taxa_emb),
-                formatar_moeda_br(total_geral),
-                '', '', ''
+                'VALOR TOTAL:', '', '', '', '', '', '', '', '',  # 9 células (OF até Localiz.)
+                formatar_moeda_br(total_tarifa),                 # Tarifa
+                formatar_moeda_br(total_taxa_extra),             # Extra
+                formatar_moeda_br(total_assento),                # Assento
+                formatar_moeda_br(total_taxa_emb),               # Taxa Emb.
+                formatar_moeda_br(total_geral),                  # Total
+                '', '', ''                                       # 3 células vazias (sem estilo)
             ])
             
-            # Criar tabela com larguras específicas (em cm) - AJUSTADO para 18 colunas
-            # Total disponível: ~27cm (A4 landscape - margens)
+            # Criar tabela com larguras em cm (17 colunas - SEM "Taxa")
             col_widths = [
-                0.7,   # OF SEI
-                1.2,   # Nº SEI
-                2.3,   # Passageiro
-                0.95,  # Data Emissão
-                1.6,   # Rota Origem
-                1.6,   # Rota Destino
-                0.95,  # Dt. Embarque
-                0.65,  # CIA
-                1.1,   # Localizador
-                1.0,   # Tarifa
-                0.8,   # Taxa
-                0.8,   # Extra
-                0.8,   # Assento
-                0.8,   # Taxa Emb.
-                1.0,   # Total R$
-                2.5,   # Projeto
-                0.8,   # Gestor Projeto
-                1.3    # Empenho
-            ]
+                0.5*cm,   # OF 
+                3.0*cm,   # Nº SEI 
+                2.5*cm,   # Passageiro 
+                1.3*cm,   # Data Emissão
+                2.2*cm,   # Rota Origem 
+                2.2*cm,   # Rota Destino 
+                1.3*cm,   # Dt. Emb.
+                1.0*cm,   # CIA 
+                1.3*cm,   # Loc.
+                1.7*cm,   # Tarifa
+                1.3*cm,   # Extra
+                1.3*cm,   # Assento
+                1.3*cm,   # Taxa Emb.
+                1.7*cm,   # Total R$ 
+                3.2*cm,   # Projeto 
+                1.0*cm,   # Gestor Projeto
+                1.8*cm    # Empenho 
+            ]  
             
-            table = Table(data, colWidths=col_widths)
+            table = Table(data, colWidths=col_widths, repeatRows=1)
             
             # Estilo da tabela
             table_style = TableStyle([
@@ -7718,34 +7719,53 @@ def rel_passagens_emitidas():
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('FONTSIZE', (0, 0), (-1, 0), 6.8),
                 ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
                 
                 # Corpo da tabela
                 ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
                 ('FONTSIZE', (0, 1), (-1, -2), 6.5),
-                ('ALIGN', (0, 1), (0, -2), 'CENTER'),  # OF SEI
+                ('VALIGN', (0, 1), (-1, -2), 'TOP'),
+                ('ALIGN', (0, 1), (0, -2), 'CENTER'),  # OF
                 ('ALIGN', (1, 1), (1, -2), 'CENTER'),  # Nº SEI
                 ('ALIGN', (3, 1), (3, -2), 'CENTER'),  # Data Emissão
                 ('ALIGN', (4, 1), (4, -2), 'CENTER'),  # Rota Origem
                 ('ALIGN', (5, 1), (5, -2), 'CENTER'),  # Rota Destino
                 ('ALIGN', (6, 1), (6, -2), 'CENTER'),  # Dt. Embarque
                 ('ALIGN', (7, 1), (7, -2), 'CENTER'),  # CIA
-                ('ALIGN', (8, 1), (8, -2), 'CENTER'),  # Localizador
-                ('ALIGN', (9, 1), (14, -2), 'RIGHT'),  # Todos os valores (Tarifa até Total)
-                ('ALIGN', (16, 1), (16, -2), 'CENTER'),  # Gestor Projeto
-                ('ALIGN', (17, 1), (17, -2), 'CENTER'),  # Empenho
+                ('ALIGN', (8, 1), (8, -2), 'CENTER'),  # Loc.
+                ('ALIGN', (9, 1), (13, -2), 'RIGHT'),  # Todos os valores (Tarifa até Total)
+                ('ALIGN', (15, 1), (15, -2), 'CENTER'),  # Gestor Projeto
+                ('ALIGN', (16, 1), (16, -2), 'CENTER'),  # Empenho
                 
-                # Linha de total
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#d4edda')),
-                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, -1), (-1, -1), 8),
-                ('ALIGN', (0, -1), (8, -1), 'RIGHT'),
-                ('ALIGN', (9, -1), (14, -1), 'RIGHT'),
+                # Padding um pouco maior para legibilidade
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                 
-                # Bordas
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#666666')),
-                ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#1a73e8')),
+                # Bordas - APLICAR ANTES DOS AJUSTES DA LINHA TOTAL
+                ('GRID', (0, 0), (-1, -2), 0.5, colors.HexColor('#666666')),  # Grid apenas até penúltima linha
+                ('GRID', (0, -1), (13, -1), 0.5, colors.HexColor('#666666')),  # Grid na linha total só até coluna 13
+                
+                # Linha de total - AJUSTADO COM SPAN (SEM linha azul)
+                ('SPAN', (0, -1), (8, -1)),  # Mescla células de OF até Localiz.
+                ('BACKGROUND', (0, -1), (13, -1), colors.HexColor('#d4edda')),  # Verde só até Total R$
+                ('FONTNAME', (0, -1), (13, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -1), (13, -1), 7),
+                ('ALIGN', (0, -1), (0, -1), 'RIGHT'),   # "VALOR TOTAL:" alinhado à direita
+                ('ALIGN', (9, -1), (13, -1), 'RIGHT'),  # Valores alinhados à direita
+                
+                # 3 últimas colunas: fundo branco, SEM grades internas, mas com bordas externas na mesma cor
+                ('BACKGROUND', (14, -1), (16, -1), colors.white),
+                # Bordas superior e inferior com mesma cor da tabela
+                ('LINEABOVE', (14, -1), (16, -1), 0.5, colors.HexColor('#666666')),
+                ('LINEBELOW', (14, -1), (16, -1), 0.5, colors.HexColor('#666666')),
+                # Borda direita da última coluna com mesma cor
+                ('LINEAFTER', (16, -1), (16, -1), 0.5, colors.HexColor('#666666')),
+                # Remove grades verticais internas entre as 3 últimas
+                ('LINEBEFORE', (14, -1), (16, -1), 0, colors.white),
+                ('LINEAFTER', (14, -1), (15, -1), 0, colors.white),
                 
                 # Zebrado
                 ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.HexColor('#f9f9f9'), colors.white]),
@@ -7776,6 +7796,7 @@ def rel_passagens_emitidas():
         import traceback
         traceback.print_exc()
         return f"Erro ao gerar relatório: {str(e)}", 500
+    
 
 ######################### fim relatorio de passagem ##################
 
@@ -11270,14 +11291,3 @@ def enviar_email_fornecedor_v2():
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 	
-
-
-
-
-
-
-
-
-
-
-
