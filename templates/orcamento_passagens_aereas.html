@@ -12,6 +12,9 @@
     <!-- ✅ CSS do Menu (se você tiver um arquivo separado) -->
     <link rel="stylesheet" href="/static/css/menu-styles.css">
     
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
     <style>
         * {
             margin: 0;
@@ -31,7 +34,6 @@
         /* ========================================= */
         /* ESTILOS DO MENU - FORÇAR ALTURA CORRETA */
         /* ========================================= */
-
 
         .navbar-nav {
             height: 100% !important;
@@ -73,6 +75,79 @@
             letter-spacing: 0.5px;
         }
 
+        /* ========================================= */
+        /* SEÇÃO DE SELEÇÃO DE CONTRATO */
+        /* ========================================= */
+        .selection-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .contract-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .contract-details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .contract-detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .contract-detail-item label {
+            font-size: 11px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .contract-detail-item span {
+            font-size: 13px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* ========================================= */
+        /* GROUPBOX PARA TABELA DE CONTRATOS */
+        /* ========================================= */
+        .groupbox {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+            background-color: #fff;
+        }
+
+        .groupbox-header {
+            background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+            padding: 8px 12px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+            border-radius: 3px 3px 0 0;
+            font-size: 13px;
+            color: #495057;
+        }
+
+        .groupbox-body {
+            padding: 0;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
         .filter-section {
             background-color: white;
             padding: 15px;
@@ -108,15 +183,15 @@
         .form-group select,
         .form-group textarea {
             width: 100%;
-            padding: 6px 8px;        /* Reduzido de 8px para 6px */
+            padding: 6px 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 13px;
-            height: 32px;            /* Altura fixa para inputs e selects */
+            height: 32px;
         }
 
         .form-group textarea {
-            height: auto;            /* Textarea mantém altura automática */
+            height: auto;
             min-height: 50px;
         }
 
@@ -191,6 +266,39 @@
             background-color: #e67e22;
         }
 
+        /* Botões de ação na tabela de contratos */
+        .btn-action {
+            padding: 4px 8px;
+            margin: 0 2px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-action i {
+            pointer-events: none;
+        }
+
+        .btn-select {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .btn-select:hover {
+            background-color: #0b5ed7;
+        }
+
+        .btn-close-selection {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-close-selection:hover {
+            background-color: #bb2d3b;
+        }
+
         .table-section {
             background-color: white;
             padding: 20px;
@@ -214,6 +322,9 @@
             border-bottom: 2px solid #2c3e50;
             white-space: nowrap;
             font-size: 11px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         table td {
@@ -226,67 +337,30 @@
             background-color: #ecf0f1;
         }
 
-        table tbody tr:nth-child(odd) {
-            background-color: white;
-        }
-
         table tbody tr:hover {
-            background-color: #d5dbdb !important;
-        }
-
-        table tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        /* Desabilitar hover na linha de totais */
-        table tbody tr.linha-totais:hover {
-            background-color: #34495e !important;
-            cursor: default;
-        }
-
-        .filtro-select {
-            width: 100%;
-            padding: 2px 4px;
-            font-size: 10px;
-            border: 1px solid #95a5a6;
-            border-radius: 2px;
-            background-color: white;
-            margin-top: 3px;
-        }
-
-        .filtro-select:focus {
-            outline: none;
-            border-color: #3498db;
+            background-color: #d5dbdb;
+            cursor: pointer;
         }
 
         .alert {
-            padding: 12px 15px;
-            border-radius: 3px;
+            padding: 12px 20px;
             margin-bottom: 15px;
-            font-size: 13px;
+            border: 1px solid transparent;
+            border-radius: 4px;
         }
 
         .alert-success {
             background-color: #d4edda;
+            border-color: #c3e6cb;
             color: #155724;
-            border: 1px solid #c3e6cb;
         }
 
         .alert-error {
             background-color: #f8d7da;
+            border-color: #f5c6cb;
             color: #721c24;
-            border: 1px solid #f5c6cb;
         }
 
-        .text-right {
-            text-align: right;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-
-        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -296,38 +370,33 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5);
-        }
-
-        .modal.active {
-            display: block;
+            background-color: rgba(0,0,0,0.4);
         }
 
         .modal-content {
-            background-color: #fff;
-            margin: 2% auto;
+            background-color: #fefefe;
+            margin: 5% auto;
             padding: 0;
-            border-radius: 4px;
+            border: 1px solid #888;
+            border-radius: 8px;
             width: 90%;
             max-width: 1200px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            max-height: 90vh;
-            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         .modal-header {
             background-color: #2c3e50;
             color: white;
             padding: 15px 20px;
-            border-radius: 4px 4px 0 0;
+            border-radius: 8px 8px 0 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .modal-header h2 {
-            font-size: 16px;
-            font-weight: 600;
+            margin: 0;
+            font-size: 18px;
         }
 
         .close {
@@ -335,100 +404,54 @@
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
             line-height: 1;
         }
 
-        .close:hover {
-            color: #ecf0f1;
+        .close:hover,
+        .close:focus {
+            color: #bbb;
         }
 
         .modal-body {
-            padding: 25px;
-        }
-
-        .modal-footer {
-            padding: 15px 25px;
-            border-top: 1px solid #ecf0f1;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
         .form-row {
             display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 15px;
         }
 
-        .form-row-5 {
-            grid-template-columns: repeat(5, 1fr);
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
         }
 
-        .form-row-3 {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        .form-row-4 {
-            grid-template-columns: repeat(4, 1fr);
-        }
-
-        .form-grid-full {
-            grid-column: 1 / -1;
-        }
-
-        /* Estilização dos selects de filtro nos cabeçalhos */
-        table th select.filtro-select {
-            width: 100%;
-            padding: 4px 6px;
-            font-size: 11px;
-            font-weight: 600;
-            border: 1px solid #3498db;
-            border-radius: 3px;
-            background-color: #525e69;
-            color: white;
-            margin-top: 0;
-            cursor: pointer;
-        }
-
-        table th select.filtro-select:focus {
-            outline: none;
-            border-color: #2980b9;
-            background-color: #3d4a54;
-        }
-
-        table th select.filtro-select option {
-            background-color: white;
-            color: #333;
-            font-size: 12px;
-            font-weight: normal;
-            padding: 5px;
-        }
-
-        /* Alinhamento dos cabeçalhos de valores */
-        table th.text-right {
-            text-align: right;
-        }
-
-        /* Reduzir fonte das opções dos selects do formulário modal */
-        #modalOrcamento select option {
-            font-size: 12px;
-        }
-
-        /* Estilos para lista de itens de passagem */
+        /* Estilos específicos para itens de passagem */
         .item-passagem {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 12px;
-            background: white;
-            border: 1px solid #dee2e6;
+            border: 1px solid #e0e0e0;
             border-radius: 4px;
-            margin-bottom: 8px;
-            transition: background 0.2s;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
         }
 
         .item-passagem:hover {
-            background: #f8f9fa;
+            background-color: #f0f0f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .item-passagem-info {
@@ -437,20 +460,19 @@
 
         .item-passagem-tipo {
             font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
-            font-size: 13px;
+            color: #2c3e50;
+            margin-bottom: 5px;
         }
 
         .item-passagem-detalhes {
-            font-size: 12px;
+            font-size: 11px;
             color: #666;
         }
 
         .item-passagem-valor {
-            font-weight: 600;
-            color: #28a745;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #27ae60;
             margin: 0 15px;
         }
 
@@ -459,775 +481,688 @@
             gap: 5px;
         }
 
+        /* Ocultar seção de orçamento inicialmente */
+        #orcamentoSection {
+            display: none;
+        }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
     </style>
 </head>
 <body>
+    <!-- INCLUSÃO DO MENU -->
+    <!-- Seu menu aqui -->
+
     <div class="container">
         <div class="header">
-            <h1>GERENCIAMENTO DE PASSAGENS AÉREAS</h1>
+            <h1>📋 Gerenciamento de Passagens Aéreas</h1>
         </div>
 
         <div id="alertContainer"></div>
 
-        <div class="filter-section">
-            <div class="filter-group">
-                <div class="form-group">
-                    <label for="filtroExercicio">Exercício (Ano):</label>
-                    <select id="filtroExercicio" style="min-width: 120px;">
-                    </select>
+        <!-- ========================================= -->
+        <!-- SEÇÃO DE SELEÇÃO DE CONTRATO -->
+        <!-- ========================================= -->
+        <div class="selection-section">
+            <div class="groupbox">
+                <div class="groupbox-header">
+                    <i class="fas fa-file-contract"></i> Contratos de Passagens Aéreas
+                </div>
+                <div class="groupbox-body">
+                    <table class="table table-sm table-hover" style="margin: 0;">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">ID</th>
+                                <th style="width: 100px;">Exercício</th>
+                                <th>Empresa</th>
+                                <th>Processo</th>
+                                <th style="width: 120px;">Contrato</th>
+                                <th style="width: 100px; text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaContratos">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 30px; color: #999;">
+                                    Carregando contratos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <!-- AMBOS OS BOTÕES JUNTOS NO LADO DIREITO -->
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-success" onclick="abrirModal()" style="padding: 8px 20px; font-size: 12px;">
-                    <span style="font-size: 14px; margin-right: 5px;">+</span> Adicionar Registro
-                </button>
-                <button class="btn btn-primary" onclick="window.location.href='/passagens/controle'">
-                    <i class="fas fa-ticket-alt"></i>📋 Controle de Bilhetes
-                </button>
+
+            <!-- Informações do contrato selecionado -->
+            <div id="contratoSelecionadoInfo" style="display: none;">
+                <div class="contract-info">
+                    <div class="contract-details">
+                        <div class="contract-detail-item">
+                            <label>ID</label>
+                            <span id="infoIdControle">-</span>
+                        </div>
+                        <div class="contract-detail-item">
+                            <label>Exercício</label>
+                            <span id="infoExercicio">-</span>
+                        </div>
+                        <div class="contract-detail-item">
+                            <label>Empresa</label>
+                            <span id="infoEmpresa">-</span>
+                        </div>
+                        <div class="contract-detail-item">
+                            <label>Processo</label>
+                            <span id="infoProcesso">-</span>
+                        </div>
+                        <div class="contract-detail-item">
+                            <label>Contrato</label>
+                            <span id="infoContrato">-</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="limparSelecaoContrato()">
+                        <i class="fas fa-times"></i> Trocar Contrato
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div class="table-section">
-            <table id="tabelaOrcamentos">
-                <thead>
-                    <tr>
-                        <th style="width: 30px; text-align: center;">
-                            <!-- Coluna de expansão -->
-                        </th>
-                        <th style="width: 50px;">
-                            <select id="filtroUO" class="filtro-select"></select>
-                        </th>
-                        <th style="width: 70px;">
-                            <select id="filtroUnidade" class="filtro-select"></select>
-                        </th>
-                        <th style="width: 140px;">
-                            <select id="filtroPrograma" class="filtro-select"></select>
-                        </th>
-                        <th style="width: 140px;">
-                            <select id="filtroAcao" class="filtro-select"></select>
-                        </th>
-                        <th style="width: 140px;">
-                            <select id="filtroSubitem" class="filtro-select"></select>
-                        </th>
-                        <th style="width: 100px;" class="text-right">Valor Aprovado</th>
-                        <th style="width: 100px;" class="text-right">Valor Atual</th>
-                        <th style="width: 100px;" class="text-right">Valor Utilizado</th>
-                        <th style="width: 100px;" class="text-right">Saldo</th>
-                        <th style="width: 90px;">
-                            <select id="filtroEmpenho" class="filtro-select"></select>
-                        </th>
-                        <th style="width: 70px;" class="text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div id="modalOrcamento" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitulo">Adicionar Registro de Orçamento</h2>
-                <span class="close" onclick="fecharModal()">&times;</span>
+        <!-- ========================================= -->
+        <!-- SEÇÃO DE ORÇAMENTO (oculta até selecionar contrato) -->
+        <!-- ========================================= -->
+        <div id="orcamentoSection">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <button type="button" class="btn btn-success" onclick="abrirModalOrcamento()">
+                        ➕ Novo Orçamento
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="carregarRegistros()">
+                        🔄 Atualizar
+                    </button>
+                </div>
             </div>
-            <form id="formOrcamento">
+
+            <div class="table-section">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">ID</th>
+                            <th style="width: 50px;">UO</th>
+                            <th style="width: 80px;">Unidade</th>
+                            <th style="width: 80px;">Fonte</th>
+                            <th>Programa</th>
+                            <th>Ação Orçamentária</th>
+                            <th>Subação</th>
+                            <th style="width: 100px;">Valor Aprovado</th>
+                            <th style="width: 100px;">Nº Empenho</th>
+                            <th style="width: 80px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaOrcamentos">
+                        <tr>
+                            <td colspan="10" style="text-align: center; padding: 30px; color: #999;">
+                                Selecione um contrato para visualizar os orçamentos
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!-- MODAL - CADASTRO/EDIÇÃO DE ORÇAMENTO -->
+        <!-- ========================================= -->
+        <div id="modalOrcamento" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="tituloModal">📝 Novo Orçamento de Passagens</h2>
+                    <button type="button" class="close" onclick="fecharModalOrcamento()">&times;</button>
+                </div>
                 <div class="modal-body">
-                    <input type="hidden" id="modoEdicao" value="false">
-                    
-                    <!-- Linha 1: ID OPA, Exercício, UO, Unidade, Fonte -->
-                    <div class="form-row form-row-5">
-                        <div class="form-group">
-                            <label for="id_opa">ID: *</label>
-                            <input type="text" id="id_opa" name="id_opa" readonly required>
-                        </div>
+                    <form id="formOrcamento" onsubmit="salvarOrcamento(event)">
+                        <input type="hidden" id="id_opa" name="id_opa">
+                        <input type="hidden" id="id_controle" name="id_controle">
+                        <input type="hidden" id="exercicio" name="exercicio">
 
-                        <div class="form-group">
-                            <label for="exercicio">Exercício: *</label>
-                            <input type="number" id="exercicio" name="exercicio" min="2000" max="2100" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="uo">UO: *</label>
-                            <select id="uo" name="uo" required>
-                                <option value="">Selecione...</option>
-                                <option value="TJRO">TJRO</option>
-                                <option value="FUJU">FUJU</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="unidade">Unidade: *</label>
-                            <input type="text" id="unidade" name="unidade" maxlength="15" required style="text-transform: uppercase;">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="fonte">Fonte: *</label>
-                            <input type="text" id="fonte" name="fonte" maxlength="10" required>
-                        </div>
-                    </div>
-
-                    <!-- Linha 2: Programa, Ação Orçamentária, Subação -->
-                    <div class="form-row form-row-3">
-                        <div class="form-group">
-                            <label for="id_programa">Programa: *</label>
-                            <select id="id_programa" name="id_programa" required>
-                                <option value="">Selecione...</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="id_ao">Ação Orçamentária: *</label>
-                            <select id="id_ao" name="id_ao" required>
-                                <option value="">Selecione...</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="subacao">Sub-Ação:</label>
-                            <input type="text" id="subacao" name="subacao" maxlength="100">
-                        </div>
-                    </div>
-
-                    <!-- Linha 3: Elemento, Subitem, Valor Aprovado, Nº Empenho -->
-                    <div class="form-row form-row-4">
-                        <div class="form-group">
-                            <label for="elemento_despesa">Elemento: *</label>
-                            <input type="text" id="elemento_despesa" name="elemento_despesa" value="33.90.33" maxlength="8" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="id_subitem">Subitem: *</label>
-                            <select id="id_subitem" name="id_subitem" required>
-                                <option value="">Selecione...</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="vl_aprovado">Valor Aprovado (R$): *</label>
-                            <input type="text" id="vl_aprovado" name="vl_aprovado" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="nu_empenho">Nº Empenho:</label>
-                            <input type="text" id="nu_empenho" name="nu_empenho" maxlength="12" placeholder="0000NE000000">
-                        </div>
-                    </div>
-
-                    <!-- Linha 4: Objetivo -->
-                    <div class="form-row">
-                        <div class="form-group form-grid-full">
-                            <label for="objetivo">Objetivo:</label>
-                            <textarea id="objetivo" name="objetivo" maxlength="500"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnSalvar">Salvar</button>
-                    <button type="button" class="btn" id="btnGerenciarItens" onclick="abrirModalItensPassagem()" 
-                            style="background: #17a2b8; color: white; margin-left: 10px; display: none;">
-                        📋 Gerenciar Itens
-                    </button>            
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal Gerenciar Itens do orçamento Passagem -->
-    <div id="modalItensPassagem" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 800px;">
-            <div class="modal-header">
-                <h2>📋 Gerenciar Itens de Orçamento</h2>
-                <span class="close" onclick="fecharModalItensPassagem()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <!-- Formulário de Adição -->
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-                    <h3 style="font-size: 14px; margin-bottom: 12px; color: #333;">➕ Adicionar Item</h3>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Tipo de Item <span style="color: red;">*</span></label>
-                            <select id="tipoItemPassagem" required>
-                                <option value="">Selecione...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Valor do Item (R$) <span style="color: red;">*</span></label>
-                            <input type="number" id="vlItem" min="0" step="0.01" placeholder="0.00" required>
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Nº Empenho</label>
-                            <input type="text" id="nuEmpenhoItem" maxlength="12" placeholder="Ex: 2024NE00001">
-                        </div>
-                        <div class="form-group">
-                            <label>Observações</label>
-                            <input type="text" id="obsItem" maxlength="200">
-                        </div>
-                    </div>
-                    
-                    <div style="text-align: right; margin-top: 10px;">
-                        <button type="button" class="btn btn-primary" onclick="adicionarItemPassagem()">
-                            ➕ Adicionar Item
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Lista de Itens -->
-                <div>
-                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #333;">📦 Itens Cadastrados</h3>
-                    <div id="listaItensPassagem" style="max-height: 400px; overflow-y: auto;">
-                        <div class="loading">Carregando itens...</div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer" style="justify-content: center;">
-                <button type="button" class="btn btn-secondary" onclick="fecharModalItensPassagem()">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========================================= -->
-    <!-- SCRIPTS - SEMPRE NESTA ORDEM! -->
-    <!-- ========================================= -->
-    
-    <!-- 1️⃣ PRIMEIRO: Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- 2️⃣ SEGUNDO: Verificação de autenticação (se você tiver) -->
-    <script src="/static/js/auth-check.js"></script>
-    
-    <!-- 3️⃣ TERCEIRO: Carregador do menu -->
-    <script src="/static/js/menu-loader.js"></script>
-    
-    <script>
-        let dadosIniciais = {};
-        let linhasExpandidas = new Set();
-        let idOrcamentoAtual = null;
-        let tiposItemOPA = [];
-
-        function controlarBilhetes() {
-            mostrarAlerta('🚧 Funcionalidade em construção', 'success');
-        }        
-
-        // Alternar expansão de linha
-        async function toggleExpansao(idOpa, btnElement) {
-            const linhaAtual = btnElement.closest('tr');
-            const idLinha = `subtabela-${idOpa}`;
-            
-            if (linhasExpandidas.has(idOpa)) {
-                // Fechar
-                const subtabelaRow = document.getElementById(idLinha);
-                if (subtabelaRow) subtabelaRow.remove();
-                linhasExpandidas.delete(idOpa);
-                btnElement.innerHTML = '▶';
-                btnElement.style.color = '#3498db';
-            } else {
-                // Abrir
-                btnElement.innerHTML = '⏳';
-                await carregarSubtabela(idOpa, linhaAtual);
-                linhasExpandidas.add(idOpa);
-                btnElement.innerHTML = '▼';
-                btnElement.style.color = '#e74c3c';
-            }
-        }
-
-        // Carregar subtabela
-        async function carregarSubtabela(idOpa, linhaAtual) {
-            try {
-                const response = await fetch(`/api/orcamento/passagens/${idOpa}/itens`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const subtabelaRow = document.createElement('tr');
-                    subtabelaRow.id = `subtabela-${idOpa}`;
-                    subtabelaRow.style.backgroundColor = '#f8f9fa';
-                    
-                    const numColunas = linhaAtual.cells.length;
-                    const subtabelaCell = document.createElement('td');
-                    subtabelaCell.colSpan = numColunas;
-                    subtabelaCell.style.padding = '15px';
-                    
-                    if (data.itens.length > 0) {
-                        let html = `
-                            <div style="background: white; border-radius: 4px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <h4 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 13px;">
-                                    📋 Movimentações do Orçamento
-                                </h4>
-                                <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
-                                    <thead>
-                                        <tr style="background-color: #34495e;">
-                                            <th style="padding: 6px; color: white; text-align: center; width: 50px;">Item</th>
-                                            <th style="padding: 6px; color: white; text-align: left;">Descrição</th>
-                                            <th style="padding: 6px; color: white; text-align: center; width: 120px;">Empenho</th>
-                                            <th style="padding: 6px; color: white; text-align: right; width: 120px;">Valor</th>
-                                            <th style="padding: 6px; color: white; text-align: left;">Observações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                        `;
-                        
-                        data.itens.forEach(item => {
-                            const cor = item.fltipo === 'E' ? '#27ae60' : '#e74c3c';
-                            const simbolo = item.fltipo === 'E' ? '+' : '-';
-                            html += `
-                                <tr style="border-bottom: 1px solid #ecf0f1;">
-                                    <td style="padding: 6px; text-align: center;">${item.item}</td>
-                                    <td style="padding: 6px;">${item.descricao}</td>
-                                    <td style="padding: 6px; text-align: center;">${item.nu_empenho}</td>
-                                    <td style="padding: 6px; text-align: right; color: ${cor}; font-weight: bold;">
-                                        ${simbolo} R$ ${item.vl_item.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                    </td>
-                                    <td style="padding: 6px; font-size: 10px; color: #7f8c8d;">${item.obs}</td>
-                                </tr>
-                            `;
-                        });
-                        html += `</tbody></table></div>`;
-                        subtabelaCell.innerHTML = html;
-                    } else {
-                        subtabelaCell.innerHTML = `
-                            <div style="background: white; border-radius: 4px; padding: 15px; text-align: center; color: #95a5a6;">
-                                Nenhuma movimentação adicional para este orçamento
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="uo">UO *</label>
+                                <input type="text" id="uo" name="uo" maxlength="4" required>
                             </div>
-                        `;
-                    }
-                    
-                    subtabelaRow.appendChild(subtabelaCell);
-                    linhaAtual.after(subtabelaRow);
+
+                            <div class="form-group">
+                                <label for="unidade">Unidade *</label>
+                                <select id="unidade" name="unidade" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="PVHCC">PVHCC - CAPITAL</option>
+                                    <option value="VHACC">VHACC - VILHENA</option>
+                                    <option value="JPRCC">JPRCC - JI-PARANÁ</option>
+                                    <option value="AMZCC">AMZCC - ARIQUEMES</option>
+                                    <option value="PVRAC">PVRAC - ROLIM DE MOURA</option>
+                                    <option value="PIMCC">PIMCC - PIMENTA BUENO</option>
+                                    <option value="CCACC">CCACC - CACOAL</option>
+                                    <option value="GUACC">GUACC - GUAJARÁ-MIRIM</option>
+                                    <option value="JRCC">JRCC - JARU</option>
+                                    <option value="ALMCC">ALMCC - ALVORADA</option>
+                                    <option value="ESPCC">ESPCC - ESPIGÃO D'OESTE</option>
+                                    <option value="COOCC">COOCC - COLORADO DO OESTE</option>
+                                    <option value="CETCC">CETCC - CEREJEIRAS</option>
+                                    <option value="OROCC">OROCC - OURO PRETO DO OESTE</option>
+                                    <option value="CSTCC">CSTCC - COSTA MARQUES</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="fonte">Fonte *</label>
+                                <input type="text" id="fonte" name="fonte" maxlength="10" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="id_programa">Programa *</label>
+                                <select id="id_programa" name="id_programa" required onchange="carregarAcoes()">
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="id_ao">Ação Orçamentária *</label>
+                                <select id="id_ao" name="id_ao" required onchange="carregarSubacoes()">
+                                    <option value="">Selecione um programa primeiro...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label for="subacao">Subação</label>
+                                <input type="text" id="subacao" name="subacao" maxlength="100">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label for="objetivo">Objetivo</label>
+                                <textarea id="objetivo" name="objetivo" rows="3" maxlength="500"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="elemento_despesa">Elemento de Despesa *</label>
+                                <input type="text" id="elemento_despesa" name="elemento_despesa" value="33.90.33" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="id_subitem">Subitem</label>
+                                <select id="id_subitem" name="id_subitem">
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vl_aprovado">Valor Aprovado</label>
+                                <input type="number" step="0.01" id="vl_aprovado" name="vl_aprovado">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nu_empenho">Nº Empenho</label>
+                                <input type="text" id="nu_empenho" name="nu_empenho" maxlength="12">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="fecharModalOrcamento()">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                💾 Salvar
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="abrirModalItensPassagem()" 
+                                    style="display: none;" id="btnGerenciarItens">
+                                📦 Gerenciar Itens
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================= -->
+        <!-- MODAL - GERENCIAMENTO DE ITENS -->
+        <!-- ========================================= -->
+        <div id="modalItensPassagem" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📦 Gerenciamento de Itens de Passagem</h2>
+                    <button type="button" class="close" onclick="fecharModalItensPassagem()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <h3 style="margin-bottom: 15px; font-size: 14px; color: #555;">Adicionar Novo Item</h3>
+                    <form onsubmit="adicionarItemPassagem(); return false;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="tipoItemPassagem">Tipo de Item *</label>
+                                <select id="tipoItemPassagem" name="tipoItemPassagem" required>
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="vlItem">Valor *</label>
+                                <input type="number" step="0.01" id="vlItem" name="vlItem" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nuEmpenhoItem">Nº Empenho</label>
+                                <input type="text" id="nuEmpenhoItem" name="nuEmpenhoItem" maxlength="12">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="obsItem">Observação</label>
+                                <input type="text" id="obsItem" name="obsItem" maxlength="200">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">➕ Adicionar Item</button>
+                        </div>
+                    </form>
+
+                    <hr style="margin: 20px 0;">
+
+                    <h3 style="margin-bottom: 15px; font-size: 14px; color: #555;">Itens Cadastrados</h3>
+                    <div id="listaItensPassagem">
+                        <div style="text-align: center; padding: 20px; color: #666; font-style: italic;">
+                            Nenhum item cadastrado
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ Bootstrap JS (APENAS UMA VEZ, NO FINAL) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // ==========================================
+        // VARIÁVEIS GLOBAIS
+        // ==========================================
+        let programas = [];
+        let acoes = [];
+        let subitens = [];
+        let tiposItemOPA = [];
+        let idOrcamentoAtual = null;
+        let contratoSelecionado = null;
+
+        // ==========================================
+        // FUNÇÕES DE INICIALIZAÇÃO
+        // ==========================================
+        async function carregarDadosIniciais() {
+            await carregarContratos();
+            await carregarProgramas();
+            await carregarSubitens();
+        }
+
+        // ==========================================
+        // GERENCIAMENTO DE CONTRATOS
+        // ==========================================
+        async function carregarContratos() {
+            try {
+                const response = await fetch('/api/contratos-passagens');
+                const data = await response.json();
+
+                const tbody = document.getElementById('tabelaContratos');
+
+                if (!data.success || data.contratos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #999;">Nenhum contrato encontrado</td></tr>';
+                    return;
                 }
+
+                let html = '';
+                data.contratos.forEach(contrato => {
+                    html += `
+                        <tr>
+                            <td>${contrato.ID_CONTROLE}</td>
+                            <td>${contrato.EXERCICIO}</td>
+                            <td>${contrato.NM_FORNECEDOR || '-'}</td>
+                            <td>${contrato.PROCESSO || '-'}</td>
+                            <td>${contrato.CONTRATO || '-'}</td>
+                            <td style="text-align: center;">
+                                <button type="button" class="btn-action btn-select" 
+                                        onclick="selecionarContrato(${contrato.ID_CONTROLE}, '${contrato.EXERCICIO}', '${contrato.NM_FORNECEDOR || ''}', '${contrato.PROCESSO || ''}', '${contrato.CONTRATO || ''}')"
+                                        title="Selecionar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+
             } catch (error) {
-                console.error('Erro ao carregar subtabela:', error);
-                alert('Erro: ' + error.message);
+                console.error('Erro ao carregar contratos:', error);
+                document.getElementById('tabelaContratos').innerHTML = 
+                    '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #e74c3c;">Erro ao carregar contratos</td></tr>';
             }
         }
 
-        // Carregar dados iniciais
-        async function carregarDadosIniciais() {
+        function selecionarContrato(idControle, exercicio, empresa, processo, contrato) {
+            contratoSelecionado = {
+                id: idControle,
+                exercicio: exercicio,
+                empresa: empresa,
+                processo: processo,
+                contrato: contrato
+            };
+
+            // Atualizar informações visuais
+            document.getElementById('infoIdControle').textContent = idControle;
+            document.getElementById('infoExercicio').textContent = exercicio;
+            document.getElementById('infoEmpresa').textContent = empresa;
+            document.getElementById('infoProcesso').textContent = processo;
+            document.getElementById('infoContrato').textContent = contrato;
+
+            // Mostrar seção de informações do contrato
+            document.getElementById('contratoSelecionadoInfo').style.display = 'block';
+
+            // Mostrar seção de orçamento
+            document.getElementById('orcamentoSection').style.display = 'block';
+
+            // Carregar orçamentos deste contrato
+            carregarRegistros();
+        }
+
+        function limparSelecaoContrato() {
+            contratoSelecionado = null;
+
+            // Ocultar seção de informações do contrato
+            document.getElementById('contratoSelecionadoInfo').style.display = 'none';
+
+            // Ocultar seção de orçamento
+            document.getElementById('orcamentoSection').style.display = 'none';
+
+            // Limpar tabela de orçamentos
+            document.getElementById('tabelaOrcamentos').innerHTML = 
+                '<tr><td colspan="10" style="text-align: center; padding: 30px; color: #999;">Selecione um contrato para visualizar os orçamentos</td></tr>';
+        }
+
+        // ==========================================
+        // CARREGAMENTO DE DADOS AUXILIARES
+        // ==========================================
+        async function carregarProgramas() {
             try {
-                const response = await fetch('/api/orcamento/dados_iniciais');
+                const response = await fetch('/api/programas');
                 const data = await response.json();
                 
                 if (data.success) {
-                    dadosIniciais = data;
+                    programas = data.programas;
                     
-                    // Preencher selects
-                    const selectPrograma = document.getElementById('id_programa');
-                    selectPrograma.innerHTML = '<option value="">Selecione...</option>';
-                    data.programas.forEach(prog => {
-                        const option = document.createElement('option');
-                        option.value = prog.id;
-                        option.textContent = prog.descricao;
-                        selectPrograma.appendChild(option);
-                    });
-
-                    const selectAcao = document.getElementById('id_ao');
-                    selectAcao.innerHTML = '<option value="">Selecione...</option>';
-                    data.acoes.forEach(acao => {
-                        const option = document.createElement('option');
-                        option.value = acao.id;
-                        option.textContent = acao.descricao;
-                        selectAcao.appendChild(option);
-                    });
-
-                    const selectSubitem = document.getElementById('id_subitem');
-                    selectSubitem.innerHTML = '<option value="">Selecione...</option>';
-                    data.subitens.forEach(subitem => {
-                        const option = document.createElement('option');
-                        option.value = subitem.id;
-                        option.textContent = `${subitem.id} - ${subitem.descricao}`;
-                        selectSubitem.appendChild(option);
-                    })
-
-                    // Preencher filtro de exercícios (sem opção "Todos")
-                    const filtroExercicio = document.getElementById('filtroExercicio');
-                    filtroExercicio.innerHTML = '';
-                    const anoAtual = new Date().getFullYear();
+                    const select = document.getElementById('id_programa');
+                    select.innerHTML = '<option value="">Selecione...</option>';
                     
-                    // Determinar qual exercício selecionar (priorizar ano atual, senão o mais recente)
-                    let exercicioSelecionado = null;
-                    
-                    data.exercicios.forEach(exercicio => {
+                    data.programas.forEach(programa => {
                         const option = document.createElement('option');
-                        option.value = exercicio;
-                        option.textContent = exercicio;
-                        
-                        // Selecionar o ano atual se existir, senão o primeiro (mais recente)
-                        if (exercicio === anoAtual) {
-                            option.selected = true;
-                            exercicioSelecionado = exercicio;
-                        } else if (!exercicioSelecionado && data.exercicios.indexOf(exercicio) === 0) {
-                            option.selected = true;
-                            exercicioSelecionado = exercicio;
-                        }
-                        
-                        filtroExercicio.appendChild(option);
+                        option.value = programa.ID_PROGRAMA;
+                        option.textContent = `${programa.NU_PROGRAMA} - ${programa.NM_PROGRAMA}`;
+                        select.appendChild(option);
                     });
-
-                    // Se nenhum exercício foi selecionado, usar o primeiro da lista
-                    if (!exercicioSelecionado && data.exercicios.length > 0) {
-                        exercicioSelecionado = data.exercicios[0];
-                    }
-
-                    // Carregar registros do exercício selecionado
-                    if (exercicioSelecionado) {
-                        console.log('Carregando registros do exercício:', exercicioSelecionado);
-                        carregarRegistros(exercicioSelecionado);
-                    }
                 }
             } catch (error) {
-                console.error('ERRO ao carregar dados iniciais:', error);
-                alert('Erro ao carregar dados iniciais: ' + error.message + '\nVerifique o console para mais detalhes.');
+                console.error('Erro ao carregar programas:', error);
             }
         }
 
-        function popularFiltros(registros) {
-            // Extrair valores únicos
-            const uos = [...new Set(registros.map(r => r.uo))].sort();
-            const unidades = [...new Set(registros.map(r => r.unidade))].sort();
-            const programas = [...new Set(registros.map(r => r.programa).filter(p => p))].sort();
-            const acoes = [...new Set(registros.map(r => r.acao).filter(a => a))].sort();
-            const subitens = [...new Set(registros.map(r => r.subitem).filter(s => s))].sort();
-            const empenhos = [...new Set(registros.map(r => r.nu_empenho).filter(e => e))].sort();
+        async function carregarAcoes() {
+            const idPrograma = document.getElementById('id_programa').value;
+            const selectAcao = document.getElementById('id_ao');
             
-            // Popular filtro UO
-            const filtroUO = document.getElementById('filtroUO');
-            filtroUO.innerHTML = '<option value="">UO</option>';
-            uos.forEach(uo => {
-                filtroUO.innerHTML += `<option value="${uo}">${uo}</option>`;
-            });
+            selectAcao.innerHTML = '<option value="">Carregando...</option>';
             
-            // Popular filtro Unidade
-            const filtroUnidade = document.getElementById('filtroUnidade');
-            filtroUnidade.innerHTML = '<option value="">Unidade</option>';
-            unidades.forEach(unidade => {
-                filtroUnidade.innerHTML += `<option value="${unidade}">${unidade}</option>`;
-            });
-            
-            // Popular filtro Programa
-            const filtroPrograma = document.getElementById('filtroPrograma');
-            filtroPrograma.innerHTML = '<option value="">Programa</option>';
-            programas.forEach(programa => {
-                filtroPrograma.innerHTML += `<option value="${programa}">${programa}</option>`;
-            });
-            
-            // Popular filtro Ação
-            const filtroAcao = document.getElementById('filtroAcao');
-            filtroAcao.innerHTML = '<option value="">Ação Orçamentária</option>';
-            acoes.forEach(acao => {
-                filtroAcao.innerHTML += `<option value="${acao}">${acao}</option>`;
-            });
-            
-            // Popular filtro SubItem
-            const filtroSubitem = document.getElementById('filtroSubitem');
-            filtroSubitem.innerHTML = '<option value="">SubItem</option>';
-            subitens.forEach(subitem => {
-                filtroSubitem.innerHTML += `<option value="${subitem}">${subitem}</option>`;
-            });
-            
-            // Popular filtro Empenho
-            const filtroEmpenho = document.getElementById('filtroEmpenho');
-            filtroEmpenho.innerHTML = '<option value="">Nº Empenho</option>';
-            empenhos.forEach(empenho => {
-                filtroEmpenho.innerHTML += `<option value="${empenho}">${empenho}</option>`;
-            });
-        }        
-        
-        function aplicarFiltros() {
-            const tbody = document.querySelector('#tabelaOrcamentos tbody');
-            const linhas = tbody.querySelectorAll('tr');
-            
-            const filtroUO = document.getElementById('filtroUO').value.toLowerCase();
-            const filtroUnidade = document.getElementById('filtroUnidade').value.toLowerCase();
-            const filtroPrograma = document.getElementById('filtroPrograma').value.toLowerCase();
-            const filtroAcao = document.getElementById('filtroAcao').value.toLowerCase();
-            const filtroSubitem = document.getElementById('filtroSubitem').value.toLowerCase();
-            const filtroEmpenho = document.getElementById('filtroEmpenho').value.toLowerCase();
-            
-            linhas.forEach(linha => {
-                const colunas = linha.querySelectorAll('td');
-                if (colunas.length === 0) return; // Pular linha vazia
-                
-                const uo = colunas[0].textContent.toLowerCase();
-                const unidade = colunas[1].textContent.toLowerCase();
-                const programa = colunas[3].textContent.toLowerCase();
-                const acao = colunas[4].textContent.toLowerCase();
-                const subitem = colunas[6].textContent.toLowerCase();
-                const empenho = colunas[10].textContent.toLowerCase();
-                
-                const mostrar = 
-                    (filtroUO === '' || uo.includes(filtroUO)) &&
-                    (filtroUnidade === '' || unidade.includes(filtroUnidade)) &&
-                    (filtroPrograma === '' || programa.includes(filtroPrograma)) &&
-                    (filtroAcao === '' || acao.includes(filtroAcao)) &&
-                    (filtroSubitem === '' || subitem.includes(filtroSubitem)) &&
-                    (filtroEmpenho === '' || empenho.includes(filtroEmpenho));
-                
-                linha.style.display = mostrar ? '' : 'none';
-            });
-        }
-
-        // Máscaras e validações
-        document.getElementById('fonte').addEventListener('input', function(e) {
-            this.value = this.value.replace(/\D/g, '');
-        });
-
-        document.getElementById('elemento_despesa').addEventListener('input', function(e) {
-            let value = this.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '.' + value.substring(2);
-            }
-            if (value.length >= 6) {
-                value = value.substring(0, 5) + '.' + value.substring(5);
-            }
-            this.value = value.substring(0, 8);
-        });
-
-        document.getElementById('nu_empenho').addEventListener('input', function(e) {
-            let value = this.value.replace(/[^0-9NE]/gi, '').toUpperCase();
-            let numbers = value.replace(/NE/g, '');
-            
-            if (numbers.length > 4) {
-                this.value = numbers.substring(0, 4) + 'NE' + numbers.substring(4, 10);
-            } else {
-                this.value = numbers;
-            }
-        });
-
-        // Máscara de moeda brasileira
-        document.getElementById('vl_aprovado').addEventListener('input', function(e) {
-            let value = this.value.replace(/\D/g, '');
-            
-            if (value === '') {
-                this.value = '';
+            if (!idPrograma) {
+                selectAcao.innerHTML = '<option value="">Selecione um programa primeiro...</option>';
                 return;
             }
             
-            value = parseInt(value, 10);
-            
-            const formatted = (value / 100).toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-            
-            this.value = formatted;
-        });
-
-        // Filtro de exercício
-        document.getElementById('filtroExercicio').addEventListener('change', function() {
-            carregarRegistros(this.value);
-        });
-        // Event listeners para filtros da tabela
-        document.getElementById('filtroUO').addEventListener('change', aplicarFiltros);
-        document.getElementById('filtroUnidade').addEventListener('change', aplicarFiltros);
-        document.getElementById('filtroPrograma').addEventListener('change', aplicarFiltros);
-        document.getElementById('filtroAcao').addEventListener('change', aplicarFiltros);
-        document.getElementById('filtroSubitem').addEventListener('change', aplicarFiltros);
-        document.getElementById('filtroEmpenho').addEventListener('change', aplicarFiltros);
-
-
-        // Modal
-        function abrirModal(idOpa = null) {
-            const modal = document.getElementById('modalOrcamento');
-            const titulo = document.getElementById('modalTitulo');
-            const btnSalvar = document.getElementById('btnSalvar');
-            const btnGerenciarItens = document.getElementById('btnGerenciarItens');
-            
-            if (idOpa) {
-                // Modo edição
-                titulo.textContent = 'Editar Registro de Orçamento';
-                btnSalvar.textContent = 'Atualizar';
-                document.getElementById('modoEdicao').value = 'true';
-                carregarRegistroParaEdicao(idOpa);
-                btnGerenciarItens.style.display = 'inline-block'; // Mostrar botão em modo edição
-            } else {
-                // Modo inserção
-                titulo.textContent = 'Adicionar Registro de Orçamento';
-                btnSalvar.textContent = 'Salvar';
-                document.getElementById('modoEdicao').value = 'false';
-                limparFormulario();
-                btnGerenciarItens.style.display = 'none'; // Ocultar botão em modo inserção
-                document.getElementById('id_opa').value = dadosIniciais.proximo_id;
-                document.getElementById('exercicio').value = new Date().getFullYear();
+            try {
+                const response = await fetch(`/api/acoes/${idPrograma}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    acoes = data.acoes;
+                    
+                    selectAcao.innerHTML = '<option value="">Selecione...</option>';
+                    
+                    data.acoes.forEach(acao => {
+                        const option = document.createElement('option');
+                        option.value = acao.ID_AO;
+                        option.textContent = `${acao.NU_AO} - ${acao.NM_AO}`;
+                        selectAcao.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar ações:', error);
+                selectAcao.innerHTML = '<option value="">Erro ao carregar</option>';
             }
-            
-            modal.classList.add('active');
         }
 
-        function fecharModal() {
+        async function carregarSubacoes() {
+            const idAo = document.getElementById('id_ao').value;
+            
+            if (!idAo) return;
+            
+            const acao = acoes.find(a => a.ID_AO == idAo);
+            if (acao && acao.SUBACAO) {
+                document.getElementById('subacao').value = acao.SUBACAO;
+            }
+        }
+
+        async function carregarSubitens() {
+            try {
+                const response = await fetch('/api/subitens');
+                const data = await response.json();
+                
+                if (data.success) {
+                    subitens = data.subitens;
+                    
+                    const select = document.getElementById('id_subitem');
+                    select.innerHTML = '<option value="">Selecione...</option>';
+                    
+                    data.subitens.forEach(subitem => {
+                        const option = document.createElement('option');
+                        option.value = subitem.ID_SUBITEM;
+                        option.textContent = `${subitem.CD_SUBITEM} - ${subitem.DS_SUBITEM}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar subitens:', error);
+            }
+        }
+
+        // ==========================================
+        // MODAL DE ORÇAMENTO
+        // ==========================================
+        async function abrirModalOrcamento(id = null) {
+            if (!contratoSelecionado) {
+                alert('Selecione um contrato primeiro!');
+                return;
+            }
+
             const modal = document.getElementById('modalOrcamento');
-            modal.classList.remove('active');
+            const form = document.getElementById('formOrcamento');
+            const btnGerenciarItens = document.getElementById('btnGerenciarItens');
+
+            if (id) {
+                // Modo edição
+                document.getElementById('tituloModal').textContent = '✏️ Editar Orçamento de Passagens';
+                btnGerenciarItens.style.display = 'inline-block';
+                
+                try {
+                    const response = await fetch(`/api/orcamento/passagens/${id}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const orcamento = data.orcamento;
+                        
+                        document.getElementById('id_opa').value = orcamento.ID_OPA;
+                        document.getElementById('id_controle').value = orcamento.ID_CONTROLE;
+                        document.getElementById('exercicio').value = orcamento.EXERCICIO;
+                        document.getElementById('uo').value = orcamento.UO || '';
+                        document.getElementById('unidade').value = orcamento.UNIDADE || '';
+                        document.getElementById('fonte').value = orcamento.FONTE || '';
+                        document.getElementById('id_programa').value = orcamento.ID_PROGRAMA || '';
+                        
+                        await carregarAcoes();
+                        document.getElementById('id_ao').value = orcamento.ID_AO || '';
+                        
+                        document.getElementById('subacao').value = orcamento.SUBACAO || '';
+                        document.getElementById('objetivo').value = orcamento.OBJETIVO || '';
+                        document.getElementById('elemento_despesa').value = orcamento.ELEMENTO_DESPESA || '33.90.33';
+                        document.getElementById('id_subitem').value = orcamento.ID_SUBITEM || '';
+                        document.getElementById('vl_aprovado').value = orcamento.VL_APROVADO || '';
+                        document.getElementById('nu_empenho').value = orcamento.NU_EMPENHO || '';
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar orçamento:', error);
+                    alert('Erro ao carregar orçamento para edição');
+                    return;
+                }
+            } else {
+                // Modo criação
+                document.getElementById('tituloModal').textContent = '📝 Novo Orçamento de Passagens';
+                btnGerenciarItens.style.display = 'none';
+                limparFormulario();
+                
+                // Preencher campos do contrato selecionado
+                document.getElementById('id_controle').value = contratoSelecionado.id;
+                document.getElementById('exercicio').value = contratoSelecionado.exercicio;
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function fecharModalOrcamento() {
+            document.getElementById('modalOrcamento').style.display = 'none';
             limparFormulario();
         }
 
-        // Carregar registro para edição
-        async function carregarRegistroParaEdicao(idOpa) {
-            try {
-                const response = await fetch(`/api/orcamento/passagens/${idOpa}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const reg = data.registro;
-                    document.getElementById('id_opa').value = reg.id_opa;
-                    document.getElementById('exercicio').value = reg.exercicio;
-                    document.getElementById('uo').value = reg.uo;
-                    document.getElementById('unidade').value = reg.unidade;
-                    document.getElementById('fonte').value = reg.fonte;
-                    document.getElementById('id_programa').value = reg.id_programa || '';
-                    document.getElementById('id_ao').value = reg.id_ao || '';
-                    document.getElementById('subacao').value = reg.subacao || '';
-                    document.getElementById('objetivo').value = reg.objetivo || '';
-                    document.getElementById('elemento_despesa').value = reg.elemento_despesa;
-                    document.getElementById('id_subitem').value = reg.id_subitem || '';
-                    document.getElementById('vl_aprovado').value = reg.vl_aprovado.toLocaleString('pt-BR', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    });
-                    document.getElementById('nu_empenho').value = reg.nu_empenho || '';
-                } else {
-                    mostrarAlerta('Erro ao carregar registro: ' + data.error, 'error');
-                    fecharModal();
-                }
-            } catch (error) {
-                mostrarAlerta('Erro ao carregar registro: ' + error.message, 'error');
-                fecharModal();
-            }
-        }
+        async function salvarOrcamento(event) {
+            event.preventDefault();
 
-        // Submit do formulário
-        document.getElementById('formOrcamento').addEventListener('submit', async function(e) {
-            e.preventDefault();
+            const form = document.getElementById('formOrcamento');
+            const formData = new FormData(form);
             
-            const modoEdicao = document.getElementById('modoEdicao').value === 'true';
-            const idOpa = parseInt(document.getElementById('id_opa').value);
-            
-            const formData = {
-                id_opa: idOpa,
-                exercicio: parseInt(document.getElementById('exercicio').value),
-                uo: document.getElementById('uo').value,
-                unidade: document.getElementById('unidade').value.toUpperCase(),
-                fonte: document.getElementById('fonte').value,
-                id_programa: document.getElementById('id_programa').value ? parseInt(document.getElementById('id_programa').value) : null,
-                id_ao: document.getElementById('id_ao').value ? parseInt(document.getElementById('id_ao').value) : null,
-                subacao: document.getElementById('subacao').value || null,
-                objetivo: document.getElementById('objetivo').value || null,
-                elemento_despesa: document.getElementById('elemento_despesa').value,
-                id_subitem: document.getElementById('id_subitem').value ? parseInt(document.getElementById('id_subitem').value) : null,
-                vl_aprovado: parseFloat(document.getElementById('vl_aprovado').value.replace(/\./g, '').replace(',', '.')),
-                nu_empenho: document.getElementById('nu_empenho').value || null
+            const dados = {
+                id_opa: formData.get('id_opa') || null,
+                id_controle: parseInt(formData.get('id_controle')),
+                exercicio: parseInt(formData.get('exercicio')),
+                uo: formData.get('uo'),
+                unidade: formData.get('unidade'),
+                fonte: formData.get('fonte'),
+                id_programa: parseInt(formData.get('id_programa')),
+                id_ao: parseInt(formData.get('id_ao')),
+                subacao: formData.get('subacao'),
+                objetivo: formData.get('objetivo'),
+                elemento_despesa: formData.get('elemento_despesa'),
+                id_subitem: formData.get('id_subitem') ? parseInt(formData.get('id_subitem')) : null,
+                vl_aprovado: formData.get('vl_aprovado') ? parseFloat(formData.get('vl_aprovado')) : null,
+                nu_empenho: formData.get('nu_empenho')
             };
 
             try {
-                const url = modoEdicao ? `/api/orcamento/passagens/${idOpa}` : '/api/orcamento/passagens';
-                const method = modoEdicao ? 'PUT' : 'POST';
-                
-                const response = await fetch(url, {
-                    method: method,
+                const response = await fetch('/api/orcamento/passagens', {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(dados)
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.success) {
-                    mostrarAlerta(data.message, 'success');
-                    fecharModal();
-                    carregarDadosIniciais();
+                if (result.success) {
+                    alert('Orçamento salvo com sucesso!');
+                    fecharModalOrcamento();
+                    await carregarRegistros();
                 } else {
-                    mostrarAlerta('Erro: ' + (data.error || 'Erro desconhecido'), 'error');
+                    alert('Erro ao salvar: ' + result.error);
                 }
             } catch (error) {
-                mostrarAlerta('Erro: ' + error.message, 'error');
+                console.error('Erro ao salvar orçamento:', error);
+                alert('Erro ao salvar orçamento');
             }
-        });
+        }
 
-        // Carregar registros
-        async function carregarRegistros(exercicio) {
-            console.log('🔄 Iniciando carregamento de registros para exercício:', exercicio);
+        async function carregarRegistros() {
+            if (!contratoSelecionado) {
+                return;
+            }
+
             try {
-                const url = `/api/orcamento/passagens/listar?exercicio=${exercicio}`;
-                console.log('🌐 Fazendo requisição para:', url);
-                const response = await fetch(url);
+                const response = await fetch(`/api/orcamentos-passagens/contrato/${contratoSelecionado.id}`);
                 const data = await response.json();
-                console.log('✅ Resposta recebida:', data);
 
-                const tbody = document.querySelector('#tabelaOrcamentos tbody');
-                tbody.innerHTML = '';
+                const tbody = document.getElementById('tabelaOrcamentos');
 
-                if (data.success && data.registros.length > 0) {
-                    console.log(`📊 ${data.registros.length} registro(s) encontrado(s)`);
-                    
-                    // Totalizadores
-                    let totalVlAprovado = 0;
-                    let totalVlAtual = 0;
-                    let totalVlUtilizado = 0;  // ← ADICIONAR ESTA LINHA
-                    let totalVlSaldo = 0;
+                if (!data.success || data.orcamentos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #999;">Nenhum orçamento encontrado para este contrato</td></tr>';
+                    return;
+                }
 
-                    data.registros.forEach(reg => {
-                        totalVlAprovado += reg.vl_aprovado;
-                        totalVlAtual += reg.vl_atual;
-                        totalVlUtilizado += reg.vl_utilizado;  // ← ADICIONAR ESTA LINHA
-                        totalVlSaldo += reg.vl_saldo;
-                        
-                        const tr = document.createElement('tr');
-                        tr.className = 'linha-orcamento';
-                        tr.innerHTML = `
-                            <td style="text-align: center;">
-                                <button onclick="toggleExpansao(${reg.id_opa}, this)" 
-                                        style="background: none; border: none; cursor: pointer; font-size: 14px; color: #3498db; padding: 2px 6px;">
-                                    ▶
+                let html = '';
+                data.orcamentos.forEach(orc => {
+                    const programa = programas.find(p => p.ID_PROGRAMA == orc.ID_PROGRAMA);
+                    const acao = acoes.find(a => a.ID_AO == orc.ID_AO);
+                    const subitem = subitens.find(s => s.ID_SUBITEM == orc.ID_SUBITEM);
+
+                    html += `
+                        <tr onclick="abrirModalOrcamento(${orc.ID_OPA})">
+                            <td>${orc.ID_OPA}</td>
+                            <td>${orc.UO || '-'}</td>
+                            <td>${orc.UNIDADE || '-'}</td>
+                            <td>${orc.FONTE || '-'}</td>
+                            <td>${programa ? programa.NM_PROGRAMA : '-'}</td>
+                            <td>${acao ? acao.NM_AO : '-'}</td>
+                            <td>${orc.SUBACAO || '-'}</td>
+                            <td>R$ ${orc.VL_APROVADO ? parseFloat(orc.VL_APROVADO).toLocaleString('pt-BR', {minimumFractionDigits: 2}) : '0,00'}</td>
+                            <td>${orc.NU_EMPENHO || '-'}</td>
+                            <td>
+                                <button type="button" class="btn-edit" onclick="event.stopPropagation(); abrirModalOrcamento(${orc.ID_OPA})">
+                                    ✏️
                                 </button>
                             </td>
-                            <td>${reg.uo}</td>
-                            <td>${reg.unidade}</td>
-                            <td style="font-size: 10px;">${reg.programa || ''}</td>
-                            <td style="font-size: 10px;">${reg.acao || ''}</td>
-                            <td style="font-size: 10px;">${reg.subitem || ''}</td>
-                            <td class="text-right">R$ ${reg.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td class="text-right" style="font-weight: 600; color: #2c3e50;">R$ ${reg.vl_atual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td class="text-right">R$ ${reg.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td class="text-right" style="font-weight: 600; color: ${reg.vl_saldo >= 0 ? '#27ae60' : '#e74c3c'};">R$ ${reg.vl_saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td>${reg.nu_empenho || ''}</td>
-                            <td class="text-center">
-                                <button class="btn btn-edit" onclick="abrirModal(${reg.id_opa})">Editar</button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                    
-                    // Linha de totais
-                    const trTotal = document.createElement('tr');
-                    trTotal.className = 'linha-totais';
-                    trTotal.style.fontWeight = 'bold';
-                    trTotal.style.backgroundColor = '#34495e';  // Cor mais escura
-                    trTotal.style.color = 'white';  // Texto branco
-                    trTotal.innerHTML = `
-                        <td colspan="6" style="text-align: right; padding: 10px; color: white;">TOTAL:</td>
-                        <td class="text-right" style="padding: 10px; color: white;">R$ ${totalVlAprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="text-right" style="padding: 10px; color: #3498db; font-weight: bold;">R$ ${totalVlAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="text-right" style="padding: 10px; color: white;">R$ ${totalVlUtilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td class="text-right" style="padding: 10px; color: ${totalVlSaldo >= 0 ? '#2ecc71' : '#e74c3c'}; font-weight: bold;">R$ ${totalVlSaldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td colspan="2"></td>
+                        </tr>
                     `;
-                    tbody.appendChild(trTotal);
-                    
-                    popularFiltros(data.registros);
-                } else {
-                    console.warn('⚠️ Nenhum registro encontrado para o exercício:', exercicio);
-                    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado para o exercício ' + exercicio + '</td></tr>';
-                }
+                });
+
+                tbody.innerHTML = html;
+
             } catch (error) {
-                console.error('ERRO ao carregar registros:', error);
-                const tbody = document.querySelector('#tabelaOrcamentos tbody');
-                tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #e74c3c;">Erro ao carregar registros: ' + error.message + '</td></tr>';
+                console.error('Erro ao carregar registros:', error);
+                const tbody = document.getElementById('tabelaOrcamentos');
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px; color: #e74c3c;">Erro ao carregar registros: ' + error.message + '</td></tr>';
             }
         }
 
@@ -1294,13 +1229,6 @@
             document.getElementById('vlItem').value = '';
             document.getElementById('nuEmpenhoItem').value = '';
             document.getElementById('obsItem').value = '';
-        }
-
-        function calcularValorTotalItem() {
-            const qtd = parseFloat(document.getElementById('qtdItemPassagem').value) || 0;
-            const vlUnit = parseFloat(document.getElementById('vlUnitItemPassagem').value) || 0;
-            const total = (qtd * vlUnit).toFixed(2);
-            document.getElementById('vlTotalItemPassagem').value = total;
         }
 
         async function carregarItensPassagem() {
@@ -1434,19 +1362,6 @@
                 console.error('Erro ao excluir item:', error);
                 alert('Erro ao excluir item');
             }
-        }
-
-        function mostrarAlerta(mensagem, tipo) {
-            // Alertas desabilitados conforme solicitação
-            // const container = document.getElementById('alertContainer');
-            // const alert = document.createElement('div');
-            // alert.className = `alert alert-${tipo}`;
-            // alert.textContent = mensagem;
-            // container.appendChild(alert);
-
-            // setTimeout(() => {
-            //     alert.remove();
-            // }, 5000);
         }
 
         // Carregar ao iniciar
