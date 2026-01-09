@@ -683,17 +683,13 @@
                 <div class="modal-body">
                     <input type="hidden" id="modoEdicao" value="false">
                     <input type="hidden" id="id_controle" name="id_controle">
+                    <input type="hidden" id="exercicio" name="exercicio">
                     
-                    <!-- Linha 1: ID OPA, Exercício, UO, Unidade, Fonte -->
-                    <div class="form-row form-row-5">
+                    <!-- Linha 1: ID OPA, UO, Unidade, Fonte -->
+                    <div class="form-row form-row-4">
                         <div class="form-group">
                             <label for="id_opa">ID: *</label>
                             <input type="text" id="id_opa" name="id_opa" readonly required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="exercicio">Exercício: *</label>
-                            <input type="number" id="exercicio" name="exercicio" min="2000" max="2100" required>
                         </div>
 
                         <div class="form-group">
@@ -1318,7 +1314,7 @@
                 btnGerenciarItens.style.display = 'none'; // Ocultar botão em modo inserção
                 document.getElementById('id_opa').value = dadosIniciais.proximo_id;
                 document.getElementById('id_controle').value = contratoSelecionado ? contratoSelecionado.ID_CONTROLE : '';
-                document.getElementById('exercicio').value = contratoSelecionado ? contratoSelecionado.EXERCICIO : new Date().getFullYear();
+                document.getElementById('exercicio').value = contratoSelecionado ? contratoSelecionado.EXERCICIO : '';
             }
             
             modal.classList.add('active');
@@ -1340,7 +1336,7 @@
                     const reg = data.registro;
                     document.getElementById('id_opa').value = reg.id_opa;
                     document.getElementById('id_controle').value = contratoSelecionado ? contratoSelecionado.ID_CONTROLE : '';
-                    document.getElementById('exercicio').value = reg.exercicio;
+                    document.getElementById('exercicio').value = contratoSelecionado ? contratoSelecionado.EXERCICIO : '';
                     document.getElementById('uo').value = reg.uo;
                     document.getElementById('unidade').value = reg.unidade;
                     document.getElementById('fonte').value = reg.fonte;
