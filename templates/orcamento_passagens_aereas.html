@@ -6,9 +6,11 @@
     <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
     <title>Gerenciamento de Passagens Aéreas</title>
     
+    <!-- ✅ Bootstrap CSS (APENAS UMA VEZ) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- ✅ CSS do Menu (se você tiver um arquivo separado) -->
     <link rel="stylesheet" href="/static/css/menu-styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <style>
         * {
@@ -26,6 +28,11 @@
             min-height: 100vh;
         }
 
+        /* ========================================= */
+        /* ESTILOS DO MENU - FORÇAR ALTURA CORRETA */
+        /* ========================================= */
+
+
         .navbar-nav {
             height: 100% !important;
             align-items: center !important;
@@ -40,6 +47,8 @@
         .navbar-collapse {
             height: auto !important;
         }
+
+        /* FIM ESTILOS DO MENU - FORÇAR ALTURA CORRETA */
         
         .container {
             max-width: 1600px;
@@ -63,6 +72,393 @@
             font-weight: 600;
             letter-spacing: 0.5px;
         }
+
+        .filter-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        /* Ajuste de altura dos inputs nos formulários de orçamento */
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 6px 8px;        /* Reduzido de 8px para 6px */
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            height: 32px;            /* Altura fixa para inputs e selects */
+        }
+
+        .form-group textarea {
+            height: auto;            /* Textarea mantém altura automática */
+            min-height: 50px;
+        }
+
+        .form-group select {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .form-group input[readonly] {
+            background-color: #f8f9fa;
+            color: #666;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .btn-edit {
+            background-color: #f39c12;
+            color: white;
+            padding: 5px 12px;
+            font-size: 11px;
+        }
+
+        .btn-edit:hover {
+            background-color: #e67e22;
+        }
+
+        .table-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        table th {
+            background-color: #525e69;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: 600;
+            color: white;
+            border-bottom: 2px solid #2c3e50;
+            white-space: nowrap;
+            font-size: 11px;
+        }
+
+        table td {
+            padding: 6px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 12px;
+        }
+
+        table tbody tr:nth-child(even) {
+            background-color: #ecf0f1;
+        }
+
+        table tbody tr:nth-child(odd) {
+            background-color: white;
+        }
+
+        table tbody tr:hover {
+            background-color: #d5dbdb !important;
+        }
+
+        table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Desabilitar hover na linha de totais */
+        table tbody tr.linha-totais:hover {
+            background-color: #34495e !important;
+            cursor: default;
+        }
+
+        .filtro-select {
+            width: 100%;
+            padding: 2px 4px;
+            font-size: 10px;
+            border: 1px solid #95a5a6;
+            border-radius: 2px;
+            background-color: white;
+            margin-top: 3px;
+        }
+
+        .filtro-select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 3px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 4px;
+            width: 90%;
+            max-width: 1200px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 4px 4px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #ecf0f1;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .modal-footer {
+            padding: 15px 25px;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-row-5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .form-row-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .form-row-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .form-grid-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Estilização dos selects de filtro nos cabeçalhos */
+        table th select.filtro-select {
+            width: 100%;
+            padding: 4px 6px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid #3498db;
+            border-radius: 3px;
+            background-color: #525e69;
+            color: white;
+            margin-top: 0;
+            cursor: pointer;
+        }
+
+        table th select.filtro-select:focus {
+            outline: none;
+            border-color: #2980b9;
+            background-color: #3d4a54;
+        }
+
+        table th select.filtro-select option {
+            background-color: white;
+            color: #333;
+            font-size: 12px;
+            font-weight: normal;
+            padding: 5px;
+        }
+
+        /* Alinhamento dos cabeçalhos de valores */
+        table th.text-right {
+            text-align: right;
+        }
+
+        /* Reduzir fonte das opções dos selects do formulário modal */
+        #modalOrcamento select option {
+            font-size: 12px;
+        }
+
+        /* Estilos para lista de itens de passagem */
+        .item-passagem {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+
+        .item-passagem:hover {
+            background: #f8f9fa;
+        }
+
+        .item-passagem-info {
+            flex: 1;
+        }
+
+        .item-passagem-tipo {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .item-passagem-detalhes {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .item-passagem-valor {
+            font-weight: 600;
+            color: #28a745;
+            font-size: 14px;
+            margin: 0 15px;
+        }
+
+        .item-passagem-acoes {
+            display: flex;
+            gap: 5px;
+        }
+
 
         /* Seção de seleção de contrato */
         .selection-section {
@@ -132,113 +528,6 @@
             overflow-y: auto;
         }
 
-        .filter-section {
-            background-color: white;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        .form-group label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 5px;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 6px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 13px;
-            height: 32px;
-        }
-
-        .form-group textarea {
-            height: auto;
-            min-height: 60px;
-            resize: vertical;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #3498db;
-        }
-
-        .form-group input[readonly] {
-            background-color: #f8f9fa;
-            color: #666;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: background-color 0.2s;
-        }
-
-        .btn-primary {
-            background-color: #3498db;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: #2980b9;
-        }
-
-        .btn-success {
-            background-color: #27ae60;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background-color: #229954;
-        }
-
-        .btn-secondary {
-            background-color: #95a5a6;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background-color: #7f8c8d;
-        }
-
-        .btn-edit {
-            background-color: #f39c12;
-            color: white;
-            padding: 5px 12px;
-            font-size: 11px;
-        }
-
-        .btn-edit:hover {
-            background-color: #e67e22;
-        }
-
         .btn-action {
             padding: 4px 8px;
             margin: 0 2px;
@@ -258,165 +547,6 @@
             background-color: #0b5ed7;
         }
 
-        .table-section {
-            background-color: white;
-            padding: 20px;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        table th {
-            background-color: #525e69;
-            padding: 8px 6px;
-            text-align: left;
-            font-weight: 600;
-            color: white;
-            border-bottom: 2px solid #2c3e50;
-            white-space: nowrap;
-            font-size: 11px;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        table td {
-            padding: 6px;
-            border-bottom: 1px solid #ecf0f1;
-            font-size: 12px;
-        }
-
-        table tbody tr:nth-child(even) {
-            background-color: #ecf0f1;
-        }
-
-        table tbody tr:hover {
-            background-color: #d5dbdb;
-            cursor: pointer;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: auto;
-            padding: 0;
-            border: 1px solid #888;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 1000px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .modal-header {
-            background-color: #2c3e50;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px 8px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-            font-size: 18px;
-        }
-
-        .close {
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            background: none;
-            border: none;
-            padding: 0;
-            line-height: 1;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: #bbb;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .modal-footer {
-            padding: 15px 20px;
-            border-top: 1px solid #ddd;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .form-row {
-            display: grid;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .form-row-5 {
-            grid-template-columns: repeat(5, 1fr);
-        }
-
-        .form-row-3 {
-            grid-template-columns: repeat(3, 1fr);
-        }
-
-        .form-row-4 {
-            grid-template-columns: repeat(4, 1fr);
-        }
-
-        .form-grid-full {
-            grid-column: 1 / -1;
-        }
-
-        #orcamentoSection {
-            display: none;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
     </style>
 </head>
 <body>
@@ -488,169 +618,346 @@
             </div>
         </div>
 
-        <!-- SEÇÃO DE ORÇAMENTO (oculta até selecionar contrato) -->
-        <div id="orcamentoSection">
-            <div class="filter-section">
-                <div class="filter-group">
-                    <button type="button" class="btn btn-success" onclick="abrirModal()">
-                        ➕ Adicionar Registro
-                    </button>
-                </div>
+        <div class="filter-section" id="botoesAcao" style="display: none;">
+            <div class="filter-group">
+                <!-- Botões serão exibidos após selecionar contrato -->
             </div>
-
-            <div class="table-section">
-                <table id="tabelaOrcamentos">
-                    <thead>
-                        <tr>
-                            <th style="width: 50px;">UO</th>
-                            <th style="width: 80px;">Unidade</th>
-                            <th>Programa</th>
-                            <th>Ação Orçamentária</th>
-                            <th>Subitem</th>
-                            <th style="width: 100px;" class="text-right">Valor Aprovado</th>
-                            <th style="width: 100px;" class="text-right">Valor Atual</th>
-                            <th style="width: 100px;" class="text-right">Valor Utilizado</th>
-                            <th style="width: 100px;" class="text-right">Saldo</th>
-                            <th style="width: 90px;">Nº Empenho</th>
-                            <th style="width: 70px;" class="text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td colspan="11" style="text-align: center; padding: 30px; color: #999;">
-                                Selecione um contrato para visualizar os orçamentos
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            
+            <!-- AMBOS OS BOTÕES JUNTOS NO LADO DIREITO -->
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-success" onclick="abrirModal()" style="padding: 8px 20px; font-size: 12px;">
+                    <span style="font-size: 14px; margin-right: 5px;">+</span> Adicionar Registro
+                </button>
+                <button class="btn btn-primary" onclick="window.location.href='/passagens/controle'">
+                    <i class="fas fa-ticket-alt"></i>📋 Controle de Bilhetes
+                </button>
             </div>
         </div>
 
-        <!-- MODAL ORÇAMENTO - FORMULÁRIO ORIGINAL -->
-        <div id="modalOrcamento" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modalTitulo">Adicionar Registro de Orçamento</h2>
-                    <span class="close" onclick="fecharModal()">&times;</span>
+        <div class="table-section" id="tabelaOrcamentosSection" style="display: none;">
+            <table id="tabelaOrcamentos">
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;">
+                            <!-- Coluna de expansão -->
+                        </th>
+                        <th style="width: 50px;">
+                            <select id="filtroUO" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 70px;">
+                            <select id="filtroUnidade" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 140px;">
+                            <select id="filtroPrograma" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 140px;">
+                            <select id="filtroAcao" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 140px;">
+                            <select id="filtroSubitem" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 100px;" class="text-right">Valor Aprovado</th>
+                        <th style="width: 100px;" class="text-right">Valor Atual</th>
+                        <th style="width: 100px;" class="text-right">Valor Utilizado</th>
+                        <th style="width: 100px;" class="text-right">Saldo</th>
+                        <th style="width: 90px;">
+                            <select id="filtroEmpenho" class="filtro-select"></select>
+                        </th>
+                        <th style="width: 70px;" class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modalOrcamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Adicionar Registro de Orçamento</h2>
+                <span class="close" onclick="fecharModal()">&times;</span>
+            </div>
+            <form id="formOrcamento">
+                <div class="modal-body">
+                    <input type="hidden" id="modoEdicao" value="false">
+                    <input type="hidden" id="id_controle" name="id_controle">
+                    
+                    <!-- Linha 1: ID OPA, Exercício, UO, Unidade, Fonte -->
+                    <div class="form-row form-row-5">
+                        <div class="form-group">
+                            <label for="id_opa">ID: *</label>
+                            <input type="text" id="id_opa" name="id_opa" readonly required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exercicio">Exercício: *</label>
+                            <input type="number" id="exercicio" name="exercicio" min="2000" max="2100" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="uo">UO: *</label>
+                            <select id="uo" name="uo" required>
+                                <option value="">Selecione...</option>
+                                <option value="TJRO">TJRO</option>
+                                <option value="FUJU">FUJU</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="unidade">Unidade: *</label>
+                            <input type="text" id="unidade" name="unidade" maxlength="15" required style="text-transform: uppercase;">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fonte">Fonte: *</label>
+                            <input type="text" id="fonte" name="fonte" maxlength="10" required>
+                        </div>
+                    </div>
+
+                    <!-- Linha 2: Programa, Ação Orçamentária, Subação -->
+                    <div class="form-row form-row-3">
+                        <div class="form-group">
+                            <label for="id_programa">Programa: *</label>
+                            <select id="id_programa" name="id_programa" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_ao">Ação Orçamentária: *</label>
+                            <select id="id_ao" name="id_ao" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="subacao">Sub-Ação:</label>
+                            <input type="text" id="subacao" name="subacao" maxlength="100">
+                        </div>
+                    </div>
+
+                    <!-- Linha 3: Elemento, Subitem, Valor Aprovado, Nº Empenho -->
+                    <div class="form-row form-row-4">
+                        <div class="form-group">
+                            <label for="elemento_despesa">Elemento: *</label>
+                            <input type="text" id="elemento_despesa" name="elemento_despesa" value="33.90.33" maxlength="8" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="id_subitem">Subitem: *</label>
+                            <select id="id_subitem" name="id_subitem" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="vl_aprovado">Valor Aprovado (R$): *</label>
+                            <input type="text" id="vl_aprovado" name="vl_aprovado" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nu_empenho">Nº Empenho:</label>
+                            <input type="text" id="nu_empenho" name="nu_empenho" maxlength="12" placeholder="0000NE000000">
+                        </div>
+                    </div>
+
+                    <!-- Linha 4: Objetivo -->
+                    <div class="form-row">
+                        <div class="form-group form-grid-full">
+                            <label for="objetivo">Objetivo:</label>
+                            <textarea id="objetivo" name="objetivo" maxlength="500"></textarea>
+                        </div>
+                    </div>
                 </div>
-                <form id="formOrcamento">
-                    <div class="modal-body">
-                        <input type="hidden" id="modoEdicao" value="false">
-                        <input type="hidden" id="id_controle" name="id_controle">
-                        
-                        <!-- Linha 1: ID OPA, Exercício, UO, Unidade, Fonte -->
-                        <div class="form-row form-row-5">
-                            <div class="form-group">
-                                <label for="id_opa">ID: *</label>
-                                <input type="text" id="id_opa" name="id_opa" readonly required>
-                            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnSalvar">Salvar</button>
+                    <button type="button" class="btn" id="btnGerenciarItens" onclick="abrirModalItensPassagem()" 
+                            style="background: #17a2b8; color: white; margin-left: 10px; display: none;">
+                        📋 Gerenciar Itens
+                    </button>            
+                </div>
+            </form>
+        </div>
+    </div>
 
-                            <div class="form-group">
-                                <label for="exercicio">Exercício: *</label>
-                                <input type="number" id="exercicio" name="exercicio" min="2000" max="2100" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="uo">UO: *</label>
-                                <select id="uo" name="uo" required>
-                                    <option value="">Selecione...</option>
-                                    <option value="TJRO">TJRO</option>
-                                    <option value="FUJU">FUJU</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="unidade">Unidade: *</label>
-                                <input type="text" id="unidade" name="unidade" maxlength="15" required style="text-transform: uppercase;">
-                            </div>
-
-                            <div class="form-group">
-                                <label for="fonte">Fonte: *</label>
-                                <input type="text" id="fonte" name="fonte" maxlength="10" required>
-                            </div>
+    <!-- Modal Gerenciar Itens do orçamento Passagem -->
+    <div id="modalItensPassagem" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>📋 Gerenciar Itens de Orçamento</h2>
+                <span class="close" onclick="fecharModalItensPassagem()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Formulário de Adição -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <h3 style="font-size: 14px; margin-bottom: 12px; color: #333;">➕ Adicionar Item</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo de Item <span style="color: red;">*</span></label>
+                            <select id="tipoItemPassagem" required>
+                                <option value="">Selecione...</option>
+                            </select>
                         </div>
-
-                        <!-- Linha 2: Programa, Ação Orçamentária, Subação -->
-                        <div class="form-row form-row-3">
-                            <div class="form-group">
-                                <label for="id_programa">Programa: *</label>
-                                <select id="id_programa" name="id_programa" required>
-                                    <option value="">Selecione...</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="id_ao">Ação Orçamentária: *</label>
-                                <select id="id_ao" name="id_ao" required>
-                                    <option value="">Selecione...</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="subacao">Sub-Ação:</label>
-                                <input type="text" id="subacao" name="subacao" maxlength="100">
-                            </div>
-                        </div>
-
-                        <!-- Linha 3: Elemento, Subitem, Valor Aprovado, Nº Empenho -->
-                        <div class="form-row form-row-4">
-                            <div class="form-group">
-                                <label for="elemento_despesa">Elemento: *</label>
-                                <input type="text" id="elemento_despesa" name="elemento_despesa" value="33.90.33" maxlength="8" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="id_subitem">Subitem: *</label>
-                                <select id="id_subitem" name="id_subitem" required>
-                                    <option value="">Selecione...</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="vl_aprovado">Valor Aprovado (R$): *</label>
-                                <input type="text" id="vl_aprovado" name="vl_aprovado" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="nu_empenho">Nº Empenho:</label>
-                                <input type="text" id="nu_empenho" name="nu_empenho" maxlength="12" placeholder="0000NE000000">
-                            </div>
-                        </div>
-
-                        <!-- Linha 4: Objetivo -->
-                        <div class="form-row">
-                            <div class="form-group form-grid-full">
-                                <label for="objetivo">Objetivo:</label>
-                                <textarea id="objetivo" name="objetivo" maxlength="500"></textarea>
-                            </div>
+                        <div class="form-group">
+                            <label>Valor do Item (R$) <span style="color: red;">*</span></label>
+                            <input type="number" id="vlItem" min="0" step="0.01" placeholder="0.00" required>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" id="btnSalvar">Salvar</button>
-                        <button type="button" class="btn" id="btnGerenciarItens" onclick="abrirModalItensPassagem()" 
-                                style="background: #17a2b8; color: white; margin-left: 10px; display: none;">
-                            📋 Gerenciar Itens
-                        </button>            
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nº Empenho</label>
+                            <input type="text" id="nuEmpenhoItem" maxlength="12" placeholder="Ex: 2024NE00001">
+                        </div>
+                        <div class="form-group">
+                            <label>Observações</label>
+                            <input type="text" id="obsItem" maxlength="200">
+                        </div>
                     </div>
-                </form>
+                    
+                    <div style="text-align: right; margin-top: 10px;">
+                        <button type="button" class="btn btn-primary" onclick="adicionarItemPassagem()">
+                            ➕ Adicionar Item
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Lista de Itens -->
+                <div>
+                    <h3 style="font-size: 14px; margin-bottom: 10px; color: #333;">📦 Itens Cadastrados</h3>
+                    <div id="listaItensPassagem" style="max-height: 400px; overflow-y: auto;">
+                        <div class="loading">Carregando itens...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center;">
+                <button type="button" class="btn btn-secondary" onclick="fecharModalItensPassagem()">Fechar</button>
             </div>
         </div>
     </div>
 
+    <!-- ========================================= -->
+    <!-- SCRIPTS - SEMPRE NESTA ORDEM! -->
+    <!-- ========================================= -->
+    
+    <!-- 1️⃣ PRIMEIRO: Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-
+    
+    <!-- 2️⃣ SEGUNDO: Verificação de autenticação (se você tiver) -->
+    <script src="/static/js/auth-check.js"></script>
+    
+    <!-- 3️⃣ TERCEIRO: Carregador do menu -->
+    <script src="/static/js/menu-loader.js"></script>
+    
     <script>
-        let dadosIniciais = null;
-        let contratoSelecionado = null;
+        let dadosIniciais = {};
+        let linhasExpandidas = new Set();
+        let idOrcamentoAtual = null;
+        let tiposItemOPA = [];
 
-        // Carregar dados iniciais
-        async function carregarDadosIniciais() {
-            await carregarContratos();
-            await carregarDadosOrcamento();
+        function controlarBilhetes() {
+            mostrarAlerta('🚧 Funcionalidade em construção', 'success');
+        }        
+
+        // Alternar expansão de linha
+        async function toggleExpansao(idOpa, btnElement) {
+            const linhaAtual = btnElement.closest('tr');
+            const idLinha = `subtabela-${idOpa}`;
+            
+            if (linhasExpandidas.has(idOpa)) {
+                // Fechar
+                const subtabelaRow = document.getElementById(idLinha);
+                if (subtabelaRow) subtabelaRow.remove();
+                linhasExpandidas.delete(idOpa);
+                btnElement.innerHTML = '▶';
+                btnElement.style.color = '#3498db';
+            } else {
+                // Abrir
+                btnElement.innerHTML = '⏳';
+                await carregarSubtabela(idOpa, linhaAtual);
+                linhasExpandidas.add(idOpa);
+                btnElement.innerHTML = '▼';
+                btnElement.style.color = '#e74c3c';
+            }
         }
 
-        // Carregar lista de contratos
+        // Carregar subtabela
+        async function carregarSubtabela(idOpa, linhaAtual) {
+            try {
+                const response = await fetch(`/api/orcamento/passagens/${idOpa}/itens`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const subtabelaRow = document.createElement('tr');
+                    subtabelaRow.id = `subtabela-${idOpa}`;
+                    subtabelaRow.style.backgroundColor = '#f8f9fa';
+                    
+                    const numColunas = linhaAtual.cells.length;
+                    const subtabelaCell = document.createElement('td');
+                    subtabelaCell.colSpan = numColunas;
+                    subtabelaCell.style.padding = '15px';
+                    
+                    if (data.itens.length > 0) {
+                        let html = `
+                            <div style="background: white; border-radius: 4px; padding: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <h4 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 13px;">
+                                    📋 Movimentações do Orçamento
+                                </h4>
+                                <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background-color: #34495e;">
+                                            <th style="padding: 6px; color: white; text-align: center; width: 50px;">Item</th>
+                                            <th style="padding: 6px; color: white; text-align: left;">Descrição</th>
+                                            <th style="padding: 6px; color: white; text-align: center; width: 120px;">Empenho</th>
+                                            <th style="padding: 6px; color: white; text-align: right; width: 120px;">Valor</th>
+                                            <th style="padding: 6px; color: white; text-align: left;">Observações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        
+                        data.itens.forEach(item => {
+                            const cor = item.fltipo === 'E' ? '#27ae60' : '#e74c3c';
+                            const simbolo = item.fltipo === 'E' ? '+' : '-';
+                            html += `
+                                <tr style="border-bottom: 1px solid #ecf0f1;">
+                                    <td style="padding: 6px; text-align: center;">${item.item}</td>
+                                    <td style="padding: 6px;">${item.descricao}</td>
+                                    <td style="padding: 6px; text-align: center;">${item.nu_empenho}</td>
+                                    <td style="padding: 6px; text-align: right; color: ${cor}; font-weight: bold;">
+                                        ${simbolo} R$ ${item.vl_item.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                    </td>
+                                    <td style="padding: 6px; font-size: 10px; color: #7f8c8d;">${item.obs}</td>
+                                </tr>
+                            `;
+                        });
+                        html += `</tbody></table></div>`;
+                        subtabelaCell.innerHTML = html;
+                    } else {
+                        subtabelaCell.innerHTML = `
+                            <div style="background: white; border-radius: 4px; padding: 15px; text-align: center; color: #95a5a6;">
+                                Nenhuma movimentação adicional para este orçamento
+                            </div>
+                        `;
+                    }
+                    
+                    subtabelaRow.appendChild(subtabelaCell);
+                    linhaAtual.after(subtabelaRow);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar subtabela:', error);
+                alert('Erro: ' + error.message);
+            }
+        }
+
+
+        let contratoSelecionado = null;
+
+        // Carregar contratos
         async function carregarContratos() {
             try {
                 const response = await fetch('/api/contratos-passagens');
@@ -692,50 +999,6 @@
             }
         }
 
-        // Carregar dados para formulário
-        async function carregarDadosOrcamento() {
-            try {
-                const response = await fetch('/api/orcamento/dados_iniciais');
-                const data = await response.json();
-                
-                if (data.success) {
-                    dadosIniciais = data;
-                    
-                    // Preencher select de programas
-                    const selectPrograma = document.getElementById('id_programa');
-                    selectPrograma.innerHTML = '<option value="">Selecione...</option>';
-                    data.programas.forEach(prog => {
-                        const option = document.createElement('option');
-                        option.value = prog.id;
-                        option.textContent = prog.descricao;
-                        selectPrograma.appendChild(option);
-                    });
-
-                    // Preencher select de ações
-                    const selectAcao = document.getElementById('id_ao');
-                    selectAcao.innerHTML = '<option value="">Selecione...</option>';
-                    data.acoes.forEach(acao => {
-                        const option = document.createElement('option');
-                        option.value = acao.id;
-                        option.textContent = acao.descricao;
-                        selectAcao.appendChild(option);
-                    });
-
-                    // Preencher select de subitens
-                    const selectSubitem = document.getElementById('id_subitem');
-                    selectSubitem.innerHTML = '<option value="">Selecione...</option>';
-                    data.subitens.forEach(subitem => {
-                        const option = document.createElement('option');
-                        option.value = subitem.id;
-                        option.textContent = `${subitem.id} - ${subitem.descricao}`;
-                        selectSubitem.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Erro ao carregar dados de orçamento:', error);
-            }
-        }
-
         function selecionarContrato(contrato) {
             contratoSelecionado = contrato;
 
@@ -746,91 +1009,288 @@
             document.getElementById('infoContrato').textContent = contrato.CONTRATO || '-';
 
             document.getElementById('contratoSelecionadoInfo').style.display = 'block';
-            document.getElementById('orcamentoSection').style.display = 'block';
+            document.getElementById('botoesAcao').style.display = 'flex';
+            document.getElementById('tabelaOrcamentosSection').style.display = 'block';
 
-            carregarRegistros();
+            // Carregar registros do contrato selecionado
+            carregarRegistrosContrato(contrato.ID_CONTROLE, contrato.EXERCICIO);
         }
 
         function limparSelecaoContrato() {
             contratoSelecionado = null;
             document.getElementById('contratoSelecionadoInfo').style.display = 'none';
-            document.getElementById('orcamentoSection').style.display = 'none';
-            document.querySelector('#tabelaOrcamentos tbody').innerHTML = 
-                '<tr><td colspan="11" style="text-align: center; padding: 30px; color: #999;">Selecione um contrato para visualizar os orçamentos</td></tr>';
+            document.getElementById('botoesAcao').style.display = 'none';
+            document.getElementById('tabelaOrcamentosSection').style.display = 'none';
+            document.querySelector('#tabelaOrcamentos tbody').innerHTML = '';
         }
 
-        async function carregarRegistros() {
-            if (!contratoSelecionado) return;
-
+        async function carregarRegistrosContrato(idControle, exercicio) {
             try {
-                const response = await fetch(`/api/orcamento/passagens/listar?id_controle=${contratoSelecionado.ID_CONTROLE}&exercicio=${contratoSelecionado.EXERCICIO}`);
+                const response = await fetch(`/api/orcamento/passagens/listar?id_controle=${idControle}&exercicio=${exercicio}`);
                 const data = await response.json();
 
-                const tbody = document.querySelector('#tabelaOrcamentos tbody');
-
-                if (!data.success || data.registros.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 20px; color: #999;">Nenhum orçamento encontrado para este contrato</td></tr>';
+                if (!data.success) {
+                    mostrarAlerta('Erro ao carregar registros', 'error');
                     return;
                 }
 
-                let html = '';
-                data.registros.forEach(orc => {
-                    html += `
-                        <tr onclick="abrirModal(${orc.id_opa})">
-                            <td>${orc.uo || '-'}</td>
-                            <td>${orc.unidade || '-'}</td>
-                            <td>${orc.programa || '-'}</td>
-                            <td>${orc.acao || '-'}</td>
-                            <td>${orc.subitem || '-'}</td>
-                            <td class="text-right">R$ ${parseFloat(orc.vl_aprovado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td class="text-right">R$ ${parseFloat(orc.vl_atual || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td class="text-right">R$ ${parseFloat(orc.vl_utilizado || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td class="text-right">R$ ${parseFloat(orc.vl_saldo || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                            <td>${orc.nu_empenho || '-'}</td>
-                            <td class="text-center">
-                                <button type="button" class="btn-edit" onclick="event.stopPropagation(); abrirModal(${orc.id_opa})">
-                                    ✏️
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                tbody.innerHTML = html;
+                // Usar a função existente renderizarTabela
+                renderizarTabela(data.registros);
+                popularFiltros(data.registros);
 
             } catch (error) {
                 console.error('Erro ao carregar registros:', error);
+                mostrarAlerta('Erro ao carregar registros do contrato', 'error');
             }
         }
 
-        async function abrirModal(idOpa = null) {
-            if (!contratoSelecionado && !idOpa) {
-                alert('Selecione um contrato primeiro!');
+                // Carregar dados iniciais
+        async function carregarDadosIniciais() {
+            // Carregar contratos primeiro
+            await carregarContratos();
+            
+            try {
+                const response = await fetch('/api/orcamento/dados_iniciais');
+                const data = await response.json();
+                
+                if (data.success) {
+                    dadosIniciais = data;
+                    
+                    // Preencher selects
+                    const selectPrograma = document.getElementById('id_programa');
+                    selectPrograma.innerHTML = '<option value="">Selecione...</option>';
+                    data.programas.forEach(prog => {
+                        const option = document.createElement('option');
+                        option.value = prog.id;
+                        option.textContent = prog.descricao;
+                        selectPrograma.appendChild(option);
+                    });
+
+                    const selectAcao = document.getElementById('id_ao');
+                    selectAcao.innerHTML = '<option value="">Selecione...</option>';
+                    data.acoes.forEach(acao => {
+                        const option = document.createElement('option');
+                        option.value = acao.id;
+                        option.textContent = acao.descricao;
+                        selectAcao.appendChild(option);
+                    });
+
+                    const selectSubitem = document.getElementById('id_subitem');
+                    selectSubitem.innerHTML = '<option value="">Selecione...</option>';
+                    data.subitens.forEach(subitem => {
+                        const option = document.createElement('option');
+                        option.value = subitem.id;
+                        option.textContent = `${subitem.id} - ${subitem.descricao}`;
+                        selectSubitem.appendChild(option);
+                    })
+
+                    // Preencher filtro de exercícios (sem opção "Todos")
+                    const filtroExercicio = document.getElementById('filtroExercicio');
+                    filtroExercicio.innerHTML = '';
+                    const anoAtual = new Date().getFullYear();
+                    
+                    // Determinar qual exercício selecionar (priorizar ano atual, senão o mais recente)
+                    let exercicioSelecionado = null;
+                    
+                    data.exercicios.forEach(exercicio => {
+                        const option = document.createElement('option');
+                        option.value = exercicio;
+                        option.textContent = exercicio;
+                        
+                        // Selecionar o ano atual se existir, senão o primeiro (mais recente)
+                        if (exercicio === anoAtual) {
+                            option.selected = true;
+                            exercicioSelecionado = exercicio;
+                        } else if (!exercicioSelecionado && data.exercicios.indexOf(exercicio) === 0) {
+                            option.selected = true;
+                            exercicioSelecionado = exercicio;
+                        }
+                        
+                        filtroExercicio.appendChild(option);
+                    });
+
+                    // Se nenhum exercício foi selecionado, usar o primeiro da lista
+                    if (!exercicioSelecionado && data.exercicios.length > 0) {
+                        exercicioSelecionado = data.exercicios[0];
+                    }
+
+                    // Registros serão carregados após selecionar um contrato
+                }
+            } catch (error) {
+                console.error('ERRO ao carregar dados iniciais:', error);
+                alert('Erro ao carregar dados iniciais: ' + error.message + '\nVerifique o console para mais detalhes.');
+            }
+        }
+
+        function popularFiltros(registros) {
+            // Extrair valores únicos
+            const uos = [...new Set(registros.map(r => r.uo))].sort();
+            const unidades = [...new Set(registros.map(r => r.unidade))].sort();
+            const programas = [...new Set(registros.map(r => r.programa).filter(p => p))].sort();
+            const acoes = [...new Set(registros.map(r => r.acao).filter(a => a))].sort();
+            const subitens = [...new Set(registros.map(r => r.subitem).filter(s => s))].sort();
+            const empenhos = [...new Set(registros.map(r => r.nu_empenho).filter(e => e))].sort();
+            
+            // Popular filtro UO
+            const filtroUO = document.getElementById('filtroUO');
+            filtroUO.innerHTML = '<option value="">UO</option>';
+            uos.forEach(uo => {
+                filtroUO.innerHTML += `<option value="${uo}">${uo}</option>`;
+            });
+            
+            // Popular filtro Unidade
+            const filtroUnidade = document.getElementById('filtroUnidade');
+            filtroUnidade.innerHTML = '<option value="">Unidade</option>';
+            unidades.forEach(unidade => {
+                filtroUnidade.innerHTML += `<option value="${unidade}">${unidade}</option>`;
+            });
+            
+            // Popular filtro Programa
+            const filtroPrograma = document.getElementById('filtroPrograma');
+            filtroPrograma.innerHTML = '<option value="">Programa</option>';
+            programas.forEach(programa => {
+                filtroPrograma.innerHTML += `<option value="${programa}">${programa}</option>`;
+            });
+            
+            // Popular filtro Ação
+            const filtroAcao = document.getElementById('filtroAcao');
+            filtroAcao.innerHTML = '<option value="">Ação Orçamentária</option>';
+            acoes.forEach(acao => {
+                filtroAcao.innerHTML += `<option value="${acao}">${acao}</option>`;
+            });
+            
+            // Popular filtro SubItem
+            const filtroSubitem = document.getElementById('filtroSubitem');
+            filtroSubitem.innerHTML = '<option value="">SubItem</option>';
+            subitens.forEach(subitem => {
+                filtroSubitem.innerHTML += `<option value="${subitem}">${subitem}</option>`;
+            });
+            
+            // Popular filtro Empenho
+            const filtroEmpenho = document.getElementById('filtroEmpenho');
+            filtroEmpenho.innerHTML = '<option value="">Nº Empenho</option>';
+            empenhos.forEach(empenho => {
+                filtroEmpenho.innerHTML += `<option value="${empenho}">${empenho}</option>`;
+            });
+        }        
+        
+        function aplicarFiltros() {
+            const tbody = document.querySelector('#tabelaOrcamentos tbody');
+            const linhas = tbody.querySelectorAll('tr');
+            
+            const filtroUO = document.getElementById('filtroUO').value.toLowerCase();
+            const filtroUnidade = document.getElementById('filtroUnidade').value.toLowerCase();
+            const filtroPrograma = document.getElementById('filtroPrograma').value.toLowerCase();
+            const filtroAcao = document.getElementById('filtroAcao').value.toLowerCase();
+            const filtroSubitem = document.getElementById('filtroSubitem').value.toLowerCase();
+            const filtroEmpenho = document.getElementById('filtroEmpenho').value.toLowerCase();
+            
+            linhas.forEach(linha => {
+                const colunas = linha.querySelectorAll('td');
+                if (colunas.length === 0) return; // Pular linha vazia
+                
+                const uo = colunas[0].textContent.toLowerCase();
+                const unidade = colunas[1].textContent.toLowerCase();
+                const programa = colunas[3].textContent.toLowerCase();
+                const acao = colunas[4].textContent.toLowerCase();
+                const subitem = colunas[6].textContent.toLowerCase();
+                const empenho = colunas[10].textContent.toLowerCase();
+                
+                const mostrar = 
+                    (filtroUO === '' || uo.includes(filtroUO)) &&
+                    (filtroUnidade === '' || unidade.includes(filtroUnidade)) &&
+                    (filtroPrograma === '' || programa.includes(filtroPrograma)) &&
+                    (filtroAcao === '' || acao.includes(filtroAcao)) &&
+                    (filtroSubitem === '' || subitem.includes(filtroSubitem)) &&
+                    (filtroEmpenho === '' || empenho.includes(filtroEmpenho));
+                
+                linha.style.display = mostrar ? '' : 'none';
+            });
+        }
+
+        // Máscaras e validações
+        document.getElementById('fonte').addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '');
+        });
+
+        document.getElementById('elemento_despesa').addEventListener('input', function(e) {
+            let value = this.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '.' + value.substring(2);
+            }
+            if (value.length >= 6) {
+                value = value.substring(0, 5) + '.' + value.substring(5);
+            }
+            this.value = value.substring(0, 8);
+        });
+
+        document.getElementById('nu_empenho').addEventListener('input', function(e) {
+            let value = this.value.replace(/[^0-9NE]/gi, '').toUpperCase();
+            let numbers = value.replace(/NE/g, '');
+            
+            if (numbers.length > 4) {
+                this.value = numbers.substring(0, 4) + 'NE' + numbers.substring(4, 10);
+            } else {
+                this.value = numbers;
+            }
+        });
+
+        // Máscara de moeda brasileira
+        document.getElementById('vl_aprovado').addEventListener('input', function(e) {
+            let value = this.value.replace(/\D/g, '');
+            
+            if (value === '') {
+                this.value = '';
                 return;
             }
+            
+            value = parseInt(value, 10);
+            
+            const formatted = (value / 100).toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            
+            this.value = formatted;
+        });
 
+        // Filtro de exercício
+        document.getElementById('filtroExercicio').addEventListener('change', function() {
+            carregarRegistros(this.value);
+        });
+        // Event listeners para filtros da tabela
+        document.getElementById('filtroUO').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroUnidade').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroPrograma').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroAcao').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroSubitem').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtroEmpenho').addEventListener('change', aplicarFiltros);
+
+
+        // Modal
+        function abrirModal(idOpa = null) {
             const modal = document.getElementById('modalOrcamento');
             const titulo = document.getElementById('modalTitulo');
             const btnSalvar = document.getElementById('btnSalvar');
             const btnGerenciarItens = document.getElementById('btnGerenciarItens');
-
+            
             if (idOpa) {
                 // Modo edição
                 titulo.textContent = 'Editar Registro de Orçamento';
                 btnSalvar.textContent = 'Atualizar';
                 document.getElementById('modoEdicao').value = 'true';
-                btnGerenciarItens.style.display = 'inline-block';
-                await carregarRegistroParaEdicao(idOpa);
+                carregarRegistroParaEdicao(idOpa);
+                btnGerenciarItens.style.display = 'inline-block'; // Mostrar botão em modo edição
             } else {
                 // Modo inserção
                 titulo.textContent = 'Adicionar Registro de Orçamento';
                 btnSalvar.textContent = 'Salvar';
                 document.getElementById('modoEdicao').value = 'false';
                 limparFormulario();
-                btnGerenciarItens.style.display = 'none';
+                btnGerenciarItens.style.display = 'none'; // Ocultar botão em modo inserção
                 document.getElementById('id_opa').value = dadosIniciais.proximo_id;
-                document.getElementById('id_controle').value = contratoSelecionado.ID_CONTROLE;
-                document.getElementById('exercicio').value = contratoSelecionado.EXERCICIO;
+                document.getElementById('id_controle').value = contratoSelecionado ? contratoSelecionado.ID_CONTROLE : '';
+                document.getElementById('exercicio').value = contratoSelecionado ? contratoSelecionado.EXERCICIO : new Date().getFullYear();
             }
             
             modal.classList.add('active');
@@ -842,6 +1302,7 @@
             limparFormulario();
         }
 
+        // Carregar registro para edição
         async function carregarRegistroParaEdicao(idOpa) {
             try {
                 const response = await fetch(`/api/orcamento/passagens/${idOpa}`);
@@ -850,7 +1311,7 @@
                 if (data.success) {
                     const reg = data.registro;
                     document.getElementById('id_opa').value = reg.id_opa;
-                    document.getElementById('id_controle').value = contratoSelecionado.ID_CONTROLE;
+                    document.getElementById('id_controle').value = contratoSelecionado ? contratoSelecionado.ID_CONTROLE : '';
                     document.getElementById('exercicio').value = reg.exercicio;
                     document.getElementById('uo').value = reg.uo;
                     document.getElementById('unidade').value = reg.unidade;
@@ -866,16 +1327,14 @@
                         maximumFractionDigits: 2
                     });
                     document.getElementById('nu_empenho').value = reg.nu_empenho || '';
+                } else {
+                    mostrarAlerta('Erro ao carregar registro: ' + data.error, 'error');
+                    fecharModal();
                 }
             } catch (error) {
-                alert('Erro ao carregar registro: ' + error.message);
+                mostrarAlerta('Erro ao carregar registro: ' + error.message, 'error');
                 fecharModal();
             }
-        }
-
-        function limparFormulario() {
-            document.getElementById('formOrcamento').reset();
-            document.getElementById('elemento_despesa').value = '33.90.33';
         }
 
         // Submit do formulário
@@ -887,7 +1346,7 @@
             
             const formData = {
                 id_opa: idOpa,
-                id_controle: parseInt(document.getElementById('id_controle').value),
+                id_controle: contratoSelecionado ? parseInt(contratoSelecionado.ID_CONTROLE) : null,
                 exercicio: parseInt(document.getElementById('exercicio').value),
                 uo: document.getElementById('uo').value,
                 unidade: document.getElementById('unidade').value.toUpperCase(),
@@ -917,20 +1376,315 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert(data.message);
+                    mostrarAlerta(data.message, 'success');
                     fecharModal();
-                    await carregarDadosOrcamento();
-                    await carregarRegistros();
+                    carregarDadosIniciais();
                 } else {
-                    alert('Erro: ' + (data.error || 'Erro desconhecido'));
+                    mostrarAlerta('Erro: ' + (data.error || 'Erro desconhecido'), 'error');
                 }
             } catch (error) {
-                alert('Erro: ' + error.message);
+                mostrarAlerta('Erro: ' + error.message, 'error');
             }
         });
 
-        function abrirModalItensPassagem() {
-            alert('Modal de itens será implementado');
+        // Carregar registros
+        async function carregarRegistros(exercicio) {
+            console.log('🔄 Iniciando carregamento de registros para exercício:', exercicio);
+            try {
+                const url = `/api/orcamento/passagens/listar?exercicio=${exercicio}`;
+                console.log('🌐 Fazendo requisição para:', url);
+                const response = await fetch(url);
+                const data = await response.json();
+                console.log('✅ Resposta recebida:', data);
+
+                const tbody = document.querySelector('#tabelaOrcamentos tbody');
+                tbody.innerHTML = '';
+
+                if (data.success && data.registros.length > 0) {
+                    console.log(`📊 ${data.registros.length} registro(s) encontrado(s)`);
+                    
+                    // Totalizadores
+                    let totalVlAprovado = 0;
+                    let totalVlAtual = 0;
+                    let totalVlUtilizado = 0;  // ← ADICIONAR ESTA LINHA
+                    let totalVlSaldo = 0;
+
+                    data.registros.forEach(reg => {
+                        totalVlAprovado += reg.vl_aprovado;
+                        totalVlAtual += reg.vl_atual;
+                        totalVlUtilizado += reg.vl_utilizado;  // ← ADICIONAR ESTA LINHA
+                        totalVlSaldo += reg.vl_saldo;
+                        
+                        const tr = document.createElement('tr');
+                        tr.className = 'linha-orcamento';
+                        tr.innerHTML = `
+                            <td style="text-align: center;">
+                                <button onclick="toggleExpansao(${reg.id_opa}, this)" 
+                                        style="background: none; border: none; cursor: pointer; font-size: 14px; color: #3498db; padding: 2px 6px;">
+                                    ▶
+                                </button>
+                            </td>
+                            <td>${reg.uo}</td>
+                            <td>${reg.unidade}</td>
+                            <td style="font-size: 10px;">${reg.programa || ''}</td>
+                            <td style="font-size: 10px;">${reg.acao || ''}</td>
+                            <td style="font-size: 10px;">${reg.subitem || ''}</td>
+                            <td class="text-right">R$ ${reg.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right" style="font-weight: 600; color: #2c3e50;">R$ ${reg.vl_atual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right">R$ ${reg.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right" style="font-weight: 600; color: ${reg.vl_saldo >= 0 ? '#27ae60' : '#e74c3c'};">R$ ${reg.vl_saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td>${reg.nu_empenho || ''}</td>
+                            <td class="text-center">
+                                <button class="btn btn-edit" onclick="abrirModal(${reg.id_opa})">Editar</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                    
+                    // Linha de totais
+                    const trTotal = document.createElement('tr');
+                    trTotal.className = 'linha-totais';
+                    trTotal.style.fontWeight = 'bold';
+                    trTotal.style.backgroundColor = '#34495e';  // Cor mais escura
+                    trTotal.style.color = 'white';  // Texto branco
+                    trTotal.innerHTML = `
+                        <td colspan="6" style="text-align: right; padding: 10px; color: white;">TOTAL:</td>
+                        <td class="text-right" style="padding: 10px; color: white;">R$ ${totalVlAprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: #3498db; font-weight: bold;">R$ ${totalVlAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: white;">R$ ${totalVlUtilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: ${totalVlSaldo >= 0 ? '#2ecc71' : '#e74c3c'}; font-weight: bold;">R$ ${totalVlSaldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td colspan="2"></td>
+                    `;
+                    tbody.appendChild(trTotal);
+                    
+                    popularFiltros(data.registros);
+                } else {
+                    console.warn('⚠️ Nenhum registro encontrado para o exercício:', exercicio);
+                    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado para o exercício ' + exercicio + '</td></tr>';
+                }
+            } catch (error) {
+                console.error('ERRO ao carregar registros:', error);
+                const tbody = document.querySelector('#tabelaOrcamentos tbody');
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #e74c3c;">Erro ao carregar registros: ' + error.message + '</td></tr>';
+            }
+        }
+
+        function limparFormulario() {
+            document.getElementById('formOrcamento').reset();
+            document.getElementById('elemento_despesa').value = '33.90.33';
+        }
+
+        // ==========================================
+        // GERENCIAMENTO DE ITENS DE PASSAGEM
+        // ==========================================
+
+        async function carregarTiposItemOPA() {
+            try {
+                const response = await fetch('/api/tipos-item-opa');
+                const data = await response.json();
+                
+                if (data.success) {
+                    tiposItemOPA = data.tipos;
+                    
+                    const select = document.getElementById('tipoItemPassagem');
+                    select.innerHTML = '<option value="">Selecione...</option>';
+                    
+                    data.tipos.forEach(tipo => {
+                        const option = document.createElement('option');
+                        option.value = tipo.IDTIPO_ITEM;
+                        option.textContent = tipo.DESCRICAO;
+                        option.dataset.fltipo = tipo.FLTIPO;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar tipos de item:', error);
+                alert('Erro ao carregar tipos de item');
+            }
+        }
+
+        async function abrirModalItensPassagem() {
+            // Obter o ID do orçamento atual
+            idOrcamentoAtual = document.getElementById('id_opa').value;
+            
+            if (!idOrcamentoAtual) {
+                alert('Salve o orçamento antes de gerenciar itens');
+                return;
+            }
+            
+            // Carregar tipos de item
+            await carregarTiposItemOPA();
+            
+            // Carregar itens existentes
+            await carregarItensPassagem();
+            
+            // Abrir modal
+            document.getElementById('modalItensPassagem').style.display = 'block';
+        }
+
+        function fecharModalItensPassagem() {
+            document.getElementById('modalItensPassagem').style.display = 'none';
+            limparFormularioItemPassagem();
+        }
+
+        function limparFormularioItemPassagem() {
+            document.getElementById('tipoItemPassagem').value = '';
+            document.getElementById('vlItem').value = '';
+            document.getElementById('nuEmpenhoItem').value = '';
+            document.getElementById('obsItem').value = '';
+        }
+
+        function calcularValorTotalItem() {
+            const qtd = parseFloat(document.getElementById('qtdItemPassagem').value) || 0;
+            const vlUnit = parseFloat(document.getElementById('vlUnitItemPassagem').value) || 0;
+            const total = (qtd * vlUnit).toFixed(2);
+            document.getElementById('vlTotalItemPassagem').value = total;
+        }
+
+        async function carregarItensPassagem() {
+            try {
+                const response = await fetch(`/api/orcamento-passagens-itens/${idOrcamentoAtual}`);
+                const data = await response.json();
+                
+                const container = document.getElementById('listaItensPassagem');
+                
+                if (!data.success || data.itens.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666; font-style: italic;">Nenhum item cadastrado</div>';
+                    return;
+                }
+                
+                let html = '';
+                data.itens.forEach(item => {
+                    const tipoLabel = item.FLTIPO === 'E' ? '📥 Entrada' : '📤 Saída';
+                    const tipoColor = item.FLTIPO === 'E' ? '#28a745' : '#dc3545';
+                    
+                    html += `
+                        <div class="item-passagem">
+                            <div class="item-passagem-info">
+                                <div class="item-passagem-tipo">
+                                    ${item.DESCRICAO_TIPO}
+                                    <span style="background: ${tipoColor}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 10px; margin-left: 8px;">
+                                        ${tipoLabel}
+                                    </span>
+                                </div>
+                                <div class="item-passagem-detalhes">
+                                    ${item.NU_EMPENHO ? 'Empenho: ' + item.NU_EMPENHO : 'Sem empenho'}
+                                    ${item.OBS ? ' | Obs: ' + item.OBS : ''}
+                                </div>
+                                <div style="font-size: 11px; color: #999; margin-top: 3px;">
+                                    Lançado por ${item.USUARIO} em ${formatarDataHora(item.DT_LANCAMENTO)}
+                                </div>
+                            </div>
+                            <div class="item-passagem-valor">
+                                R$ ${parseFloat(item.VL_ITEM).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                            </div>
+                            <div class="item-passagem-acoes">
+                                <button type="button" class="btn btn-danger" onclick="excluirItemPassagem(${item.IDITEM_OPA})" 
+                                        style="padding: 6px 12px; font-size: 12px;">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Erro ao carregar itens:', error);
+                document.getElementById('listaItensPassagem').innerHTML = 
+                    '<div style="color: #dc3545; padding: 10px;">Erro ao carregar itens</div>';
+            }
+        }
+
+        // Função auxiliar para formatar data/hora
+        function formatarDataHora(dataHora) {
+            if (!dataHora) return '';
+            const data = new Date(dataHora);
+            return data.toLocaleString('pt-BR');
+        }
+
+        async function adicionarItemPassagem() {
+            const idTipo = document.getElementById('tipoItemPassagem').value;
+            const vlItem = document.getElementById('vlItem').value;
+            
+            if (!idTipo || !vlItem) {
+                alert('Preencha os campos obrigatórios (Tipo e Valor)');
+                return;
+            }
+            
+            // Obter FLTIPO do select
+            const selectTipo = document.getElementById('tipoItemPassagem');
+            const fltipo = selectTipo.options[selectTipo.selectedIndex].dataset.fltipo;
+            
+            const dados = {
+                id_opa: idOrcamentoAtual,
+                idtipo_item: parseInt(idTipo),
+                fltipo: fltipo,
+                vl_item: parseFloat(vlItem),
+                nu_empenho: document.getElementById('nuEmpenhoItem').value || null,
+                obs: document.getElementById('obsItem').value || null
+            };
+            
+            try {
+                const response = await fetch('/api/orcamento-passagens-itens/adicionar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Item adicionado com sucesso!');
+                    limparFormularioItemPassagem();
+                    await carregarItensPassagem();
+                } else {
+                    alert('Erro ao adicionar item: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao adicionar item:', error);
+                alert('Erro ao adicionar item');
+            }
+        }
+
+        async function excluirItemPassagem(idItem) {
+            if (!confirm('Deseja realmente excluir este item?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/orcamento-passagens-itens/excluir/${idItem}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Item excluído com sucesso!');
+                    await carregarItensPassagem();
+                } else {
+                    alert('Erro ao excluir item: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao excluir item:', error);
+                alert('Erro ao excluir item');
+            }
+        }
+
+        function mostrarAlerta(mensagem, tipo) {
+            // Alertas desabilitados conforme solicitação
+            // const container = document.getElementById('alertContainer');
+            // const alert = document.createElement('div');
+            // alert.className = `alert alert-${tipo}`;
+            // alert.textContent = mensagem;
+            // container.appendChild(alert);
+
+            // setTimeout(() => {
+            //     alert.remove();
+            // }, 5000);
         }
 
         // Carregar ao iniciar
