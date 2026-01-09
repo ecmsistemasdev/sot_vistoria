@@ -2897,9 +2897,25 @@ def rel_locacao_analitico():
                     total_geral_diarias += subtotal_diarias
                     total_geral_valor += subtotal_valor
                     total_geral_km += subtotal_km
-                    
+
+		            # Criar tabela com larguras em cm (10 colunas)
+		            col_widths = [
+		                0.9*cm,   # Item 
+		                2.5*cm,   # Mês/Ano 
+		                3.5*cm,   # Periodo 
+		                4.3*cm,   # Veiculo
+		                4.2*cm,   # Motorista 
+		                1.5*cm,   # Qtde 
+		                2.3*cm,   # Valor Diária
+		                2.0*cm,   # Valor Dif.
+		                2.3*cm,   # Valor Total
+		                2.3*cm,   # Km Rodado 
+		            ]  
+		            
+		            table = Table(data, colWidths=col_widths, repeatRows=1)
+					
                     # Criar tabela com larguras padronizadas
-                    table = Table(data, colWidths=col_widths)
+                    # table = Table(data, colWidths=col_widths)
                     table.setStyle(TableStyle([
                         # Cabeçalho
                         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
@@ -3008,7 +3024,23 @@ def rel_locacao_analitico():
                 data.append(['', '', '', '', 'Total Geral:', 
                             total_qtde, '', '', total_vl, total_km_str])
                 
-                table = Table(data, colWidths=col_widths)
+				# Criar tabela com larguras em cm (10 colunas)
+				col_widths = [
+					0.9*cm,   # Item 
+					2.5*cm,   # Mês/Ano 
+					3.5*cm,   # Periodo 
+					4.3*cm,   # Veiculo
+					4.2*cm,   # Motorista 
+					1.5*cm,   # Qtde 
+					2.3*cm,   # Valor Diária
+					2.0*cm,   # Valor Dif.
+					2.3*cm,   # Valor Total
+					2.3*cm,   # Km Rodado 
+				]  
+				
+				table = Table(data, colWidths=col_widths, repeatRows=1)
+				
+				#table = Table(data, colWidths=col_widths)
                 table.setStyle(TableStyle([
                     # Cabeçalho
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
@@ -11501,6 +11533,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
