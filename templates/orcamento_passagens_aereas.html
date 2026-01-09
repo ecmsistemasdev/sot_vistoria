@@ -983,7 +983,7 @@
                                 <button type="button" class="btn-action btn-select" 
                                         onclick='selecionarContrato(${JSON.stringify(contrato)})'
                                         title="Selecionar">
-                                    <i class="fas fa-check"></i>
+                                    ✓
                                 </button>
                             </td>
                         </tr>
@@ -1025,22 +1025,83 @@
         }
 
         async function carregarRegistrosContrato(idControle, exercicio) {
+            console.log('🔄 Carregando registros - ID_CONTROLE:', idControle, 'EXERCICIO:', exercicio);
             try {
-                const response = await fetch(`/api/orcamento/passagens/listar?id_controle=${idControle}&exercicio=${exercicio}`);
+                const url = `/api/orcamento/passagens/listar?id_controle=${idControle}&exercicio=${exercicio}`;
+                console.log('🌐 Fazendo requisição para:', url);
+                const response = await fetch(url);
                 const data = await response.json();
+                console.log('✅ Resposta recebida:', data);
 
-                if (!data.success) {
-                    mostrarAlerta('Erro ao carregar registros', 'error');
-                    return;
+                const tbody = document.querySelector('#tabelaOrcamentos tbody');
+                tbody.innerHTML = '';
+
+                if (data.success && data.registros.length > 0) {
+                    console.log(`📊 ${data.registros.length} registro(s) encontrado(s)`);
+                    
+                    // Totalizadores
+                    let totalVlAprovado = 0;
+                    let totalVlAtual = 0;
+                    let totalVlUtilizado = 0;
+                    let totalVlSaldo = 0;
+
+                    data.registros.forEach(reg => {
+                        totalVlAprovado += reg.vl_aprovado;
+                        totalVlAtual += reg.vl_atual;
+                        totalVlUtilizado += reg.vl_utilizado;
+                        totalVlSaldo += reg.vl_saldo;
+                        
+                        const tr = document.createElement('tr');
+                        tr.className = 'linha-orcamento';
+                        tr.innerHTML = `
+                            <td style="text-align: center;">
+                                <button onclick="toggleExpansao(${reg.id_opa}, this)" 
+                                        style="background: none; border: none; cursor: pointer; font-size: 14px; color: #3498db; padding: 2px 6px;">
+                                    ▶
+                                </button>
+                            </td>
+                            <td>${reg.uo}</td>
+                            <td>${reg.unidade}</td>
+                            <td style="font-size: 10px;">${reg.programa || ''}</td>
+                            <td style="font-size: 10px;">${reg.acao || ''}</td>
+                            <td style="font-size: 10px;">${reg.subitem || ''}</td>
+                            <td class="text-right">R$ ${reg.vl_aprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right" style="font-weight: 600; color: #2c3e50;">R$ ${reg.vl_atual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right">R$ ${reg.vl_utilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td class="text-right" style="font-weight: 600; color: ${reg.vl_saldo >= 0 ? '#27ae60' : '#e74c3c'};">R$ ${reg.vl_saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                            <td>${reg.nu_empenho || ''}</td>
+                            <td class="text-center">
+                                <button class="btn btn-edit" onclick="abrirModal(${reg.id_opa})">Editar</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                    
+                    // Linha de totais
+                    const trTotal = document.createElement('tr');
+                    trTotal.className = 'linha-totais';
+                    trTotal.style.fontWeight = 'bold';
+                    trTotal.style.backgroundColor = '#34495e';
+                    trTotal.style.color = 'white';
+                    trTotal.innerHTML = `
+                        <td colspan="6" style="text-align: right; padding: 10px; color: white;">TOTAL:</td>
+                        <td class="text-right" style="padding: 10px; color: white;">R$ ${totalVlAprovado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: #3498db; font-weight: bold;">R$ ${totalVlAtual.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: white;">R$ ${totalVlUtilizado.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="text-right" style="padding: 10px; color: ${totalVlSaldo >= 0 ? '#2ecc71' : '#e74c3c'}; font-weight: bold;">R$ ${totalVlSaldo.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td colspan="2"></td>
+                    `;
+                    tbody.appendChild(trTotal);
+                    
+                    popularFiltros(data.registros);
+                } else {
+                    console.warn('⚠️ Nenhum registro encontrado');
+                    tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #999;">Nenhum registro encontrado para este contrato</td></tr>';
                 }
-
-                // Usar a função existente renderizarTabela
-                renderizarTabela(data.registros);
-                popularFiltros(data.registros);
-
             } catch (error) {
-                console.error('Erro ao carregar registros:', error);
-                mostrarAlerta('Erro ao carregar registros do contrato', 'error');
+                console.error('❌ Erro ao carregar registros:', error);
+                const tbody = document.querySelector('#tabelaOrcamentos tbody');
+                tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 20px; color: #e74c3c;">Erro ao carregar registros: ' + error.message + '</td></tr>';
             }
         }
 
