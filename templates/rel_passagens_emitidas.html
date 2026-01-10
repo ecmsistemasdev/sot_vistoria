@@ -142,14 +142,14 @@
                     <th class="centro">Data Embarque</th>
                     <th class="centro">CIA</th>
                     <th class="centro">Localiz.</th>
+                    <th>Projeto</th>
+                    <th class="centro">Gestor Projeto</th>
+                    <th class="centro">Empenho</th>
                     <th class="direita">Tarifa</th>
                     <th class="direita">Extra</th>
                     <th class="direita">Assento</th>
                     <th class="direita">Taxa Emb.</th>
-                    <th class="direita">Total R$</th>
-                    <th>Projeto</th>
-                    <th class="centro">Gestor Projeto</th>
-                    <th class="centro">Empenho</th>
+                    <th class="direita">Total R$</th>                    
                 </tr>
             </thead>
             <tbody>
@@ -176,14 +176,14 @@
                         <td class="centro">{{ item[6] if item[6] else '-' }}</td>
                         <td class="centro">{{ item[7] if item[7] else '-' }}</td>
                         <td class="centro">{{ item[8] if item[8] else '-' }}</td>
+                        <td>{{ item[14] if item[14] else '-' }}</td>
+                        <td class="centro">{{ item[15] if item[15] else '-' }}</td>
+                        <td class="centro">{{ item[16] if item[16] else '-' }}</td>
                         <td class="direita">R$ {{ item[9] if item[9] else '0,00' }}</td>
                         <td class="direita">R$ {{ item[10] if item[10] else '0,00' }}</td>
                         <td class="direita">R$ {{ item[11] if item[11] else '0,00' }}</td>
                         <td class="direita">R$ {{ item[12] if item[12] else '0,00' }}</td>
                         <td class="direita">R$ {{ item[13] if item[13] else '0,00' }}</td>
-                        <td>{{ item[14] if item[14] else '-' }}</td>
-                        <td class="centro">{{ item[15] if item[15] else '-' }}</td>
-                        <td class="centro">{{ item[16] if item[16] else '-' }}</td>
                     </tr>
                 {% endfor %}
                 
