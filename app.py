@@ -7926,11 +7926,10 @@ def rel_passagens_emitidas():
                                               fontSize=6.5, leading=8, alignment=TA_CENTER,
                                               wordWrap='LTR', splitLongWords=True)
             
-            # Cabeçalho da tabela (17 colunas - REMOVIDA coluna "Taxa")
-            data = [['OF', 'Nº SEI', 'Passageiro', 'Data\nEmissão', 'Rota\nOrigem', 
-                     'Rota\nDestino', 'Data\nEmbarque', 'CIA', 'Localiz.', 'Tarifa', 
-                     'Extra', 'Assento', 'Taxa\nEmb.', 'Total R$', 'Projeto', 
-                     'Gestor\nProjeto', 'Empenho']]
+            # Cabeçalho da tabela (17 colunas)
+            data = [['OF', 'Nº SEI', 'Passageiro', 'Data\nEmissão', 'Rota\nOrigem', 'Rota\nDestino',
+                     'Data\nEmbarque', 'CIA', 'Localiz.', 'Projeto', 'Gestor\nProjeto', 'Empenho', 
+                     'Tarifa','Extra', 'Assento', 'Taxa\nEmb.', 'Total R$']]
             
             # Totalizadores
             total_tarifa = 0
@@ -7941,17 +7940,19 @@ def rel_passagens_emitidas():
             
             # Adicionar linhas
             for item in items:
+                # CORREÇÃO: Os índices corretos dos valores na query são:
+                # item[9] = VL_TARIFA
+                # item[10] = VL_TAXA_EXTRA
+                # item[11] = VL_ASSENTO
+                # item[12] = VL_TAXA_EMBARQUE
+                # item[13] = VL_TOTAL
+                
                 # Somar totais
                 total_tarifa += item[9] if item[9] else 0
                 total_taxa_extra += item[10] if item[10] else 0
                 total_assento += item[11] if item[11] else 0
                 total_taxa_emb += item[12] if item[12] else 0
                 total_geral += item[13] if item[13] else 0
-                
-                # Ordem das colunas (17 colunas - SEM "Taxa"):
-                # OF, Nº SEI, Passageiro, Data Emissão, Rota Origem, Rota Destino, 
-                # Dt. Emb., CIA, Loc., Tarifa, Extra, Assento, Taxa Emb., Total R$, 
-                # Projeto, Gestor Projeto, Empenho
                 
                 # Tratar valores que podem ser None e criar Paragraphs para células que precisam quebrar
                 passageiro_texto = str(item[2]) if item[2] is not None else '-'
@@ -7961,41 +7962,52 @@ def rel_passagens_emitidas():
                 passageiro_para = Paragraph(passageiro_texto, cell_left_style)
                 projeto_para = Paragraph(projeto_texto, cell_left_style)
                 
+                # Nova ordem das colunas conforme seu layout:
+                # OF, Nº SEI, Passageiro, Data Emissão, Rota Origem, Rota Destino, 
+                # Dt. Emb., CIA, Loc., Projeto, Gestor Projeto, Empenho,
+                # Tarifa, Extra, Assento, Taxa Emb., Total R$
+                
                 data.append([
-                    str(item[0]) if item[0] else '-',           # OF
-                    str(item[1]) if item[1] else '-',           # Nº SEI  
+                    str(item[0]) if item[0] else '-',            # OF
+                    str(item[1]) if item[1] else '-',            # Nº SEI  
                     passageiro_para,                             # Passageiro (com quebra)
                     formatar_data(item[3]),                      # Data Emissão
-                    str(item[4]) if item[4] else '-',           # Rota Origem
-                    str(item[5]) if item[5] else '-',           # Rota Destino
+                    str(item[4]) if item[4] else '-',            # Rota Origem
+                    str(item[5]) if item[5] else '-',            # Rota Destino
                     formatar_data(item[6]),                      # Dt. Emb.
-                    str(item[7]) if item[7] else '-',           # CIA
-                    str(item[8]) if item[8] else '-',           # Loc.
-                    formatar_moeda_br(item[9]),                  # Tarifa
+                    str(item[7]) if item[7] else '-',            # CIA
+                    str(item[8]) if item[8] else '-',            # Loc.
+                    projeto_para,                                # Projeto (com quebra)
+                    str(item[15])[:6] if item[15] else '-',      # Gestor Projeto (UNIDADE)
+                    str(item[16]) if item[16] else '-',          # Empenho (NU_EMPENHO)
+                    formatar_moeda_br(item[9]),                  # Tarifa (VL_TARIFA)
                     formatar_moeda_br(item[10]),                 # Extra (VL_TAXA_EXTRA)
                     formatar_moeda_br(item[11]),                 # Assento (VL_ASSENTO)
                     formatar_moeda_br(item[12]),                 # Taxa Emb. (VL_TAXA_EMBARQUE)
-                    formatar_moeda_br(item[13]),                 # Total R$ (VL_TOTAL)
-                    projeto_para,                                # Projeto (com quebra)
-                    str(item[15])[:6] if item[15] else '-',     # Gestor Projeto
-                    str(item[16]) if item[16] else '-'          # Empenho
+                    formatar_moeda_br(item[13])                  # Total R$ (VL_TOTAL)
                 ])
             
-            # Linha de total (17 colunas)
-            # Mescla da coluna 0 até 8 (OF até Localiz.) = 9 colunas
-            # Colunas 9-13: valores (Tarifa, Extra, Assento, Taxa Emb., Total)
-            # Colunas 14-16: vazias SEM formatação (Projeto, Gestor, Empenho)
+            # Primeira linha de total (17 colunas)
+            # Mescla da coluna 0 até 11 (OF até Empenho) = 12 colunas
+            # Colunas 12-16: valores individuais (Tarifa, Extra, Assento, Taxa Emb., Total)
             data.append([
-                'VALOR TOTAL:', '', '', '', '', '', '', '', '',  # 9 células (OF até Localiz.)
+                'VALOR TOTAL:', '', '', '', '', '', '', '', '', '', '', '',  # 12 células (OF até Empenho)
                 formatar_moeda_br(total_tarifa),                 # Tarifa
                 formatar_moeda_br(total_taxa_extra),             # Extra
                 formatar_moeda_br(total_assento),                # Assento
                 formatar_moeda_br(total_taxa_emb),               # Taxa Emb.
-                formatar_moeda_br(total_geral),                  # Total
-                '', '', ''                                       # 3 células vazias (sem estilo)
+                formatar_moeda_br(total_geral)                   # Total
             ])
             
-            # Criar tabela com larguras em cm (17 colunas - SEM "Taxa")
+            # Segunda linha de total (17 colunas)
+            # Primeiras 12 células vazias (serão mescladas verticalmente com a linha acima)
+            # Últimas 5 colunas mescladas com o valor total geral
+            data.append([
+                '', '', '', '', '', '', '', '', '', '', '', '',  # 12 células vazias (OF até Empenho)
+                formatar_moeda_br(total_geral), '', '', '', ''   # Total geral mesclado nas últimas 5 colunas
+            ])
+            
+            # Criar tabela com larguras em cm (17 colunas)
             col_widths = [
                 0.5*cm,   # OF 
                 3.0*cm,   # Nº SEI 
@@ -8006,14 +8018,14 @@ def rel_passagens_emitidas():
                 1.3*cm,   # Dt. Emb.
                 1.0*cm,   # CIA 
                 1.3*cm,   # Loc.
+                3.2*cm,   # Projeto 
+                1.0*cm,   # Gestor Projeto
+                1.8*cm,   # Empenho                
                 1.7*cm,   # Tarifa
                 1.3*cm,   # Extra
                 1.3*cm,   # Assento
                 1.3*cm,   # Taxa Emb.
-                1.7*cm,   # Total R$ 
-                3.2*cm,   # Projeto 
-                1.0*cm,   # Gestor Projeto
-                1.8*cm    # Empenho 
+                1.7*cm    # Total R$  
             ]  
             
             table = Table(data, colWidths=col_widths, repeatRows=1)
@@ -8028,21 +8040,20 @@ def rel_passagens_emitidas():
                 ('FONTSIZE', (0, 0), (-1, 0), 6.8),
                 ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
                 
-                # Corpo da tabela
-                ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -2), 6.5),
-                ('VALIGN', (0, 1), (-1, -2), 'TOP'),
-                ('ALIGN', (0, 1), (0, -2), 'CENTER'),  # OF
-                ('ALIGN', (1, 1), (1, -2), 'CENTER'),  # Nº SEI
-                ('ALIGN', (3, 1), (3, -2), 'CENTER'),  # Data Emissão
-                ('ALIGN', (4, 1), (4, -2), 'CENTER'),  # Rota Origem
-                ('ALIGN', (5, 1), (5, -2), 'CENTER'),  # Rota Destino
-                ('ALIGN', (6, 1), (6, -2), 'CENTER'),  # Dt. Embarque
-                ('ALIGN', (7, 1), (7, -2), 'CENTER'),  # CIA
-                ('ALIGN', (8, 1), (8, -2), 'CENTER'),  # Loc.
-                ('ALIGN', (9, 1), (13, -2), 'RIGHT'),  # Todos os valores (Tarifa até Total)
-                ('ALIGN', (15, 1), (15, -2), 'CENTER'),  # Gestor Projeto
-                ('ALIGN', (16, 1), (16, -2), 'CENTER'),  # Empenho
+                # Corpo da tabela (até antes das duas linhas de total)
+                ('FONTNAME', (0, 1), (-1, -3), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -3), 6.5),
+                ('VALIGN', (0, 1), (-1, -3), 'TOP'),
+                ('ALIGN', (0, 1), (0, -3), 'CENTER'),  # OF
+                ('ALIGN', (1, 1), (1, -3), 'CENTER'),  # Nº SEI
+                ('ALIGN', (3, 1), (3, -3), 'CENTER'),  # Data Emissão
+                ('ALIGN', (4, 1), (4, -3), 'CENTER'),  # Rota Origem
+                ('ALIGN', (5, 1), (5, -3), 'CENTER'),  # Rota Destino
+                ('ALIGN', (6, 1), (6, -3), 'CENTER'),  # Dt. Embarque
+                ('ALIGN', (7, 1), (7, -3), 'CENTER'),  # CIA
+                ('ALIGN', (8, 1), (8, -3), 'CENTER'),  # Loc.
+                ('ALIGN', (10, 1), (11, -3), 'CENTER'),  # Gestor Projeto e Empenho
+                ('ALIGN', (12, 1), (16, -3), 'RIGHT'),  # Todos os valores (Tarifa até Total)
                 
                 # Padding um pouco maior para legibilidade
                 ('LEFTPADDING', (0, 0), (-1, -1), 3),
@@ -8051,28 +8062,37 @@ def rel_passagens_emitidas():
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                 
                 # Bordas normais em toda a tabela
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#666666')),  # Grid em TODAS as linhas
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#666666')),
                 
-                # Zebrado
-                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.HexColor('#f9f9f9'), colors.white]),
+                # Zebrado (só no corpo, não nas linhas de total)
+                ('ROWBACKGROUNDS', (0, 1), (-1, -3), [colors.HexColor('#f9f9f9'), colors.white]),
                 
-                # Linha de total - AJUSTADO COM SPAN
-                ('SPAN', (0, -1), (8, -1)),  # Mescla células de OF até Localiz.
-                ('BACKGROUND', (0, -1), (13, -1), colors.HexColor('#d4edda')),  # Verde só até Total R$
-                ('FONTNAME', (0, -1), (13, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, -1), (13, -1), 7),
-                ('ALIGN', (0, -1), (0, -1), 'RIGHT'),   # "VALOR TOTAL:" alinhado à direita
-                ('ALIGN', (9, -1), (13, -1), 'RIGHT'),  # Valores alinhados à direita
+                # ====== PRIMEIRA LINHA DE TOTAL (penúltima linha = -2) ======
+                ('SPAN', (0, -2), (11, -2)),  # Mescla células 0-11 (OF até Empenho) na primeira linha
+                ('BACKGROUND', (0, -2), (-1, -2), colors.HexColor('#d4edda')),  # Fundo verde em todas
+                ('FONTNAME', (0, -2), (-1, -2), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, -2), (-1, -2), 7),
+                ('ALIGN', (0, -2), (0, -2), 'RIGHT'),      # "VALOR TOTAL:" alinhado à direita
+                ('ALIGN', (12, -2), (-1, -2), 'RIGHT'),    # Valores alinhados à direita
+                ('VALIGN', (0, -2), (-1, -2), 'MIDDLE'),
                 
-                # 3 últimas colunas na linha TOTAL: fundo branco, SEM bordas
-                ('BACKGROUND', (14, -1), (16, -1), colors.white),
-                ('LINEABOVE', (14, -1), (16, -1), 0, colors.white),
-                ('LINEBELOW', (14, -1), (16, -1), 0, colors.white),
-                ('LINEBEFORE', (14, -1), (16, -1), 0, colors.white),
-                ('LINEAFTER', (14, -1), (16, -1), 0, colors.white),
+                # ====== SEGUNDA LINHA DE TOTAL (última linha = -1) ======
+                # Mescla vertical da célula "VALOR TOTAL:" (colunas 0-11 das linhas -2 e -1)
+                ('SPAN', (0, -2), (11, -1)),  # Mescla vertical das colunas 0-11 nas duas linhas
                 
-                # Remove linha vertical direita da coluna Total R$ APENAS na linha TOTAL
-                ('LINEAFTER', (13, -1), (13, -1), 0, colors.white),
+                # Aplicar fundo verde claro nas colunas 0-11 da segunda linha (mesma cor da linha 1)
+                ('BACKGROUND', (0, -1), (11, -1), colors.HexColor('#d4edda')),  # Verde claro
+                
+                # Mescla horizontal das últimas 5 colunas (12-16) na segunda linha
+                ('SPAN', (12, -1), (16, -1)),  # Mescla colunas 12-16 na última linha
+                
+                # Aplicar fundo verde MAIS ESCURO apenas nas últimas 5 colunas (12-16)
+                ('BACKGROUND', (12, -1), (16, -1), colors.HexColor('#b8dac0')),  # Verde mais escuro
+                
+                ('FONTNAME', (12, -1), (16, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (12, -1), (16, -1), 9),  # Fonte 2px maior (7 + 2 = 9)
+                ('ALIGN', (12, -1), (16, -1), 'CENTER'),  # CENTRALIZADO
+                ('VALIGN', (12, -1), (16, -1), 'MIDDLE'),
             ])
             
             table.setStyle(table_style)
@@ -8099,7 +8119,8 @@ def rel_passagens_emitidas():
         print(f"Erro ao gerar relatório de passagens: {str(e)}")
         import traceback
         traceback.print_exc()
-        return f"Erro ao gerar relatório: {str(e)}", 500   
+        return f"Erro ao gerar relatório: {str(e)}", 500
+
 
 ######################### fim relatorio de passagem ##################
 
