@@ -1851,6 +1851,10 @@ def listar_setores():
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
 
+############################################
+# ROTAS DO CADASTRO DE MOTORISTAS
+############################################
+
 @app.route('/api/motoristas')
 @login_required
 def listar_motoristas():
@@ -1867,9 +1871,7 @@ def listar_motoristas():
                 CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
                 ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA,
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
-                DATE_FORMAT(DT_INICIO, '%%d/%%m/%%Y') AS DT_INICIO,
-                DATE_FORMAT(DT_FIM, '%%d/%%m/%%Y') AS DT_FIM
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
             FROM CAD_MOTORISTA 
             WHERE ID_MOTORISTA > 0
             AND CONCAT(CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR) LIKE %s 
@@ -1884,9 +1886,7 @@ def listar_motoristas():
                 CASE WHEN ATIVO='S' THEN NM_MOTORISTA 
                 ELSE CONCAT(NM_MOTORISTA,' (INATIVO)') END AS MOTORISTA, 
                 ORDEM_LISTA AS TIPO_CADASTRO, SIGLA_SETOR,
-                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO,
-                DATE_FORMAT(DT_INICIO, '%%d/%%m/%%Y') AS DT_INICIO,
-                DATE_FORMAT(DT_FIM, '%%d/%%m/%%Y') AS DT_FIM
+                FILE_PDF IS NOT NULL AS FILE_PDF, ATIVO
             FROM CAD_MOTORISTA
             WHERE ID_MOTORISTA > 0
             ORDER BY NM_MOTORISTA
@@ -1919,7 +1919,7 @@ def detalhe_motorista(id_motorista):
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, ORDEM_LISTA, 
             SIGLA_SETOR, CAT_CNH, DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, 
             NU_TELEFONE, OBS_MOTORISTA, ATIVO, NOME_ARQUIVO, EMAIL,
-            DT_INICIO, DT_FIM, ID_FORNECEDOR
+            ID_FORNECEDOR
         FROM CAD_MOTORISTA 
         WHERE ID_MOTORISTA = %s
         """
@@ -1928,21 +1928,6 @@ def detalhe_motorista(id_motorista):
         cursor.close()
         
         if result:
-            dt_inicio_formatada = None
-            dt_fim_formatada = None
-            
-            if result[13]:  # DT_INICIO
-                if isinstance(result[13], str):
-                    dt_inicio_formatada = result[13]
-                else:
-                    dt_inicio_formatada = result[13].strftime('%d/%m/%Y')
-            
-            if result[14]:  # DT_FIM
-                if isinstance(result[14], str):
-                    dt_fim_formatada = result[14]
-                else:
-                    dt_fim_formatada = result[14].strftime('%d/%m/%Y')
-            
             motorista = {
                 'id_motorista': result[0],
                 'cad_motorista': result[1],
@@ -1957,9 +1942,7 @@ def detalhe_motorista(id_motorista):
                 'ativo': result[10],
                 'nome_arquivo': result[11],
                 'email': result[12],
-                'dt_inicio': dt_inicio_formatada,
-                'dt_fim': dt_fim_formatada,
-                'id_fornecedor': result[15]
+                'id_fornecedor': result[13]
             }
             return jsonify(motorista)
         else:
@@ -2014,8 +1997,6 @@ def cadastrar_motorista():
         nu_telefone = request.form.get('nu_telefone')
         obs_motorista = request.form.get('obs_motorista', '')
         email = request.form.get('email', '')
-        dt_inicio = request.form.get('dt_inicio')
-        dt_fim = request.form.get('dt_fim', None)
         id_fornecedor = request.form.get('id_fornecedor', None)  # CORRIGIDO - indentação
         
         # Converter id_fornecedor para None se estiver vazio
@@ -2035,27 +2016,14 @@ def cadastrar_motorista():
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-        
-        # Convert DT_INICIO from DD/MM/YYYY to YYYY-MM-DD
-        if dt_inicio:
-            dia, mes, ano = dt_inicio.split('/')
-            dt_inicio_db = f"{ano}-{mes}-{dia}"
-        else:
-            dt_inicio_db = None
-        
-        # Convert DT_FIM from DD/MM/YYYY to YYYY-MM-DD if provided
-        dt_fim_db = None
-        if dt_fim:
-            dia, mes, ano = dt_fim.split('/')
-            dt_fim_db = f"{ano}-{mes}-{dia}"
-        
+                
         # Insert query
         query = """
         INSERT INTO CAD_MOTORISTA (
             ID_MOTORISTA, CAD_MOTORISTA, NM_MOTORISTA, TIPO_CADASTRO, SIGLA_SETOR, CAT_CNH, 
             DT_VALIDADE_CNH, ULTIMA_ATUALIZACAO, NU_TELEFONE, OBS_MOTORISTA, ATIVO, USUARIO, 
-            DT_TRANSACAO, FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL, DT_INICIO, DT_FIM, ID_FORNECEDOR
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            DT_TRANSACAO, FILE_PDF, NOME_ARQUIVO, ORDEM_LISTA, EMAIL, ID_FORNECEDOR
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'S', %s, %s, %s, %s, %s, %s, %s)
         """
         
         cursor.execute(query, (
@@ -2063,8 +2031,17 @@ def cadastrar_motorista():
             sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
             nu_telefone, obs_motorista, session.get('usuario_id'), 
             dt_transacao, file_blob, nome_arquivo, tipo_cadastro, email,
-            dt_inicio_db, dt_fim_db, id_fornecedor
+            id_fornecedor
         ))
+
+        manaus_tz = timezone('America/Manaus')
+        data_atual = datetime.now(manaus_tz).date()
+
+        cursor.execute('''
+            INSERT INTO CAD_MOTORISTA_PERIODOS 
+            (ID_MOTORISTA, DT_INICIO, DT_FIM, USUARIO, DT_TRANSACAO)
+            VALUES (%s, %s, NULL, %s, NOW())
+        ''', (novo_id, data_atual, session.get('usuario_id')))
         
         mysql.connection.commit()
         cursor.close()
@@ -2101,8 +2078,6 @@ def atualizar_motorista():
         obs_motorista = request.form.get('obs_motorista', '')
         email = request.form.get('email', '')
         ativo = 'S' if request.form.get('ativo') == 'on' else 'N'
-        dt_inicio = request.form.get('dt_inicio')
-        dt_fim = request.form.get('dt_fim', None)
         id_fornecedor = request.form.get('id_fornecedor', None)  # CORRIGIDO - indentação
         
         # Converter id_fornecedor para None se estiver vazio
@@ -2124,20 +2099,7 @@ def atualizar_motorista():
         # Get current timestamp in Manaus timezone
         manaus_tz = timezone('America/Manaus')
         dt_transacao = datetime.now(manaus_tz).strftime('%d/%m/%Y %H:%M:%S')
-        
-        # Convert DT_INICIO from DD/MM/YYYY to YYYY-MM-DD
-        if dt_inicio:
-            dia, mes, ano = dt_inicio.split('/')
-            dt_inicio_db = f"{ano}-{mes}-{dia}"
-        else:
-            dt_inicio_db = None
-        
-        # Convert DT_FIM from DD/MM/YYYY to YYYY-MM-DD if provided
-        dt_fim_db = None
-        if dt_fim:
-            dia, mes, ano = dt_fim.split('/')
-            dt_fim_db = f"{ano}-{mes}-{dia}"
-        
+                
         # Update query 
         if file_pdf:
             # Update with file
@@ -2148,7 +2110,7 @@ def atualizar_motorista():
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
                 ATIVO = %s, USUARIO = %s, 
                 FILE_PDF = %s, NOME_ARQUIVO = %s, ORDEM_LISTA = %s, EMAIL = %s,
-                DT_INICIO = %s, DT_FIM = %s, ID_FORNECEDOR = %s
+                ID_FORNECEDOR = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -2157,7 +2119,7 @@ def atualizar_motorista():
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
                 file_blob, nome_arquivo, tipo_cadastro, email,
-                dt_inicio_db, dt_fim_db, id_fornecedor, id_motorista
+                id_fornecedor, id_motorista
             ))
         else:
             # Update without changing file
@@ -2167,7 +2129,7 @@ def atualizar_motorista():
                 SIGLA_SETOR = %s, CAT_CNH = %s, DT_VALIDADE_CNH = %s, 
                 ULTIMA_ATUALIZACAO = %s, NU_TELEFONE = %s, OBS_MOTORISTA = %s, 
                 ATIVO = %s, USUARIO = %s, ORDEM_LISTA = %s, EMAIL = %s,
-                DT_INICIO = %s, DT_FIM = %s, ID_FORNECEDOR = %s
+                ID_FORNECEDOR = %s
             WHERE ID_MOTORISTA = %s
             """
             
@@ -2175,7 +2137,7 @@ def atualizar_motorista():
                 cad_motorista, nm_motorista, tipo_cadastro_desc, 
                 sigla_setor, cat_cnh, dt_validade_cnh, ultima_atualizacao, 
                 nu_telefone, obs_motorista, ativo, session.get('usuario_id'), 
-                tipo_cadastro, email, dt_inicio_db, dt_fim_db, id_fornecedor, id_motorista
+                tipo_cadastro, email, id_fornecedor, id_motorista
             ))
         
         mysql.connection.commit()
@@ -2229,6 +2191,260 @@ def visualizar_cnh(id_motorista):
             return "Arquivo não encontrado", 404
     except Exception as e:
         return str(e), 500
+
+# ========== ROTA: Listar períodos de um motorista ==========
+@app.route('/api/motoristas/<int:id_motorista>/periodos')
+@login_required
+def listar_periodos_motorista(id_motorista):
+    """
+    Lista todos os períodos de vínculo de um motorista
+    """
+    try:
+        cursor = mysql.connection.cursor()
+        query = """
+        SELECT 
+            ID_PERIODO,
+            ID_MOTORISTA,
+            DATE_FORMAT(DT_INICIO, '%%d/%%m/%%Y') as DT_INICIO,
+            DATE_FORMAT(DT_FIM, '%%d/%%m/%%Y') as DT_FIM,
+            USUARIO,
+            DATE_FORMAT(DT_TRANSACAO, '%%d/%%m/%%Y %%H:%%i:%%s') as DT_TRANSACAO,
+            CASE WHEN DT_FIM IS NULL THEN 'S' ELSE 'N' END as PERIODO_ATIVO
+        FROM CAD_MOTORISTA_PERIODOS
+        WHERE ID_MOTORISTA = %s
+        ORDER BY DT_INICIO DESC
+        """
+        cursor.execute(query, (id_motorista,))
+        
+        columns = ['id_periodo', 'id_motorista', 'dt_inicio', 'dt_fim', 'usuario', 'dt_transacao', 'periodo_ativo']
+        periodos = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        
+        cursor.close()
+        return jsonify({'success': True, 'periodos': periodos})
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao listar períodos: {str(e)}")
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+
+# ========== ROTA: Adicionar novo período ==========
+@app.route('/api/motoristas/<int:id_motorista>/periodos/adicionar', methods=['POST'])
+@login_required
+def adicionar_periodo_motorista(id_motorista):
+    """
+    Adiciona um novo período de vínculo para um motorista
+    Validações:
+    - Apenas 1 período ativo (DT_FIM NULL) por motorista
+    - Sem sobreposição de datas
+    - DT_FIM >= DT_INICIO
+    """
+    try:
+        data = request.get_json()
+        dt_inicio = data.get('dt_inicio')  # Formato: DD/MM/YYYY
+        dt_fim = data.get('dt_fim')  # Formato: DD/MM/YYYY ou null
+        
+        if not dt_inicio:
+            return jsonify({'success': False, 'erro': 'Data de início é obrigatória'}), 400
+        
+        # Converter DT_INICIO de DD/MM/YYYY para YYYY-MM-DD
+        dia, mes, ano = dt_inicio.split('/')
+        dt_inicio_db = f"{ano}-{mes}-{dia}"
+        
+        # Converter DT_FIM se fornecida
+        dt_fim_db = None
+        if dt_fim:
+            dia, mes, ano = dt_fim.split('/')
+            dt_fim_db = f"{ano}-{mes}-{dia}"
+        
+        cursor = mysql.connection.cursor()
+        
+        # Inserir novo período (as validações estão no trigger)
+        query = """
+        INSERT INTO CAD_MOTORISTA_PERIODOS 
+        (ID_MOTORISTA, DT_INICIO, DT_FIM, USUARIO, DT_TRANSACAO)
+        VALUES (%s, %s, %s, %s, NOW())
+        """
+        
+        cursor.execute(query, (
+            id_motorista, 
+            dt_inicio_db, 
+            dt_fim_db, 
+            session.get('usuario_id')
+        ))
+        
+        id_periodo = cursor.lastrowid
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'success': True, 
+            'id_periodo': id_periodo,
+            'mensagem': 'Período adicionado com sucesso!'
+        })
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        erro_msg = str(e)
+        
+        # Mensagens amigáveis para erros do trigger
+        if 'Data fim deve ser maior' in erro_msg:
+            erro_msg = 'A data fim deve ser maior ou igual à data início'
+        elif 'período ativo' in erro_msg:
+            erro_msg = 'Já existe um período ativo para este motorista. Encerre o período anterior antes de criar um novo.'
+        elif 'sobrepõe' in erro_msg:
+            erro_msg = 'Este período se sobrepõe a um período existente. Verifique as datas.'
+        
+        app.logger.error(f"Erro ao adicionar período: {erro_msg}")
+        return jsonify({'success': False, 'erro': erro_msg}), 400
+
+
+# ========== ROTA: Atualizar período existente ==========
+@app.route('/api/motoristas/<int:id_motorista>/periodos/<int:id_periodo>/atualizar', methods=['POST'])
+@login_required
+def atualizar_periodo_motorista(id_motorista, id_periodo):
+    """
+    Atualiza um período existente
+    Principais usos:
+    - Encerrar período ativo (adicionar DT_FIM)
+    - Corrigir datas
+    """
+    try:
+        data = request.get_json()
+        dt_inicio = data.get('dt_inicio')  # Formato: DD/MM/YYYY
+        dt_fim = data.get('dt_fim')  # Formato: DD/MM/YYYY ou null
+        
+        if not dt_inicio:
+            return jsonify({'success': False, 'erro': 'Data de início é obrigatória'}), 400
+        
+        # Converter DT_INICIO de DD/MM/YYYY para YYYY-MM-DD
+        dia, mes, ano = dt_inicio.split('/')
+        dt_inicio_db = f"{ano}-{mes}-{dia}"
+        
+        # Converter DT_FIM se fornecida
+        dt_fim_db = None
+        if dt_fim:
+            dia, mes, ano = dt_fim.split('/')
+            dt_fim_db = f"{ano}-{mes}-{dia}"
+        
+        cursor = mysql.connection.cursor()
+        
+        # Atualizar período (as validações estão no trigger)
+        query = """
+        UPDATE CAD_MOTORISTA_PERIODOS 
+        SET DT_INICIO = %s, 
+            DT_FIM = %s,
+            USUARIO = %s,
+            DT_TRANSACAO = NOW()
+        WHERE ID_PERIODO = %s 
+        AND ID_MOTORISTA = %s
+        """
+        
+        cursor.execute(query, (
+            dt_inicio_db, 
+            dt_fim_db, 
+            session.get('usuario_id'),
+            id_periodo,
+            id_motorista
+        ))
+        
+        if cursor.rowcount == 0:
+            mysql.connection.rollback()
+            cursor.close()
+            return jsonify({'success': False, 'erro': 'Período não encontrado'}), 404
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'mensagem': 'Período atualizado com sucesso!'
+        })
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        erro_msg = str(e)
+        
+        # Mensagens amigáveis para erros do trigger
+        if 'Data fim deve ser maior' in erro_msg:
+            erro_msg = 'A data fim deve ser maior ou igual à data início'
+        elif 'período ativo' in erro_msg:
+            erro_msg = 'Já existe um período ativo para este motorista. Encerre o período anterior antes de criar um novo.'
+        elif 'sobrepõe' in erro_msg:
+            erro_msg = 'Este período se sobrepõe a um período existente. Verifique as datas.'
+        
+        app.logger.error(f"Erro ao atualizar período: {erro_msg}")
+        return jsonify({'success': False, 'erro': erro_msg}), 400
+
+
+# ========== ROTA: Excluir período ==========
+@app.route('/api/motoristas/<int:id_motorista>/periodos/<int:id_periodo>/excluir', methods=['DELETE'])
+@login_required
+def excluir_periodo_motorista(id_motorista, id_periodo):
+    """
+    Exclui um período de vínculo
+    """
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+        DELETE FROM CAD_MOTORISTA_PERIODOS 
+        WHERE ID_PERIODO = %s 
+        AND ID_MOTORISTA = %s
+        """
+        
+        cursor.execute(query, (id_periodo, id_motorista))
+        
+        if cursor.rowcount == 0:
+            mysql.connection.rollback()
+            cursor.close()
+            return jsonify({'success': False, 'erro': 'Período não encontrado'}), 404
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'mensagem': 'Período excluído com sucesso!'
+        })
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        app.logger.error(f"Erro ao excluir período: {str(e)}")
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+
+# ========== ROTA: Verificar se motorista tem período ativo ==========
+@app.route('/api/motoristas/<int:id_motorista>/periodo-ativo')
+@login_required
+def verificar_periodo_ativo(id_motorista):
+    """
+    Verifica se o motorista possui um período ativo (DT_FIM NULL)
+    """
+    try:
+        cursor = mysql.connection.cursor()
+        
+        query = """
+        SELECT COUNT(*) 
+        FROM CAD_MOTORISTA_PERIODOS 
+        WHERE ID_MOTORISTA = %s 
+        AND DT_FIM IS NULL
+        """
+        
+        cursor.execute(query, (id_motorista,))
+        count = cursor.fetchone()[0]
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'tem_periodo_ativo': count > 0
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao verificar período ativo: {str(e)}")
+        return jsonify({'success': False, 'erro': str(e)}), 500
+
+
+#### FIM DAS ROTAS DE CADASTRO DE MOTORISTAS ####
 
 @app.route('/controle_locacoes')
 @login_required
@@ -5731,30 +5947,31 @@ def buscar_dados_agenda():
         # ========== QUERY UNIFICADA DE MOTORISTAS (1 query ao invés de 4) ==========
         t_motoristas = time.time()
         cursor.execute("""
-            SELECT 
-                ID_MOTORISTA, 
-                NM_MOTORISTA, 
-                CAD_MOTORISTA, 
-                NU_TELEFONE, 
-                TIPO_CADASTRO,
-                ORDEM_LISTA,
+            SELECT DISTINCT
+                m.ID_MOTORISTA, 
+                m.NM_MOTORISTA, 
+                m.CAD_MOTORISTA, 
+                m.NU_TELEFONE, 
+                m.TIPO_CADASTRO,
+                m.ORDEM_LISTA,
                 CASE 
-                    WHEN TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado') THEN 'SEGEOP'
-                    WHEN TIPO_CADASTRO = 'Administrativo' THEN 'ADMIN'
+                    WHEN m.TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado') THEN 'SEGEOP'
+                    WHEN m.TIPO_CADASTRO = 'Administrativo' THEN 'ADMIN'
                     ELSE 'TODOS'
                 END as CATEGORIA
-            FROM CAD_MOTORISTA
-            WHERE ATIVO = 'S'
-            AND (DT_INICIO IS NULL OR DT_INICIO <= %s)
-            AND (DT_FIM IS NULL OR DT_FIM >= %s)
+            FROM CAD_MOTORISTA m
+            INNER JOIN CAD_MOTORISTA_PERIODOS p ON p.ID_MOTORISTA = m.ID_MOTORISTA
+            WHERE m.ATIVO = 'S'
+            AND p.DT_INICIO <= %s
+            AND (p.DT_FIM IS NULL OR p.DT_FIM >= %s)
             ORDER BY 
                 CASE 
-                    WHEN TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado') THEN 1
-                    WHEN TIPO_CADASTRO = 'Administrativo' THEN 2
+                    WHEN m.TIPO_CADASTRO IN ('Motorista Atendimento','Terceirizado') THEN 1
+                    WHEN m.TIPO_CADASTRO = 'Administrativo' THEN 2
                     ELSE 3
                 END,
-                ORDEM_LISTA, 
-                NM_MOTORISTA
+                m.ORDEM_LISTA, 
+                m.NM_MOTORISTA
         """, (fim, inicio))
         
         # Separar motoristas por categoria
@@ -5791,12 +6008,13 @@ def buscar_dados_agenda():
             SELECT DISTINCT m.ID_MOTORISTA, m.NM_MOTORISTA, m.CAD_MOTORISTA, 
                 m.NU_TELEFONE, m.TIPO_CADASTRO
             FROM CAD_MOTORISTA m
+            INNER JOIN CAD_MOTORISTA_PERIODOS p ON p.ID_MOTORISTA = m.ID_MOTORISTA
             INNER JOIN AGENDA_DEMANDAS ae ON ae.ID_MOTORISTA = m.ID_MOTORISTA
             WHERE m.TIPO_CADASTRO NOT IN ('Motorista Atendimento','Terceirizado','Administrativo')
             AND ae.ID_TIPODEMANDA != 8
             AND m.ATIVO = 'S'
-            AND (m.DT_INICIO IS NULL OR m.DT_INICIO <= %s)
-            AND (m.DT_FIM IS NULL OR m.DT_FIM >= %s)
+            AND p.DT_INICIO <= %s
+            AND (p.DT_FIM IS NULL OR p.DT_FIM >= %s)
             AND ae.DT_INICIO <= %s 
             AND ae.DT_FIM >= %s
             UNION 
@@ -11504,7 +11722,6 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
-
 
 
 
