@@ -4557,6 +4557,8 @@
                                     document.getElementById('email_iditem').value = resultDiaria.iditem;
                                 }
                                 
+                                temVinculoDiariasAtivo = true;
+
                                 await abrirModalEmailDiarias(demanda);
                             });
                         }
@@ -4612,6 +4614,8 @@
                                         
                                         // Preencher IDITEM com o que acabamos de criar
                                         document.getElementById('email_iditem').value = resultSalvarDiaria.iditem;
+                                        
+                                        temVinculoDiariasAtivo = true;
                                         
                                         await abrirModalEmailDiarias(demanda);
                                     });
@@ -10072,7 +10076,6 @@
 </body>
 
 </html>
-
 
 
 
