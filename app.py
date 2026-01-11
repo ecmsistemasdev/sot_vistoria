@@ -9319,9 +9319,35 @@ def excluir_item_orcamento(iditem):
 @login_required
 def passagens_controle():
     try:
+        # Receber ID_CONTROLE da URL
+        id_controle = request.args.get('id_controle', type=int)
+        
+        if not id_controle:
+            flash('ID do contrato não informado', 'warning')
+            return redirect(url_for('controle_passagens_aereas'))
+        
         cursor = mysql.connection.cursor()
         
-        # ADICIONAR DISTANCIA_KM no SELECT
+        # Buscar informações do contrato para exibir no cabeçalho
+        cursor.execute("""
+            SELECT 
+                c.ID_CONTROLE, 
+                c.EXERCICIO, 
+                f.NM_FORNECEDOR, 
+                c.PROCESSO
+            FROM CONTROLE_PASSAGENS_AEREAS c
+            JOIN CAD_FORNECEDOR f ON f.ID_FORNECEDOR = c.ID_FORNECEDOR
+            WHERE c.ID_CONTROLE = %s
+        """, (id_controle,))
+        
+        contrato_info = cursor.fetchone()
+        
+        if not contrato_info:
+            cursor.close()
+            flash('Contrato não encontrado', 'danger')
+            return redirect(url_for('controle_passagens_aereas'))
+        
+        # Buscar passagens do contrato específico
         cursor.execute("""
             SELECT 
                 pae.ID_OF,
@@ -9329,13 +9355,13 @@ def passagens_controle():
                 pae.ID_CONTROLE,
                 pae.NU_SEI,
                 pae.NOME_PASSAGEIRO,
-                DATE_FORMAT(pae.DT_EMISSAO, '%d/%m/%Y') as DT_EMISSAO_F,
+                DATE_FORMAT(pae.DT_EMISSAO, '%%d/%%m/%%Y') as DT_EMISSAO_F,
                 pae.TRECHO,
                 pae.CODIGO_ORIGEM,
                 pae.CODIGO_DESTINO,
                 CONCAT(ao.CODIGO_IATA, ' - ', ao.CIDADE, '/', ao.UF_ESTADO) as ORIGEM_FORMATADA,
                 CONCAT(ad.CODIGO_IATA, ' - ', ad.CIDADE, '/', ad.UF_ESTADO) as DESTINO_FORMATADO,
-                DATE_FORMAT(pae.DT_EMBARQUE, '%d/%m/%Y') as DT_EMBARQUE_F,
+                DATE_FORMAT(pae.DT_EMBARQUE, '%%d/%%m/%%Y') as DT_EMBARQUE_F,
                 pae.CIA,
                 pae.LOCALIZADOR,
                 FORMAT(pae.VL_TARIFA, 2, 'de_DE') as VL_TARIFA_F,
@@ -9351,33 +9377,50 @@ def passagens_controle():
                 pae.DT_EMISSAO,
                 pae.DT_EMBARQUE,
                 pae.DISTANCIA_KM,
-                FORMAT(pae.DISTANCIA_KM, 2, 'de_DE') as DISTANCIA_KM_F
+                FORMAT(pae.DISTANCIA_KM, 2, 'de_DE') as DISTANCIA_KM_F,
+                opa.NU_EMPENHO
             FROM PASSAGENS_AEREAS_EMITIDAS pae
             LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
             LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
+            LEFT JOIN ORCAMENTO_PASSAGENS_AEREAS opa ON pae.ID_OPA = opa.ID_OPA
             WHERE pae.ATIVO = 'S'
+            AND pae.ID_CONTROLE = %s
             ORDER BY pae.ID_OF
-        """)
+        """, (id_controle,))
         passagens = cursor.fetchall()
         
         cursor.execute("""
             SELECT DISTINCT CIA 
             FROM PASSAGENS_AEREAS_EMITIDAS 
-            WHERE ATIVO = 'S' AND CIA IS NOT NULL
+            WHERE ATIVO = 'S' 
+            AND CIA IS NOT NULL
+            AND ID_CONTROLE = %s
             ORDER BY CIA
-        """)
+        """, (id_controle,))
         cias = cursor.fetchall()
         
         cursor.close()
         
         nome_usuario = session.get('usuario_login')
         
+        # Preparar dados do contrato para o template
+        contrato = {
+            'id_controle': contrato_info[0],
+            'exercicio': contrato_info[1],
+            'empresa': contrato_info[2],
+            'processo': contrato_info[3]
+        }
+        
         return render_template('passagens_controle.html', 
                              passagens=passagens,
                              cias=cias,
+                             contrato=contrato,
                              usuario=nome_usuario)
     
     except Exception as e:
+        print(f"Erro ao carregar passagens: {str(e)}")
+        import traceback
+        traceback.print_exc()
         flash(f'Erro ao carregar passagens: {str(e)}', 'danger')
         return redirect(url_for('controle_passagens_aereas'))
 
@@ -9588,7 +9631,7 @@ def passagens_salvar():
         
         # Receber dados do formulário
         id_opa = request.form.get('id_opa')
-        id_controle = 0  # Valor fixo por enquanto
+        id_controle = request.form.get('id_controle', type=int)
         nu_sei = request.form.get('nu_sei')
         nome_passageiro = request.form.get('nome_passageiro')
         dt_emissao = request.form.get('dt_emissao')
@@ -9672,7 +9715,7 @@ def passagens_atualizar():
         # Receber dados do formulário
         id_of = request.form.get('id_of_edit')
         id_opa = request.form.get('id_opa_edit')
-        id_controle = 0  # Valor fixo por enquanto
+        id_controle = request.form.get('id_controle', type=int)
         nu_sei = request.form.get('nu_sei_edit')
         nome_passageiro = request.form.get('nome_passageiro_edit')
         dt_emissao = request.form.get('dt_emissao_edit')
@@ -9785,13 +9828,17 @@ def passagens_filtrar():
         from datetime import datetime
         cursor = mysql.connection.cursor()
         
+        # Receber ID_CONTROLE do formulário
+        id_controle = request.form.get('id_controle', type=int)
+        
+        if not id_controle:
+            return jsonify({'success': False, 'message': 'ID do contrato não informado'}), 400
+        
         dt_inicio = request.form.get('dt_inicio_filtro')
         dt_fim = request.form.get('dt_fim_filtro')
         cia_filtro = request.form.get('cia_filtro')
-        passageiro_filtro = request.form.get('passageiro_filtro')
-        localizador_filtro = request.form.get('localizador_filtro')
+        empenho_filtro = request.form.get('empenho_filtro')
         
-        # ADICIONAR DISTANCIA_KM no SELECT
         query = """
             SELECT 
                 pae.ID_OF,
@@ -9813,14 +9860,17 @@ def passagens_filtrar():
                 FORMAT(pae.VL_ASSENTO, 2, 'de_DE') as VL_ASSENTO_F,
                 FORMAT(pae.VL_TAXA_EMBARQUE, 2, 'de_DE') as VL_TAXA_EMBARQUE_F,
                 FORMAT(pae.VL_TOTAL, 2, 'de_DE') as VL_TOTAL_F,
-                FORMAT(pae.DISTANCIA_KM, 2, 'de_DE') as DISTANCIA_KM_F
+                FORMAT(pae.DISTANCIA_KM, 2, 'de_DE') as DISTANCIA_KM_F,
+                opa.NU_EMPENHO
             FROM PASSAGENS_AEREAS_EMITIDAS pae
             LEFT JOIN AEROPORTOS ao ON pae.CODIGO_ORIGEM = ao.CODIGO_IATA
             LEFT JOIN AEROPORTOS ad ON pae.CODIGO_DESTINO = ad.CODIGO_IATA
+            LEFT JOIN ORCAMENTO_PASSAGENS_AEREAS opa ON pae.ID_OPA = opa.ID_OPA
             WHERE pae.ATIVO = 'S'
+            AND pae.ID_CONTROLE = %s
         """
         
-        params = []
+        params = [id_controle]
         
         if dt_inicio and dt_inicio.strip():
             query += " AND pae.DT_EMISSAO >= %s"
@@ -9834,13 +9884,9 @@ def passagens_filtrar():
             query += " AND pae.CIA = %s"
             params.append(cia_filtro)
         
-        if passageiro_filtro and passageiro_filtro.strip():
-            query += " AND pae.NOME_PASSAGEIRO LIKE %s"
-            params.append(f"%{passageiro_filtro}%")
-        
-        if localizador_filtro and localizador_filtro.strip():
-            query += " AND pae.LOCALIZADOR LIKE %s"
-            params.append(f"%{localizador_filtro}%")
+        if empenho_filtro and empenho_filtro.strip():
+            query += " AND opa.NU_EMPENHO = %s"
+            params.append(empenho_filtro)
         
         query += " ORDER BY pae.ID_OF ASC"
         
@@ -9855,6 +9901,57 @@ def passagens_filtrar():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'message': f'Erro ao filtrar: {str(e)}'}), 500
+
+
+@app.route('/api/passagens/empenhos/periodo', methods=['GET'])
+@login_required
+def buscar_empenhos_por_periodo():
+    """
+    Retorna lista de empenhos distintos baseados no período de emissão e ID_CONTROLE
+    """
+    try:
+        dt_inicio = request.args.get('dt_inicio')
+        dt_fim = request.args.get('dt_fim')
+        id_controle = request.args.get('id_controle', type=int)
+        
+        if not dt_inicio or not dt_fim:
+            return jsonify({'success': False, 'message': 'Período não informado'}), 400
+        
+        if not id_controle:
+            return jsonify({'success': False, 'message': 'ID do contrato não informado'}), 400
+        
+        cursor = mysql.connection.cursor()
+        
+        query = """
+            SELECT DISTINCT opa.NU_EMPENHO
+            FROM PASSAGENS_AEREAS_EMITIDAS pae
+            INNER JOIN ORCAMENTO_PASSAGENS_AEREAS opa ON pae.ID_OPA = opa.ID_OPA
+            WHERE pae.ATIVO = 'S'
+            AND pae.ID_CONTROLE = %s
+            AND pae.DT_EMISSAO >= %s
+            AND pae.DT_EMISSAO <= %s
+            AND opa.NU_EMPENHO IS NOT NULL
+            AND opa.NU_EMPENHO != ''
+            ORDER BY opa.NU_EMPENHO
+        """
+        
+        cursor.execute(query, (id_controle, dt_inicio, dt_fim))
+        rows = cursor.fetchall()
+        cursor.close()
+        
+        empenhos = [row[0] for row in rows]
+        
+        return jsonify({
+            'success': True,
+            'empenhos': empenhos
+        })
+        
+    except Exception as e:
+        print(f"Erro ao buscar empenhos: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Erro ao buscar empenhos: {str(e)}'}), 500
+
 
 # ----- ROTA: BUSCAR ORÇAMENTOS DISPONÍVEIS PARA SELEÇÃO -----
 @app.route('/api/orcamento/passagens/disponiveis', methods=['GET'])
