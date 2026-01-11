@@ -628,7 +628,7 @@
                 <button class="btn btn-success" onclick="abrirModal()" style="padding: 8px 20px; font-size: 12px;">
                     <span style="font-size: 14px; margin-right: 5px;">+</span> Adicionar Registro
                 </button>
-                <button class="btn btn-primary" onclick="window.location.href='/passagens/controle'">
+                <button type="button" class="btn btn-primary" id="btnControleBilhetes" onclick="abrirControleBilhetes(event)">
                     <i class="fas fa-ticket-alt"></i>📋 Controle de Bilhetes
                 </button>
             </div>
@@ -953,6 +953,9 @@
 
         let contratoSelecionado = null;
 
+        // DEBUG: Tornar a variável acessível globalmente para testes
+        window.contratoSelecionado = contratoSelecionado;        
+
         // Carregar contratos
         async function carregarContratos() {
             try {
@@ -997,6 +1000,9 @@
 
         function selecionarContrato(contrato) {
             contratoSelecionado = contrato;
+            window.contratoSelecionado = contrato;  // ADICIONAR: manter sincronizado
+            
+            document.getElementById('infoIdControle').textContent = contrato.ID_CONTROLE;
 
             document.getElementById('infoIdControle').textContent = contrato.ID_CONTROLE;
             document.getElementById('infoExercicio').textContent = contrato.EXERCICIO;
@@ -1747,8 +1753,74 @@
             // }, 5000);
         }
 
+        // Configurar botão de controle de bilhetes
+        window.addEventListener('DOMContentLoaded', function() {
+            const btnControleBilhetes = document.getElementById('btnControleBilhetes');
+            
+            if (btnControleBilhetes) {
+                btnControleBilhetes.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('🔍 Botão clicado via addEventListener');
+                    console.log('📦 contratoSelecionado:', contratoSelecionado);
+                    
+                    if (!contratoSelecionado) {
+                        alert('Por favor, selecione um contrato antes de acessar o controle de bilhetes.');
+                        return false;
+                    }
+                    
+                    console.log('✅ ID_CONTROLE:', contratoSelecionado.ID_CONTROLE);
+                    
+                    const url = `/passagens/controle?id_controle=${contratoSelecionado.ID_CONTROLE}`;
+                    console.log('🌐 Redirecionando para:', url);
+                    
+                    window.location.href = url;
+                    return false;
+                });
+                
+                console.log('✅ Event listener adicionado ao botão de controle de bilhetes');
+            } else {
+                console.error('❌ Botão btnControleBilhetes não encontrado!');
+            }
+        });
+
         // Carregar ao iniciar
         window.addEventListener('DOMContentLoaded', carregarDadosIniciais);
+
+        /**
+         * Abre a página de controle de bilhetes com o ID_OPA selecionado
+         */
+        function abrirControleBilhetes(event) {
+            // Prevenir comportamento padrão
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            console.log('🔍 Função abrirControleBilhetes chamada');
+            console.log('📦 contratoSelecionado:', contratoSelecionado);
+            
+            // Verificar se há um contrato selecionado
+            if (!contratoSelecionado) {
+                alert('Por favor, selecione um contrato antes de acessar o controle de bilhetes.');
+                return false;
+            }
+            
+            console.log('✅ ID_CONTROLE:', contratoSelecionado.ID_CONTROLE);
+            
+            // Redirecionar para a página de controle com o ID_CONTROLE
+            const url = `/passagens/controle?id_controle=${contratoSelecionado.ID_CONTROLE}`;
+            console.log('🌐 Redirecionando para:', url);
+            
+            // Usar setTimeout para garantir que o redirecionamento aconteça
+            setTimeout(function() {
+                window.location.href = url;
+            }, 50);
+            
+            return false;
+        }
+
     </script>
 </body>
 </html>

@@ -613,13 +613,17 @@
     <div class="container-fluid content-wrapper">
         <!-- Cabeçalho -->
         <div class="page-header">
+            <div>
+                <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes - Passagens Aéreas</h2>
+                {% if contrato %}
+                <p style="margin-top: 8px; font-size: 13px;">
+                    <strong>Processo:</strong> {{ contrato.exercicio }} - {{ contrato.empresa }} - {{ contrato.processo }}
+                </p>
+                {% endif %}
+            </div>
             <a href="/controle_passagens_aereas" class="btn-voltar">
                 <i class="fas fa-arrow-left"></i> Voltar ao Orçamento
             </a>
-            <div>
-                <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes Emitidos</h2>
-                <p>Gerencie os bilhetes de passagens aéreas emitidas</p>
-            </div>
         </div>
 
         <!-- Botões de Ação -->
@@ -658,6 +662,7 @@
                                 <th>Emissão</th>
                                 <th>Embarque</th>
                                 <th>Valor Total</th>
+                                <th>Empenho</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -673,6 +678,7 @@
                                 <td>{{ p[5] }}</td>
                                 <td>{{ p[11] }}</td>
                                 <td>R$ {{ p[18] }}</td>
+                                <td>{{ p[28] if p[28] else '-' }}</td>
                                 <td>
                                     <div class="action-buttons">
                                         <button class="btn btn-sm btn-warning" onclick="editarPassagem({{ p[0] }})" title="Editar">
@@ -705,8 +711,7 @@
                 <div class="modal-body">                    
                     <form id="formCadastro" onsubmit="salvarPassagem(event)">
                         <input type="hidden" id="id_opa" name="id_opa">
-                        <input type="hidden" name="id_controle" value="0">
-
+                        <input type="hidden" name="id_controle" value="{{ contrato.id_controle if contrato else 0 }}">
                         <!-- UPLOAD DE BILHETE PDF -->
                         <div class="alert alert-info" style="background-color: #e8f4fd; border-left: 4px solid #2196F3; padding: 12px; margin-bottom: 20px;">
                             <div class="row align-items-center">
@@ -955,7 +960,7 @@
                     <form id="formEdicao" onsubmit="atualizarPassagem(event)">
                         <input type="hidden" id="id_of_edit" name="id_of_edit">
                         <input type="hidden" id="id_opa_edit" name="id_opa_edit">
-                        <input type="hidden" name="id_controle_edit" value="0">
+                        <input type="hidden" name="id_controle_edit" id="id_controle_edit" value="{{ contrato.id_controle if contrato else 0 }}">
 
                         <!-- Unidade/Programa/Empenho -->
                         <div class="form-group">
@@ -1149,6 +1154,7 @@
                 </div>
                 <div class="modal-body">
                     <form id="formFiltros" onsubmit="aplicarFiltros(event)">
+                        <input type="hidden" name="id_controle" id="id_controle_filtro" value="{{ contrato.id_controle if contrato else '' }}">                        
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-group">
@@ -1178,15 +1184,13 @@
                             </div>
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label>Passageiro</label>
-                                    <input type="text" class="form-control" id="passageiro_filtro" name="passageiro_filtro" placeholder="Nome do passageiro">
+                                    <label>Empenho</label>
+                                    <select class="form-control" id="empenho_filtro" name="empenho_filtro" disabled>
+                                        <option value="">Selecione um período primeiro</option>
+                                    </select>
+                                    <small class="form-text text-muted">Informe Data Início e Fim para carregar os empenhos</small>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Localizador</label>
-                            <input type="text" class="form-control" id="localizador_filtro" name="localizador_filtro" placeholder="Código do localizador">
                         </div>
 
                         <div class="text-right mt-3">
@@ -1484,6 +1488,11 @@
             
             // Inicializar validação de trecho
             inicializarValidacaoTrecho();
+            
+            // Listeners para carregar empenhos quando as datas forem preenchidas
+            $('#dt_inicio_filtro, #dt_fim_filtro').on('change', function() {
+                carregarEmpenhosPorPeriodo();
+            });
             
             // Calcular totalizadores iniciais
             calcularTotalizadoresVisiveis();
@@ -1943,14 +1952,15 @@
                         
                         response.data.forEach(function(passagem) {
                             table.row.add([
-                                passagem[0],  // ID
-                                passagem[4],  // Dt Emissão
-                                passagem[12], // Nu SEI
-                                passagem[13], // Nome Passageiro
+                                passagem[0],  // ID_OF
+                                passagem[4],  // Nome Passageiro
+                                passagem[12], // CIA
+                                passagem[13], // Localizador
                                 '<strong>' + (passagem[6] || '-') + '</strong>',  // Trecho
-                                passagem[5],  // Dt Embarque
-                                passagem[11], // CIA
+                                passagem[5],  // Dt Emissão
+                                passagem[11], // Dt Embarque
                                 'R$ ' + passagem[18], // Valor Total
+                                passagem[20] || '-', // Empenho
                                 '<div class="action-buttons">' +
                                 '<button class="btn btn-sm btn-warning" onclick="editarPassagem(' + passagem[0] + ')" title="Editar"><i class="fas fa-edit"></i></button> ' +
                                 '<button class="btn btn-sm btn-danger" onclick="confirmarExclusao(' + passagem[0] + ')" title="Excluir"><i class="fas fa-trash"></i></button>' +
@@ -2002,7 +2012,7 @@
                 <td style="padding: 12px;">
                     <strong>R$ <span id="total-valor">${totalValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span></strong>
                 </td>
-                <td></td>
+                <td colspan="2"></td>
             `;
             tabelaBody.appendChild(linhaTotalizadores);
         }
@@ -2012,6 +2022,60 @@
         // ============================================================================
         function limparFiltros() {
             location.reload();
+        }
+        
+        // ============================================================================
+        // CARREGAR EMPENHOS POR PERÍODO
+        // ============================================================================
+        function carregarEmpenhosPorPeriodo() {
+            const dtInicio = $('#dt_inicio_filtro').val();
+            const dtFim = $('#dt_fim_filtro').val();
+            const idControle = $('#id_controle_filtro').val();  // ALTERADO de id_opa para id_controle
+            const selectEmpenho = $('#empenho_filtro');
+            
+            // Limpar o select
+            selectEmpenho.empty().append('<option value="">Carregando...</option>');
+            selectEmpenho.prop('disabled', true);
+            
+            // Verificar se ambas as datas foram preenchidas
+            if (!dtInicio || !dtFim) {
+                selectEmpenho.empty().append('<option value="">Selecione um período primeiro</option>');
+                return;
+            }
+            
+            // Verificar se ID_CONTROLE existe
+            if (!idControle) {
+                selectEmpenho.empty().append('<option value="">Erro: ID do contrato não encontrado</option>');
+                return;
+            }
+            
+            // Buscar empenhos via AJAX
+            $.ajax({
+                url: '/api/passagens/empenhos/periodo',
+                type: 'GET',
+                data: {
+                    dt_inicio: dtInicio,
+                    dt_fim: dtFim,
+                    id_controle: idControle  // ALTERADO de id_opa para id_controle
+                },
+                success: function(response) {
+                    selectEmpenho.empty();
+                    
+                    if (response.success && response.empenhos.length > 0) {
+                        selectEmpenho.append('<option value="">Todos</option>');
+                        response.empenhos.forEach(function(empenho) {
+                            selectEmpenho.append(`<option value="${empenho}">${empenho}</option>`);
+                        });
+                        selectEmpenho.prop('disabled', false);
+                    } else {
+                        selectEmpenho.append('<option value="">Nenhum empenho encontrado</option>');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Erro ao carregar empenhos:', xhr);
+                    selectEmpenho.empty().append('<option value="">Erro ao carregar empenhos</option>');
+                }
+            });
         }
         
         // ============================================================================
