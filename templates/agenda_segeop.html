@@ -5632,7 +5632,6 @@
         }
 
         function gerarCSSClassesDinamicas() {
-            // Criar elemento <style> dinâmico
             const style = document.createElement('style');
             style.id = 'dynamic-tipo-demanda-styles';
             
@@ -5651,8 +5650,8 @@
         `;
             });
             
-            // ✅ NOVO: Regra especial para Viagem (ID 2) na seção de Outros Motoristas
-            // Buscar as cores do ID 16
+            // ✅ ADICIONAR ESTE BLOCO:
+            // Regra especial para Viagem (ID 2) de Cadastro de Condutores
             const tipoEspecial = tiposDemanda.find(t => t.id === 16);
             if (tipoEspecial) {
                 const corInicioEspecial = tipoEspecial.cor_inicio || '#5fa1df';
@@ -5660,19 +5659,8 @@
                 const negritoEspecial = tipoEspecial.negrito ? 'font-weight: bold;' : '';
                 
                 css += `
-        /* Cor especial para Viagem (ID 2) na seção de Outros Motoristas */
-        #sectionOutrosMotoristas .tipo-2 {
-            background: linear-gradient(to bottom, ${corInicioEspecial}, ${corFimEspecial}) !important;
-            ${negritoEspecial}
-        }
-        
-        /* Cor especial para Viagem (ID 2) na seção de Veículos */
-        #sectionVeiculos .tipo-2 {
-            background: linear-gradient(to bottom, ${corInicioEspecial}, ${corFimEspecial}) !important;
-            ${negritoEspecial}
-        }
-        
-        #sectionVeiculosAlocados .tipo-2 {
+        /* Cor especial para Viagem (ID 2) de Cadastro de Condutores */
+        .tipo-2-outros-motoristas {
             background: linear-gradient(to bottom, ${corInicioEspecial}, ${corFimEspecial}) !important;
             ${negritoEspecial}
         }
@@ -5681,8 +5669,6 @@
             
             style.textContent = css;
             document.head.appendChild(style);
-            
-            // console.log('✅ CSS dinâmico gerado para tipos de demanda');
         }         
         
         
@@ -5855,7 +5841,7 @@
                 
                 selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
                 tiposDemanda.forEach(t => {
-                    // ✅ MODIFICADO: Não adicionar ID 16 no select do formulário
+                    // ✅ Não adicionar ID 16 no select do formulário
                     if (t.id !== 16 && t.ativo) {  
                         selectTipoDemanda.innerHTML += `<option value="${t.id}" data-descricao="${t.descricao}">${t.descricao}</option>`;
                     }
@@ -7076,7 +7062,12 @@
                                 }
                             }
                             
-                            const corClass = `tipo-${demanda.id_tipodemanda}`;
+                            // const corClass = `tipo-${demanda.id_tipodemanda}`;
+                            // ✅ Se for Viagem (ID 2) E motorista é 'Cadastro de Condutores', usar cor especial
+                            const corClass = (demanda.id_tipodemanda === 2 && demanda.tipo_cadastro === 'Cadastro de Condutores')
+                                ? 'tipo-2-outros-motoristas' 
+                                : `tipo-${demanda.id_tipodemanda}`;
+        
                             const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
                             html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} data-id-demanda="${demanda.id}" onclick="handleCellClick(event, ${demanda.id})" onmouseenter="mostrarTooltipVeiculo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
                             html += '<div class="cell-content">';
@@ -7541,7 +7532,11 @@
                                 }
                             }
                             
-                            const corClass = `tipo-${demanda.id_tipodemanda}`;
+                            // const corClass = `tipo-${demanda.id_tipodemanda}`;
+                            // ✅ Se for Viagem (ID 2) E motorista é 'Cadastro de Condutores', usar cor especial
+                            const corClass = (demanda.id_tipodemanda === 2 && demanda.tipo_cadastro === 'Cadastro de Condutores')
+                                ? 'tipo-2-outros-motoristas' 
+                                : `tipo-${demanda.id_tipodemanda}`;                            
                             const feriadoClass = feriado ? 'cell-feriado-com-demanda' : '';
                             html += `<td class="${corClass} ${feriadoClass} col-dia" ${rowspanCount > 1 ? `rowspan="${rowspanCount}"` : ''} onclick="abrirModalEditar(${demanda.id})" onmouseenter="mostrarTooltipPeriodo(event, ${demanda.id})" onmousemove="posicionarTooltip(event)" onmouseleave="esconderTooltipVeiculo()">`;
                             html += '<div class="cell-content-veiculos">';
@@ -10107,6 +10102,7 @@
 </body>
 
 </html>
+
 
 
 
