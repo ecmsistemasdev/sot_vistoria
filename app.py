@@ -345,6 +345,74 @@ def handle_ping():
     emit('pong', {'timestamp': datetime.now().isoformat()})
 
 
+@app.route('/salvar-ordem-cronologica', methods=['POST'])
+def salvar_ordem_cronologica():
+    """
+    Salva dados da Ordem Cronológica no banco de dados
+    O envio para o Google Forms será feito via URL pré-preenchida no frontend
+    """
+    try:
+        dados = request.json
+        
+        # ========================================
+        # SALVAR NO BANCO DE DADOS
+        # ========================================
+        cursor = mysql.connection.cursor()
+        
+        sql_insert = """
+            INSERT INTO ORDEM_CRONOLOGICA (
+                NU_PROCESSO, DOC_COBRANCA, NM_FORNECEDOR, CPF_CNPJ,
+                VL_CREDITO, DT_RECEBIMENTO, DT_PAGAMENTO, NU_CONTRATO,
+                CAT_CONTRATO, VL_CONTRATO, TIPO_CONTRATO, GESTOR_CONTRATO,
+                COMARCA_GESTOR, UNIDADE_GESTOR, NU_EMPENHO, ELEMENTO_DESPESA,
+                UO, ENVIADO_GOOGLE_FORMS, DATA_ENVIO
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+        """
+        
+        valores = (
+            dados.get('nu_processo'),
+            dados.get('doc_cobranca'),
+            dados.get('nm_fornecedor'),
+            dados.get('cpf_cnpj'),
+            float(dados.get('vl_credito', 0)),
+            dados.get('dt_recebimento'),
+            dados.get('dt_pagamento'),
+            dados.get('nu_contrato'),
+            dados.get('cat_contrato'),
+            float(dados.get('vl_contrato', 0)),
+            dados.get('tipo_contrato'),
+            dados.get('gestor_contrato'),
+            dados.get('comarca_gestor'),
+            dados.get('unidade_gestor'),
+            dados.get('nu_empenho'),
+            dados.get('elemento_despesa'),
+            dados.get('uo'),
+            1,  # ENVIADO_GOOGLE_FORMS (marcado como enviado, pois será aberto no navegador)
+            datetime.now()  # DATA_ENVIO
+        )
+        
+        cursor.execute(sql_insert, valores)
+        id_oc = cursor.lastrowid
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Ordem Cronológica salva com sucesso!',
+            'id_oc': id_oc
+        })
+        
+    except Exception as e:
+        print(f"Erro ao salvar Ordem Cronológica: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
+
 @app.route('/enviar-form', methods=['POST'])
 def enviar_para_google_form():
     """
@@ -12010,6 +12078,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
