@@ -1296,7 +1296,11 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="oc_processo">Nº Processo <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="oc_processo" readonly>
+                                    <input type="text" 
+                                           class="form-control processo-mask" 
+                                           id="oc_processo" 
+                                           placeholder="0000000-00.0000.0.00.0000"
+                                           readonly>
                                 </div>
                                 
                                 <div class="form-group">
@@ -2103,6 +2107,10 @@
                         
                         table.draw();
                         atualizarTotalizadores(response.data);
+                        
+                        // ✅ ADICIONAR ESTA LINHA AQUI:
+                        verificarExibicaoBotaoOrdemCronologica(response.data);
+                        
                         $('#modalFiltros').modal('hide');
                     } else {
                         alert('Erro: ' + response.message);
@@ -2154,6 +2162,15 @@
         // LIMPAR FILTROS
         // ============================================================================
         function limparFiltros() {
+            // Limpar dados filtrados globais
+            window.dadosFiltradosAtual = null;
+            
+            // Esconder botão de ordem cronológica
+            const btn = document.getElementById('btnLancarOrdemCronologica');
+            if (btn) {
+                btn.style.display = 'none';
+            }
+            
             location.reload();
         }
         
@@ -3055,6 +3072,80 @@
         });
 
         // ============================================================
+        // MÁSCARA PARA Nº PROCESSO
+        // ============================================================
+        
+        /**
+         * Aplica máscara no formato: 0000000-00.0000.0.00.0000
+         */
+        function aplicarMascaraProcesso(valor) {
+            // Remove tudo que não é dígito
+            valor = valor.replace(/\D/g, '');
+            
+            // Limita a 20 dígitos
+            valor = valor.substring(0, 20);
+            
+            // Aplica a máscara: 0000000-00.0000.0.00.0000
+            if (valor.length > 0) {
+                valor = valor.replace(/^(\d{0,7})/, '$1');
+                if (valor.length > 7) {
+                    valor = valor.replace(/^(\d{7})(\d{0,2})/, '$1-$2');
+                }
+                if (valor.length > 10) {
+                    valor = valor.replace(/^(\d{7}-\d{2})(\d{0,4})/, '$1.$2');
+                }
+                if (valor.length > 15) {
+                    valor = valor.replace(/^(\d{7}-\d{2}\.\d{4})(\d{0,1})/, '$1.$2');
+                }
+                if (valor.length > 17) {
+                    valor = valor.replace(/^(\d{7}-\d{2}\.\d{4}\.\d{1})(\d{0,2})/, '$1.$2');
+                }
+                if (valor.length > 20) {
+                    valor = valor.replace(/^(\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2})(\d{0,4})/, '$1.$2');
+                }
+            }
+            
+            return valor;
+        }
+        
+        /**
+         * Inicializa máscara em campos com classe processo-mask
+         */
+        function inicializarMascaraProcesso() {
+            const camposProcesso = document.querySelectorAll('.processo-mask');
+            
+            camposProcesso.forEach(campo => {
+                // Remove readonly temporariamente se o usuário precisar editar
+                campo.addEventListener('input', function(e) {
+                    const valorAtual = e.target.value;
+                    const posicaoCursor = e.target.selectionStart;
+                    const valorAnterior = valorAtual.replace(/\D/g, '').length;
+                    
+                    e.target.value = aplicarMascaraProcesso(valorAtual);
+                    
+                    // Ajusta posição do cursor
+                    const valorNovo = e.target.value.replace(/\D/g, '').length;
+                    if (valorNovo > valorAnterior) {
+                        e.target.setSelectionRange(posicaoCursor, posicaoCursor);
+                    }
+                });
+                
+                // Permite colar texto
+                campo.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const texto = (e.clipboardData || window.clipboardData).getData('text');
+                    const valorFormatado = aplicarMascaraProcesso(texto);
+                    e.target.value = valorFormatado;
+                });
+            });
+        }
+        
+        // Inicializar quando o documento carregar
+        $(document).ready(function() {
+            inicializarMascaraProcesso();
+        });
+
+        // ============================================================
         // ORDEM CRONOLÓGICA
         // ============================================================
         
@@ -3098,12 +3189,12 @@
          * Obtém os dados do filtro atual da tabela
          */
         function obterDadosFiltroAtual() {
-            const table = $('#tabelaBilhetes').DataTable();
-            const filteredData = table.rows({ search: 'applied' }).data().toArray();
-            
-            if (filteredData.length === 0) {
+            // Usar dados armazenados após filtro
+            if (!window.dadosFiltradosAtual || window.dadosFiltradosAtual.length === 0) {
                 return null;
             }
+            
+            const filteredData = window.dadosFiltradosAtual;
             
             // Calcular soma total dos registros filtrados
             let valorTotal = 0;
@@ -3111,18 +3202,19 @@
             let idContrato = null;
             
             filteredData.forEach(row => {
-                // Assumindo que o valor está na coluna 11 (VL_BILHETE)
-                const valor = parseFloat(row[11]) || 0;
+                // row[18] contém o valor já formatado
+                const valorStr = row[18].replace(/\./g, '').replace(',', '.');
+                const valor = parseFloat(valorStr) || 0;
                 valorTotal += valor;
                 
-                // Pegar o primeiro empenho encontrado
-                if (!nuEmpenho && row[13]) {
-                    nuEmpenho = row[13];
+                // Pegar o primeiro empenho encontrado (row[20])
+                if (!nuEmpenho && row[20]) {
+                    nuEmpenho = row[20];
                 }
                 
-                // Pegar o ID do contrato (assumindo que está disponível)
-                if (!idContrato && row[15]) {
-                    idContrato = row[15];
+                // Pegar o ID do contrato (row[2] - ID_CONTROLE)
+                if (!idContrato && row[2]) {
+                    idContrato = row[2];
                 }
             });
             
@@ -3152,7 +3244,7 @@
          */
         function preencherModalOrdemCronologica(contrato, filtro) {
             // Dados do contrato
-            document.getElementById('oc_processo').value = contrato.PROCESSO || '';
+            document.getElementById('oc_processo').value = aplicarMascaraProcesso(contrato.PROCESSO || '');
             document.getElementById('oc_fornecedor').value = contrato.NM_FORNECEDOR || '';
             document.getElementById('oc_cpf_cnpj').value = formatarCNPJ(contrato.CNPJ_FORNECEDOR || '');
             document.getElementById('oc_contrato').value = contrato.CONTRATO || '';
@@ -3288,13 +3380,18 @@
         /**
          * Mostra/oculta botão de Ordem Cronológica baseado no filtro
          */
-        function verificarExibicaoBotaoOrdemCronologica() {
-            const table = $('#tabelaBilhetes').DataTable();
-            const filteredRows = table.rows({ search: 'applied' }).data().length;
+        function verificarExibicaoBotaoOrdemCronologica(dadosFiltrados) {
             const btn = document.getElementById('btnLancarOrdemCronologica');
             
             if (btn) {
-                btn.style.display = filteredRows > 0 ? 'inline-block' : 'none';
+                if (dadosFiltrados && dadosFiltrados.length > 0) {
+                    btn.style.display = 'inline-block';
+                    // Armazenar dados filtrados globalmente para uso posterior
+                    window.dadosFiltradosAtual = dadosFiltrados;
+                } else {
+                    btn.style.display = 'none';
+                    window.dadosFiltradosAtual = null;
+                }
             }
         }
         
@@ -3307,3 +3404,4 @@
 </body>
 
 </html>
+
