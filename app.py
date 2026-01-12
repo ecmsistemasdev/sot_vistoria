@@ -6295,7 +6295,7 @@ def buscar_dados_agenda():
                    tv.DE_TIPOVEICULO, ae.ID_VEICULO, ae.DT_INICIO, ae.DT_FIM,
                    ae.SETOR, ae.SOLICITANTE, ae.DESTINO, ae.NU_SEI, 
                    ae.DT_LANCAMENTO, ae.USUARIO, ae.OBS, ae.SOLICITADO, ae.HORARIO,
-                   ae.TODOS_VEICULOS, ae.NC_MOTORISTA
+                   ae.TODOS_VEICULOS, ae.NC_MOTORISTA, m.TIPO_CADASTRO
             FROM AGENDA_DEMANDAS ae
             LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ae.ID_MOTORISTA
             LEFT JOIN TIPO_DEMANDA td ON td.ID_TIPODEMANDA = ae.ID_TIPODEMANDA
@@ -6356,7 +6356,8 @@ def buscar_dados_agenda():
                 'solicitado': r[17] or 'N',
                 'horario': horario,
                 'todos_veiculos': r[19] or 'N',
-                'nc_motorista': r[20] or ''
+                'nc_motorista': r[20] or '',
+				'tipo_cadastro': r[21] or ''
             })
         
         tempos['demandas_query'] = (t5_processamento - t5) * 1000
@@ -12078,6 +12079,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
