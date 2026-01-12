@@ -347,52 +347,172 @@ def handle_ping():
 
 @app.route('/enviar-form', methods=['POST'])
 def enviar_para_google_form():
-    # URL do formulário (termina com /formResponse)
-    form_url = "https://docs.google.com/forms/d/e/1FAIpQLSdA--nxkR3GGB0RdW6FVjSPjkgdmhnXvRckJkc-tDKT2kSV7A/formResponse"
-    
-    # Dados do seu sistema
-    dados = request.json
-    
-    # Mapeamento para os campos do Google Form
-    form_data = {
-        'entry.28426199': dados.get('numero_processo'),           # Ex: 0000123-45.2024.8.22.0001
-        'entry.848082802': dados.get('documento_cobranca'),       # Ex: NF 12345
-        'entry.2129481572': dados.get('nome_fornecedor'),         # Ex: Empresa ABC Ltda
-        'entry.1980182805': dados.get('cpf_cnpj'),                # Ex: 12.345.678/0001-90
-        'entry.627188067': dados.get('valor_credito'),            # Ex: 1.500,00
-        'entry.374609461': dados.get('data_apresentacao'),        # Ex: 2025-01-12
-        'entry.630584389': dados.get('data_pagamento'),           # Ex: 2025-02-12
-        'entry.1174998288': dados.get('numero_contrato'),         # Ex: 123/2024
-        'entry.879911355': dados.get('categoria_contrato'),       # Ex: Prestação de Serviços
-        'entry.134978738': dados.get('valor_contrato'),           # Ex: 50.000,00
-        'entry.1806497785': dados.get('tipo_contrato'),           # Ex: OUTROS
-        'entry.1081045185': dados.get('gestor_contrato'),         # Ex: João Silva
-        'entry.1230052846': dados.get('comarca_gestor'),          # Ex: Porto Velho
-        'entry.1644151433': dados.get('unidade_gestor'),          # Ex: Seção de Liquidação (SELIQ)
-        'entry.504501902': dados.get('nota_empenho'),             # Ex: 2024NE123456
-        'entry.1669599806': dados.get('elemento_despesa'),        # Ex: 33.90.39.00
-        'entry.1148534135': dados.get('unidade_orcamentaria'),    # Ex: TJRO
-    }
-    
+    """
+    Salva dados da Ordem Cronológica e envia para o Google Forms
+    """
     try:
+        dados = request.json
+        
+        # ========================================
+        # 1. SALVAR NO BANCO DE DADOS
+        # ========================================
+        cursor = mysql.connection.cursor()
+        
+        sql_insert = """
+            INSERT INTO ORDEM_CRONOLOGICA (
+                NU_PROCESSO, DOC_COBRANCA, NM_FORNECEDOR, CPF_CNPJ,
+                VL_CREDITO, DT_RECEBIMENTO, DT_PAGAMENTO, NU_CONTRATO,
+                CAT_CONTRATO, VL_CONTRATO, TIPO_CONTRATO, GESTOR_CONTRATO,
+                COMARCA_GESTOR, UNIDADE_GESTOR, NU_EMPENHO, ELEMENTO_DESPESA,
+                UO, ENVIADO_GOOGLE_FORMS, DATA_ENVIO
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+        """
+        
+        valores = (
+            dados.get('nu_processo'),
+            dados.get('doc_cobranca'),
+            dados.get('nm_fornecedor'),
+            dados.get('cpf_cnpj'),
+            float(dados.get('vl_credito', 0)),
+            dados.get('dt_recebimento'),
+            dados.get('dt_pagamento'),
+            dados.get('nu_contrato'),
+            dados.get('cat_contrato'),
+            float(dados.get('vl_contrato', 0)),
+            dados.get('tipo_contrato'),
+            dados.get('gestor_contrato'),
+            dados.get('comarca_gestor'),
+            dados.get('unidade_gestor'),
+            dados.get('nu_empenho'),
+            dados.get('elemento_despesa'),
+            dados.get('uo'),
+            0,  # ENVIADO_GOOGLE_FORMS (False inicialmente)
+            None  # DATA_ENVIO (será atualizado após envio bem-sucedido)
+        )
+        
+        cursor.execute(sql_insert, valores)
+        id_oc = cursor.lastrowid
+        mysql.connection.commit()
+        
+        # ========================================
+        # 2. ENVIAR PARA O GOOGLE FORMS
+        # ========================================
+        import requests
+        
+        form_url = "https://docs.google.com/forms/d/e/1FAIpQLSdA--nxkR3GGB0RdW6FVjSPjkgdmhnXvRckJkc-tDKT2kSV7A/formResponse"
+        
+        # Mapeamento para os campos do Google Form
+        form_data = {
+            'entry.28426199': dados.get('nu_processo'),           # Nº Processo
+            'entry.848082802': dados.get('doc_cobranca'),         # Nº Documento Cobrança
+            'entry.2129481572': dados.get('nm_fornecedor'),       # Nome Fornecedor
+            'entry.1980182805': dados.get('cpf_cnpj'),            # CPF/CNPJ
+            'entry.627188067': f"R$ {float(dados.get('vl_credito', 0)):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),  # Valor Crédito
+            'entry.374609461': dados.get('dt_recebimento'),       # Data Recebimento
+            'entry.630584389': dados.get('dt_pagamento'),         # Data Pagamento
+            'entry.1174998288': dados.get('nu_contrato'),         # Nº Contrato
+            'entry.1759342712': dados.get('cat_contrato'),        # Categoria do Contrato
+            'entry.535843603': f"R$ {float(dados.get('vl_contrato', 0)):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),  # Valor do Contrato
+            'entry.1364276952': dados.get('tipo_contrato'),       # Tipo de Contrato
+            'entry.784298439': dados.get('gestor_contrato'),      # Gestor(a) do Contrato
+            'entry.1453029380': dados.get('comarca_gestor'),      # Comarca de Locação
+            'entry.1058830341': dados.get('unidade_gestor'),      # Unidade de Lotação
+            'entry.1966894067': dados.get('nu_empenho'),          # Nº Empenho
+            'entry.1797655161': dados.get('elemento_despesa'),    # Elemento de Despesa
+            'entry.1401767695': dados.get('uo')                   # Unidade Orçamentária
+        }
+        
+        # Enviar requisição POST para o Google Forms
         response = requests.post(form_url, data=form_data)
         
+        # ========================================
+        # 3. ATUALIZAR STATUS DE ENVIO
+        # ========================================
         if response.status_code == 200:
+            sql_update = """
+                UPDATE ORDEM_CRONOLOGICA 
+                SET ENVIADO_GOOGLE_FORMS = 1, DATA_ENVIO = NOW()
+                WHERE ID_OC = %s
+            """
+            cursor.execute(sql_update, (id_oc,))
+            mysql.connection.commit()
+            
+            cursor.close()
+            
             return jsonify({
-                'status': 'sucesso',
-                'mensagem': 'Dados enviados com sucesso!'
+                'success': True,
+                'message': 'Ordem Cronológica salva e enviada com sucesso!',
+                'id_oc': id_oc
+            })
+        else:
+            cursor.close()
+            return jsonify({
+                'success': False,
+                'error': f'Erro ao enviar para o Google Forms. Status: {response.status_code}'
+            })
+        
+    except Exception as e:
+        print(f"Erro ao enviar para Google Forms: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@app.route('/api/contrato/<int:id_contrato>', methods=['GET'])
+def api_buscar_contrato(id_contrato):
+    """
+    Busca dados completos do contrato incluindo fornecedor
+    """
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        sql = """
+            SELECT 
+                c.ID_CONTROLE,
+                c.ID_FORNECEDOR,
+                c.EXERCICIO,
+                c.PROCESSO,
+                c.ATA_PREGAO,
+                c.CONTRATO,
+                c.SETOR_GESTOR,
+                c.NOME_GESTOR,
+                c.CIDADE,
+                c.VL_CONTRATO,
+                c.ELEMENTO_DESPESA,
+                c.UO,
+                c.CAT_CONTRATO,
+                c.TIPO_CONTRATO,
+                f.NM_FORNECEDOR,
+                f.CNPJ_FORNECEDOR
+            FROM CONTROLE_PASSAGENS_AEREAS c
+            INNER JOIN CAD_FORNECEDOR f ON c.ID_FORNECEDOR = f.ID_FORNECEDOR
+            WHERE c.ID_CONTROLE = %s
+        """
+        
+        cursor.execute(sql, (id_contrato,))
+        contrato = cursor.fetchone()
+        cursor.close()
+        
+        if contrato:
+            return jsonify({
+                'success': True,
+                'data': contrato
             })
         else:
             return jsonify({
-                'status': 'erro',
-                'mensagem': f'Erro no envio. Status: {response.status_code}'
-            }), 400
-            
+                'success': False,
+                'error': 'Contrato não encontrado'
+            })
+        
     except Exception as e:
+        print(f"Erro ao buscar contrato: {str(e)}")
         return jsonify({
-            'status': 'erro',
-            'mensagem': str(e)
-        }), 500
+            'success': False,
+            'error': str(e)
+        })
 
 
 ###################################
@@ -11890,6 +12010,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
