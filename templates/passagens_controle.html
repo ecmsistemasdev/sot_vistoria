@@ -3309,9 +3309,9 @@
             $('#modalOrdemCronologica').modal('hide');
             document.getElementById('formOrdemCronologica').reset();
         }
-        
+                
         /**
-         * Salva a Ordem Cronológica e envia para o Google Forms
+         * Salva a Ordem Cronológica e abre o Google Forms pré-preenchido
          */
         async function salvarOrdemCronologica() {
             try {
@@ -3353,8 +3353,8 @@
                     filtro_dados: document.getElementById('oc_filtro_dados').value
                 };
                 
-                // Enviar para o servidor
-                const response = await fetch('/enviar-form', {
+                // Enviar para o servidor (apenas salvar no banco)
+                const response = await fetch('/salvar-ordem-cronologica', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -3365,16 +3365,68 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('Ordem Cronológica enviada com sucesso para o Google Forms!');
+                    // Abrir Google Forms pré-preenchido em nova aba
+                    const urlGoogleForms = construirUrlGoogleFormsPrefilled(dados);
+                    window.open(urlGoogleForms, '_blank');
+                    
+                    alert('Dados salvos com sucesso! O Google Forms foi aberto em uma nova aba. Por favor, revise os dados e clique em "Enviar".');
                     fecharModalOrdemCronologica();
                 } else {
-                    alert('Erro ao enviar: ' + result.error);
+                    alert('Erro ao salvar: ' + result.error);
                 }
                 
             } catch (error) {
                 console.error('Erro ao salvar Ordem Cronológica:', error);
                 alert('Erro ao salvar: ' + error.message);
             }
+        }
+        
+        /**
+         * Constrói URL do Google Forms com campos pré-preenchidos
+         */
+        function construirUrlGoogleFormsPrefilled(dados) {
+            // URL base do formulário (modo visualização)
+            const baseUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdA--nxkR3GGB0RdW6FVjSPjkgdmhnXvRckJkc-tDKT2kSV7A/viewform';
+            
+            // Formatar valores monetários para exibição
+            const valorCreditoFormatado = `R$ ${parseFloat(dados.vl_credito).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const valorContratoFormatado = `R$ ${parseFloat(dados.vl_contrato).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Formatar datas para DD/MM/YYYY
+            const dtRecebimentoFormatada = formatarDataBR(dados.dt_recebimento);
+            const dtPagamentoFormatada = formatarDataBR(dados.dt_pagamento);
+            
+            // Parâmetros do formulário pré-preenchido
+            const params = new URLSearchParams({
+                'entry.28426199': dados.nu_processo,           // Nº Processo
+                'entry.848082802': dados.doc_cobranca,         // Nº Documento Cobrança
+                'entry.2129481572': dados.nm_fornecedor,       // Nome Fornecedor
+                'entry.1980182805': dados.cpf_cnpj,            // CPF/CNPJ
+                'entry.627188067': valorCreditoFormatado,      // Valor Crédito
+                'entry.374609461': dtRecebimentoFormatada,     // Data Recebimento
+                'entry.630584389': dtPagamentoFormatada,       // Data Pagamento
+                'entry.1174998288': dados.nu_contrato,         // Nº Contrato
+                'entry.1759342712': dados.cat_contrato,        // Categoria do Contrato
+                'entry.535843603': valorContratoFormatado,     // Valor do Contrato
+                'entry.1364276952': dados.tipo_contrato,       // Tipo de Contrato
+                'entry.784298439': dados.gestor_contrato,      // Gestor(a) do Contrato
+                'entry.1453029380': dados.comarca_gestor,      // Comarca de Locação
+                'entry.1058830341': dados.unidade_gestor,      // Unidade de Lotação
+                'entry.1966894067': dados.nu_empenho,          // Nº Empenho
+                'entry.1797655161': dados.elemento_despesa,    // Elemento de Despesa
+                'entry.1401767695': dados.uo                   // Unidade Orçamentária
+            });
+            
+            return `${baseUrl}?${params.toString()}`;
+        }
+        
+        /**
+         * Formata data de YYYY-MM-DD para DD/MM/YYYY
+         */
+        function formatarDataBR(dataISO) {
+            if (!dataISO) return '';
+            const [ano, mes, dia] = dataISO.split('-');
+            return `${dia}/${mes}/${ano}`;
         }
         
         /**
@@ -3404,4 +3456,5 @@
 </body>
 
 </html>
+
 
