@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #e8e8e8;
             min-height: 100vh;
             padding: 20px;
         }
@@ -24,11 +24,11 @@
         }
 
         h1 {
-            color: white;
+            color: #333;
             text-align: center;
             margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            font-size: 1.8em;
+            text-shadow: none;
         }
 
         .btn-novo {
@@ -531,7 +531,7 @@
             const corInicio = document.getElementById('corInicio').value;
             const corFim = document.getElementById('corFim').value;
             const preview = document.getElementById('previewGradiente');
-            preview.style.background = `linear-gradient(to right, ${corInicio}, ${corFim})`;
+            preview.style.background = `linear-gradient(to bottom, ${corInicio}, ${corFim})`;
         }
 
         async function carregarDados() {
@@ -551,7 +551,7 @@
                         <td>${item.id}</td>
                         <td style="font-weight: ${item.negrito === 'S' ? 'bold' : 'normal'}">${item.descricao}</td>
                         <td>
-                            <div class="preview-cor" style="background: linear-gradient(to right, ${item.corInicio}, ${item.corFim})"></div>
+                            <div class="preview-cor" style="background: linear-gradient(to bottom, ${item.corInicio}, ${item.corFim})"></div>
                         </td>
                         <td>${item.ordemExibicao}</td>
                         <td>
