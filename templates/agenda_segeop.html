@@ -5651,11 +5651,39 @@
         `;
             });
             
+            // ✅ NOVO: Regra especial para Viagem (ID 2) na seção de Outros Motoristas
+            // Buscar as cores do ID 16
+            const tipoEspecial = tiposDemanda.find(t => t.id === 16);
+            if (tipoEspecial) {
+                const corInicioEspecial = tipoEspecial.cor_inicio || '#5fa1df';
+                const corFimEspecial = tipoEspecial.cor_fim || '#8dbde8';
+                const negritoEspecial = tipoEspecial.negrito ? 'font-weight: bold;' : '';
+                
+                css += `
+        /* Cor especial para Viagem (ID 2) na seção de Outros Motoristas */
+        #sectionOutrosMotoristas .tipo-2 {
+            background: linear-gradient(to bottom, ${corInicioEspecial}, ${corFimEspecial}) !important;
+            ${negritoEspecial}
+        }
+        
+        /* Cor especial para Viagem (ID 2) na seção de Veículos */
+        #sectionVeiculos .tipo-2 {
+            background: linear-gradient(to bottom, ${corInicioEspecial}, ${corFimEspecial}) !important;
+            ${negritoEspecial}
+        }
+        
+        #sectionVeiculosAlocados .tipo-2 {
+            background: linear-gradient(to bottom, ${corInicioEspecial}, ${corFimEspecial}) !important;
+            ${negritoEspecial}
+        }
+        `;
+            }
+            
             style.textContent = css;
             document.head.appendChild(style);
             
             // console.log('✅ CSS dinâmico gerado para tipos de demanda');
-        }            
+        }         
         
         
         // Carregar lista de todos os feriados
@@ -5827,7 +5855,10 @@
                 
                 selectTipoDemanda.innerHTML = '<option value="">Selecione...</option>';
                 tiposDemanda.forEach(t => {
-                    selectTipoDemanda.innerHTML += `<option value="${t.id}" data-descricao="${t.descricao}">${t.descricao}</option>`;
+                    // ✅ MODIFICADO: Não adicionar ID 16 no select do formulário
+                    if (t.id !== 16 && t.ativo) {  
+                        selectTipoDemanda.innerHTML += `<option value="${t.id}" data-descricao="${t.descricao}">${t.descricao}</option>`;
+                    }
                 });
                 
                 selectTipoVeiculo.innerHTML = '<option value="">Selecione...</option>';
@@ -10076,6 +10107,7 @@
 </body>
 
 </html>
+
 
 
 
