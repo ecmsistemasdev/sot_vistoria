@@ -1434,20 +1434,57 @@
 
     <script>
         // ============================================================================
-        // CARREGAR UO DO CONTRATO AO INICIAR A PÁGINA
+        // FUNÇÃO PARA OBTER UO DO CONTRATO
         // ============================================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            // Buscar o UO do contrato e armazenar no campo hidden
+        async function obterUODoContrato() {
+            try {
+                // Pegar o ID do contrato do campo hidden
+                const idContrato = document.getElementById('id_controle_filtro')?.value || 
+                                  document.querySelector('input[name="id_controle"]')?.value;
+                
+                if (!idContrato) {
+                    console.warn('ID do contrato não encontrado');
+                    return null;
+                }
+                
+                // Buscar dados do contrato via API
+                const response = await fetch(`/api/contrato/${idContrato}`);
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.UO) {
+                    console.log('UO obtido do contrato:', result.data.UO);
+                    return result.data.UO;
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('Erro ao obter UO:', error);
+                return null;
+            }
+        }
+        
+        // ============================================================================
+        // CARREGAR UO QUANDO A PÁGINA CARREGAR
+        // ============================================================================
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Tentar carregar do template Jinja2 primeiro
             {% if contrato %}
-                // Tentar obter o UO do objeto contrato
-                var uoValue = '{{ contrato.UO if contrato.UO else "" }}';
-                if (uoValue) {
-                    document.getElementById('relUO').value = uoValue;
-                    console.log('UO carregado:', uoValue);
-                } else {
-                    console.warn('UO não encontrado no contrato');
+                var uoFromTemplate = '{{ contrato.UO if contrato.UO else "" }}';
+                if (uoFromTemplate) {
+                    document.getElementById('relUO').value = uoFromTemplate;
+                    console.log('UO carregado do template:', uoFromTemplate);
+                    return;
                 }
             {% endif %}
+            
+            // Se não conseguiu do template, buscar via API
+            const uo = await obterUODoContrato();
+            if (uo) {
+                document.getElementById('relUO').value = uo;
+                console.log('UO carregado via API:', uo);
+            } else {
+                console.warn('Não foi possível carregar o UO');
+            }
         });
 
         // ============================================================================
@@ -3612,6 +3649,7 @@
 </body>
 
 </html>
+
 
 
 
