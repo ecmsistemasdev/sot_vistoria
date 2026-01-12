@@ -6876,7 +6876,7 @@ def buscar_tipos_demanda_completo():
                 ORDEM_EXIBICAO,
                 ATIVO
             FROM TIPO_DEMANDA
-            WHERE ATIVO = 'S'
+            WHERE ATIVO = 'S' OR ID_TIPODEMANDA = 16
             ORDER BY ORDEM_EXIBICAO, ID_TIPODEMANDA
         """)
         
@@ -12078,6 +12078,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
