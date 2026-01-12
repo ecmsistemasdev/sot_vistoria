@@ -1438,8 +1438,15 @@
         // ============================================================================
         document.addEventListener('DOMContentLoaded', function() {
             // Buscar o UO do contrato e armazenar no campo hidden
-            {% if contrato and contrato.uo %}
-                document.getElementById('relUO').value = '{{ contrato.uo }}';
+            {% if contrato %}
+                // Tentar obter o UO do objeto contrato
+                var uoValue = '{{ contrato.UO if contrato.UO else "" }}';
+                if (uoValue) {
+                    document.getElementById('relUO').value = uoValue;
+                    console.log('UO carregado:', uoValue);
+                } else {
+                    console.warn('UO não encontrado no contrato');
+                }
             {% endif %}
         });
 
@@ -3605,6 +3612,7 @@
 </body>
 
 </html>
+
 
 
 
