@@ -641,6 +641,14 @@
                 <button class="btn btn-warning" onclick="abrirModalRelatorioPassagens()">
                     <i class="fas fa-file-pdf"></i> Relatório de Passagens
                 </button>
+                <!-- Adicionar após os outros botões de ação -->
+                <button type="button" 
+                        class="btn btn-success btn-sm" 
+                        id="btnLancarOrdemCronologica" 
+                        onclick="abrirModalOrdemCronologica()" 
+                        style="display: none;">
+                    <i class="fas fa-clock"></i> Lançar Ordem Cronológica
+                </button>
             </div>
         </div>  
                 
@@ -1263,6 +1271,131 @@
             </div>
             <div class="modal-relatorio-body" style="padding: 0;">
                 <iframe id="iframePdfPassagens" style="width: 100%; height: 600px; border: none;" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- MODAL ORDEM CRONOLÓGICA -->
+    <!-- ================================================== -->
+    <div class="modal fade" id="modalOrdemCronologica" tabindex="-1" role="dialog" aria-labelledby="modalOrdemCronologicaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white;">
+                    <h5 class="modal-title" id="modalOrdemCronologicaLabel">
+                        <i class="fas fa-clock"></i> Lançar Ordem Cronológica
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fechar" onclick="fecharModalOrdemCronologica()">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formOrdemCronologica">
+                        <div class="row">
+                            <!-- Coluna 1 -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="oc_processo">Nº Processo <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_processo" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_doc_cobranca">Nº Documento Cobrança <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_doc_cobranca" placeholder="Ex: NF 12345" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_fornecedor">Nome Fornecedor <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_fornecedor" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_cpf_cnpj">CPF/CNPJ <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_cpf_cnpj" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_valor_credito">Valor Crédito a Pagar <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_valor_credito" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_dt_recebimento">Data Recebimento <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="oc_dt_recebimento" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_dt_pagamento">Data Pagamento <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="oc_dt_pagamento" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_contrato">Nº Contrato <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_contrato" readonly>
+                                </div>
+                            </div>
+                            
+                            <!-- Coluna 2 -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="oc_cat_contrato">Categoria do Contrato <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_cat_contrato" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_vl_contrato">Valor do Contrato <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_vl_contrato" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_tipo_contrato">Tipo de Contrato <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_tipo_contrato" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_gestor">Gestor(a) do Contrato <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_gestor" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_comarca">Comarca de Locação <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_comarca" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_unidade_lotacao">Unidade de Lotação <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_unidade_lotacao" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_empenho">Nº Empenho <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_empenho" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_elemento_despesa">Elemento de Despesa <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_elemento_despesa" readonly>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="oc_uo">Unidade Orçamentária <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="oc_uo" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Campo oculto para armazenar os dados do filtro -->
+                        <input type="hidden" id="oc_filtro_dados">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalOrdemCronologica()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="salvarOrdemCronologica()">
+                        <i class="fas fa-paper-plane"></i> Enviar para Google Forms
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2921,7 +3054,256 @@
             document.getElementById('formRelatorioPassagens').reset();
         });
 
+        // ============================================================
+        // ORDEM CRONOLÓGICA
+        // ============================================================
+        
+        /**
+         * Abre o modal de Ordem Cronológica e preenche os campos
+         */
+        async function abrirModalOrdemCronologica() {
+            try {
+                // Pegar os dados do filtro atual
+                const filtroData = obterDadosFiltroAtual();
+                
+                if (!filtroData || filtroData.registros.length === 0) {
+                    alert('Nenhum registro filtrado para lançar na Ordem Cronológica.');
+                    return;
+                }
+                
+                // Buscar dados do contrato selecionado
+                const contratoData = await buscarDadosContrato(filtroData.id_contrato);
+                
+                if (!contratoData.success) {
+                    alert('Erro ao buscar dados do contrato: ' + contratoData.error);
+                    return;
+                }
+                
+                // Preencher campos do modal
+                preencherModalOrdemCronologica(contratoData.data, filtroData);
+                
+                // Armazenar dados do filtro para uso posterior
+                document.getElementById('oc_filtro_dados').value = JSON.stringify(filtroData);
+                
+                // Abrir modal
+                $('#modalOrdemCronologica').modal('show');
+                
+            } catch (error) {
+                console.error('Erro ao abrir modal de Ordem Cronológica:', error);
+                alert('Erro ao abrir modal: ' + error.message);
+            }
+        }
+        
+        /**
+         * Obtém os dados do filtro atual da tabela
+         */
+        function obterDadosFiltroAtual() {
+            const table = $('#tabelaBilhetes').DataTable();
+            const filteredData = table.rows({ search: 'applied' }).data().toArray();
+            
+            if (filteredData.length === 0) {
+                return null;
+            }
+            
+            // Calcular soma total dos registros filtrados
+            let valorTotal = 0;
+            let nuEmpenho = '';
+            let idContrato = null;
+            
+            filteredData.forEach(row => {
+                // Assumindo que o valor está na coluna 11 (VL_BILHETE)
+                const valor = parseFloat(row[11]) || 0;
+                valorTotal += valor;
+                
+                // Pegar o primeiro empenho encontrado
+                if (!nuEmpenho && row[13]) {
+                    nuEmpenho = row[13];
+                }
+                
+                // Pegar o ID do contrato (assumindo que está disponível)
+                if (!idContrato && row[15]) {
+                    idContrato = row[15];
+                }
+            });
+            
+            return {
+                registros: filteredData,
+                valor_total: valorTotal,
+                nu_empenho: nuEmpenho,
+                id_contrato: idContrato,
+                total_registros: filteredData.length
+            };
+        }
+        
+        /**
+         * Busca os dados completos do contrato no servidor
+         */
+        async function buscarDadosContrato(idContrato) {
+            try {
+                const response = await fetch(`/api/contrato/${idContrato}`);
+                return await response.json();
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        
+        /**
+         * Preenche os campos do modal com os dados do contrato e filtro
+         */
+        function preencherModalOrdemCronologica(contrato, filtro) {
+            // Dados do contrato
+            document.getElementById('oc_processo').value = contrato.PROCESSO || '';
+            document.getElementById('oc_fornecedor').value = contrato.NM_FORNECEDOR || '';
+            document.getElementById('oc_cpf_cnpj').value = formatarCNPJ(contrato.CNPJ_FORNECEDOR || '');
+            document.getElementById('oc_contrato').value = contrato.CONTRATO || '';
+            document.getElementById('oc_cat_contrato').value = contrato.CAT_CONTRATO || '';
+            document.getElementById('oc_vl_contrato').value = formatarMoeda(contrato.VL_CONTRATO || 0);
+            document.getElementById('oc_tipo_contrato').value = contrato.TIPO_CONTRATO || '';
+            document.getElementById('oc_gestor').value = contrato.NOME_GESTOR || '';
+            document.getElementById('oc_comarca').value = contrato.CIDADE || '';
+            document.getElementById('oc_unidade_lotacao').value = contrato.SETOR_GESTOR || '';
+            document.getElementById('oc_elemento_despesa').value = contrato.ELEMENTO_DESPESA || '';
+            document.getElementById('oc_uo').value = contrato.UO || '';
+            
+            // Dados do filtro
+            document.getElementById('oc_valor_credito').value = formatarMoeda(filtro.valor_total);
+            document.getElementById('oc_empenho').value = filtro.nu_empenho || '';
+            
+            // Limpar campos manuais
+            document.getElementById('oc_doc_cobranca').value = '';
+            document.getElementById('oc_dt_recebimento').value = '';
+            document.getElementById('oc_dt_pagamento').value = '';
+        }
+        
+        /**
+         * Formata CNPJ
+         */
+        function formatarCNPJ(cnpj) {
+            if (!cnpj) return '';
+            cnpj = cnpj.replace(/\D/g, '');
+            
+            if (cnpj.length === 14) {
+                return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+            } else if (cnpj.length === 11) {
+                return cnpj.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            }
+            return cnpj;
+        }
+        
+        /**
+         * Formata valor monetário
+         */
+        function formatarMoeda(valor) {
+            if (!valor) return 'R$ 0,00';
+            return 'R$ ' + parseFloat(valor).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+        
+        /**
+         * Calcula data de pagamento (30 dias após recebimento)
+         */
+        document.getElementById('oc_dt_recebimento')?.addEventListener('change', function() {
+            const dtRecebimento = new Date(this.value);
+            if (!isNaN(dtRecebimento)) {
+                dtRecebimento.setDate(dtRecebimento.getDate() + 30);
+                const dtPagamento = dtRecebimento.toISOString().split('T')[0];
+                document.getElementById('oc_dt_pagamento').value = dtPagamento;
+            }
+        });
+        
+        /**
+         * Fecha o modal de Ordem Cronológica
+         */
+        function fecharModalOrdemCronologica() {
+            $('#modalOrdemCronologica').modal('hide');
+            document.getElementById('formOrdemCronologica').reset();
+        }
+        
+        /**
+         * Salva a Ordem Cronológica e envia para o Google Forms
+         */
+        async function salvarOrdemCronologica() {
+            try {
+                // Validar campos obrigatórios
+                const camposObrigatorios = [
+                    'oc_processo', 'oc_doc_cobranca', 'oc_fornecedor', 'oc_cpf_cnpj',
+                    'oc_valor_credito', 'oc_dt_recebimento', 'oc_dt_pagamento', 
+                    'oc_contrato', 'oc_empenho'
+                ];
+                
+                for (const campo of camposObrigatorios) {
+                    const valor = document.getElementById(campo).value.trim();
+                    if (!valor) {
+                        alert(`Campo obrigatório não preenchido: ${document.querySelector(`label[for="${campo}"]`).innerText}`);
+                        document.getElementById(campo).focus();
+                        return;
+                    }
+                }
+                
+                // Montar objeto com os dados
+                const dados = {
+                    nu_processo: document.getElementById('oc_processo').value,
+                    doc_cobranca: document.getElementById('oc_doc_cobranca').value,
+                    nm_fornecedor: document.getElementById('oc_fornecedor').value,
+                    cpf_cnpj: document.getElementById('oc_cpf_cnpj').value,
+                    vl_credito: document.getElementById('oc_valor_credito').value.replace('R$ ', '').replace(/\./g, '').replace(',', '.'),
+                    dt_recebimento: document.getElementById('oc_dt_recebimento').value,
+                    dt_pagamento: document.getElementById('oc_dt_pagamento').value,
+                    nu_contrato: document.getElementById('oc_contrato').value,
+                    cat_contrato: document.getElementById('oc_cat_contrato').value,
+                    vl_contrato: document.getElementById('oc_vl_contrato').value.replace('R$ ', '').replace(/\./g, '').replace(',', '.'),
+                    tipo_contrato: document.getElementById('oc_tipo_contrato').value,
+                    gestor_contrato: document.getElementById('oc_gestor').value,
+                    comarca_gestor: document.getElementById('oc_comarca').value,
+                    unidade_gestor: document.getElementById('oc_unidade_lotacao').value,
+                    nu_empenho: document.getElementById('oc_empenho').value,
+                    elemento_despesa: document.getElementById('oc_elemento_despesa').value,
+                    uo: document.getElementById('oc_uo').value,
+                    filtro_dados: document.getElementById('oc_filtro_dados').value
+                };
+                
+                // Enviar para o servidor
+                const response = await fetch('/enviar-form', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dados)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Ordem Cronológica enviada com sucesso para o Google Forms!');
+                    fecharModalOrdemCronologica();
+                } else {
+                    alert('Erro ao enviar: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao salvar Ordem Cronológica:', error);
+                alert('Erro ao salvar: ' + error.message);
+            }
+        }
+        
+        /**
+         * Mostra/oculta botão de Ordem Cronológica baseado no filtro
+         */
+        function verificarExibicaoBotaoOrdemCronologica() {
+            const table = $('#tabelaBilhetes').DataTable();
+            const filteredRows = table.rows({ search: 'applied' }).data().length;
+            const btn = document.getElementById('btnLancarOrdemCronologica');
+            
+            if (btn) {
+                btn.style.display = filteredRows > 0 ? 'inline-block' : 'none';
+            }
+        }
+        
+        // Adicionar listener para mostrar botão após filtro
+        $('#tabelaBilhetes').on('draw.dt', function() {
+            verificarExibicaoBotaoOrdemCronologica();
+        });
         
     </script>
 </body>
+
 </html>
