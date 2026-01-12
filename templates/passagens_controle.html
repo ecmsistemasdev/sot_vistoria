@@ -3413,12 +3413,12 @@
             const baseUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdA--nxkR3GGB0RdW6FVjSPjkgdmhnXvRckJkc-tDKT2kSV7A/viewform';
             
             // Formatar valores monetários para exibição
-            const valorCreditoFormatado = `R$ ${parseFloat(dados.vl_credito).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            const valorContratoFormatado = `R$ ${parseFloat(dados.vl_contrato).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const valorCreditoFormatado = `{parseFloat(dados.vl_credito).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const valorContratoFormatado = `{parseFloat(dados.vl_contrato).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
-            // Formatar datas para DD/MM/YYYY (Google Forms aceita este formato)
-            const dtRecebimentoFormatada = formatarDataBR(dados.dt_recebimento);
-            const dtPagamentoFormatada = formatarDataBR(dados.dt_pagamento);
+            // ✅ DATAS: Manter formato YYYY-MM-DD (ISO) - Google Forms aceita melhor este formato
+            const dtRecebimento = dados.dt_recebimento; // Já vem no formato YYYY-MM-DD
+            const dtPagamento = dados.dt_pagamento;     // Já vem no formato YYYY-MM-DD
             
             // Parâmetros do formulário pré-preenchido
             const params = new URLSearchParams({
@@ -3437,11 +3437,11 @@
                 // Campo 5: Valor Crédito
                 'entry.627188067': valorCreditoFormatado,
                 
-                // Campo 6: Data Recebimento
-                'entry.374609461': dtRecebimentoFormatada,
+                // Campo 6: Data Recebimento (FORMATO ISO: YYYY-MM-DD)
+                'entry.374609461': dtRecebimento,
                 
-                // Campo 7: Data Pagamento
-                'entry.630584389': dtPagamentoFormatada,
+                // Campo 7: Data Pagamento (FORMATO ISO: YYYY-MM-DD)
+                'entry.630584389': dtPagamento,
                 
                 // Campo 8: Nº Contrato
                 'entry.1174998288': dados.nu_contrato,
@@ -3513,6 +3513,7 @@
 </body>
 
 </html>
+
 
 
 
