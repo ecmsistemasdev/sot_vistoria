@@ -3413,8 +3413,8 @@
             const baseUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdA--nxkR3GGB0RdW6FVjSPjkgdmhnXvRckJkc-tDKT2kSV7A/viewform';
             
             // Formatar valores monetários para exibição
-            const valorCreditoFormatado = `{parseFloat(dados.vl_credito).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            const valorContratoFormatado = `{parseFloat(dados.vl_contrato).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            const valorCreditoFormatado = parseFloat(dados.vl_credito).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            const valorContratoFormatado = parseFloat(dados.vl_contrato).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             
             // ✅ DATAS: Manter formato YYYY-MM-DD (ISO) - Google Forms aceita melhor este formato
             const dtRecebimento = dados.dt_recebimento; // Já vem no formato YYYY-MM-DD
@@ -3513,6 +3513,7 @@
 </body>
 
 </html>
+
 
 
 
