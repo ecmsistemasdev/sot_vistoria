@@ -1300,7 +1300,11 @@
                                            class="form-control processo-mask" 
                                            id="oc_processo" 
                                            placeholder="0000000-00.0000.0.00.0000"
-                                           readonly>
+                                           maxlength="25"
+                                           required>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-keyboard"></i> Digite o número do processo no formato indicado
+                                    </small>
                                 </div>
                                 
                                 <div class="form-group">
@@ -3088,21 +3092,21 @@
             // Aplica a máscara: 0000000-00.0000.0.00.0000
             if (valor.length > 0) {
                 valor = valor.replace(/^(\d{0,7})/, '$1');
-                if (valor.length > 7) {
-                    valor = valor.replace(/^(\d{7})(\d{0,2})/, '$1-$2');
-                }
-                if (valor.length > 10) {
-                    valor = valor.replace(/^(\d{7}-\d{2})(\d{0,4})/, '$1.$2');
-                }
-                if (valor.length > 15) {
-                    valor = valor.replace(/^(\d{7}-\d{2}\.\d{4})(\d{0,1})/, '$1.$2');
-                }
-                if (valor.length > 17) {
-                    valor = valor.replace(/^(\d{7}-\d{2}\.\d{4}\.\d{1})(\d{0,2})/, '$1.$2');
-                }
-                if (valor.length > 20) {
-                    valor = valor.replace(/^(\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2})(\d{0,4})/, '$1.$2');
-                }
+            }
+            if (valor.length > 7) {
+                valor = valor.replace(/^(\d{7})(\d{0,2})/, '$1-$2');
+            }
+            if (valor.length > 9) {
+                valor = valor.replace(/^(\d{7}-\d{2})(\d{0,4})/, '$1.$2');
+            }
+            if (valor.length > 13) {
+                valor = valor.replace(/^(\d{7}-\d{2}\.\d{4})(\d{0,1})/, '$1.$2');
+            }
+            if (valor.length > 14) {
+                valor = valor.replace(/^(\d{7}-\d{2}\.\d{4}\.\d{1})(\d{0,2})/, '$1.$2');
+            }
+            if (valor.length > 16) {
+                valor = valor.replace(/^(\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2})(\d{0,4})/, '$1.$2');
             }
             
             return valor;
@@ -3115,30 +3119,44 @@
             const camposProcesso = document.querySelectorAll('.processo-mask');
             
             camposProcesso.forEach(campo => {
-                // Remove readonly temporariamente se o usuário precisar editar
+                // Aplicar máscara ao digitar
                 campo.addEventListener('input', function(e) {
                     const valorAtual = e.target.value;
                     const posicaoCursor = e.target.selectionStart;
-                    const valorAnterior = valorAtual.replace(/\D/g, '').length;
                     
-                    e.target.value = aplicarMascaraProcesso(valorAtual);
+                    // Guardar quantidade de dígitos antes
+                    const digitosAntes = valorAtual.replace(/\D/g, '').length;
                     
-                    // Ajusta posição do cursor
-                    const valorNovo = e.target.value.replace(/\D/g, '').length;
-                    if (valorNovo > valorAnterior) {
-                        e.target.setSelectionRange(posicaoCursor, posicaoCursor);
+                    // Aplicar máscara
+                    const valorFormatado = aplicarMascaraProcesso(valorAtual);
+                    e.target.value = valorFormatado;
+                    
+                    // Ajustar cursor
+                    const digitosDepois = valorFormatado.replace(/\D/g, '').length;
+                    if (digitosDepois >= digitosAntes) {
+                        // Se adicionou dígito, manter cursor onde estava + caracteres especiais
+                        const diferenca = valorFormatado.length - valorAtual.length;
+                        e.target.setSelectionRange(posicaoCursor + diferenca, posicaoCursor + diferenca);
                     }
                 });
                 
-                // Permite colar texto
+                // Permitir colar texto
                 campo.addEventListener('paste', function(e) {
                     e.preventDefault();
                     const texto = (e.clipboardData || window.clipboardData).getData('text');
                     const valorFormatado = aplicarMascaraProcesso(texto);
                     e.target.value = valorFormatado;
+                    
+                    // Disparar evento para atualizar
+                    e.target.dispatchEvent(new Event('input', { bubbles: true }));
                 });
             });
         }
+        
+        // Inicializar quando o modal abrir
+        $('#modalOrdemCronologica').on('shown.bs.modal', function() {
+            inicializarMascaraProcesso();
+        })
         
         // Inicializar quando o documento carregar
         $(document).ready(function() {
@@ -3244,7 +3262,6 @@
          */
         function preencherModalOrdemCronologica(contrato, filtro) {
             // Dados do contrato
-            document.getElementById('oc_processo').value = aplicarMascaraProcesso(contrato.PROCESSO || '');
             document.getElementById('oc_fornecedor').value = contrato.NM_FORNECEDOR || '';
             document.getElementById('oc_cpf_cnpj').value = formatarCNPJ(contrato.CNPJ_FORNECEDOR || '');
             document.getElementById('oc_contrato').value = contrato.CONTRATO || '';
@@ -3456,5 +3473,6 @@
 </body>
 
 </html>
+
 
 
