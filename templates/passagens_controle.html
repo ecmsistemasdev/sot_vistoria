@@ -3370,6 +3370,9 @@
                     filtro_dados: document.getElementById('oc_filtro_dados').value
                 };
                 
+                // LOG PARA DEBUG - REMOVER EM PRODUÇÃO
+                console.log('Dados a serem enviados:', dados);
+                
                 // Enviar para o servidor (apenas salvar no banco)
                 const response = await fetch('/salvar-ordem-cronologica', {
                     method: 'POST',
@@ -3384,6 +3387,10 @@
                 if (result.success) {
                     // Abrir Google Forms pré-preenchido em nova aba
                     const urlGoogleForms = construirUrlGoogleFormsPrefilled(dados);
+                    
+                    // LOG PARA DEBUG - REMOVER EM PRODUÇÃO
+                    console.log('URL Google Forms:', urlGoogleForms);
+                    
                     window.open(urlGoogleForms, '_blank');
                     
                     alert('Dados salvos com sucesso! O Google Forms foi aberto em uma nova aba. Por favor, revise os dados e clique em "Enviar".');
@@ -3409,29 +3416,62 @@
             const valorCreditoFormatado = `R$ ${parseFloat(dados.vl_credito).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             const valorContratoFormatado = `R$ ${parseFloat(dados.vl_contrato).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
-            // Formatar datas para DD/MM/YYYY
+            // Formatar datas para DD/MM/YYYY (Google Forms aceita este formato)
             const dtRecebimentoFormatada = formatarDataBR(dados.dt_recebimento);
             const dtPagamentoFormatada = formatarDataBR(dados.dt_pagamento);
             
             // Parâmetros do formulário pré-preenchido
             const params = new URLSearchParams({
-                'entry.28426199': dados.nu_processo,           // Nº Processo
-                'entry.848082802': dados.doc_cobranca,         // Nº Documento Cobrança
-                'entry.2129481572': dados.nm_fornecedor,       // Nome Fornecedor
-                'entry.1980182805': dados.cpf_cnpj,            // CPF/CNPJ
-                'entry.627188067': valorCreditoFormatado,      // Valor Crédito
-                'entry.374609461': dtRecebimentoFormatada,     // Data Recebimento
-                'entry.630584389': dtPagamentoFormatada,       // Data Pagamento
-                'entry.1174998288': dados.nu_contrato,         // Nº Contrato
-                'entry.1759342712': dados.cat_contrato,        // Categoria do Contrato
-                'entry.535843603': valorContratoFormatado,     // Valor do Contrato
-                'entry.1364276952': dados.tipo_contrato,       // Tipo de Contrato
-                'entry.784298439': dados.gestor_contrato,      // Gestor(a) do Contrato
-                'entry.1453029380': dados.comarca_gestor,      // Comarca de Locação
-                'entry.1058830341': dados.unidade_gestor,      // Unidade de Lotação
-                'entry.1966894067': dados.nu_empenho,          // Nº Empenho
-                'entry.1797655161': dados.elemento_despesa,    // Elemento de Despesa
-                'entry.1401767695': dados.uo                   // Unidade Orçamentária
+                // Campo 1: Nº Processo
+                'entry.28426199': dados.nu_processo,
+                
+                // Campo 2: Nº Documento Cobrança
+                'entry.848082802': dados.doc_cobranca,
+                
+                // Campo 3: Nome Fornecedor
+                'entry.2129481572': dados.nm_fornecedor,
+                
+                // Campo 4: CPF/CNPJ
+                'entry.1980182805': dados.cpf_cnpj,
+                
+                // Campo 5: Valor Crédito
+                'entry.627188067': valorCreditoFormatado,
+                
+                // Campo 6: Data Recebimento
+                'entry.374609461': dtRecebimentoFormatada,
+                
+                // Campo 7: Data Pagamento
+                'entry.630584389': dtPagamentoFormatada,
+                
+                // Campo 8: Nº Contrato
+                'entry.1174998288': dados.nu_contrato,
+                
+                // Campo 9: Categoria do Contrato (CHECKBOX)
+                'entry.879911355': dados.cat_contrato,
+                
+                // Campo 10: Valor do Contrato
+                'entry.134978738': valorContratoFormatado,
+                
+                // Campo 11: Tipo de Contrato (CHECKBOX)
+                'entry.1806497785': dados.tipo_contrato,
+                
+                // Campo 12: Gestor(a) do Contrato
+                'entry.1081045185': dados.gestor_contrato,
+                
+                // Campo 13: Comarca de Locação
+                'entry.1230052846': dados.comarca_gestor,
+                
+                // Campo 14: Unidade de Lotação
+                'entry.1644151433': dados.unidade_gestor,
+                
+                // Campo 15: Nº Empenho
+                'entry.504501902': dados.nu_empenho,
+                
+                // Campo 16: Elemento de Despesa
+                'entry.1669599806': dados.elemento_despesa,
+                
+                // Campo 17: Unidade Orçamentária (CHECKBOX)
+                'entry.1148534135': dados.uo
             });
             
             return `${baseUrl}?${params.toString()}`;
@@ -3473,6 +3513,7 @@
 </body>
 
 </html>
+
 
 
 
