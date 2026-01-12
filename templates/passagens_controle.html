@@ -605,7 +605,23 @@
         .row.mb-3 .btn:last-child {
             margin-right: 0;
         }
+
+        /* Filtros Aplicados */
+        #filtrosAplicados {
+            font-size: 12px;
+            font-weight: normal;
+            opacity: 0.85;
+            margin-left: 10px;
+        }
         
+        #filtrosAplicados .badge {
+            background-color: rgba(255, 255, 255, 0.25);
+            padding: 4px 10px;
+            border-radius: 3px;
+            margin-left: 5px;
+            font-weight: normal;
+            font-size: 11px;
+        }        
     </style>
 </head>
 <body>
@@ -614,7 +630,7 @@
         <!-- Cabeçalho -->
         <div class="page-header">
             <div>
-                <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes - Passagens Aéreas</h2>
+                <h2><i class="fas fa-ticket-alt"></i> Controle de Bilhetes - Passagens Aéreas <span id="filtrosAplicados"></span></h2>
                 {% if contrato %}
                 <p style="margin-top: 8px; font-size: 13px;">
                     <strong>Processo:</strong> {{ contrato.exercicio }} - {{ contrato.empresa }} - {{ contrato.processo }}
@@ -635,13 +651,12 @@
                 <button class="btn btn-info" data-toggle="modal" data-target="#modalFiltros">
                     <i class="fas fa-filter"></i> Filtros
                 </button>
-                <button class="btn btn-success" onclick="limparFiltros()">
+                <button id="btnLimparFiltros" class="btn btn-success" onclick="limparFiltros()" style="display: none;">
                     <i class="fas fa-sync"></i> Limpar Filtros
                 </button>
                 <button class="btn btn-warning" onclick="abrirModalRelatorioPassagens()">
                     <i class="fas fa-file-pdf"></i> Relatório de Passagens
                 </button>
-                <!-- Adicionar após os outros botões de ação -->
                 <button type="button" 
                         class="btn btn-success btn-sm" 
                         id="btnLancarOrdemCronologica" 
@@ -655,7 +670,7 @@
         <!-- Card com Tabela -->
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-list"></i> Bilhetes Emitidos</h5>
+                <h5 id="tituloTabela"><i class="fas fa-list"></i> Bilhetes Emitidos</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -2112,8 +2127,36 @@
                         table.draw();
                         atualizarTotalizadores(response.data);
                         
-                        // ✅ ADICIONAR ESTA LINHA AQUI:
-                        verificarExibicaoBotaoOrdemCronologica(response.data);
+                        // Obter valores dos filtros aplicados
+                        const empenho = $('#empenho_filtro').val();
+                        const cia = $('#cia_filtro option:selected').text();
+                        const dtInicio = $('#dt_inicio_filtro').val();
+                        const dtFim = $('#dt_fim_filtro').val();
+                        
+                        // Verificar se há filtros aplicados
+                        const temFiltro = empenho || (cia && cia !== 'Todas') || dtInicio || dtFim;
+                        
+                        // Mostrar/ocultar botão Limpar Filtros
+                        const btnLimpar = document.getElementById('btnLimparFiltros');
+                        if (btnLimpar) {
+                            btnLimpar.style.display = temFiltro ? 'inline-block' : 'none';
+                        }
+                        
+                        // Mostrar/ocultar botão Lançar Ordem Cronológica (somente se tiver filtro de Empenho)
+                        const btnOrdemCronologica = document.getElementById('btnLancarOrdemCronologica');
+                        if (btnOrdemCronologica) {
+                            btnOrdemCronologica.style.display = empenho ? 'inline-block' : 'none';
+                        }
+                        
+                        // Armazenar dados filtrados para uso no modal de Ordem Cronológica
+                        if (empenho) {
+                            window.dadosFiltradosAtual = response.data;
+                        } else {
+                            window.dadosFiltradosAtual = null;
+                        }
+                        
+                        // Atualizar informações de filtros aplicados no cabeçalho
+                        atualizarFiltrosAplicados(empenho, cia !== 'Todas' ? cia : '', dtInicio, dtFim);
                         
                         $('#modalFiltros').modal('hide');
                     } else {
@@ -2169,13 +2212,58 @@
             // Limpar dados filtrados globais
             window.dadosFiltradosAtual = null;
             
-            // Esconder botão de ordem cronológica
-            const btn = document.getElementById('btnLancarOrdemCronologica');
-            if (btn) {
-                btn.style.display = 'none';
+            // Ocultar botões
+            const btnLimpar = document.getElementById('btnLimparFiltros');
+            const btnOrdemCronologica = document.getElementById('btnLancarOrdemCronologica');
+            
+            if (btnLimpar) {
+                btnLimpar.style.display = 'none';
+            }
+            
+            if (btnOrdemCronologica) {
+                btnOrdemCronologica.style.display = 'none';
+            }
+            
+            // Limpar informações de filtros aplicados no cabeçalho
+            const filtrosAplicadosSpan = document.getElementById('filtrosAplicados');
+            if (filtrosAplicadosSpan) {
+                filtrosAplicadosSpan.innerHTML = '';
             }
             
             location.reload();
+        }
+
+        // ============================================================================
+        // ATUALIZAR FILTROS APLICADOS NO CABEÇALHO
+        // ============================================================================
+        function atualizarFiltrosAplicados(empenho, cia, dtInicio, dtFim) {
+            const filtrosAplicadosSpan = document.getElementById('filtrosAplicados');
+            
+            if (!filtrosAplicadosSpan) return;
+            
+            let html = '';
+            const filtros = [];
+            
+            if (empenho) {
+                filtros.push(`<span class="badge">Empenho: ${empenho}</span>`);
+            }
+            if (cia) {
+                filtros.push(`<span class="badge">CIA: ${cia}</span>`);
+            }
+            if (dtInicio) {
+                const dataFormatada = formatarDataBR(dtInicio);
+                filtros.push(`<span class="badge">De: ${dataFormatada}</span>`);
+            }
+            if (dtFim) {
+                const dataFormatada = formatarDataBR(dtFim);
+                filtros.push(`<span class="badge">Até: ${dataFormatada}</span>`);
+            }
+            
+            if (filtros.length > 0) {
+                html = '<br><small>Filtros: ' + filtros.join(' ') + '</small>';
+            }
+            
+            filtrosAplicadosSpan.innerHTML = html;
         }
         
         // ============================================================================
@@ -3486,33 +3574,34 @@
             return `${dia}/${mes}/${ano}`;
         }
         
-        /**
-         * Mostra/oculta botão de Ordem Cronológica baseado no filtro
-         */
-        function verificarExibicaoBotaoOrdemCronologica(dadosFiltrados) {
-            const btn = document.getElementById('btnLancarOrdemCronologica');
-            
-            if (btn) {
-                if (dadosFiltrados && dadosFiltrados.length > 0) {
-                    btn.style.display = 'inline-block';
-                    // Armazenar dados filtrados globalmente para uso posterior
-                    window.dadosFiltradosAtual = dadosFiltrados;
-                } else {
-                    btn.style.display = 'none';
-                    window.dadosFiltradosAtual = null;
-                }
-            }
-        }
-        
-        // Adicionar listener para mostrar botão após filtro
-        $('#tabelaBilhetes').on('draw.dt', function() {
-            verificarExibicaoBotaoOrdemCronologica();
-        });
+        //  /**
+        //  * Mostra/oculta botão de Ordem Cronológica baseado no filtro
+        //  */
+        // function verificarExibicaoBotaoOrdemCronologica(dadosFiltrados) {
+        //     const btn = document.getElementById('btnLancarOrdemCronologica');
+        //     
+        //     if (btn) {
+        //         if (dadosFiltrados && dadosFiltrados.length > 0) {
+        //             btn.style.display = 'inline-block';
+        //             // Armazenar dados filtrados globalmente para uso posterior
+        //             window.dadosFiltradosAtual = dadosFiltrados;
+        //         } else {
+        //             btn.style.display = 'none';
+        //             window.dadosFiltradosAtual = null;
+        //         }
+        //     }
+        // }
+        // 
+        // // Adicionar listener para mostrar botão após filtro
+        // $('#tabelaBilhetes').on('draw.dt', function() {
+        //     verificarExibicaoBotaoOrdemCronologica();
+        // });
         
     </script>
 </body>
 
 </html>
+
 
 
 
