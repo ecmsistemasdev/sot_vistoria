@@ -345,6 +345,56 @@ def handle_ping():
     emit('pong', {'timestamp': datetime.now().isoformat()})
 
 
+@app.route('/enviar-form', methods=['POST'])
+def enviar_para_google_form():
+    # URL do formulário (termina com /formResponse)
+    form_url = "https://docs.google.com/forms/d/e/1FAIpQLSdA--nxkR3GGB0RdW6FVjSPjkgdmhnXvRckJkc-tDKT2kSV7A/formResponse"
+    
+    # Dados do seu sistema
+    dados = request.json
+    
+    # Mapeamento para os campos do Google Form
+    form_data = {
+        'entry.28426199': dados.get('numero_processo'),           # Ex: 0000123-45.2024.8.22.0001
+        'entry.848082802': dados.get('documento_cobranca'),       # Ex: NF 12345
+        'entry.2129481572': dados.get('nome_fornecedor'),         # Ex: Empresa ABC Ltda
+        'entry.1980182805': dados.get('cpf_cnpj'),                # Ex: 12.345.678/0001-90
+        'entry.627188067': dados.get('valor_credito'),            # Ex: 1.500,00
+        'entry.374609461': dados.get('data_apresentacao'),        # Ex: 2025-01-12
+        'entry.630584389': dados.get('data_pagamento'),           # Ex: 2025-02-12
+        'entry.1174998288': dados.get('numero_contrato'),         # Ex: 123/2024
+        'entry.879911355': dados.get('categoria_contrato'),       # Ex: Prestação de Serviços
+        'entry.134978738': dados.get('valor_contrato'),           # Ex: 50.000,00
+        'entry.1806497785': dados.get('tipo_contrato'),           # Ex: OUTROS
+        'entry.1081045185': dados.get('gestor_contrato'),         # Ex: João Silva
+        'entry.1230052846': dados.get('comarca_gestor'),          # Ex: Porto Velho
+        'entry.1644151433': dados.get('unidade_gestor'),          # Ex: Seção de Liquidação (SELIQ)
+        'entry.504501902': dados.get('nota_empenho'),             # Ex: 2024NE123456
+        'entry.1669599806': dados.get('elemento_despesa'),        # Ex: 33.90.39.00
+        'entry.1148534135': dados.get('unidade_orcamentaria'),    # Ex: TJRO
+    }
+    
+    try:
+        response = requests.post(form_url, data=form_data)
+        
+        if response.status_code == 200:
+            return jsonify({
+                'status': 'sucesso',
+                'mensagem': 'Dados enviados com sucesso!'
+            })
+        else:
+            return jsonify({
+                'status': 'erro',
+                'mensagem': f'Erro no envio. Status: {response.status_code}'
+            }), 400
+            
+    except Exception as e:
+        return jsonify({
+            'status': 'erro',
+            'mensagem': str(e)
+        }), 500
+
+
 ###################################
 
 # Decorator para verificar permissão de acesso
@@ -11840,6 +11890,7 @@ if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 	
+
 
 
 
