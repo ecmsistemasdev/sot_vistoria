@@ -12075,27 +12075,454 @@ def enviar_email_fornecedor_v2():
         if cursor:
             cursor.close()
 
+
+"""
+============================================================
+ROTAS PARA GESTÃO DE CONTRATOS TERCEIRIZADOS
+============================================================
+Adicionar estas rotas ao arquivo app.py
+"""
+
+# ============================================================
+# ROTA PRINCIPAL - PÁGINA DE GESTÃO DE TERCEIRIZADOS
+# ============================================================
+@app.route('/gestao-terceirizados')
+@login_required
+def gestao_terceirizados():
+    return render_template('gestao_terceirizados.html')
+
+
+# ============================================================
+# API - LISTAR CONTRATOS
+# ============================================================
+@app.route('/api/gestao-terceirizados/contratos', methods=['GET'])
+def api_listar_contratos_terceirizados():
+    """Lista todos os contratos terceirizados"""
+    # if 'loggedin' not in session:
+    #     return jsonify({'success': False, 'error': 'Não autorizado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        query = """
+            SELECT 
+                gct.ID_CONTRATO,
+                gct.EXERCICIO,
+                gct.PROCESSO,
+                gct.CONTRATO,
+                cf.NM_FORNECEDOR
+            FROM GESTAO_CONTRATOS_TERCEIRIZADOS gct
+            LEFT JOIN CAD_FORNECEDOR cf ON cf.ID_FORNECEDOR = gct.ID_FORNECEDOR
+            ORDER BY gct.EXERCICIO DESC, cf.NM_FORNECEDOR
+        """
+        
+        cursor.execute(query)
+        contratos = cursor.fetchall()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'data': contratos
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# API - OBTER DETALHES DE UM CONTRATO
+# ============================================================
+@app.route('/api/gestao-terceirizados/contratos/<int:id_contrato>', methods=['GET'])
+def api_obter_contrato_terceirizado(id_contrato):
+    """Obtém os detalhes de um contrato específico"""
+    # if 'loggedin' not in session:
+    #     return jsonify({'success': False, 'error': 'Não autorizado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        query = """
+            SELECT 
+                gct.ID_CONTRATO,
+                gct.ID_FORNECEDOR,
+                gct.EXERCICIO,
+                gct.PROCESSO,
+                gct.ATA_PREGAO,
+                gct.CONTRATO,
+                gct.SETOR_GESTOR,
+                gct.NOME_GESTOR,
+                gct.CIDADE,
+                gct.VL_CONTRATO,
+                gct.ELEMENTO_DESPESA,
+                gct.UO,
+                gct.CAT_CONTRATO,
+                gct.TIPO_CONTRATO,
+                cf.NM_FORNECEDOR
+            FROM GESTAO_CONTRATOS_TERCEIRIZADOS gct
+            LEFT JOIN CAD_FORNECEDOR cf ON cf.ID_FORNECEDOR = gct.ID_FORNECEDOR
+            WHERE gct.ID_CONTRATO = %s
+        """
+        
+        cursor.execute(query, (id_contrato,))
+        contrato = cursor.fetchone()
+        cursor.close()
+        
+        if contrato:
+            return jsonify({
+                'success': True,
+                'data': contrato
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Contrato não encontrado'
+            }), 404
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# API - LISTAR VÍNCULOS (MOTORISTAS E POSTOS)
+# ============================================================
+@app.route('/api/gestao-terceirizados/vinculos/<int:id_contrato>', methods=['GET'])
+def api_listar_vinculos_terceirizados(id_contrato):
+    """Lista os vínculos de motoristas e postos de trabalho de um contrato"""
+    # if 'loggedin' not in session:
+    #     return jsonify({'success': False, 'error': 'Não autorizado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        query = """
+            SELECT 
+                ptv.ID_VINCULO, 
+                ptv.ID_POSTO, 
+                pt.DE_POSTO,
+                ptv.ID_MOTORISTA,
+                m.NM_MOTORISTA,
+                cmp.DT_INICIO,
+                cmp.DT_FIM,
+                ptvl.VL_MENSAL,
+                ptvl.VL_SALARIO
+            FROM POSTO_TRABALHO pt
+            JOIN POSTO_TRABALHO_VINCULO ptv ON ptv.ID_POSTO = pt.ID_POSTO
+            JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ptv.ID_MOTORISTA
+            JOIN CAD_MOTORISTA_PERIODOS cmp ON cmp.ID_MOTORISTA = m.ID_MOTORISTA
+                AND cmp.DT_FIM IS NULL
+            JOIN POSTO_TRABALHO_VALORES ptvl ON ptvl.ID_POSTO = pt.ID_POSTO 
+                AND ptvl.DT_FIM IS NULL
+            WHERE cmp.DT_INICIO <= CURDATE()
+                AND pt.ID_CONTRATO = %s
+            ORDER BY m.NM_MOTORISTA
+        """
+        
+        cursor.execute(query, (id_contrato,))
+        vinculos = cursor.fetchall()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'data': vinculos
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# API - LISTAR IMPERFEIÇÕES
+# ============================================================
+@app.route('/api/gestao-terceirizados/imperfeicoes', methods=['GET'])
+def api_listar_imperfeicoes():
+    """Lista todas as imperfeições cadastradas"""
+    # if 'loggedin' not in session:
+    #     return jsonify({'success': False, 'error': 'Não autorizado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        query = """
+            SELECT 
+                ID_IMPERFEICAO,
+                DESCRICAO,
+                TOLERANCIA,
+                MULTIPLICADOR
+            FROM LISTA_IMPERFEICOES
+            ORDER BY DESCRICAO
+        """
+        
+        cursor.execute(query)
+        imperfeicoes = cursor.fetchall()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'data': imperfeicoes
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# API - LISTAR OCORRÊNCIAS
+# ============================================================
+@app.route('/api/gestao-terceirizados/ocorrencias/<int:id_contrato>', methods=['GET'])
+def api_listar_ocorrencias(id_contrato):
+    """Lista as ocorrências de um contrato filtradas por mês/ano de competência"""
+    try:
+        mes = request.args.get('mes', '')
+        ano = request.args.get('ano', '')
+        
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        query = """
+            SELECT 
+                ot.ID_OCORRENCIA,
+                ot.ID_CONTRATO,
+                ot.ID_MOTORISTA,
+                m.NM_MOTORISTA,
+                ot.ID_IMPERFEICAO,
+                ot.DATA_OCORRENCIA,
+                ot.MES,
+                ot.ANO,
+                ot.ESPECIFICACAO,
+                li.DESCRICAO,
+                li.TOLERANCIA,
+                li.MULTIPLICADOR
+            FROM OCORRENCIAS_TERCEIRIZADOS ot
+            JOIN LISTA_IMPERFEICOES li ON li.ID_IMPERFEICAO = ot.ID_IMPERFEICAO
+            LEFT JOIN CAD_MOTORISTA m ON m.ID_MOTORISTA = ot.ID_MOTORISTA
+            WHERE ot.ID_CONTRATO = %s
+        """
+        
+        params = [id_contrato]
+        
+        # Filtrar por MES e ANO de competência
+        if mes and ano:
+            # Converter número do mês para nome do mês
+            meses = {
+                '01': 'Janeiro', '02': 'Fevereiro', '03': 'Março', '04': 'Abril',
+                '05': 'Maio', '06': 'Junho', '07': 'Julho', '08': 'Agosto',
+                '09': 'Setembro', '10': 'Outubro', '11': 'Novembro', '12': 'Dezembro'
+            }
+            nome_mes = meses.get(mes, '')
+            if nome_mes:
+                query += " AND ot.MES = %s AND ot.ANO = %s"
+                params.extend([nome_mes, int(ano)])
+        
+        query += " ORDER BY ot.ANO DESC, FIELD(ot.MES, 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro') DESC, ot.DATA_OCORRENCIA DESC"
+        
+        cursor.execute(query, params)
+        ocorrencias = cursor.fetchall()
+        cursor.close()
+        
+        # Converter datas para string formato ISO
+        for ocorrencia in ocorrencias:
+            if ocorrencia.get('DATA_OCORRENCIA'):
+                ocorrencia['DATA_OCORRENCIA'] = ocorrencia['DATA_OCORRENCIA'].strftime('%Y-%m-%d')
+        
+        return jsonify({
+            'success': True,
+            'data': ocorrencias
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# API - OBTER DETALHES DE UMA OCORRÊNCIA
+# ============================================================
+@app.route('/api/gestao-terceirizados/ocorrencias/detalhe/<int:id_ocorrencia>', methods=['GET'])
+def api_obter_ocorrencia(id_ocorrencia):
+    """Obtém os detalhes de uma ocorrência específica"""
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        query = """
+            SELECT 
+                ID_OCORRENCIA,
+                ID_CONTRATO,
+                ID_MOTORISTA,
+                ID_IMPERFEICAO,
+                DATA_OCORRENCIA,
+                MES,
+                ANO,
+                ESPECIFICACAO
+            FROM OCORRENCIAS_TERCEIRIZADOS
+            WHERE ID_OCORRENCIA = %s
+        """
+        
+        cursor.execute(query, (id_ocorrencia,))
+        ocorrencia = cursor.fetchone()
+        cursor.close()
+        
+        if ocorrencia:
+            # Converter data para string formato ISO
+            if ocorrencia.get('DATA_OCORRENCIA'):
+                ocorrencia['DATA_OCORRENCIA'] = ocorrencia['DATA_OCORRENCIA'].strftime('%Y-%m-%d')
+            
+            return jsonify({
+                'success': True,
+                'data': ocorrencia
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Ocorrência não encontrada'
+            }), 404
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# API - INSERIR OCORRÊNCIA
+# ============================================================
+@app.route('/api/gestao-terceirizados/ocorrencias', methods=['POST'])
+def api_inserir_ocorrencia():
+    """Insere uma nova ocorrência"""
+    try:
+        data = request.get_json()
+        
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Obter o próximo ID
+        cursor.execute("SELECT COALESCE(MAX(ID_OCORRENCIA), 0) + 1 as NEXT_ID FROM OCORRENCIAS_TERCEIRIZADOS")
+        next_id = cursor.fetchone()['NEXT_ID']
+        
+        query = """
+            INSERT INTO OCORRENCIAS_TERCEIRIZADOS 
+            (ID_OCORRENCIA, ID_CONTRATO, ID_MOTORISTA, ID_IMPERFEICAO, DATA_OCORRENCIA, MES, ANO, ESPECIFICACAO)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        cursor.execute(query, (
+            next_id,
+            data.get('id_contrato'),
+            data.get('id_motorista'),
+            data.get('id_imperfeicao'),
+            data.get('data_ocorrencia'),
+            data.get('mes_competencia'),
+            data.get('ano_competencia'),
+            data.get('especificacao', '')
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Ocorrência cadastrada com sucesso',
+            'id_ocorrencia': next_id
+        })
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# API - ATUALIZAR OCORRÊNCIA
+# ============================================================
+@app.route('/api/gestao-terceirizados/ocorrencias/<int:id_ocorrencia>', methods=['PUT'])
+def api_atualizar_ocorrencia(id_ocorrencia):
+    """Atualiza uma ocorrência existente"""
+    try:
+        data = request.get_json()
+        
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        query = """
+            UPDATE OCORRENCIAS_TERCEIRIZADOS 
+            SET ID_MOTORISTA = %s,
+                ID_IMPERFEICAO = %s,
+                DATA_OCORRENCIA = %s,
+                MES = %s,
+                ANO = %s,
+                ESPECIFICACAO = %s
+            WHERE ID_OCORRENCIA = %s
+        """
+        
+        cursor.execute(query, (
+            data.get('id_motorista'),
+            data.get('id_imperfeicao'),
+            data.get('data_ocorrencia'),
+            data.get('mes_competencia'),
+            data.get('ano_competencia'),
+            data.get('especificacao', ''),
+            id_ocorrencia
+        ))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Ocorrência atualizada com sucesso'
+        })
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================================
+# API - EXCLUIR OCORRÊNCIA
+# ============================================================
+@app.route('/api/gestao-terceirizados/ocorrencias/<int:id_ocorrencia>', methods=['DELETE'])
+def api_excluir_ocorrencia(id_ocorrencia):
+    """Exclui uma ocorrência"""
+    # if 'loggedin' not in session:
+    #     return jsonify({'success': False, 'error': 'Não autorizado'}), 401
+    
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        query = "DELETE FROM OCORRENCIAS_TERCEIRIZADOS WHERE ID_OCORRENCIA = %s"
+        cursor.execute(query, (id_ocorrencia,))
+        
+        mysql.connection.commit()
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Ocorrência excluída com sucesso'
+        })
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
