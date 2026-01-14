@@ -12676,45 +12676,68 @@ def api_relatorio_fiscalizacao():
             for mot in motoristas:
                 id_motorista = mot['ID_MOTORISTA']
                 
-                # Verificar período do motorista
-                query_periodo = """
+                # ✅ CORREÇÃO: Buscar TODOS os períodos do motorista no mês
+                query_periodos = """
                     SELECT DT_INICIO, DT_FIM
                     FROM CAD_MOTORISTA_PERIODOS
                     WHERE ID_MOTORISTA = %s
                     AND DT_INICIO <= %s
                     AND (DT_FIM IS NULL OR DT_FIM >= %s)
-                    ORDER BY DT_INICIO DESC
-                    LIMIT 1
+                    ORDER BY DT_INICIO
                 """
-                cursor.execute(query_periodo, (id_motorista, ultimo_dia, primeiro_dia))
-                periodo = cursor.fetchone()
+                cursor.execute(query_periodos, (id_motorista, ultimo_dia, primeiro_dia))
+                periodos = cursor.fetchall()
                 
-                if periodo:
-                    dt_inicio = periodo['DT_INICIO']
-                    dt_fim = periodo['DT_FIM']
+                if periodos:
+                    # Verificar se tem período que cobre o mês completo
+                    tem_mes_completo = False
+                    for periodo in periodos:
+                        dt_inicio = periodo['DT_INICIO']
+                        dt_fim = periodo['DT_FIM']
+                        
+                        if dt_inicio <= primeiro_dia and (dt_fim is None or dt_fim >= ultimo_dia):
+                            tem_mes_completo = True
+                            break
                     
-                    # Verificar se trabalhou o mês completo
-                    trabalhou_completo = (
-                        dt_inicio <= primeiro_dia and 
-                        (dt_fim is None or dt_fim >= ultimo_dia)
-                    )
-                    
-                    if trabalhou_completo:
+                    if tem_mes_completo:
                         motoristas_completo.append({
                             'id_motorista': id_motorista,
                             'dias_trabalhados': 30
                         })
                     else:
-                        # Calcular dias trabalhados
-                        inicio_calculo = max(dt_inicio, primeiro_dia)
-                        fim_calculo = min(dt_fim if dt_fim else ultimo_dia, ultimo_dia)
-                        dias_trabalhados = (fim_calculo - inicio_calculo).days + 1
+                        # ✅ CORREÇÃO: Somar dias de TODOS os períodos
+                        total_dias = 0
+                        periodos_info = []
+                        
+                        for periodo in periodos:
+                            dt_inicio = periodo['DT_INICIO']
+                            dt_fim = periodo['DT_FIM']
+                            
+                            # Ajustar para os limites do mês
+                            inicio_calculo = max(dt_inicio, primeiro_dia)
+                            fim_calculo = min(dt_fim if dt_fim else ultimo_dia, ultimo_dia)
+                            
+                            # Calcular dias deste período
+                            dias_periodo = (fim_calculo - inicio_calculo).days + 1
+                            total_dias += dias_periodo
+                            
+                            periodos_info.append({
+                                'dt_inicio': dt_inicio,
+                                'dt_fim': dt_fim,
+                                'dias': dias_periodo
+                            })
+                        
+                        # Buscar nome do motorista para observação
+                        query_nome = "SELECT NM_MOTORISTA FROM CAD_MOTORISTA WHERE ID_MOTORISTA = %s"
+                        cursor.execute(query_nome, (id_motorista,))
+                        nome_result = cursor.fetchone()
+                        nome_motorista = nome_result['NM_MOTORISTA'] if nome_result else 'Não identificado'
                         
                         motoristas_parcial.append({
                             'id_motorista': id_motorista,
-                            'dias_trabalhados': dias_trabalhados,
-                            'dt_inicio': dt_inicio,
-                            'dt_fim': dt_fim
+                            'nome_motorista': nome_motorista,
+                            'dias_trabalhados': total_dias,
+                            'periodos': periodos_info
                         })
             
             # 5.5. Buscar valor mensal do posto
@@ -12783,6 +12806,7 @@ def api_relatorio_fiscalizacao():
         # 8. CALCULAR VALORES POR LOCALIDADE
         # ===================================
         localidades = []
+        observacoes_parciais = []
         valor_referencia_total = 0
         valor_devido_total = 0
         
@@ -12835,13 +12859,25 @@ def api_relatorio_fiscalizacao():
                         'valor_dev_total': valor_dev_total
                     })
                     
+                    # ✅ NOVA FUNCIONALIDADE: Adicionar à observação
+                    observacoes_parciais.append({
+                        'posto': posto['nome_posto'],
+                        'nome': mot_parcial['nome_motorista'],
+                        'dias': dias_trab,
+                        'valor': valor_dev_total
+                    })
+                    
                     valor_referencia_total += valor_ref_total
                     valor_devido_total += valor_dev_total
         
         # ===================================
         # 9. CALCULAR VALOR DA GLOSA
         # ===================================
-        valor_glosa = valor_referencia_total - valor_devido_total
+        # ✅ CORREÇÃO: Glosa só existe se percentual_glosa > 0
+        if percentual_glosa > 0:
+            valor_glosa = valor_referencia_total - valor_devido_total
+        else:
+            valor_glosa = 0.0
         
         # ===================================
         # 10. MONTAR RESPOSTA FINAL
@@ -12877,6 +12913,7 @@ def api_relatorio_fiscalizacao():
                 'percentual_glosa': percentual_glosa,
                 'houve_glosa': percentual_glosa > 0,
                 'localidades': localidades,
+                'observacoes_parciais': observacoes_parciais,  # ✅ NOVO
                 'totais': {
                     'valor_referencia_total': valor_referencia_total,
                     'valor_devido_total': valor_devido_total,
@@ -12895,6 +12932,7 @@ def api_relatorio_fiscalizacao():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
