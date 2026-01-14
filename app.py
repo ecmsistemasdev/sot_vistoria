@@ -12254,11 +12254,11 @@ def api_listar_imperfeicoes():
         query = """
             SELECT 
                 ID_IMPERFEICAO,
-                DESCRICAO,
+                CONCAT(LPAD(ID_IMPERFEICAO, 2, '0'),' - ',DESCRICAO) AS DESCRICAO,
                 TOLERANCIA,
                 MULTIPLICADOR
             FROM LISTA_IMPERFEICOES
-            ORDER BY DESCRICAO
+            ORDER BY DESCRICAOO
         """
         
         cursor.execute(query)
@@ -12300,7 +12300,7 @@ def api_listar_ocorrencias(id_contrato):
                 ot.MES,
                 ot.ANO,
                 ot.ESPECIFICACAO,
-                li.DESCRICAO,
+				CONCAT(LPAD(li.ID_IMPERFEICAO, 2, '0'),' - ',li.DESCRICAO) AS DESCRICAO,
                 li.TOLERANCIA,
                 li.MULTIPLICADOR
             FROM OCORRENCIAS_TERCEIRIZADOS ot
@@ -12526,3 +12526,4 @@ def api_excluir_ocorrencia(id_ocorrencia):
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
