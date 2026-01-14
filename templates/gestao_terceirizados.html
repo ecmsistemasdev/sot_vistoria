@@ -500,6 +500,14 @@
                 </button>
             </div>
 
+            <!-- Botão Relatório de Fiscalização -->
+            <div class="filter-section">
+                <div></div>
+                <button class="btn btn-primary" onclick="abrirModalRelatorioFiscalizacao()">
+                    📊 Relatório de Fiscalização
+                </button>
+            </div>
+
             <!-- Botão Registro de Ocorrências -->
             <div class="filter-section">
                 <div></div>
@@ -605,6 +613,359 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="fecharModalOcorrencias()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do Relatório de Fiscalização -->
+    <div id="modalRelatorioFiscalizacao" class="modal">
+        <div class="modal-content" style="max-width: 1400px;">
+            <div class="modal-header">
+                <h2>Relatório de Fiscalização</h2>
+                <span class="close" onclick="fecharModalRelatorioFiscalizacao()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Filtros -->
+                <div class="form-row form-row-3" style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label for="relatorioMes">Mês:</label>
+                        <select id="relatorioMes">
+                            <option value="JANEIRO">Janeiro</option>
+                            <option value="FEVEREIRO">Fevereiro</option>
+                            <option value="MARÇO">Março</option>
+                            <option value="ABRIL">Abril</option>
+                            <option value="MAIO">Maio</option>
+                            <option value="JUNHO">Junho</option>
+                            <option value="JULHO">Julho</option>
+                            <option value="AGOSTO">Agosto</option>
+                            <option value="SETEMBRO">Setembro</option>
+                            <option value="OUTUBRO">Outubro</option>
+                            <option value="NOVEMBRO">Novembro</option>
+                            <option value="DEZEMBRO">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="relatorioAno">Ano:</label>
+                        <select id="relatorioAno" class="input-ano">
+                            <!-- Será preenchido dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-primary" onclick="gerarRelatorioFiscalizacao()">
+                            🔍 Gerar Relatório
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Conteúdo do Relatório -->
+                <div id="conteudoRelatorio" style="display: none;">
+                    <!-- Cabeçalho do Relatório -->
+                    <div style="border: 2px solid #2c3e50; margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                                <td rowspan="3" style="width: 120px; padding: 10px; border: 1px solid #2c3e50; text-align: center;">
+                                    <div style="font-size: 11px; font-weight: bold;">LOGO</div>
+                                </td>
+                                <td style="padding: 10px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 14px;">
+                                    TRIBUNAL DE JUSTIÇA DO ESTADO DE RONDÔNIA
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 13px;">
+                                    RELATÓRIO DE OCORRÊNCIA - LISTA DE IMPERFEIÇÕES
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; width: 150px; background-color: #f0f0f0;">Contrato</td>
+                                <td id="relCabContrato" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">Protocolo</td>
+                                <td id="relCabProtocolo" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">Contratada</td>
+                                <td id="relCabContratada" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">Objeto</td>
+                                <td id="relCabObjeto" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">Mês/ano de verificação</td>
+                                <td id="relCabMesAno" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Tabela de Ocorrências -->
+                    <div style="margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <thead>
+                                <tr>
+                                    <th colspan="13" style="background-color: #2c3e50; color: white; padding: 8px; text-align: center; border: 1px solid #2c3e50;">
+                                        OCORRÊNCIAS
+                                    </th>
+                                </tr>
+                                <tr style="background-color: #34495e; color: white;">
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: left;">POSTO DE TRABALHO</th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; width: 40px; text-align: center;"></th>
+                                    <th id="thImp01" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">01</th>
+                                    <th id="thImp02" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">02</th>
+                                    <th id="thImp03" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">03</th>
+                                    <th id="thImp04" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">04</th>
+                                    <th id="thImp05" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">05</th>
+                                    <th id="thImp06" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">06</th>
+                                    <th id="thImp07" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">07</th>
+                                    <th id="thImp08" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">08</th>
+                                    <th id="thImp09" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">09</th>
+                                    <th id="thImp10" style="padding: 6px; border: 1px solid #2c3e50; width: 35px; text-align: center;">10</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaOcorrenciasRelatorio">
+                                <!-- Será preenchido dinamicamente -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="13" style="padding: 0; border: 1px solid #2c3e50;">
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                            <tr style="background-color: #ffffcc;">
+                                                <td style="padding: 6px; border: 1px solid #2c3e50; font-weight: bold;">Total (+)</td>
+                                                <td id="relTotal01" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal02" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal03" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal04" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal05" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal06" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal07" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal08" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal09" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                                <td id="relTotal10" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 35px;">0</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 6px; border: 1px solid #2c3e50; font-weight: bold;">Tolerância (-)</td>
+                                                <td id="relTolerancia01" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia02" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia03" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia04" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia05" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia06" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia07" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia08" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia09" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relTolerancia10" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 6px; border: 1px solid #2c3e50; font-weight: bold;">Excesso Imperfeições (=)</td>
+                                                <td id="relExcesso01" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso02" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso03" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso04" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso05" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso06" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso07" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso08" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso09" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relExcesso10" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 6px; border: 1px solid #2c3e50; font-weight: bold;">Multiplicador (x)</td>
+                                                <td id="relMultiplicador01" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador02" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador03" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador04" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador05" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador06" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador07" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador08" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador09" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relMultiplicador10" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 6px; border: 1px solid #2c3e50; font-weight: bold;">Número Corrigido (=)</td>
+                                                <td id="relCorrigido01" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido02" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido03" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido04" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido05" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido06" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido07" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido08" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido09" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                                <td id="relCorrigido10" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                            </tr>
+                                            <tr style="background-color: #ffffcc;">
+                                                <td colspan="10" style="padding: 6px; border: 1px solid #2c3e50; font-weight: bold; text-align: right;">
+                                                    Somatório dos Números Corrigidos (Fator de Aceitação)
+                                                </td>
+                                                <td id="relSomatorioFator" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; font-weight: bold;">0</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Tabela de Faixas -->
+                    <div style="margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <thead>
+                                <tr style="background-color: #34495e; color: white;">
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">Faixa</th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">Fator de Aceitação</th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">Valor Mensal a Receber</th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">Percentual de Glosa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaFaixas">
+                                <!-- Será preenchido dinamicamente -->
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color: #ffffcc;">
+                                    <td colspan="4" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; font-weight: bold;">
+                                        Faixa Alcançada no Mês de Referência: <span id="relFaixaAlcancada">-</span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Tabela de Glosa -->
+                    <div style="margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; width: 200px; background-color: #f0f0f0;">
+                                    Houve Glosa
+                                </td>
+                                <td id="relHouveGlosa" style="padding: 8px; border: 1px solid #2c3e50; text-align: center; font-weight: bold;">
+                                    NÃO
+                                </td>
+                                <td rowspan="3" style="padding: 8px; border: 1px solid #2c3e50; text-align: center; vertical-align: middle; font-weight: bold;">
+                                    Fator Percentual de Recebimento e Remuneração de Serviços
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">
+                                    Percentual de Glosa
+                                </td>
+                                <td id="relPercentualGlosa" style="padding: 8px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 16px; color: #e74c3c;">
+                                    0,00%
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">
+                                    Percentual do Total a Receber
+                                </td>
+                                <td id="relPercentualReceber" style="padding: 8px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 16px; color: #27ae60; background-color: #ffccff;">
+                                    100,00%
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Tabela de Localidades -->
+                    <div style="margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <thead>
+                                <tr style="background-color: #34495e; color: white;">
+                                    <th rowspan="2" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">LOCALIDADE</th>
+                                    <th rowspan="2" style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 60px;">POSTO</th>
+                                    <th colspan="2" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">Valor de Referência</th>
+                                    <th colspan="2" style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">Valor Devido</th>
+                                </tr>
+                                <tr style="background-color: #34495e; color: white;">
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 120px;">Valor Mensal</th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 120px;">Valor Total</th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 120px;">Valor Mensal</th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; width: 120px;">Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaLocalidades">
+                                <!-- Será preenchido dinamicamente -->
+                            </tbody>
+                            <tfoot style="background-color: #34495e; color: white; font-weight: bold;">
+                                <tr>
+                                    <td style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">TOTAL</td>
+                                    <td id="relTotalPosto" style="padding: 8px; border: 1px solid #2c3e50; text-align: center;">0</td>
+                                    <td id="relTotalRefMensal" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">R$ 0,00</td>
+                                    <td id="relTotalRefTotal" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">R$ 0,00</td>
+                                    <td id="relTotalDevMensal" style="padding: 8px; border: 1px solid #2c3e50; text-align: right; color: #3498db;">R$ 0,00</td>
+                                    <td id="relTotalDevTotal" style="padding: 8px; border: 1px solid #2c3e50; text-align: right; color: #3498db;">R$ 0,00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Valores Finais -->
+                    <div style="margin-bottom: 20px;">
+                        <table style="width: 50%; border-collapse: collapse; font-size: 11px; margin-left: auto;">
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">
+                                    Valor Mensal a Receber
+                                </td>
+                                <td id="relValorMensalReceber" style="padding: 8px; border: 1px solid #2c3e50; text-align: right; font-weight: bold; color: #27ae60;">
+                                    R$ 0,00
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">
+                                    Valor da Glosa
+                                </td>
+                                <td id="relValorGlosa" style="padding: 8px; border: 1px solid #2c3e50; text-align: right; font-weight: bold; color: #e74c3c;">
+                                    R$ 0,00
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Observações e Gestor -->
+                    <div style="margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">
+                                    Observações:
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 30px; border: 1px solid #2c3e50; min-height: 80px;">
+                                    &nbsp;
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; width: 180px; background-color: #f0f0f0;">
+                                    Gestor do Contrato:
+                                </td>
+                                <td id="relGestor" style="padding: 8px; border: 1px solid #2c3e50;">
+                                    -
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">
+                                    Unidade:
+                                </td>
+                                <td id="relUnidade" style="padding: 8px; border: 1px solid #2c3e50;">
+                                    -
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharModalRelatorioFiscalizacao()">Fechar</button>
+                <button class="btn btn-success" onclick="gerarPDFRelatorio()" style="display: none;">
+                    📄 Gerar PDF
+                </button>
             </div>
         </div>
     </div>
@@ -1088,6 +1449,256 @@
                 console.error('Erro ao excluir ocorrência:', error);
                 alert('Erro ao excluir ocorrência');
             }
+        }
+
+        // ===================================
+        // RELATÓRIO DE FISCALIZAÇÃO
+        // ===================================
+        
+        function abrirModalRelatorioFiscalizacao() {
+            if (!contratoSelecionado) {
+                alert('Selecione um contrato primeiro!');
+                return;
+            }
+
+            // Preencher anos
+            preencherAnosRelatorio();
+
+            // Definir mês e ano atual
+            const dataAtual = new Date();
+            const mesAtual = dataAtual.getMonth(); // 0-11
+            const anoAtual = dataAtual.getFullYear();
+
+            document.getElementById('relatorioMes').selectedIndex = mesAtual;
+            document.getElementById('relatorioAno').value = anoAtual;
+
+            // Limpar conteúdo anterior
+            document.getElementById('conteudoRelatorio').style.display = 'none';
+
+            document.getElementById('modalRelatorioFiscalizacao').classList.add('active');
+        }
+
+        function fecharModalRelatorioFiscalizacao() {
+            document.getElementById('modalRelatorioFiscalizacao').classList.remove('active');
+        }
+
+        function preencherAnosRelatorio() {
+            const selectAno = document.getElementById('relatorioAno');
+            selectAno.innerHTML = '';
+
+            const anoAtual = new Date().getFullYear();
+            for (let ano = 2024; ano <= anoAtual; ano++) {
+                const option = document.createElement('option');
+                option.value = ano;
+                option.textContent = ano;
+                selectAno.appendChild(option);
+            }
+        }
+
+        async function gerarRelatorioFiscalizacao() {
+            const mes = document.getElementById('relatorioMes').value;
+            const ano = document.getElementById('relatorioAno').value;
+
+            if (!contratoSelecionado) {
+                alert('Selecione um contrato primeiro!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/gestao-terceirizados/relatorio-fiscalizacao', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id_contrato: contratoSelecionado.ID_CONTRATO,
+                        mes: mes,
+                        ano: ano
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    preencherRelatorio(result.data);
+                    document.getElementById('conteudoRelatorio').style.display = 'block';
+                } else {
+                    alert('Erro ao gerar relatório: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao gerar relatório:', error);
+                alert('Erro ao gerar relatório');
+            }
+        }
+
+        function preencherRelatorio(data) {
+            // Cabeçalho
+            document.getElementById('relCabContrato').textContent = data.cabecalho.contrato || '-';
+            document.getElementById('relCabProtocolo').textContent = data.cabecalho.protocolo || '-';
+            document.getElementById('relCabContratada').textContent = data.cabecalho.contratada || '-';
+            document.getElementById('relCabObjeto').textContent = data.cabecalho.objeto || '-';
+            document.getElementById('relCabMesAno').textContent = data.cabecalho.mes_ano || '-';
+
+            // Cabeçalhos das imperfeições (colunas 01-10)
+            data.imperfeicoes.forEach((imp, index) => {
+                const colNum = String(imp.id).padStart(2, '0');
+                const th = document.getElementById(`thImp${colNum}`);
+                if (th) {
+                    th.title = imp.descricao;
+                }
+            });
+
+            // Tabela de ocorrências por posto
+            const tbody = document.getElementById('tabelaOcorrenciasRelatorio');
+            tbody.innerHTML = '';
+
+            data.postos.forEach(posto => {
+                const tr = document.createElement('tr');
+                
+                // Nome do posto
+                const tdPosto = document.createElement('td');
+                tdPosto.style.padding = '6px';
+                tdPosto.style.border = '1px solid #2c3e50';
+                tdPosto.textContent = posto.nome_posto;
+                tr.appendChild(tdPosto);
+
+                // Quantidade
+                const tdQtd = document.createElement('td');
+                tdQtd.style.padding = '6px';
+                tdQtd.style.border = '1px solid #2c3e50';
+                tdQtd.style.textAlign = 'center';
+                tdQtd.textContent = posto.qtd_motoristas_total;
+                tr.appendChild(tdQtd);
+
+                // Ocorrências (colunas 01-10)
+                for (let i = 1; i <= 10; i++) {
+                    const td = document.createElement('td');
+                    td.style.padding = '6px';
+                    td.style.border = '1px solid #2c3e50';
+                    td.style.textAlign = 'center';
+                    td.textContent = posto.ocorrencias[i] || 0;
+                    tr.appendChild(td);
+                }
+
+                tbody.appendChild(tr);
+            });
+
+            // Cálculos por coluna (Total, Tolerância, Excesso, Multiplicador, Corrigido)
+            const totaisPorColuna = {};
+            for (let i = 1; i <= 10; i++) {
+                totaisPorColuna[i] = 0;
+            }
+
+            data.postos.forEach(posto => {
+                for (let i = 1; i <= 10; i++) {
+                    totaisPorColuna[i] += posto.ocorrencias[i] || 0;
+                }
+            });
+
+            // Preencher totais, tolerâncias e cálculos
+            data.imperfeicoes.forEach((imp, index) => {
+                const colNum = String(imp.id).padStart(2, '0');
+                const total = totaisPorColuna[imp.id] || 0;
+                const tolerancia = imp.tolerancia;
+                const excesso = Math.max(0, total - tolerancia);
+                const multiplicador = imp.multiplicador;
+                const corrigido = excesso * multiplicador;
+
+                document.getElementById(`relTotal${colNum}`).textContent = total;
+                document.getElementById(`relTolerancia${colNum}`).textContent = tolerancia;
+                document.getElementById(`relExcesso${colNum}`).textContent = excesso;
+                document.getElementById(`relMultiplicador${colNum}`).textContent = multiplicador;
+                document.getElementById(`relCorrigido${colNum}`).textContent = corrigido;
+            });
+
+            // Somatório do fator
+            document.getElementById('relSomatorioFator').textContent = data.somatorio_fator;
+
+            // Tabela de faixas
+            const tabelaFaixas = document.getElementById('tabelaFaixas');
+            tabelaFaixas.innerHTML = '';
+
+            data.faixas.forEach(faixa => {
+                const tr = document.createElement('tr');
+                
+                // Destacar faixa alcançada
+                if (faixa.nome === data.faixa_alcancada) {
+                    tr.style.backgroundColor = '#ffcccc';
+                    tr.style.fontWeight = 'bold';
+                }
+
+                tr.innerHTML = `
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${faixa.nome}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">
+                        ${faixa.min} a ${faixa.max}
+                    </td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">
+                        ${faixa.percentual_receber}% do Valor Mensal
+                    </td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">
+                        ${faixa.percentual_glosa}%
+                    </td>
+                `;
+                tabelaFaixas.appendChild(tr);
+            });
+
+            document.getElementById('relFaixaAlcancada').textContent = data.faixa_alcancada;
+
+            // Informações de glosa
+            document.getElementById('relHouveGlosa').textContent = data.houve_glosa ? 'SIM' : 'NÃO';
+            document.getElementById('relPercentualGlosa').textContent = data.percentual_glosa.toFixed(2) + '%';
+            document.getElementById('relPercentualReceber').textContent = data.percentual_receber.toFixed(2) + '%';
+
+            // Tabela de localidades
+            const tabelaLocalidades = document.getElementById('tabelaLocalidades');
+            tabelaLocalidades.innerHTML = '';
+
+            let totalPostos = 0;
+            let totalRefMensal = 0;
+            let totalRefTotal = 0;
+            let totalDevMensal = 0;
+            let totalDevTotal = 0;
+
+            data.localidades.forEach(loc => {
+                const tr = document.createElement('tr');
+                
+                const nomePosto = loc.tem_asterisco ? `${loc.nome} (*)` : loc.nome;
+
+                tr.innerHTML = `
+                    <td style="padding: 6px; border: 1px solid #2c3e50;">${nomePosto}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${loc.qtd_posto}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">R$ ${loc.valor_ref_mensal.toFixed(2)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">R$ ${loc.valor_ref_total.toFixed(2)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; color: #3498db; font-weight: bold;">R$ ${loc.valor_dev_mensal.toFixed(2)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; color: #3498db; font-weight: bold;">R$ ${loc.valor_dev_total.toFixed(2)}</td>
+                `;
+                tabelaLocalidades.appendChild(tr);
+
+                totalPostos += loc.qtd_posto;
+                totalRefMensal += loc.valor_ref_mensal;
+                totalRefTotal += loc.valor_ref_total;
+                totalDevMensal += loc.valor_dev_mensal;
+                totalDevTotal += loc.valor_dev_total;
+            });
+
+            // Totais
+            document.getElementById('relTotalPosto').textContent = totalPostos;
+            document.getElementById('relTotalRefMensal').textContent = 'R$ ' + totalRefMensal.toFixed(2);
+            document.getElementById('relTotalRefTotal').textContent = 'R$ ' + totalRefTotal.toFixed(2);
+            document.getElementById('relTotalDevMensal').textContent = 'R$ ' + totalDevMensal.toFixed(2);
+            document.getElementById('relTotalDevTotal').textContent = 'R$ ' + totalDevTotal.toFixed(2);
+
+            // Valores finais
+            document.getElementById('relValorMensalReceber').textContent = 'R$ ' + data.totais.valor_devido_total.toFixed(2);
+            document.getElementById('relValorGlosa').textContent = 'R$ ' + data.totais.valor_glosa.toFixed(2);
+
+            // Gestor e unidade
+            document.getElementById('relGestor').textContent = data.cabecalho.gestor || '-';
+            document.getElementById('relUnidade').textContent = data.cabecalho.unidade || '-';
+        }
+
+        function gerarPDFRelatorio() {
+            alert('Funcionalidade de geração de PDF será implementada em breve!');
         }
     </script>
 </body>
