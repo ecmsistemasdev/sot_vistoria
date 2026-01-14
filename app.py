@@ -12258,7 +12258,7 @@ def api_listar_imperfeicoes():
                 TOLERANCIA,
                 MULTIPLICADOR
             FROM LISTA_IMPERFEICOES
-            ORDER BY DESCRICAOO
+            ORDER BY ID_IMPERFEICAO
         """
         
         cursor.execute(query)
@@ -12526,4 +12526,5 @@ def api_excluir_ocorrencia(id_ocorrencia):
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
