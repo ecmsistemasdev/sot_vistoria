@@ -12989,6 +12989,518 @@ def api_relatorio_fiscalizacao_pdf():
         traceback.print_exc()
         return f"Erro ao gerar PDF: {str(e)}", 500
 
+@app.route('/api/gestao-terceirizados/relatorio-fiscalizacao-html', methods=['GET'])
+def api_relatorio_fiscalizacao_html():
+    """Retorna o relatório como HTML para abrir em nova aba"""
+    try:
+        id_contrato = request.args.get('id_contrato')
+        mes = request.args.get('mes')
+        ano = request.args.get('ano')
+        
+        if not all([id_contrato, mes, ano]):
+            return "Parâmetros obrigatórios: id_contrato, mes, ano", 400
+        
+        # Obter dados do relatório
+        with app.test_client() as client:
+            response = client.post(
+                '/api/gestao-terceirizados/relatorio-fiscalizacao',
+                json={
+                    'id_contrato': int(id_contrato),
+                    'mes': mes,
+                    'ano': ano
+                },
+                content_type='application/json'
+            )
+            
+            if response.status_code != 200:
+                return "Erro ao gerar relatório", 500
+            
+            result = response.get_json()
+            if not result.get('success'):
+                return f"Erro: {result.get('error', 'Desconhecido')}", 500
+                
+            data = result['data']
+        
+        # Gerar HTML para impressão
+        html_content = gerar_html_relatorio_impressao(data)
+        
+        # Retornar HTML puro
+        return html_content
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"Erro ao gerar relatório: {str(e)}", 500
+
+def gerar_html_relatorio_impressao(data):
+    """Gera HTML formatado para impressão (A4 retrato)"""
+    
+    def formatar_moeda(valor):
+        if valor is None:
+            valor = 0.0
+        return f"R$ {float(valor):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    def safe_float(val, default=0.0):
+        if val is None:
+            return default
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+    
+    # Preparar dados
+    imperfeicoes = data.get('imperfeicoes', [])[:10]
+    postos = data.get('postos', [])
+    
+    # Calcular totais
+    totais = [0] * 10
+    for posto in postos:
+        for i in range(1, 11):
+            totais[i-1] += posto.get('ocorrencias', {}).get(i, 0) or 0
+    
+    tolerancias = [imp.get('tolerancia', 0) for imp in imperfeicoes]
+    excessos = [max(0, totais[i] - (tolerancias[i] or 0)) for i in range(len(tolerancias))]
+    multiplicadores = [imp.get('multiplicador', 0) for imp in imperfeicoes]
+    corrigidos = [excessos[i] * (multiplicadores[i] or 0) for i in range(len(excessos))]
+    somatorio = sum(corrigidos)
+    
+    html = f"""
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Fiscalização - {data['cabecalho'].get('mes_ano', '')}</title>
+    <style>
+        /* ============================================
+           ESTILOS PARA IMPRESSÃO E TELA
+           ============================================ */
+        
+        @page {{
+            size: A4 portrait;
+            margin: 10mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            line-height: 1.3;
+            padding: 10px;
+            background-color: #fff;
+        }}
+        
+        /* Botão de impressão - só aparece na tela */
+        .print-button {{
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 12px 24px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }}
+        
+        .print-button:hover {{
+            background-color: #34495e;
+        }}
+        
+        @media print {{
+            .print-button {{
+                display: none;
+            }}
+            
+            body {{
+                padding: 0;
+            }}
+        }}
+        
+        /* Tabelas */
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            page-break-inside: avoid;
+        }}
+        
+        table, th, td {{
+            border: 1px solid #2c3e50;
+        }}
+        
+        th {{
+            background-color: #34495e;
+            color: white;
+            padding: 6px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 9px;
+        }}
+        
+        td {{
+            padding: 5px;
+            font-size: 9px;
+        }}
+        
+        /* Classes utilitárias */
+        .center {{ text-align: center; }}
+        .right {{ text-align: right; }}
+        .bold {{ font-weight: bold; }}
+        
+        .bg-yellow {{ background-color: #ffffcc; }}
+        .bg-gray {{ background-color: #f0f0f0; }}
+        .bg-pink {{ background-color: #ffccff; }}
+        .bg-red {{ background-color: #ffcccc; }}
+        
+        .text-blue {{ color: #3498db; }}
+        .text-red {{ color: #e74c3c; }}
+        .text-green {{ color: #27ae60; }}
+        
+        /* Cabeçalho */
+        .header-logo {{
+            width: 100px;
+            text-align: center;
+            vertical-align: middle;
+        }}
+        
+        .header-logo img {{
+            max-width: 90px;
+            max-height: 80px;
+        }}
+        
+        .header-title {{
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 8px;
+        }}
+        
+        /* Células de informação */
+        .info-label {{
+            background-color: #f0f0f0;
+            font-weight: bold;
+            width: 180px;
+        }}
+        
+        /* Tabela de ocorrências - células menores */
+        .ocorrencias-table th {{
+            font-size: 8px;
+            padding: 4px 2px;
+        }}
+        
+        .ocorrencias-table td {{
+            font-size: 8px;
+            padding: 3px 2px;
+        }}
+        
+        /* Totalizadores */
+        .totalizador-row {{
+            font-size: 8px;
+        }}
+    </style>
+</head>
+<body>
+    
+    <!-- Botão de Impressão -->
+    <button class="print-button" onclick="window.print()">
+        🖨️ Imprimir / Gerar PDF
+    </button>
+    
+    <!-- Cabeçalho -->
+    <table>
+        <tr>
+            <td rowspan="2" class="header-logo">
+                <img src="/static/img/logo_tjronovo.jpg" alt="Logo TJRO">
+            </td>
+            <td class="header-title">
+                TRIBUNAL DE JUSTIÇA DO ESTADO DE RONDÔNIA
+            </td>
+        </tr>
+        <tr>
+            <td class="header-title" style="font-size: 11px;">
+                RELATÓRIO DE OCORRÊNCIA - LISTA DE IMPERFEIÇÕES
+            </td>
+        </tr>
+    </table>
+    
+    <!-- Informações do Contrato -->
+    <table>
+        <tr>
+            <td class="info-label">Contrato</td>
+            <td>{data['cabecalho'].get('contrato', '-')}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Protocolo</td>
+            <td>{data['cabecalho'].get('protocolo', '-')}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Contratada</td>
+            <td>{data['cabecalho'].get('contratada', '-')}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Objeto</td>
+            <td>{data['cabecalho'].get('objeto', '-')}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Mês/ano de verificação</td>
+            <td>{data['cabecalho'].get('mes_ano', '-')}</td>
+        </tr>
+    </table>
+    
+    <!-- Tabela de Ocorrências -->
+    <table class="ocorrencias-table">
+        <thead>
+            <tr>
+                <th colspan="12">OCORRÊNCIAS</th>
+            </tr>
+            <tr>
+                <th style="width: 200px;">POSTO DE TRABALHO</th>
+                <th style="width: 40px;">QTD</th>
+    """
+    
+    for imp in imperfeicoes:
+        html += f'<th style="width: 35px;" title="{imp.get("descricao", "")}">{str(imp.get("id", "")).zfill(2)}</th>'
+    
+    html += """
+            </tr>
+        </thead>
+        <tbody>
+    """
+    
+    # Postos
+    for posto in postos:
+        html += f"""
+            <tr>
+                <td>{posto.get('nome_posto', '-')}</td>
+                <td class="center">{posto.get('qtd_motoristas_total', 0)}</td>
+        """
+        for i in range(1, 11):
+            valor = posto.get('ocorrencias', {}).get(i, 0) or 0
+            html += f'<td class="center">{valor}</td>'
+        html += "</tr>"
+    
+    # Totalizadores
+    html += '<tr class="bg-yellow bold totalizador-row"><td>Total (+)</td><td></td>'
+    for t in totais:
+        html += f'<td class="center">{t}</td>'
+    html += '</tr>'
+    
+    html += '<tr class="totalizador-row"><td>Tolerância (-)</td><td></td>'
+    for tol in tolerancias:
+        html += f'<td class="center">{tol}</td>'
+    html += '</tr>'
+    
+    html += '<tr class="totalizador-row"><td>Excesso Imperfeições (=)</td><td></td>'
+    for exc in excessos:
+        html += f'<td class="center">{exc}</td>'
+    html += '</tr>'
+    
+    html += '<tr class="totalizador-row"><td>Multiplicador (x)</td><td></td>'
+    for mult in multiplicadores:
+        html += f'<td class="center">{mult}</td>'
+    html += '</tr>'
+    
+    html += '<tr class="totalizador-row"><td>Número Corrigido (=)</td><td></td>'
+    for corr in corrigidos:
+        html += f'<td class="center">{corr}</td>'
+    html += '</tr>'
+    
+    html += f"""
+            <tr class="bg-yellow bold totalizador-row">
+                <td colspan="11" class="right">Somatório dos Números Corrigidos (Fator de Aceitação)</td>
+                <td class="center">{somatorio}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <!-- Faixas -->
+    <table>
+        <thead>
+            <tr>
+                <th>Faixa</th>
+                <th>Fator de Aceitação</th>
+                <th>Valor Mensal a Receber</th>
+                <th>Percentual de Glosa</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+    
+    for faixa in data.get('faixas', []):
+        bg_class = 'bg-red' if faixa.get('nome') == data.get('faixa_alcancada') else ''
+        html += f"""
+            <tr class="{bg_class}">
+                <td class="center">{faixa.get('nome', '-')}</td>
+                <td class="center">{faixa.get('min', 0)} a {faixa.get('max', 0)}</td>
+                <td class="center">{faixa.get('percentual_receber', 0)}% do Valor Mensal</td>
+                <td class="center">{faixa.get('percentual_glosa', 0)}%</td>
+            </tr>
+        """
+    
+    html += f"""
+        </tbody>
+        <tfoot>
+            <tr class="bg-yellow">
+                <td colspan="4" class="center bold">
+                    Faixa Alcançada no Mês de Referência: {data.get('faixa_alcancada', '-')}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    <!-- Informações de Glosa -->
+    <table>
+        <tr>
+            <td class="info-label">Houve Glosa</td>
+            <td class="center bold">{'SIM' if data.get('houve_glosa') else 'NÃO'}</td>
+            <td rowspan="3" class="center bold" style="vertical-align: middle;">
+                Fator Percentual de Recebimento e Remuneração de Serviços
+            </td>
+        </tr>
+        <tr>
+            <td class="info-label">Percentual de Glosa</td>
+            <td class="center bold text-red" style="font-size: 14px;">
+                {safe_float(data.get('percentual_glosa', 0)):.2f}%
+            </td>
+        </tr>
+        <tr>
+            <td class="info-label">Percentual do Total a Receber</td>
+            <td class="center bold text-green bg-pink" style="font-size: 14px;">
+                {safe_float(data.get('percentual_receber', 100)):.2f}%
+            </td>
+        </tr>
+    </table>
+    
+    <!-- Localidades -->
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">LOCALIDADE</th>
+                <th rowspan="2" style="width: 50px;">POSTO</th>
+                <th colspan="2">Valor de Referência</th>
+                <th colspan="2">Valor Devido</th>
+            </tr>
+            <tr>
+                <th style="width: 100px;">Valor Mensal</th>
+                <th style="width: 100px;">Valor Total</th>
+                <th style="width: 100px;">Valor Mensal</th>
+                <th style="width: 100px;">Valor Total</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+    
+    total_postos = 0
+    total_ref_mensal = 0.0
+    total_ref_total = 0.0
+    total_dev_mensal = 0.0
+    total_dev_total = 0.0
+    
+    for loc in data.get('localidades', []):
+        nome = f"{loc.get('nome', '-')} (*)" if loc.get('tem_asterisco') else loc.get('nome', '-')
+        
+        val_ref_mensal = safe_float(loc.get('valor_ref_mensal'))
+        val_ref_total = safe_float(loc.get('valor_ref_total'))
+        val_dev_mensal = safe_float(loc.get('valor_dev_mensal'))
+        val_dev_total = safe_float(loc.get('valor_dev_total'))
+        
+        html += f"""
+            <tr>
+                <td>{nome}</td>
+                <td class="center">{loc.get('qtd_posto', 0)}</td>
+                <td class="right">{formatar_moeda(val_ref_mensal)}</td>
+                <td class="right">{formatar_moeda(val_ref_total)}</td>
+                <td class="right text-blue bold">{formatar_moeda(val_dev_mensal)}</td>
+                <td class="right text-blue bold">{formatar_moeda(val_dev_total)}</td>
+            </tr>
+        """
+        
+        total_postos += loc.get('qtd_posto', 0)
+        total_ref_mensal += val_ref_mensal
+        total_ref_total += val_ref_total
+        total_dev_mensal += val_dev_mensal
+        total_dev_total += val_dev_total
+    
+    html += f"""
+        </tbody>
+        <tfoot style="background-color: #34495e; color: white;">
+            <tr class="bold">
+                <td class="right">TOTAL</td>
+                <td class="center">{total_postos}</td>
+                <td class="right">{formatar_moeda(total_ref_mensal)}</td>
+                <td class="right">{formatar_moeda(total_ref_total)}</td>
+                <td class="right">{formatar_moeda(total_dev_mensal)}</td>
+                <td class="right">{formatar_moeda(total_dev_total)}</td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    <!-- Valores Finais -->
+    <table style="width: 50%; margin-left: auto;">
+        <tr>
+            <td class="info-label">Valor Mensal a Receber</td>
+            <td class="right bold text-green">
+                {formatar_moeda(safe_float(data.get('totais', {}).get('valor_devido_total', 0)))}
+            </td>
+        </tr>
+        <tr>
+            <td class="info-label">Valor da Glosa</td>
+            <td class="right bold text-red">
+                {formatar_moeda(safe_float(data.get('totais', {}).get('valor_glosa', 0)))}
+            </td>
+        </tr>
+    </table>
+    
+    <!-- Observações -->
+    <table>
+        <tr>
+            <td class="info-label">Observações:</td>
+        </tr>
+        <tr>
+            <td style="min-height: 60px; padding: 10px;">
+    """
+    
+    if data.get('observacoes_parciais'):
+        for obs in data['observacoes_parciais']:
+            dias = obs.get('dias', 0)
+            valor = safe_float(obs.get('valor', 0))
+            html += f"{obs.get('posto', '-')} (*): {obs.get('nome', '-')} - {dias} dias trabalhados - {formatar_moeda(valor)}<br>"
+    else:
+        html += "&nbsp;"
+    
+    html += f"""
+            </td>
+        </tr>
+    </table>
+    
+    <!-- Gestor e Unidade -->
+    <table>
+        <tr>
+            <td class="info-label">Gestor do Contrato:</td>
+            <td>{data['cabecalho'].get('gestor', '-')}</td>
+        </tr>
+        <tr>
+            <td class="info-label">Unidade:</td>
+            <td>{data['cabecalho'].get('unidade', '-')}</td>
+        </tr>
+    </table>
+    
+</body>
+</html>
+    """
+    
+    return html
+	
 
 def gerar_html_relatorio_pdf_simples(data):
     """HTML simplificado e otimizado para xhtml2pdf"""
@@ -13224,5 +13736,6 @@ def gerar_html_relatorio_pdf_simples(data):
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
