@@ -1873,26 +1873,13 @@
         }
         
         function visualizarPDFRelatorio() {
-            if (!dadosRelatorioAtual) {
-                alert('Gere o relatório primeiro!');
-                return;
-            }
-        
-            const modal = document.getElementById('modalRelatorioPdf');
-            const iframe = document.getElementById('iframeRelatorioPdf');
-            
-            // Construir URL com parâmetros
             const params = new URLSearchParams({
                 id_contrato: dadosRelatorioAtual.id_contrato,
                 mes: dadosRelatorioAtual.mes,
                 ano: dadosRelatorioAtual.ano
             });
             
-            iframe.src = `/api/gestao-terceirizados/relatorio-fiscalizacao-pdf?${params.toString()}`;
-            modal.style.display = 'block';
-            
-            // Prevenir scroll do body quando modal está aberto
-            document.body.style.overflow = 'hidden';
+            window.open(`/api/gestao-terceirizados/relatorio-fiscalizacao-html?${params}`, '_blank');
         }
         
         function fecharModalRelatorioPdf() {
