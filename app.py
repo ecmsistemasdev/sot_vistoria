@@ -12930,8 +12930,461 @@ def api_relatorio_fiscalizacao():
             'error': str(e)
         }), 500
 
+@app.route('/api/gestao-terceirizados/relatorio-fiscalizacao-pdf', methods=['GET'])
+def api_relatorio_fiscalizacao_pdf():
+    """Gera PDF do relatório de fiscalização para visualização/impressão"""
+    try:
+        id_contrato = request.args.get('id_contrato')
+        mes = request.args.get('mes')
+        ano = request.args.get('ano')
+        
+        if not all([id_contrato, mes, ano]):
+            return "Parâmetros obrigatórios: id_contrato, mes, ano", 400
+        
+        # Reutilizar a lógica da rota JSON para obter os dados
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Copiar toda a lógica de consulta da rota anterior...
+        # (mesmo código de busca do contrato, imperfeições, postos, etc.)
+        
+        # Por simplicidade, vou chamar a API JSON internamente
+        from flask import current_app
+        
+        with current_app.test_client() as client:
+            response = client.post(
+                '/api/gestao-terceirizados/relatorio-fiscalizacao',
+                json={
+                    'id_contrato': int(id_contrato),
+                    'mes': mes,
+                    'ano': ano
+                },
+                content_type='application/json'
+            )
+            
+            if response.status_code != 200:
+                return "Erro ao gerar relatório", 500
+            
+            data = response.get_json()['data']
+        
+        # Gerar HTML do relatório
+        html_content = gerar_html_relatorio_pdf(data)
+        
+        # Converter para PDF usando xhtml2pdf
+        from io import BytesIO
+        from xhtml2pdf import pisa
+        
+        pdf_file = BytesIO()
+        pisa_status = pisa.CreatePDF(
+            html_content.encode('utf-8'),
+            dest=pdf_file,
+            encoding='utf-8'
+        )
+        
+        if pisa_status.err:
+            return "Erro ao gerar PDF", 500
+        
+        pdf_file.seek(0)
+        
+        return send_file(
+            pdf_file,
+            mimetype='application/pdf',
+            as_attachment=False,  # False para visualizar, True para download
+            download_name=f'relatorio_fiscalizacao_{mes}_{ano}.pdf'
+        )
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"Erro ao gerar PDF: {str(e)}", 500
+
+
+def gerar_html_relatorio_pdf(data):
+    """Gera HTML formatado para conversão em PDF"""
+    
+    # Função auxiliar para formatar moeda
+    def formatar_moeda(valor):
+        return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            @page {{
+                size: A4;
+                margin: 1cm;
+            }}
+            
+            body {{
+                font-family: Arial, sans-serif;
+                font-size: 10px;
+                line-height: 1.2;
+            }}
+            
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 10px;
+            }}
+            
+            table, th, td {{
+                border: 1px solid #2c3e50;
+            }}
+            
+            th {{
+                background-color: #34495e;
+                color: white;
+                padding: 6px;
+                text-align: center;
+                font-weight: bold;
+            }}
+            
+            td {{
+                padding: 5px;
+            }}
+            
+            .header-table td {{
+                font-weight: bold;
+            }}
+            
+            .logo-cell {{
+                width: 100px;
+                text-align: center;
+                vertical-align: middle;
+            }}
+            
+            .logo-cell img {{
+                max-width: 90px;
+                max-height: 80px;
+            }}
+            
+            .center {{
+                text-align: center;
+            }}
+            
+            .right {{
+                text-align: right;
+            }}
+            
+            .bold {{
+                font-weight: bold;
+            }}
+            
+            .bg-yellow {{
+                background-color: #ffffcc;
+            }}
+            
+            .bg-gray {{
+                background-color: #f0f0f0;
+            }}
+            
+            .bg-pink {{
+                background-color: #ffccff;
+            }}
+            
+            .bg-red {{
+                background-color: #ffcccc;
+            }}
+            
+            .text-blue {{
+                color: #3498db;
+            }}
+            
+            .text-red {{
+                color: #e74c3c;
+            }}
+            
+            .text-green {{
+                color: #27ae60;
+            }}
+        </style>
+    </head>
+    <body>
+        <!-- Cabeçalho -->
+        <table class="header-table">
+            <tr>
+                <td rowspan="2" class="logo-cell">
+                    <img src="static/img/logo_tjronovo.jpg" alt="Logo TJRO">
+                </td>
+                <td class="center bold" style="font-size: 12px;">
+                    TRIBUNAL DE JUSTIÇA DO ESTADO DE RONDÔNIA
+                </td>
+            </tr>
+            <tr>
+                <td class="center bold" style="font-size: 11px;">
+                    RELATÓRIO DE OCORRÊNCIA - LISTA DE IMPERFEIÇÕES
+                </td>
+            </tr>
+        </table>
+        
+        <!-- Informações do Contrato -->
+        <table>
+            <tr>
+                <td class="bg-gray bold" style="width: 150px;">Contrato</td>
+                <td>{data['cabecalho']['contrato']}</td>
+            </tr>
+            <tr>
+                <td class="bg-gray bold">Protocolo</td>
+                <td>{data['cabecalho']['protocolo']}</td>
+            </tr>
+            <tr>
+                <td class="bg-gray bold">Contratada</td>
+                <td>{data['cabecalho']['contratada']}</td>
+            </tr>
+            <tr>
+                <td class="bg-gray bold">Objeto</td>
+                <td>{data['cabecalho']['objeto']}</td>
+            </tr>
+            <tr>
+                <td class="bg-gray bold">Mês/ano de verificação</td>
+                <td>{data['cabecalho']['mes_ano']}</td>
+            </tr>
+        </table>
+        
+        <!-- Tabela de Ocorrências -->
+        <table>
+            <thead>
+                <tr>
+                    <th colspan="12">OCORRÊNCIAS</th>
+                </tr>
+                <tr>
+                    <th>POSTO DE TRABALHO</th>
+                    <th style="width: 30px;">QTD</th>
+    """
+    
+    # Cabeçalhos das imperfeições
+    for imp in data['imperfeicoes'][:10]:  # Máximo 10
+        html += f'<th style="width: 30px;">{str(imp["id"]).zfill(2)}</th>'
+    
+    html += """
+                </tr>
+            </thead>
+            <tbody>
+    """
+    
+    # Linhas dos postos
+    totais = [0] * 10
+    for posto in data['postos']:
+        html += f"""
+                <tr>
+                    <td>{posto['nome_posto']}</td>
+                    <td class="center">{posto['qtd_motoristas_total']}</td>
+        """
+        for i in range(1, 11):
+            valor = posto['ocorrencias'].get(i, 0)
+            totais[i-1] += valor
+            html += f'<td class="center">{valor}</td>'
+        html += "</tr>"
+    
+    # Totalizadores
+    html += '<tr class="bg-yellow bold"><td>Total (+)</td><td></td>'
+    for total in totais:
+        html += f'<td class="center">{total}</td>'
+    html += '</tr>'
+    
+    # Tolerâncias, Excessos, etc.
+    tolerancias = [imp['tolerancia'] for imp in data['imperfeicoes'][:10]]
+    html += '<tr><td>Tolerância (-)</td><td></td>'
+    for tol in tolerancias:
+        html += f'<td class="center">{tol}</td>'
+    html += '</tr>'
+    
+    excessos = [max(0, totais[i] - tolerancias[i]) for i in range(10)]
+    html += '<tr><td>Excesso Imperfeições (=)</td><td></td>'
+    for exc in excessos:
+        html += f'<td class="center">{exc}</td>'
+    html += '</tr>'
+    
+    multiplicadores = [imp['multiplicador'] for imp in data['imperfeicoes'][:10]]
+    html += '<tr><td>Multiplicador (x)</td><td></td>'
+    for mult in multiplicadores:
+        html += f'<td class="center">{mult}</td>'
+    html += '</tr>'
+    
+    corrigidos = [excessos[i] * multiplicadores[i] for i in range(10)]
+    html += '<tr><td>Número Corrigido (=)</td><td></td>'
+    for corr in corrigidos:
+        html += f'<td class="center">{corr}</td>'
+    html += '</tr>'
+    
+    somatorio = sum(corrigidos)
+    html += f"""
+            <tr class="bg-yellow bold">
+                <td colspan="11" class="right">Somatório dos Números Corrigidos (Fator de Aceitação)</td>
+                <td class="center">{somatorio}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <!-- Faixas -->
+    <table>
+        <thead>
+            <tr>
+                <th>Faixa</th>
+                <th>Fator de Aceitação</th>
+                <th>Valor Mensal a Receber</th>
+                <th>Percentual de Glosa</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+    
+    for faixa in data['faixas']:
+        bg_class = 'bg-red' if faixa['nome'] == data['faixa_alcancada'] else ''
+        html += f"""
+            <tr class="{bg_class}">
+                <td class="center">{faixa['nome']}</td>
+                <td class="center">{faixa['min']} a {faixa['max']}</td>
+                <td class="center">{faixa['percentual_receber']}% do Valor Mensal</td>
+                <td class="center">{faixa['percentual_glosa']}%</td>
+            </tr>
+        """
+    
+    html += f"""
+        </tbody>
+        <tfoot>
+            <tr class="bg-yellow">
+                <td colspan="4" class="center bold">
+                    Faixa Alcançada no Mês de Referência: {data['faixa_alcancada']}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    <!-- Glosa -->
+    <table>
+        <tr>
+            <td class="bg-gray bold" style="width: 200px;">Houve Glosa</td>
+            <td class="center bold">{'SIM' if data['houve_glosa'] else 'NÃO'}</td>
+            <td rowspan="3" class="center bold" style="vertical-align: middle;">
+                Fator Percentual de Recebimento e Remuneração de Serviços
+            </td>
+        </tr>
+        <tr>
+            <td class="bg-gray bold">Percentual de Glosa</td>
+            <td class="center bold text-red" style="font-size: 14px;">
+                {data['percentual_glosa']:.2f}%
+            </td>
+        </tr>
+        <tr>
+            <td class="bg-gray bold">Percentual do Total a Receber</td>
+            <td class="center bold text-green bg-pink" style="font-size: 14px;">
+                {data['percentual_receber']:.2f}%
+            </td>
+        </tr>
+    </table>
+    
+    <!-- Localidades -->
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">LOCALIDADE</th>
+                <th rowspan="2" style="width: 50px;">POSTO</th>
+                <th colspan="2">Valor de Referência</th>
+                <th colspan="2">Valor Devido</th>
+            </tr>
+            <tr>
+                <th>Valor Mensal</th>
+                <th>Valor Total</th>
+                <th>Valor Mensal</th>
+                <th>Valor Total</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+    
+    total_postos = 0
+    total_ref_mensal = 0
+    total_ref_total = 0
+    total_dev_mensal = 0
+    total_dev_total = 0
+    
+    for loc in data['localidades']:
+        nome = f"{loc['nome']} (*)" if loc['tem_asterisco'] else loc['nome']
+        html += f"""
+            <tr>
+                <td>{nome}</td>
+                <td class="center">{loc['qtd_posto']}</td>
+                <td class="right">{formatar_moeda(loc['valor_ref_mensal'])}</td>
+                <td class="right">{formatar_moeda(loc['valor_ref_total'])}</td>
+                <td class="right text-blue bold">{formatar_moeda(loc['valor_dev_mensal'])}</td>
+                <td class="right text-blue bold">{formatar_moeda(loc['valor_dev_total'])}</td>
+            </tr>
+        """
+        total_postos += loc['qtd_posto']
+        total_ref_mensal += loc['valor_ref_mensal']
+        total_ref_total += loc['valor_ref_total']
+        total_dev_mensal += loc['valor_dev_mensal']
+        total_dev_total += loc['valor_dev_total']
+    
+    html += f"""
+        </tbody>
+        <tfoot style="background-color: #34495e; color: white;">
+            <tr class="bold">
+                <td class="right">TOTAL</td>
+                <td class="center">{total_postos}</td>
+                <td class="right">{formatar_moeda(total_ref_mensal)}</td>
+                <td class="right">{formatar_moeda(total_ref_total)}</td>
+                <td class="right">{formatar_moeda(total_dev_mensal)}</td>
+                <td class="right">{formatar_moeda(total_dev_total)}</td>
+            </tr>
+        </tfoot>
+    </table>
+    
+    <!-- Valores Finais -->
+    <table style="width: 50%; margin-left: auto;">
+        <tr>
+            <td class="bg-gray bold">Valor Mensal a Receber</td>
+            <td class="right bold text-green">{formatar_moeda(data['totais']['valor_devido_total'])}</td>
+        </tr>
+        <tr>
+            <td class="bg-gray bold">Valor da Glosa</td>
+            <td class="right bold text-red">{formatar_moeda(data['totais']['valor_glosa'])}</td>
+        </tr>
+    </table>
+    
+    <!-- Observações -->
+    <table>
+        <tr>
+            <td class="bg-gray bold">Observações:</td>
+        </tr>
+        <tr>
+            <td style="min-height: 60px; padding: 10px;">
+    """
+    
+    if data.get('observacoes_parciais'):
+        for obs in data['observacoes_parciais']:
+            html += f"{obs['posto']} (*): {obs['nome']} - {obs['dias']} dias trabalhados - {formatar_moeda(obs['valor'])}<br>"
+    else:
+        html += "&nbsp;"
+    
+    html += f"""
+            </td>
+        </tr>
+    </table>
+    
+    <!-- Gestor -->
+    <table>
+        <tr>
+            <td class="bg-gray bold" style="width: 180px;">Gestor do Contrato:</td>
+            <td>{data['cabecalho']['gestor']}</td>
+        </tr>
+        <tr>
+            <td class="bg-gray bold">Unidade:</td>
+            <td>{data['cabecalho']['unidade']}</td>
+        </tr>
+    </table>
+    
+    </body>
+    </html>
+    """
+    
+    return html
+
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
