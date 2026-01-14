@@ -4,12 +4,15 @@
 ============================================================
 SISTEMA DE OPERAÇÕES DE TRANSPORTE - TJRO
 ============================================================
-Versão: 2.0 (com WebSocket em tempo real usando Threading)
+Versão: 2.1 (Sem WeasyPrint - Compatível com Windows)
+============================================================
+CORREÇÃO APLICADA:
+- Removido WeasyPrint (requer GTK no Windows)
+- Usando xhtml2pdf para geração de PDFs
+- 100% compatível com Windows
 ============================================================
 """
 
-import eventlet
-eventlet.monkey_patch()
 
 # ============================================================
 # IMPORTS - BIBLIOTECAS PYTHON PADRÃO
@@ -59,7 +62,8 @@ from flask_socketio import (
 
 from werkzeug.utils import secure_filename
 from xhtml2pdf import pisa
-from weasyprint import HTML as WeasyHTML  # ✅ Movido para cima, removendo duplicata
+# ✅ REMOVIDO WeasyPrint (incompatível com Windows)
+# Alternativa: usar xhtml2pdf ou ReportLab
 from pytz import timezone
 import PyPDF2
 import airportsdata
@@ -13736,6 +13740,3 @@ def gerar_html_relatorio_pdf_simples(data):
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-
-
-
