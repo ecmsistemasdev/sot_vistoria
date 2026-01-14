@@ -664,9 +664,9 @@
                     <div style="border: 2px solid #2c3e50; margin-bottom: 20px;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <tr>
-                                <td rowspan="3" style="width: 120px; padding: 10px; border: 1px solid #2c3e50; text-align: center;">
-                                    <div style="font-size: 11px; font-weight: bold;">LOGO</div>
-                                </td>
+                                <td rowspan="3" style="width: 120px; padding: 10px; border: 1px solid #2c3e50; text-align: center; vertical-align: middle;">
+                                    <img src="static/img/logo_tjronovo.jpg" alt="Logo TJRO" style="max-width: 100%; max-height: 100px; width: auto; height: auto; object-fit: contain;">
+                                </td>                                
                                 <td style="padding: 10px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 14px;">
                                     TRIBUNAL DE JUSTIÇA DO ESTADO DE RONDÔNIA
                                 </td>
@@ -932,7 +932,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td style="padding: 30px; border: 1px solid #2c3e50; min-height: 80px;">
+                                <td id="relObservacoes" style="padding: 10px; border: 1px solid #2c3e50; min-height: 80px; white-space: pre-line;">
                                     &nbsp;
                                 </td>
                             </tr>
@@ -1531,6 +1531,16 @@
             }
         }
 
+        // ✅ NOVA FUNÇÃO: Formatar valor em BRL
+        function formatarMoedaBRL(valor) {
+            return valor.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
         function preencherRelatorio(data) {
             // Cabeçalho
             document.getElementById('relCabContrato').textContent = data.cabecalho.contrato || '-';
@@ -1646,8 +1656,8 @@
 
             // Informações de glosa
             document.getElementById('relHouveGlosa').textContent = data.houve_glosa ? 'SIM' : 'NÃO';
-            document.getElementById('relPercentualGlosa').textContent = data.percentual_glosa.toFixed(2) + '%';
-            document.getElementById('relPercentualReceber').textContent = data.percentual_receber.toFixed(2) + '%';
+            document.getElementById('relPercentualGlosa').textContent = data.percentual_glosa.toFixed(2).replace('.', ',') + '%';
+            document.getElementById('relPercentualReceber').textContent = data.percentual_receber.toFixed(2).replace('.', ',') + '%';
 
             // Tabela de localidades
             const tabelaLocalidades = document.getElementById('tabelaLocalidades');
@@ -1664,13 +1674,14 @@
                 
                 const nomePosto = loc.tem_asterisco ? `${loc.nome} (*)` : loc.nome;
 
+                // ✅ USAR FORMATAÇÃO BRL
                 tr.innerHTML = `
                     <td style="padding: 6px; border: 1px solid #2c3e50;">${nomePosto}</td>
                     <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${loc.qtd_posto}</td>
-                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">R$ ${loc.valor_ref_mensal.toFixed(2)}</td>
-                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">R$ ${loc.valor_ref_total.toFixed(2)}</td>
-                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; color: #3498db; font-weight: bold;">R$ ${loc.valor_dev_mensal.toFixed(2)}</td>
-                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; color: #3498db; font-weight: bold;">R$ ${loc.valor_dev_total.toFixed(2)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(loc.valor_ref_mensal)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(loc.valor_ref_total)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; color: #3498db; font-weight: bold;">${formatarMoedaBRL(loc.valor_dev_mensal)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; color: #3498db; font-weight: bold;">${formatarMoedaBRL(loc.valor_dev_total)}</td>
                 `;
                 tabelaLocalidades.appendChild(tr);
 
@@ -1681,16 +1692,28 @@
                 totalDevTotal += loc.valor_dev_total;
             });
 
-            // Totais
+            // Totais - ✅ USAR FORMATAÇÃO BRL
             document.getElementById('relTotalPosto').textContent = totalPostos;
-            document.getElementById('relTotalRefMensal').textContent = 'R$ ' + totalRefMensal.toFixed(2);
-            document.getElementById('relTotalRefTotal').textContent = 'R$ ' + totalRefTotal.toFixed(2);
-            document.getElementById('relTotalDevMensal').textContent = 'R$ ' + totalDevMensal.toFixed(2);
-            document.getElementById('relTotalDevTotal').textContent = 'R$ ' + totalDevTotal.toFixed(2);
+            document.getElementById('relTotalRefMensal').textContent = formatarMoedaBRL(totalRefMensal);
+            document.getElementById('relTotalRefTotal').textContent = formatarMoedaBRL(totalRefTotal);
+            document.getElementById('relTotalDevMensal').textContent = formatarMoedaBRL(totalDevMensal);
+            document.getElementById('relTotalDevTotal').textContent = formatarMoedaBRL(totalDevTotal);
 
-            // Valores finais
-            document.getElementById('relValorMensalReceber').textContent = 'R$ ' + data.totais.valor_devido_total.toFixed(2);
-            document.getElementById('relValorGlosa').textContent = 'R$ ' + data.totais.valor_glosa.toFixed(2);
+            // Valores finais - ✅ USAR FORMATAÇÃO BRL
+            document.getElementById('relValorMensalReceber').textContent = formatarMoedaBRL(data.totais.valor_devido_total);
+            document.getElementById('relValorGlosa').textContent = formatarMoedaBRL(data.totais.valor_glosa);
+
+            // ✅ NOVA FUNCIONALIDADE: Preencher observações dos motoristas parciais
+            const observacoesDiv = document.getElementById('relObservacoes');
+            if (data.observacoes_parciais && data.observacoes_parciais.length > 0) {
+                let textoObservacoes = '';
+                data.observacoes_parciais.forEach(obs => {
+                    textoObservacoes += `${obs.posto} (*): ${obs.nome} - ${obs.dias} dias trabalhados - ${formatarMoedaBRL(obs.valor)}\n`;
+                });
+                observacoesDiv.textContent = textoObservacoes;
+            } else {
+                observacoesDiv.innerHTML = '&nbsp;';
+            }
 
             // Gestor e unidade
             document.getElementById('relGestor').textContent = data.cabecalho.gestor || '-';
