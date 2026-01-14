@@ -524,149 +524,56 @@
         
         .loading-overlay {
             display: none;
-            position: absolute;  /* ✅ MUDOU: absolute (não fixed) */
+            position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 10;  /* ✅ MUDOU: 10 (não 9999) */
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
-        .modal-body {
-            position: relative;
-        }
-                
-        .loading-overlay.active {
-            display: flex;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999999;  /* ✅ ALTÍSSIMO - POR CIMA DE TUDO */
             justify-content: center;
             align-items: center;
         }
-        
+
+        .loading-overlay.active {
+            display: flex;  /* ✅ SIMPLES - SÓ MOSTRA */
+        }
+
         .loading-content {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px 50px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            background: white;
+            border-radius: 15px;
+            padding: 40px 60px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             text-align: center;
-            animation: slideUp 0.4s ease-out;
         }
-        
+
         .loading-spinner {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             margin: 0 auto 20px;
-            position: relative;
-        }
-        
-        .loading-spinner::before,
-        .loading-spinner::after {
-            content: '';
-            position: absolute;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2c3e50;
             border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
-        
-        .loading-spinner::before {
-            width: 100%;
-            height: 100%;
-            border: 4px solid #e0e0e0;
-            opacity: 0.3;
-        }
-        
-        .loading-spinner::after {
-            width: 100%;
-            height: 100%;
-            border: 4px solid transparent;
-            border-top-color: #2c3e50;
-            border-right-color: #2c3e50;
-            animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-        }
-        
+
         .loading-text {
-            font-size: 16px;
+            font-size: 18px;
             color: #2c3e50;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
-        
+
         .loading-subtext {
-            font-size: 13px;
+            font-size: 14px;
             color: #7f8c8d;
         }
-        
-        /* Dots animation */
-        .loading-dots {
-            display: inline-block;
-        }
-        
-        .loading-dots::after {
-            content: '';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-        
-        @keyframes dots {
-            0%, 20% { content: ''; }
-            40% { content: '.'; }
-            60% { content: '..'; }
-            80%, 100% { content: '...'; }
-        }
-        
-        /* Overlay para conteúdo existente */
-        .relatorio-blur {
-            position: relative;
-        }
-        
-        .relatorio-blur::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            z-index: 1;
-            border-radius: 8px;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        
-        /* Animações */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
+
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }        
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
     </style>
 </head>
 <body>
@@ -853,6 +760,9 @@
                 <span class="close" onclick="fecharModalRelatorioFiscalizacao()">&times;</span>
             </div>
             <div class="modal-body">
+    
+    <!-- ✅ LOADING OVERLAY -->
+    
                 <!-- Filtros -->
                 <div class="form-row form-row-3" style="margin-bottom: 20px;">
                     <div class="form-group">
@@ -1190,17 +1100,6 @@
                 </div>
             </div>
 
-            <div id="loadingOverlay" class="loading-overlay">
-                <div class="loading-content">
-                    <div class="loading-spinner"></div>
-                    <div class="loading-text">
-                        Gerando relatório<span class="loading-dots"></span>
-                    </div>
-                    <div class="loading-subtext">
-                        Processando dados
-                    </div>
-                </div>
-            </div>
 
             
             <div class="modal-footer">
@@ -1753,26 +1652,16 @@
         async function gerarRelatorioFiscalizacao() {
             const mes = document.getElementById('relatorioMes').value;
             const ano = document.getElementById('relatorioAno').value;
-        
+
             if (!contratoSelecionado) {
                 alert('Selecione um contrato primeiro!');
                 return;
             }
-        
-            // ✅ VERIFICAR SE JÁ EXISTE CONTEÚDO
-            const conteudoRelatorio = document.getElementById('conteudoRelatorio');
-            const jaTemConteudo = conteudoRelatorio.style.display === 'block';
-        
+
+            // ✅ MOSTRAR LOADING
+            document.getElementById('loadingOverlay').classList.add('active');
+
             try {
-                // ✅ MOSTRAR LOADING
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                loadingOverlay.classList.add('active');
-        
-                // ✅ SE JÁ TEM CONTEÚDO, ADICIONAR BLUR
-                if (jaTemConteudo) {
-                    conteudoRelatorio.classList.add('relatorio-blur');
-                }
-        
                 const response = await fetch('/api/gestao-terceirizados/relatorio-fiscalizacao', {
                     method: 'POST',
                     headers: {
@@ -1784,27 +1673,18 @@
                         ano: ano
                     })
                 });
-        
+
                 const result = await response.json();
-        
+
                 if (result.success) {
-                    // ✅ ARMAZENAR DADOS PARA PDF
                     dadosRelatorioAtual = {
                         id_contrato: contratoSelecionado.ID_CONTRATO,
                         mes: mes,
                         ano: ano
                     };
                     
-                    // ✅ PEQUENO DELAY PARA ANIMAÇÃO FICAR VISÍVEL
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    // ✅ REMOVER BLUR ANTES DE PREENCHER
-                    conteudoRelatorio.classList.remove('relatorio-blur');
-                    
                     preencherRelatorio(result.data);
-                    conteudoRelatorio.style.display = 'block';
-                    
-                    // ✅ MOSTRAR BOTÃO DE PDF
+                    document.getElementById('conteudoRelatorio').style.display = 'block';
                     document.getElementById('btnVisualizarPDF').style.display = 'inline-block';
                 } else {
                     alert('Erro ao gerar relatório: ' + result.error);
@@ -1813,10 +1693,8 @@
                 console.error('Erro ao gerar relatório:', error);
                 alert('Erro ao gerar relatório');
             } finally {
-                // ✅ SEMPRE REMOVER LOADING E BLUR
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                loadingOverlay.classList.remove('active');
-                conteudoRelatorio.classList.remove('relatorio-blur');
+                // ✅ ESCONDER LOADING
+                document.getElementById('loadingOverlay').classList.remove('active');
             }
         }
 
@@ -2019,54 +1897,6 @@
         
         let dadosRelatorioAtual = null; // Armazena dados do último relatório gerado
         
-        // Atualizar função gerarRelatorioFiscalizacao para armazenar dados
-        // Procure a função gerarRelatorioFiscalizacao e substitua por esta versão:
-        
-        async function gerarRelatorioFiscalizacao() {
-            const mes = document.getElementById('relatorioMes').value;
-            const ano = document.getElementById('relatorioAno').value;
-        
-            if (!contratoSelecionado) {
-                alert('Selecione um contrato primeiro!');
-                return;
-            }
-        
-            try {
-                const response = await fetch('/api/gestao-terceirizados/relatorio-fiscalizacao', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        id_contrato: contratoSelecionado.ID_CONTRATO,
-                        mes: mes,
-                        ano: ano
-                    })
-                });
-        
-                const result = await response.json();
-        
-                if (result.success) {
-                    // ✅ ARMAZENAR DADOS PARA GERAÇÃO DE PDF
-                    dadosRelatorioAtual = {
-                        id_contrato: contratoSelecionado.ID_CONTRATO,
-                        mes: mes,
-                        ano: ano
-                    };
-                    
-                    preencherRelatorio(result.data);
-                    document.getElementById('conteudoRelatorio').style.display = 'block';
-                    
-                    // ✅ MOSTRAR BOTÃO DE VISUALIZAR PDF
-                    document.getElementById('btnVisualizarPDF').style.display = 'inline-block';
-                } else {
-                    alert('Erro ao gerar relatório: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Erro ao gerar relatório:', error);
-                alert('Erro ao gerar relatório');
-            }
-        }
         
         function visualizarPDFRelatorio() {
             const params = new URLSearchParams({
@@ -2108,18 +1938,15 @@
         
     </script>
 
-    <!-- Loading Overlay -->
+
+    <!-- ✅ LOADING OVERLAY - POR CIMA DE TUDO -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
             <div class="loading-spinner"></div>
-            <div class="loading-text">
-                Gerando relatório<span class="loading-dots"></span>
-            </div>
-            <div class="loading-subtext">
-                Processando dados
-            </div>
+            <div class="loading-text">Gerando relatório...</div>
+            <div class="loading-subtext">Aguarde</div>
         </div>
-    </div> 
+    </div>
     
 </body>
 </html>
