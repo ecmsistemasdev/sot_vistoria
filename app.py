@@ -12941,13 +12941,7 @@ def api_relatorio_fiscalizacao_pdf():
         if not all([id_contrato, mes, ano]):
             return "Parâmetros obrigatórios: id_contrato, mes, ano", 400
         
-        # Reutilizar a lógica da rota JSON para obter os dados
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        
-        # Copiar toda a lógica de consulta da rota anterior...
-        # (mesmo código de busca do contrato, imperfeições, postos, etc.)
-        
-        # Por simplicidade, vou chamar a API JSON internamente
+        # Chamar a API JSON para obter os dados
         from flask import current_app
         
         with current_app.test_client() as client:
@@ -12964,7 +12958,11 @@ def api_relatorio_fiscalizacao_pdf():
             if response.status_code != 200:
                 return "Erro ao gerar relatório", 500
             
-            data = response.get_json()['data']
+            result = response.get_json()
+            if not result.get('success'):
+                return f"Erro: {result.get('error', 'Desconhecido')}", 500
+                
+            data = result['data']
         
         # Gerar HTML do relatório
         html_content = gerar_html_relatorio_pdf(data)
@@ -12988,7 +12986,7 @@ def api_relatorio_fiscalizacao_pdf():
         return send_file(
             pdf_file,
             mimetype='application/pdf',
-            as_attachment=False,  # False para visualizar, True para download
+            as_attachment=False,
             download_name=f'relatorio_fiscalizacao_{mes}_{ano}.pdf'
         )
         
@@ -13003,7 +13001,19 @@ def gerar_html_relatorio_pdf(data):
     
     # Função auxiliar para formatar moeda
     def formatar_moeda(valor):
-        return f"R$ {valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        # ✅ CORREÇÃO: Verificar se valor é None
+        if valor is None:
+            valor = 0.0
+        return f"R$ {float(valor):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    # ✅ CORREÇÃO: Garantir que valores não sejam None
+    def safe_float(val, default=0.0):
+        if val is None:
+            return default
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
     
     html = f"""
     <!DOCTYPE html>
@@ -13122,23 +13132,23 @@ def gerar_html_relatorio_pdf(data):
         <table>
             <tr>
                 <td class="bg-gray bold" style="width: 150px;">Contrato</td>
-                <td>{data['cabecalho']['contrato']}</td>
+                <td>{data['cabecalho'].get('contrato', '-')}</td>
             </tr>
             <tr>
                 <td class="bg-gray bold">Protocolo</td>
-                <td>{data['cabecalho']['protocolo']}</td>
+                <td>{data['cabecalho'].get('protocolo', '-')}</td>
             </tr>
             <tr>
                 <td class="bg-gray bold">Contratada</td>
-                <td>{data['cabecalho']['contratada']}</td>
+                <td>{data['cabecalho'].get('contratada', '-')}</td>
             </tr>
             <tr>
                 <td class="bg-gray bold">Objeto</td>
-                <td>{data['cabecalho']['objeto']}</td>
+                <td>{data['cabecalho'].get('objeto', '-')}</td>
             </tr>
             <tr>
                 <td class="bg-gray bold">Mês/ano de verificação</td>
-                <td>{data['cabecalho']['mes_ano']}</td>
+                <td>{data['cabecalho'].get('mes_ano', '-')}</td>
             </tr>
         </table>
         
@@ -13154,8 +13164,8 @@ def gerar_html_relatorio_pdf(data):
     """
     
     # Cabeçalhos das imperfeições
-    for imp in data['imperfeicoes'][:10]:  # Máximo 10
-        html += f'<th style="width: 30px;">{str(imp["id"]).zfill(2)}</th>'
+    for imp in data.get('imperfeicoes', [])[:10]:
+        html += f'<th style="width: 30px;">{str(imp.get("id", "")).zfill(2)}</th>'
     
     html += """
                 </tr>
@@ -13165,16 +13175,16 @@ def gerar_html_relatorio_pdf(data):
     
     # Linhas dos postos
     totais = [0] * 10
-    for posto in data['postos']:
+    for posto in data.get('postos', []):
         html += f"""
                 <tr>
-                    <td>{posto['nome_posto']}</td>
-                    <td class="center">{posto['qtd_motoristas_total']}</td>
+                    <td>{posto.get('nome_posto', '-')}</td>
+                    <td class="center">{posto.get('qtd_motoristas_total', 0)}</td>
         """
         for i in range(1, 11):
-            valor = posto['ocorrencias'].get(i, 0)
-            totais[i-1] += valor
-            html += f'<td class="center">{valor}</td>'
+            valor = posto.get('ocorrencias', {}).get(i, 0)
+            totais[i-1] += valor or 0
+            html += f'<td class="center">{valor or 0}</td>'
         html += "</tr>"
     
     # Totalizadores
@@ -13183,26 +13193,29 @@ def gerar_html_relatorio_pdf(data):
         html += f'<td class="center">{total}</td>'
     html += '</tr>'
     
-    # Tolerâncias, Excessos, etc.
-    tolerancias = [imp['tolerancia'] for imp in data['imperfeicoes'][:10]]
+    # Tolerâncias
+    tolerancias = [imp.get('tolerancia', 0) for imp in data.get('imperfeicoes', [])[:10]]
     html += '<tr><td>Tolerância (-)</td><td></td>'
     for tol in tolerancias:
         html += f'<td class="center">{tol}</td>'
     html += '</tr>'
     
-    excessos = [max(0, totais[i] - tolerancias[i]) for i in range(10)]
+    # Excessos
+    excessos = [max(0, totais[i] - (tolerancias[i] or 0)) for i in range(10)]
     html += '<tr><td>Excesso Imperfeições (=)</td><td></td>'
     for exc in excessos:
         html += f'<td class="center">{exc}</td>'
     html += '</tr>'
     
-    multiplicadores = [imp['multiplicador'] for imp in data['imperfeicoes'][:10]]
+    # Multiplicadores
+    multiplicadores = [imp.get('multiplicador', 0) for imp in data.get('imperfeicoes', [])[:10]]
     html += '<tr><td>Multiplicador (x)</td><td></td>'
     for mult in multiplicadores:
         html += f'<td class="center">{mult}</td>'
     html += '</tr>'
     
-    corrigidos = [excessos[i] * multiplicadores[i] for i in range(10)]
+    # Números corrigidos
+    corrigidos = [excessos[i] * (multiplicadores[i] or 0) for i in range(10)]
     html += '<tr><td>Número Corrigido (=)</td><td></td>'
     for corr in corrigidos:
         html += f'<td class="center">{corr}</td>'
@@ -13230,14 +13243,14 @@ def gerar_html_relatorio_pdf(data):
         <tbody>
     """
     
-    for faixa in data['faixas']:
-        bg_class = 'bg-red' if faixa['nome'] == data['faixa_alcancada'] else ''
+    for faixa in data.get('faixas', []):
+        bg_class = 'bg-red' if faixa.get('nome') == data.get('faixa_alcancada') else ''
         html += f"""
             <tr class="{bg_class}">
-                <td class="center">{faixa['nome']}</td>
-                <td class="center">{faixa['min']} a {faixa['max']}</td>
-                <td class="center">{faixa['percentual_receber']}% do Valor Mensal</td>
-                <td class="center">{faixa['percentual_glosa']}%</td>
+                <td class="center">{faixa.get('nome', '-')}</td>
+                <td class="center">{faixa.get('min', 0)} a {faixa.get('max', 0)}</td>
+                <td class="center">{faixa.get('percentual_receber', 0)}% do Valor Mensal</td>
+                <td class="center">{faixa.get('percentual_glosa', 0)}%</td>
             </tr>
         """
     
@@ -13246,7 +13259,7 @@ def gerar_html_relatorio_pdf(data):
         <tfoot>
             <tr class="bg-yellow">
                 <td colspan="4" class="center bold">
-                    Faixa Alcançada no Mês de Referência: {data['faixa_alcancada']}
+                    Faixa Alcançada no Mês de Referência: {data.get('faixa_alcancada', '-')}
                 </td>
             </tr>
         </tfoot>
@@ -13256,7 +13269,7 @@ def gerar_html_relatorio_pdf(data):
     <table>
         <tr>
             <td class="bg-gray bold" style="width: 200px;">Houve Glosa</td>
-            <td class="center bold">{'SIM' if data['houve_glosa'] else 'NÃO'}</td>
+            <td class="center bold">{'SIM' if data.get('houve_glosa') else 'NÃO'}</td>
             <td rowspan="3" class="center bold" style="vertical-align: middle;">
                 Fator Percentual de Recebimento e Remuneração de Serviços
             </td>
@@ -13264,13 +13277,13 @@ def gerar_html_relatorio_pdf(data):
         <tr>
             <td class="bg-gray bold">Percentual de Glosa</td>
             <td class="center bold text-red" style="font-size: 14px;">
-                {data['percentual_glosa']:.2f}%
+                {safe_float(data.get('percentual_glosa', 0)):.2f}%
             </td>
         </tr>
         <tr>
             <td class="bg-gray bold">Percentual do Total a Receber</td>
             <td class="center bold text-green bg-pink" style="font-size: 14px;">
-                {data['percentual_receber']:.2f}%
+                {safe_float(data.get('percentual_receber', 100)):.2f}%
             </td>
         </tr>
     </table>
@@ -13295,28 +13308,35 @@ def gerar_html_relatorio_pdf(data):
     """
     
     total_postos = 0
-    total_ref_mensal = 0
-    total_ref_total = 0
-    total_dev_mensal = 0
-    total_dev_total = 0
+    total_ref_mensal = 0.0
+    total_ref_total = 0.0
+    total_dev_mensal = 0.0
+    total_dev_total = 0.0
     
-    for loc in data['localidades']:
-        nome = f"{loc['nome']} (*)" if loc['tem_asterisco'] else loc['nome']
+    for loc in data.get('localidades', []):
+        nome = f"{loc.get('nome', '-')} (*)" if loc.get('tem_asterisco') else loc.get('nome', '-')
+        
+        # ✅ CORREÇÃO: Usar safe_float
+        val_ref_mensal = safe_float(loc.get('valor_ref_mensal'))
+        val_ref_total = safe_float(loc.get('valor_ref_total'))
+        val_dev_mensal = safe_float(loc.get('valor_dev_mensal'))
+        val_dev_total = safe_float(loc.get('valor_dev_total'))
+        
         html += f"""
             <tr>
                 <td>{nome}</td>
-                <td class="center">{loc['qtd_posto']}</td>
-                <td class="right">{formatar_moeda(loc['valor_ref_mensal'])}</td>
-                <td class="right">{formatar_moeda(loc['valor_ref_total'])}</td>
-                <td class="right text-blue bold">{formatar_moeda(loc['valor_dev_mensal'])}</td>
-                <td class="right text-blue bold">{formatar_moeda(loc['valor_dev_total'])}</td>
+                <td class="center">{loc.get('qtd_posto', 0)}</td>
+                <td class="right">{formatar_moeda(val_ref_mensal)}</td>
+                <td class="right">{formatar_moeda(val_ref_total)}</td>
+                <td class="right text-blue bold">{formatar_moeda(val_dev_mensal)}</td>
+                <td class="right text-blue bold">{formatar_moeda(val_dev_total)}</td>
             </tr>
         """
-        total_postos += loc['qtd_posto']
-        total_ref_mensal += loc['valor_ref_mensal']
-        total_ref_total += loc['valor_ref_total']
-        total_dev_mensal += loc['valor_dev_mensal']
-        total_dev_total += loc['valor_dev_total']
+        total_postos += loc.get('qtd_posto', 0)
+        total_ref_mensal += val_ref_mensal
+        total_ref_total += val_ref_total
+        total_dev_mensal += val_dev_mensal
+        total_dev_total += val_dev_total
     
     html += f"""
         </tbody>
@@ -13336,11 +13356,11 @@ def gerar_html_relatorio_pdf(data):
     <table style="width: 50%; margin-left: auto;">
         <tr>
             <td class="bg-gray bold">Valor Mensal a Receber</td>
-            <td class="right bold text-green">{formatar_moeda(data['totais']['valor_devido_total'])}</td>
+            <td class="right bold text-green">{formatar_moeda(safe_float(data.get('totais', {}).get('valor_devido_total', 0)))}</td>
         </tr>
         <tr>
             <td class="bg-gray bold">Valor da Glosa</td>
-            <td class="right bold text-red">{formatar_moeda(data['totais']['valor_glosa'])}</td>
+            <td class="right bold text-red">{formatar_moeda(safe_float(data.get('totais', {}).get('valor_glosa', 0)))}</td>
         </tr>
     </table>
     
@@ -13355,7 +13375,9 @@ def gerar_html_relatorio_pdf(data):
     
     if data.get('observacoes_parciais'):
         for obs in data['observacoes_parciais']:
-            html += f"{obs['posto']} (*): {obs['nome']} - {obs['dias']} dias trabalhados - {formatar_moeda(obs['valor'])}<br>"
+            dias = obs.get('dias', 0)
+            valor = safe_float(obs.get('valor', 0))
+            html += f"{obs.get('posto', '-')} (*): {obs.get('nome', '-')} - {dias} dias trabalhados - {formatar_moeda(valor)}<br>"
     else:
         html += "&nbsp;"
     
@@ -13368,11 +13390,11 @@ def gerar_html_relatorio_pdf(data):
     <table>
         <tr>
             <td class="bg-gray bold" style="width: 180px;">Gestor do Contrato:</td>
-            <td>{data['cabecalho']['gestor']}</td>
+            <td>{data['cabecalho'].get('gestor', '-')}</td>
         </tr>
         <tr>
             <td class="bg-gray bold">Unidade:</td>
-            <td>{data['cabecalho']['unidade']}</td>
+            <td>{data['cabecalho'].get('unidade', '-')}</td>
         </tr>
     </table>
     
@@ -13384,6 +13406,7 @@ def gerar_html_relatorio_pdf(data):
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
