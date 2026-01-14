@@ -7646,7 +7646,7 @@
 
             const grupos = {};
             demandasAlocadas.forEach(d => {
-                const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.setor}|${d.destino}|${d.id_tipoveiculo}`;
+                const key = `${d.de_tipoveiculo}|${d.nu_sei}|${d.setor}|${d.destino}|${d.id_tipoveiculo}|${d.id_motorista}|${d.id}`;
                 if (!grupos[key]) {
                     grupos[key] = {
                         de_tipoveiculo: d.de_tipoveiculo,
@@ -10102,6 +10102,7 @@
 </body>
 
 </html>
+
 
 
 
