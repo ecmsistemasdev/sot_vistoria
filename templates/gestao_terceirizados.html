@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
+    <title>Gestão de Contratos Terceirizados</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    
+    <!-- CSS do Menu -->
+    <link rel="stylesheet" href="/static/css/menu-styles.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 25px !important; 
+            background-color: #f5f5f5;
+            color: #333;
+            font-size: 13px;
+            min-height: 100vh;
+        }
+
+        /* Estilos do Menu */
+        .navbar-nav {
+            height: 100% !important;
+            align-items: center !important;
+        }
+
+        .navbar .container,
+        .navbar .container-fluid {
+            height: 100% !important;
+            align-items: center !important;
+        }
+
+        .navbar-collapse {
+            height: auto !important;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .groupbox {
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        .groupbox-header {
+            background-color: #34495e;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px 4px 0 0;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .groupbox-body {
+            padding: 15px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .table thead th {
+            background-color: #34495e;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #2c3e50;
+        }
+
+        .table tbody td {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #229954;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d68910;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 4px;
+            width: 90%;
+            max-width: 1200px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 4px 4px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #ecf0f1;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .form-group select {
+            height: auto;
+            min-height: 32px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .form-row {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-row-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .form-row-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        /* Coluna menor para ano */
+        .form-row-ano-mes {
+            grid-template-columns: 2fr 1fr;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .contract-info {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .contract-details {
+            display: flex;
+            gap: 20px;
+        }
+
+        .contract-detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .contract-detail-item label {
+            font-size: 11px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .contract-detail-item span {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* Customização do Select2 */
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: 32px !important;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 22px;
+            padding-left: 0;
+            font-size: 12px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 30px;
+        }
+
+        /* Dropdown do Select2 com quebra de linha */
+        .select2-dropdown {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .select2-results__option {
+            white-space: normal !important;
+            word-wrap: break-word;
+            padding: 8px 12px;
+            line-height: 1.4;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        /* Ajustar largura máxima do dropdown */
+        .select2-container--open .select2-dropdown {
+            max-width: 100%;
+        }
+
+        #contratoSection {
+            display: block;
+        }
+
+        #vinculosSection {
+            display: none;
+        }
+
+        .filter-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Input de ano menor */
+        .input-ano {
+            max-width: 100px;
+        }
+
+        /* Fieldset para agrupar competência */
+        .fieldset-competencia {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px 15px 5px 15px;
+            margin-bottom: 15px;
+        }
+
+        .fieldset-competencia legend {
+            font-size: 13px;
+            font-weight: 600;
+            color: #2c3e50;
+            padding: 0 10px;
+            width: auto;
+            margin-bottom: 0;
+        }
+
+        .fieldset-competencia .form-row {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>GESTÃO DE CONTRATOS TERCEIRIZADOS</h1>
+        </div>
+
+        <!-- SEÇÃO DE SELEÇÃO DE CONTRATO -->
+        <div id="contratoSection">
+            <div class="groupbox">
+                <div class="groupbox-header">
+                    Seleção de Contrato
+                </div>
+                <div class="groupbox-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Exercício</th>
+                                <th>Empresa</th>
+                                <th style="width: 150px;">Contrato</th>
+                                <th style="width: 150px;">Processo</th>
+                                <th style="width: 100px; text-align: center;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaContratos">
+                            <tr>
+                                <td colspan="5" class="text-center" style="padding: 30px; color: #999;">
+                                    Carregando contratos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO DE VÍNCULOS (MOTORISTAS E POSTOS) -->
+        <div id="vinculosSection">
+            <!-- Informações do contrato selecionado -->
+            <div class="contract-info">
+                <div class="contract-details">
+                    <div class="contract-detail-item">
+                        <label>Exercício</label>
+                        <span id="infoExercicio">-</span>
+                    </div>
+                    <div class="contract-detail-item">
+                        <label>Empresa</label>
+                        <span id="infoEmpresa">-</span>
+                    </div>
+                    <div class="contract-detail-item">
+                        <label>Contrato</label>
+                        <span id="infoContrato">-</span>
+                    </div>
+                    <div class="contract-detail-item">
+                        <label>Processo</label>
+                        <span id="infoProcesso">-</span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="voltarSelecaoContrato()">
+                    Voltar à Seleção
+                </button>
+            </div>
+
+            <!-- Botão Registro de Ocorrências -->
+            <div class="filter-section">
+                <div></div>
+                <button class="btn btn-warning" onclick="abrirModalOcorrencias()">
+                    📋 Registro de Ocorrências
+                </button>
+            </div>
+
+            <!-- Lista de Vínculos -->
+            <div class="groupbox">
+                <div class="groupbox-header">
+                    Motoristas e Postos de Trabalho
+                </div>
+                <div class="groupbox-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Motorista</th>
+                                <th>Posto de Trabalho</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaVinculos">
+                            <tr>
+                                <td colspan="2" class="text-center" style="padding: 30px; color: #999;">
+                                    Carregando vínculos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ocorrências -->
+    <div id="modalOcorrencias" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Registro de Ocorrências</h2>
+                <span class="close" onclick="fecharModalOcorrencias()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Filtro de Mês/Ano -->
+                <div class="form-row form-row-3">
+                    <div class="form-group">
+                        <label for="filtroMes">Mês:</label>
+                        <select id="filtroMes" onchange="carregarOcorrencias()">
+                            <option value="01">Janeiro</option>
+                            <option value="02">Fevereiro</option>
+                            <option value="03">Março</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Maio</option>
+                            <option value="06">Junho</option>
+                            <option value="07">Julho</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroAno">Ano:</label>
+                        <select id="filtroAno" class="input-ano" onchange="carregarOcorrencias()">
+                            <!-- Será preenchido dinamicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-success" onclick="abrirModalNovaOcorrencia()">
+                            + Nova Ocorrência
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela de Ocorrências -->
+                <div class="groupbox">
+                    <div class="groupbox-header">
+                        Ocorrências Registradas
+                    </div>
+                    <div class="groupbox-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 120px;">Competência</th>
+                                    <th style="width: 100px;">Data</th>
+                                    <th style="width: 200px;">Motorista</th>
+                                    <th>Imperfeição</th>
+                                    <th>Especificação</th>
+                                    <th style="width: 120px; text-align: center;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaOcorrenciasLista">
+                                <tr>
+                                    <td colspan="6" class="text-center" style="padding: 30px; color: #999;">
+                                        Nenhuma ocorrência encontrada
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharModalOcorrencias()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Nova/Edição Ocorrência -->
+    <div id="modalFormOcorrencia" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="tituloFormOcorrencia">Nova Ocorrência</h2>
+                <span class="close" onclick="fecharModalFormOcorrencia()">&times;</span>
+            </div>
+            <form id="formOcorrencia">
+                <div class="modal-body">
+                    <input type="hidden" id="idOcorrencia" name="id_ocorrencia">
+                    <input type="hidden" id="idContratoOcorrencia" name="id_contrato">
+
+                    <div class="form-row form-row-2">
+                        <div class="form-group">
+                            <label for="idMotoristaOcorrencia">Motorista: *</label>
+                            <select id="idMotoristaOcorrencia" name="id_motorista" required>
+                                <option value="">Selecione...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dataOcorrencia">Data da Ocorrência: *</label>
+                            <input type="date" id="dataOcorrencia" name="data_ocorrencia" required>
+                        </div>
+                    </div>
+
+                    <!-- Competência -->
+                    <fieldset class="fieldset-competencia">
+                        <legend>Competência</legend>
+                        <div class="form-row form-row-ano-mes">
+                            <div class="form-group">
+                                <label for="mesCompetencia">Mês: *</label>
+                                <select id="mesCompetencia" name="mes_competencia" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Janeiro">Janeiro</option>
+                                    <option value="Fevereiro">Fevereiro</option>
+                                    <option value="Março">Março</option>
+                                    <option value="Abril">Abril</option>
+                                    <option value="Maio">Maio</option>
+                                    <option value="Junho">Junho</option>
+                                    <option value="Julho">Julho</option>
+                                    <option value="Agosto">Agosto</option>
+                                    <option value="Setembro">Setembro</option>
+                                    <option value="Outubro">Outubro</option>
+                                    <option value="Novembro">Novembro</option>
+                                    <option value="Dezembro">Dezembro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="anoCompetencia">Ano: *</label>
+                                <select id="anoCompetencia" name="ano_competencia" class="input-ano" required>
+                                    <!-- Será preenchido dinamicamente -->
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="form-group">
+                        <label for="idImperfeicao">Tipo de Imperfeição: *</label>
+                        <select id="idImperfeicao" name="id_imperfeicao" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="especificacao">Especificação da Ocorrência:</label>
+                        <textarea id="especificacao" name="especificacao" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModalFormOcorrencia()">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- jQuery (necessário para o Select2) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Carregador do Menu -->
+    <script src="/static/js/menu-loader.js"></script>
+
+    <script>
+        let contratoSelecionado = null;
+        let motoristasContrato = [];
+
+        // Carregar contratos ao iniciar
+        window.addEventListener('DOMContentLoaded', async function() {
+            await carregarContratos();
+            
+            // Definir mês e ano atual nos filtros
+            const hoje = new Date();
+            const anoAtual = hoje.getFullYear();
+            
+            document.getElementById('filtroMes').value = String(hoje.getMonth() + 1).padStart(2, '0');
+            
+            // Preencher select de anos do filtro (2024 até ano atual)
+            preencherSelectAnos('filtroAno', anoAtual);
+            document.getElementById('filtroAno').value = anoAtual;
+            
+            // Preencher select de anos de competência
+            preencherSelectAnos('anoCompetencia', anoAtual);
+        });
+
+        function preencherSelectAnos(selectId, anoAtual) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '';
+            
+            for (let ano = 2024; ano <= anoAtual; ano++) {
+                const option = document.createElement('option');
+                option.value = ano;
+                option.textContent = ano;
+                select.appendChild(option);
+            }
+        }
+
+        async function carregarContratos() {
+            try {
+                const response = await fetch('/api/gestao-terceirizados/contratos');
+                const result = await response.json();
+
+                const tbody = document.getElementById('tabelaContratos');
+                tbody.innerHTML = '';
+
+                if (result.success && result.data.length > 0) {
+                    result.data.forEach(contrato => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${contrato.EXERCICIO}</td>
+                            <td>${contrato.NM_FORNECEDOR}</td>
+                            <td>${contrato.CONTRATO || '-'}</td>
+                            <td>${contrato.PROCESSO || '-'}</td>
+                            <td class="text-center">
+                                <button class="btn btn-primary btn-sm" onclick="selecionarContrato(${contrato.ID_CONTRATO})">
+                                    Selecionar
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding: 30px; color: #999;">Nenhum contrato encontrado</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar contratos:', error);
+                alert('Erro ao carregar contratos');
+            }
+        }
+
+        async function selecionarContrato(idContrato) {
+            try {
+                const response = await fetch(`/api/gestao-terceirizados/contratos/${idContrato}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    contratoSelecionado = result.data;
+                    
+                    // Atualizar informações do contrato
+                    document.getElementById('infoExercicio').textContent = contratoSelecionado.EXERCICIO;
+                    document.getElementById('infoEmpresa').textContent = contratoSelecionado.NM_FORNECEDOR;
+                    document.getElementById('infoContrato').textContent = contratoSelecionado.CONTRATO || '-';
+                    document.getElementById('infoProcesso').textContent = contratoSelecionado.PROCESSO || '-';
+
+                    // Trocar seções
+                    document.getElementById('contratoSection').style.display = 'none';
+                    document.getElementById('vinculosSection').style.display = 'block';
+
+                    // Carregar vínculos
+                    await carregarVinculos(idContrato);
+                } else {
+                    alert('Erro ao carregar dados do contrato');
+                }
+            } catch (error) {
+                console.error('Erro ao selecionar contrato:', error);
+                alert('Erro ao selecionar contrato');
+            }
+        }
+
+        async function carregarVinculos(idContrato) {
+            try {
+                const response = await fetch(`/api/gestao-terceirizados/vinculos/${idContrato}`);
+                const result = await response.json();
+
+                const tbody = document.getElementById('tabelaVinculos');
+                tbody.innerHTML = '';
+
+                if (result.success && result.data.length > 0) {
+                    motoristasContrato = result.data;
+                    result.data.forEach(vinculo => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${vinculo.NM_MOTORISTA}</td>
+                            <td>${vinculo.DE_POSTO}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2" class="text-center" style="padding: 30px; color: #999;">Nenhum vínculo encontrado</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar vínculos:', error);
+                alert('Erro ao carregar vínculos');
+            }
+        }
+
+        function voltarSelecaoContrato() {
+            contratoSelecionado = null;
+            motoristasContrato = [];
+            document.getElementById('contratoSection').style.display = 'block';
+            document.getElementById('vinculosSection').style.display = 'none';
+        }
+
+        async function abrirModalOcorrencias() {
+            if (!contratoSelecionado) {
+                alert('Selecione um contrato primeiro');
+                return;
+            }
+
+            document.getElementById('modalOcorrencias').classList.add('active');
+            await carregarOcorrencias();
+        }
+
+        function fecharModalOcorrencias() {
+            document.getElementById('modalOcorrencias').classList.remove('active');
+        }
+
+        async function carregarOcorrencias() {
+            if (!contratoSelecionado) return;
+
+            const mes = document.getElementById('filtroMes').value;
+            const ano = document.getElementById('filtroAno').value;
+
+            try {
+                const response = await fetch(`/api/gestao-terceirizados/ocorrencias/${contratoSelecionado.ID_CONTRATO}?mes=${mes}&ano=${ano}`);
+                const result = await response.json();
+
+                const tbody = document.getElementById('tabelaOcorrenciasLista');
+                tbody.innerHTML = '';
+
+                if (result.success && result.data.length > 0) {
+                    result.data.forEach(ocorrencia => {
+                        const tr = document.createElement('tr');
+                        // Formatar data corretamente
+                        let dataFormatada = '-';
+                        if (ocorrencia.DATA_OCORRENCIA) {
+                            // Converter para string caso venha como Date object
+                            let dataStr = String(ocorrencia.DATA_OCORRENCIA);
+                            // Pegar apenas a parte da data (YYYY-MM-DD) caso tenha hora
+                            if (dataStr.includes('T')) {
+                                dataStr = dataStr.split('T')[0];
+                            } else if (dataStr.includes(' ')) {
+                                dataStr = dataStr.split(' ')[0];
+                            }
+                            // Dividir a data
+                            const partesData = dataStr.split('-');
+                            if (partesData.length === 3) {
+                                dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+                            }
+                        }
+                        
+                        // Formatar competência
+                        const competencia = ocorrencia.MES && ocorrencia.ANO 
+                            ? `${ocorrencia.MES}/${ocorrencia.ANO}` 
+                            : '-';
+                        
+                        tr.innerHTML = `
+                            <td>${competencia}</td>
+                            <td>${dataFormatada}</td>
+                            <td>${ocorrencia.NM_MOTORISTA || '-'}</td>
+                            <td>${ocorrencia.DESCRICAO}</td>
+                            <td>${ocorrencia.ESPECIFICACAO || '-'}</td>
+                            <td class="text-center">
+                                <button class="btn btn-warning btn-sm" onclick="editarOcorrencia(${ocorrencia.ID_OCORRENCIA})">
+                                    Editar
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirOcorrencia(${ocorrencia.ID_OCORRENCIA})">
+                                    Excluir
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 30px; color: #999;">Nenhuma ocorrência encontrada</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar ocorrências:', error);
+                alert('Erro ao carregar ocorrências');
+            }
+        }
+
+        async function abrirModalNovaOcorrencia() {
+            document.getElementById('tituloFormOcorrencia').textContent = 'Nova Ocorrência';
+            document.getElementById('formOcorrencia').reset();
+            document.getElementById('idOcorrencia').value = '';
+            document.getElementById('idContratoOcorrencia').value = contratoSelecionado.ID_CONTRATO;
+
+            // Preencher ano de competência com ano atual
+            const anoAtual = new Date().getFullYear();
+            document.getElementById('anoCompetencia').value = anoAtual;
+
+            // Carregar motoristas
+            await carregarMotoristas();
+            
+            // Carregar imperfeições
+            await carregarImperfeicoes();
+
+            document.getElementById('modalFormOcorrencia').classList.add('active');
+        }
+
+        async function carregarMotoristas() {
+            const select = document.getElementById('idMotoristaOcorrencia');
+            select.innerHTML = '<option value="">Selecione...</option>';
+
+            motoristasContrato.forEach(motorista => {
+                const option = document.createElement('option');
+                option.value = motorista.ID_MOTORISTA;
+                option.textContent = motorista.NM_MOTORISTA;
+                select.appendChild(option);
+            });
+        }
+
+        async function carregarImperfeicoes() {
+            try {
+                const response = await fetch('/api/gestao-terceirizados/imperfeicoes');
+                const result = await response.json();
+
+                const select = document.getElementById('idImperfeicao');
+                select.innerHTML = '<option value="">Selecione...</option>';
+
+                if (result.success && result.data.length > 0) {
+                    result.data.forEach(imp => {
+                        const option = document.createElement('option');
+                        option.value = imp.ID_IMPERFEICAO;
+                        option.textContent = imp.DESCRICAO;
+                        select.appendChild(option);
+                    });
+                }
+
+                // Destruir Select2 anterior se existir
+                if ($(select).data('select2')) {
+                    $(select).select2('destroy');
+                }
+
+                // Inicializar Select2 com configurações
+                $(select).select2({
+                    dropdownParent: $('#modalFormOcorrencia'),
+                    width: '100%',
+                    placeholder: 'Selecione...',
+                    allowClear: true,
+                    language: {
+                        noResults: function() {
+                            return "Nenhum resultado encontrado";
+                        },
+                        searching: function() {
+                            return "Buscando...";
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Erro ao carregar imperfeições:', error);
+            }
+        }
+
+        function fecharModalFormOcorrencia() {
+            // Destruir Select2 antes de fechar o modal
+            if ($('#idImperfeicao').data('select2')) {
+                $('#idImperfeicao').select2('destroy');
+            }
+            document.getElementById('modalFormOcorrencia').classList.remove('active');
+        }
+
+        document.getElementById('formOcorrencia').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = {
+                id_ocorrencia: document.getElementById('idOcorrencia').value,
+                id_contrato: document.getElementById('idContratoOcorrencia').value,
+                id_motorista: document.getElementById('idMotoristaOcorrencia').value,
+                id_imperfeicao: document.getElementById('idImperfeicao').value,
+                data_ocorrencia: document.getElementById('dataOcorrencia').value,
+                mes_competencia: document.getElementById('mesCompetencia').value,
+                ano_competencia: document.getElementById('anoCompetencia').value,
+                especificacao: document.getElementById('especificacao').value
+            };
+
+            try {
+                const url = formData.id_ocorrencia 
+                    ? `/api/gestao-terceirizados/ocorrencias/${formData.id_ocorrencia}`
+                    : '/api/gestao-terceirizados/ocorrencias';
+                
+                const method = formData.id_ocorrencia ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(formData.id_ocorrencia ? 'Ocorrência atualizada com sucesso!' : 'Ocorrência cadastrada com sucesso!');
+                    fecharModalFormOcorrencia();
+                    await carregarOcorrencias();
+                } else {
+                    alert('Erro ao salvar ocorrência: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao salvar ocorrência:', error);
+                alert('Erro ao salvar ocorrência');
+            }
+        });
+
+        async function editarOcorrencia(idOcorrencia) {
+            try {
+                const response = await fetch(`/api/gestao-terceirizados/ocorrencias/detalhe/${idOcorrencia}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const ocorrencia = result.data;
+                    
+                    document.getElementById('tituloFormOcorrencia').textContent = 'Editar Ocorrência';
+                    document.getElementById('idOcorrencia').value = ocorrencia.ID_OCORRENCIA;
+                    document.getElementById('idContratoOcorrencia').value = ocorrencia.ID_CONTRATO;
+                    
+                    await carregarMotoristas();
+                    document.getElementById('idMotoristaOcorrencia').value = ocorrencia.ID_MOTORISTA;
+                    
+                    await carregarImperfeicoes();
+                    // Usar Select2 para setar o valor
+                    $('#idImperfeicao').val(ocorrencia.ID_IMPERFEICAO).trigger('change');
+                    
+                    document.getElementById('dataOcorrencia').value = ocorrencia.DATA_OCORRENCIA;
+                    document.getElementById('mesCompetencia').value = ocorrencia.MES || '';
+                    document.getElementById('anoCompetencia').value = ocorrencia.ANO || new Date().getFullYear();
+                    document.getElementById('especificacao').value = ocorrencia.ESPECIFICACAO || '';
+
+                    document.getElementById('modalFormOcorrencia').classList.add('active');
+                } else {
+                    alert('Erro ao carregar dados da ocorrência');
+                }
+            } catch (error) {
+                console.error('Erro ao editar ocorrência:', error);
+                alert('Erro ao editar ocorrência');
+            }
+        }
+
+        async function excluirOcorrencia(idOcorrencia) {
+            if (!confirm('Deseja realmente excluir esta ocorrência?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/gestao-terceirizados/ocorrencias/${idOcorrencia}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Ocorrência excluída com sucesso!');
+                    await carregarOcorrencias();
+                } else {
+                    alert('Erro ao excluir ocorrência: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao excluir ocorrência:', error);
+                alert('Erro ao excluir ocorrência');
+            }
+        }
+    </script>
+</body>
+</html>
