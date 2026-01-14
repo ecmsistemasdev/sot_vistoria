@@ -59,7 +59,7 @@ from flask_socketio import (
 
 from werkzeug.utils import secure_filename
 from xhtml2pdf import pisa
-from weasyprint import HTML  # ✅ Movido para cima, removendo duplicata
+from weasyprint import HTML as WeasyHTML  # ✅ Movido para cima, removendo duplicata
 from pytz import timezone
 import PyPDF2
 import airportsdata
@@ -12941,9 +12941,7 @@ def api_relatorio_fiscalizacao_pdf():
             return "Parâmetros obrigatórios: id_contrato, mes, ano", 400
         
         # Obter dados do relatório
-        from flask import current_app
-        
-        with current_app.test_client() as client:
+        with app.test_client() as client:
             response = client.post(
                 '/api/gestao-terceirizados/relatorio-fiscalizacao',
                 json={
@@ -12966,17 +12964,15 @@ def api_relatorio_fiscalizacao_pdf():
         # Gerar HTML
         html_content = gerar_html_relatorio_weasyprint(data)
         
-        # ✅ Converter para PDF usando WeasyPrint
-        pdf_file = BytesIO()
-        HTML(string=html_content, base_url=request.host_url).write_pdf(pdf_file)
-        pdf_file.seek(0)
+        # ✅ Gerar PDF
+        pdf_bytes = WeasyHTML(string=html_content).write_pdf()
         
-        return send_file(
-            pdf_file,
-            mimetype='application/pdf',
-            as_attachment=False,
-            download_name=f'relatorio_fiscalizacao_{mes}_{ano}.pdf'
-        )
+        # ✅ Retornar como response
+        response = make_response(pdf_bytes)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'inline; filename=relatorio_{mes}_{ano}.pdf'
+        
+        return response
         
     except Exception as e:
         import traceback
@@ -13324,8 +13320,176 @@ def gerar_html_relatorio_weasyprint(data):
     
     return html
 
+
+# ============================================================
+# FUNÇÃO: Gerar HTML Simplificado (para xhtml2pdf)
+# ============================================================
+def gerar_html_relatorio_simplificado(data):
+    """HTML simplificado compatível com xhtml2pdf"""
+    
+    def formatar_moeda(valor):
+        if valor is None:
+            valor = 0.0
+        return f"R$ {float(valor):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    def safe_float(val, default=0.0):
+        if val is None:
+            return default
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+    
+    # Preparar dados
+    imperfeicoes = data.get('imperfeicoes', [])[:10]
+    postos = data.get('postos', [])
+    
+    totais = [0] * 10
+    for posto in postos:
+        for i in range(1, 11):
+            totais[i-1] += posto.get('ocorrencias', {}).get(i, 0) or 0
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            @page {{
+                size: A4 landscape;
+                margin: 10mm;
+            }}
+            
+            body {{
+                font-family: Arial, sans-serif;
+                font-size: 8px;
+            }}
+            
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 5px;
+            }}
+            
+            td, th {{
+                border: 1px solid black;
+                padding: 3px;
+            }}
+            
+            th {{
+                background-color: #cccccc;
+                font-weight: bold;
+                text-align: center;
+            }}
+            
+            .center {{ text-align: center; }}
+            .right {{ text-align: right; }}
+            .bold {{ font-weight: bold; }}
+        </style>
+    </head>
+    <body>
+        
+        <table>
+            <tr>
+                <td colspan="2" style="text-align: center; font-size: 10px; font-weight: bold;">
+                    TRIBUNAL DE JUSTIÇA DO ESTADO DE RONDÔNIA<br/>
+                    RELATÓRIO DE OCORRÊNCIA - LISTA DE IMPERFEIÇÕES
+                </td>
+            </tr>
+            <tr>
+                <td style="background-color: #eeeeee; font-weight: bold;">Contrato</td>
+                <td>{data['cabecalho'].get('contrato', '-')}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #eeeeee; font-weight: bold;">Protocolo</td>
+                <td>{data['cabecalho'].get('protocolo', '-')}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #eeeeee; font-weight: bold;">Contratada</td>
+                <td>{data['cabecalho'].get('contratada', '-')}</td>
+            </tr>
+            <tr>
+                <td style="background-color: #eeeeee; font-weight: bold;">Mês/Ano</td>
+                <td>{data['cabecalho'].get('mes_ano', '-')}</td>
+            </tr>
+        </table>
+        
+        <table>
+            <tr>
+                <th colspan="12">OCORRÊNCIAS</th>
+            </tr>
+            <tr>
+                <th>POSTO</th>
+                <th>QTD</th>
+    """
+    
+    for imp in imperfeicoes:
+        html += f'<th>{str(imp.get("id", "")).zfill(2)}</th>'
+    
+    html += "</tr>"
+    
+    for posto in postos:
+        html += f'<tr><td>{posto.get("nome_posto", "-")}</td><td class="center">{posto.get("qtd_motoristas_total", 0)}</td>'
+        for i in range(1, 11):
+            html += f'<td class="center">{posto.get("ocorrencias", {}).get(i, 0) or 0}</td>'
+        html += '</tr>'
+    
+    html += '<tr style="background-color: #ffffcc;"><td class="bold">Total</td><td></td>'
+    for t in totais:
+        html += f'<td class="center bold">{t}</td>'
+    html += '</tr></table>'
+    
+    html += '<table><tr><th>Faixa</th><th>Fator</th><th>% Receber</th><th>% Glosa</th></tr>'
+    
+    for faixa in data.get('faixas', []):
+        bg = 'background-color: #ffcccc;' if faixa.get('nome') == data.get('faixa_alcancada') else ''
+        html += f'<tr style="{bg}"><td class="center">{faixa.get("nome", "-")}</td>'
+        html += f'<td class="center">{faixa.get("min", 0)} a {faixa.get("max", 0)}</td>'
+        html += f'<td class="center">{faixa.get("percentual_receber", 0)}%</td>'
+        html += f'<td class="center">{faixa.get("percentual_glosa", 0)}%</td></tr>'
+    
+    html += '</table>'
+    
+    html += '<table>'
+    html += f'<tr><td style="background-color: #eeeeee; font-weight: bold;">Houve Glosa</td>'
+    html += f'<td class="center bold">{"SIM" if data.get("houve_glosa") else "NÃO"}</td></tr>'
+    html += f'<tr><td style="background-color: #eeeeee; font-weight: bold;">% Glosa</td>'
+    html += f'<td class="center bold">{safe_float(data.get("percentual_glosa", 0)):.2f}%</td></tr>'
+    html += f'<tr><td style="background-color: #eeeeee; font-weight: bold;">% Receber</td>'
+    html += f'<td class="center bold">{safe_float(data.get("percentual_receber", 100)):.2f}%</td></tr>'
+    html += '</table>'
+    
+    html += '<table><tr><th>LOCALIDADE</th><th>QTD</th><th>Ref.Mensal</th><th>Ref.Total</th><th>Dev.Mensal</th><th>Dev.Total</th></tr>'
+    
+    for loc in data.get('localidades', []):
+        nome = f"{loc.get('nome', '-')} (*)" if loc.get('tem_asterisco') else loc.get('nome', '-')
+        html += f'<tr><td>{nome}</td><td class="center">{loc.get("qtd_posto", 0)}</td>'
+        html += f'<td class="right">{formatar_moeda(safe_float(loc.get("valor_ref_mensal")))}</td>'
+        html += f'<td class="right">{formatar_moeda(safe_float(loc.get("valor_ref_total")))}</td>'
+        html += f'<td class="right bold">{formatar_moeda(safe_float(loc.get("valor_dev_mensal")))}</td>'
+        html += f'<td class="right bold">{formatar_moeda(safe_float(loc.get("valor_dev_total")))}</td></tr>'
+    
+    html += '</table>'
+    
+    html += '<table>'
+    html += f'<tr><td style="background-color: #eeeeee; font-weight: bold;">Valor a Receber</td>'
+    html += f'<td class="right bold">{formatar_moeda(safe_float(data.get("totais", {}).get("valor_devido_total", 0)))}</td></tr>'
+    html += f'<tr><td style="background-color: #eeeeee; font-weight: bold;">Valor da Glosa</td>'
+    html += f'<td class="right bold">{formatar_moeda(safe_float(data.get("totais", {}).get("valor_glosa", 0)))}</td></tr>'
+    html += '</table>'
+    
+    html += '<table><tr><td style="background-color: #eeeeee; font-weight: bold;">Gestor</td>'
+    html += f'<td>{data["cabecalho"].get("gestor", "-")}</td></tr>'
+    html += f'<tr><td style="background-color: #eeeeee; font-weight: bold;">Unidade</td>'
+    html += f'<td>{data["cabecalho"].get("unidade", "-")}</td></tr></table>'
+    
+    html += '</body></html>'
+    
+    return html
+
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
