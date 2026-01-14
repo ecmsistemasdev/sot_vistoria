@@ -12524,7 +12524,377 @@ def api_excluir_ocorrencia(id_ocorrencia):
         }), 500
 
 
+# ============================================================
+# API - RELATÓRIO DE FISCALIZAÇÃO
+# ============================================================
+# Adicionar esta rota ANTES do "if __name__ == '__main__':" no app.py
+
+@app.route('/api/gestao-terceirizados/relatorio-fiscalizacao', methods=['POST'])
+def api_relatorio_fiscalizacao():
+    """Gera o relatório de fiscalização mensal"""
+    # if 'loggedin' not in session:
+    #     return jsonify({'success': False, 'error': 'Não autorizado'}), 401
+    
+    try:
+        data = request.get_json()
+        id_contrato = data.get('id_contrato')
+        mes = data.get('mes')
+        ano = data.get('ano')
+        
+        if not all([id_contrato, mes, ano]):
+            return jsonify({
+                'success': False,
+                'error': 'Parâmetros obrigatórios: id_contrato, mes, ano'
+            }), 400
+        
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # ===================================
+        # 1. BUSCAR DADOS DO CONTRATO
+        # ===================================
+        query_contrato = """
+            SELECT 
+                c.CONTRATO,
+                c.PROCESSO,
+                c.NOME_GESTOR,
+                c.SETOR_GESTOR,
+                f.NM_FORNECEDOR
+            FROM GESTAO_CONTRATOS_TERCEIRIZADOS c
+            LEFT JOIN CAD_FORNECEDOR f ON c.ID_FORNECEDOR = f.ID_FORNECEDOR
+            WHERE c.ID_CONTRATO = %s
+        """
+        cursor.execute(query_contrato, (id_contrato,))
+        contrato = cursor.fetchone()
+        
+        if not contrato:
+            return jsonify({'success': False, 'error': 'Contrato não encontrado'}), 404
+        
+        # ===================================
+        # 2. BUSCAR LISTA DE IMPERFEIÇÕES
+        # ===================================
+        query_imperfeicoes = """
+            SELECT 
+                ID_IMPERFEICAO,
+                DESCRICAO,
+                TOLERANCIA,
+                MULTIPLICADOR
+            FROM LISTA_IMPERFEICOES
+            ORDER BY ID_IMPERFEICAO
+        """
+        cursor.execute(query_imperfeicoes)
+        imperfeicoes = cursor.fetchall()
+        
+        # ===================================
+        # 3. BUSCAR POSTOS DE TRABALHO
+        # ===================================
+        query_postos = """
+            SELECT 
+                ID_POSTO,
+                DE_POSTO
+            FROM POSTO_TRABALHO
+            WHERE ID_CONTRATO = %s
+            ORDER BY DE_POSTO
+        """
+        cursor.execute(query_postos, (id_contrato,))
+        postos = cursor.fetchall()
+        
+        # ===================================
+        # 4. CALCULAR PRIMEIRO E ÚLTIMO DIA DO MÊS
+        # ===================================
+        from calendar import monthrange
+        ano_int = int(ano)
+        meses = {
+            'JANEIRO': 1, 'FEVEREIRO': 2, 'MARÇO': 3, 'ABRIL': 4,
+            'MAIO': 5, 'JUNHO': 6, 'JULHO': 7, 'AGOSTO': 8,
+            'SETEMBRO': 9, 'OUTUBRO': 10, 'NOVEMBRO': 11, 'DEZEMBRO': 12
+        }
+        mes_numero = meses.get(mes.upper())
+        
+        if not mes_numero:
+            return jsonify({'success': False, 'error': 'Mês inválido'}), 400
+        
+        primeiro_dia = datetime(ano_int, mes_numero, 1).date()
+        ultimo_dia = datetime(ano_int, mes_numero, monthrange(ano_int, mes_numero)[1]).date()
+        
+        # ===================================
+        # 5. PROCESSAR CADA POSTO DE TRABALHO
+        # ===================================
+        resultado_postos = []
+        
+        for posto in postos:
+            id_posto = posto['ID_POSTO']
+            nome_posto = posto['DE_POSTO']
+            
+            # 5.1. Buscar ocorrências por imperfeição
+            ocorrencias_por_imperfeicao = {}
+            for imp in imperfeicoes:
+                query_count = """
+                    SELECT COUNT(*) as total
+                    FROM OCORRENCIAS_TERCEIRIZADOS o
+                    INNER JOIN POSTO_TRABALHO_VINCULO v ON o.ID_MOTORISTA = v.ID_MOTORISTA
+                    WHERE v.ID_POSTO = %s
+                    AND o.ID_IMPERFEICAO = %s
+                    AND o.MES = %s
+                    AND o.ANO = %s
+                """
+                cursor.execute(query_count, (id_posto, imp['ID_IMPERFEICAO'], mes, ano))
+                result = cursor.fetchone()
+                ocorrencias_por_imperfeicao[imp['ID_IMPERFEICAO']] = result['total']
+            
+            # 5.2. Calcular números corrigidos por imperfeição
+            numeros_corrigidos = []
+            for imp in imperfeicoes:
+                total_ocorrencias = ocorrencias_por_imperfeicao[imp['ID_IMPERFEICAO']]
+                tolerancia = imp['TOLERANCIA']
+                multiplicador = imp['MULTIPLICADOR']
+                
+                if total_ocorrencias > tolerancia:
+                    excesso = total_ocorrencias - tolerancia
+                    numero_corrigido = excesso * multiplicador
+                else:
+                    numero_corrigido = 0
+                
+                numeros_corrigidos.append(numero_corrigido)
+            
+            # 5.3. Buscar quantidade de motoristas no posto
+            query_motoristas = """
+                SELECT DISTINCT v.ID_MOTORISTA
+                FROM POSTO_TRABALHO_VINCULO v
+                INNER JOIN CAD_MOTORISTA_PERIODOS p ON v.ID_MOTORISTA = p.ID_MOTORISTA
+                WHERE v.ID_POSTO = %s
+                AND p.DT_INICIO <= %s
+                AND (p.DT_FIM IS NULL OR p.DT_FIM >= %s)
+            """
+            cursor.execute(query_motoristas, (id_posto, ultimo_dia, primeiro_dia))
+            motoristas = cursor.fetchall()
+            qtd_motoristas = len(motoristas)
+            
+            # 5.4. Separar motoristas que trabalharam mês completo vs parcial
+            motoristas_completo = []
+            motoristas_parcial = []
+            
+            for mot in motoristas:
+                id_motorista = mot['ID_MOTORISTA']
+                
+                # Verificar período do motorista
+                query_periodo = """
+                    SELECT DT_INICIO, DT_FIM
+                    FROM CAD_MOTORISTA_PERIODOS
+                    WHERE ID_MOTORISTA = %s
+                    AND DT_INICIO <= %s
+                    AND (DT_FIM IS NULL OR DT_FIM >= %s)
+                    ORDER BY DT_INICIO DESC
+                    LIMIT 1
+                """
+                cursor.execute(query_periodo, (id_motorista, ultimo_dia, primeiro_dia))
+                periodo = cursor.fetchone()
+                
+                if periodo:
+                    dt_inicio = periodo['DT_INICIO']
+                    dt_fim = periodo['DT_FIM']
+                    
+                    # Verificar se trabalhou o mês completo
+                    trabalhou_completo = (
+                        dt_inicio <= primeiro_dia and 
+                        (dt_fim is None or dt_fim >= ultimo_dia)
+                    )
+                    
+                    if trabalhou_completo:
+                        motoristas_completo.append({
+                            'id_motorista': id_motorista,
+                            'dias_trabalhados': 30
+                        })
+                    else:
+                        # Calcular dias trabalhados
+                        inicio_calculo = max(dt_inicio, primeiro_dia)
+                        fim_calculo = min(dt_fim if dt_fim else ultimo_dia, ultimo_dia)
+                        dias_trabalhados = (fim_calculo - inicio_calculo).days + 1
+                        
+                        motoristas_parcial.append({
+                            'id_motorista': id_motorista,
+                            'dias_trabalhados': dias_trabalhados,
+                            'dt_inicio': dt_inicio,
+                            'dt_fim': dt_fim
+                        })
+            
+            # 5.5. Buscar valor mensal do posto
+            query_valor = """
+                SELECT VL_MENSAL
+                FROM POSTO_TRABALHO_VALORES
+                WHERE ID_POSTO = %s
+                AND DT_INICIO <= %s
+                AND (DT_FIM IS NULL OR DT_FIM >= %s)
+                ORDER BY DT_INICIO DESC
+                LIMIT 1
+            """
+            cursor.execute(query_valor, (id_posto, ultimo_dia, primeiro_dia))
+            valor_result = cursor.fetchone()
+            vl_mensal = float(valor_result['VL_MENSAL']) if valor_result else 0
+            
+            # 5.6. Adicionar ao resultado
+            resultado_postos.append({
+                'id_posto': id_posto,
+                'nome_posto': nome_posto,
+                'qtd_motoristas_total': qtd_motoristas,
+                'qtd_motoristas_completo': len(motoristas_completo),
+                'qtd_motoristas_parcial': len(motoristas_parcial),
+                'motoristas_completo': motoristas_completo,
+                'motoristas_parcial': motoristas_parcial,
+                'ocorrencias': ocorrencias_por_imperfeicao,
+                'numeros_corrigidos': numeros_corrigidos,
+                'vl_mensal': vl_mensal
+            })
+        
+        # ===================================
+        # 6. CALCULAR FATOR DE ACEITAÇÃO TOTAL
+        # ===================================
+        somatorio_fator = sum([
+            sum(posto['numeros_corrigidos']) 
+            for posto in resultado_postos
+        ])
+        
+        # ===================================
+        # 7. DETERMINAR FAIXA E PERCENTUAIS
+        # ===================================
+        faixas = [
+            {'nome': '-', 'min': 0, 'max': 0, 'percentual_receber': 100, 'percentual_glosa': 0},
+            {'nome': 'A', 'min': 1, 'max': 100, 'percentual_receber': 95, 'percentual_glosa': 5},
+            {'nome': 'B', 'min': 101, 'max': 200, 'percentual_receber': 90, 'percentual_glosa': 10},
+            {'nome': 'C', 'min': 201, 'max': 300, 'percentual_receber': 85, 'percentual_glosa': 15},
+            {'nome': 'D', 'min': 301, 'max': 400, 'percentual_receber': 80, 'percentual_glosa': 20},
+            {'nome': 'E', 'min': 401, 'max': 500, 'percentual_receber': 75, 'percentual_glosa': 25},
+            {'nome': 'F', 'min': 501, 'max': 600, 'percentual_receber': 70, 'percentual_glosa': 30},
+        ]
+        
+        faixa_alcancada = None
+        for faixa in faixas:
+            if faixa['min'] <= somatorio_fator <= faixa['max']:
+                faixa_alcancada = faixa
+                break
+        
+        # Se ultrapassou 600, usar faixa F
+        if not faixa_alcancada:
+            faixa_alcancada = faixas[-1]
+        
+        percentual_receber = faixa_alcancada['percentual_receber']
+        percentual_glosa = faixa_alcancada['percentual_glosa']
+        
+        # ===================================
+        # 8. CALCULAR VALORES POR LOCALIDADE
+        # ===================================
+        localidades = []
+        valor_referencia_total = 0
+        valor_devido_total = 0
+        
+        for posto in resultado_postos:
+            vl_mensal = posto['vl_mensal']
+            
+            # Motoristas mês completo
+            if posto['qtd_motoristas_completo'] > 0:
+                qtd = posto['qtd_motoristas_completo']
+                valor_ref_mensal = vl_mensal
+                valor_ref_total = valor_ref_mensal * qtd
+                
+                valor_dev_mensal = valor_ref_mensal * (percentual_receber / 100)
+                valor_dev_total = valor_dev_mensal * qtd
+                
+                localidades.append({
+                    'nome': posto['nome_posto'],
+                    'tem_asterisco': False,
+                    'qtd_posto': qtd,
+                    'valor_ref_mensal': valor_ref_mensal,
+                    'valor_ref_total': valor_ref_total,
+                    'valor_dev_mensal': valor_dev_mensal,
+                    'valor_dev_total': valor_dev_total
+                })
+                
+                valor_referencia_total += valor_ref_total
+                valor_devido_total += valor_dev_total
+            
+            # Motoristas mês parcial
+            if posto['qtd_motoristas_parcial'] > 0:
+                for mot_parcial in posto['motoristas_parcial']:
+                    dias_trab = mot_parcial['dias_trabalhados']
+                    
+                    # Valor proporcional
+                    valor_ref_mensal = vl_mensal
+                    valor_ref_total = valor_ref_mensal  # Mantém valor total
+                    
+                    valor_dev_mensal = (vl_mensal / 30) * dias_trab
+                    valor_dev_mensal = valor_dev_mensal * (percentual_receber / 100)
+                    valor_dev_total = valor_dev_mensal
+                    
+                    localidades.append({
+                        'nome': posto['nome_posto'],
+                        'tem_asterisco': True,
+                        'qtd_posto': 1,
+                        'dias_trabalhados': dias_trab,
+                        'valor_ref_mensal': valor_ref_mensal,
+                        'valor_ref_total': valor_ref_total,
+                        'valor_dev_mensal': valor_dev_mensal,
+                        'valor_dev_total': valor_dev_total
+                    })
+                    
+                    valor_referencia_total += valor_ref_total
+                    valor_devido_total += valor_dev_total
+        
+        # ===================================
+        # 9. CALCULAR VALOR DA GLOSA
+        # ===================================
+        valor_glosa = valor_referencia_total - valor_devido_total
+        
+        # ===================================
+        # 10. MONTAR RESPOSTA FINAL
+        # ===================================
+        cursor.close()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'cabecalho': {
+                    'contrato': contrato['CONTRATO'],
+                    'protocolo': contrato['PROCESSO'],
+                    'contratada': contrato['NM_FORNECEDOR'],
+                    'objeto': 'Serviço de apoio operacional - MOTORISTA',
+                    'mes_ano': f"{mes}/{ano}",
+                    'gestor': contrato['NOME_GESTOR'],
+                    'unidade': contrato['SETOR_GESTOR']
+                },
+                'imperfeicoes': [
+                    {
+                        'id': imp['ID_IMPERFEICAO'],
+                        'descricao': imp['DESCRICAO'],
+                        'tolerancia': imp['TOLERANCIA'],
+                        'multiplicador': imp['MULTIPLICADOR']
+                    }
+                    for imp in imperfeicoes
+                ],
+                'postos': resultado_postos,
+                'somatorio_fator': somatorio_fator,
+                'faixa_alcancada': faixa_alcancada['nome'],
+                'faixas': faixas,
+                'percentual_receber': percentual_receber,
+                'percentual_glosa': percentual_glosa,
+                'houve_glosa': percentual_glosa > 0,
+                'localidades': localidades,
+                'totais': {
+                    'valor_referencia_total': valor_referencia_total,
+                    'valor_devido_total': valor_devido_total,
+                    'valor_glosa': valor_glosa
+                }
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
