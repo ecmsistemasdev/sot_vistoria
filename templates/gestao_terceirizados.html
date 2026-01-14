@@ -1165,7 +1165,7 @@
             
             document.getElementById('filtroMes').value = String(hoje.getMonth() + 1).padStart(2, '0');
             
-            // Preencher select de anos do filtro (2024 até ano atual)
+            // Preencher select de anos do filtro (2025 até ano atual)
             preencherSelectAnos('filtroAno', anoAtual);
             document.getElementById('filtroAno').value = anoAtual;
             
@@ -1177,7 +1177,7 @@
             const select = document.getElementById(selectId);
             select.innerHTML = '';
             
-            for (let ano = 2024; ano <= anoAtual; ano++) {
+            for (let ano = 2025; ano <= anoAtual; ano++) {
                 const option = document.createElement('option');
                 option.value = ano;
                 option.textContent = ano;
@@ -1580,7 +1580,7 @@
             selectAno.innerHTML = '';
 
             const anoAtual = new Date().getFullYear();
-            for (let ano = 2024; ano <= anoAtual; ano++) {
+            for (let ano = 2025; ano <= anoAtual; ano++) {
                 const option = document.createElement('option');
                 option.value = ano;
                 option.textContent = ano;
