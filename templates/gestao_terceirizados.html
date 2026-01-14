@@ -94,7 +94,6 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
-            table-layout: fixed;
         }
 
         .table thead th {
@@ -106,12 +105,16 @@
             border: 1px solid #2c3e50;
         }
 
-        /* Larguras específicas das colunas */
-        .table thead th:nth-child(1) { width: 7%; }  /* Exercício */
-        .table thead th:nth-child(2) { width: 50%; } /* Empresa */
-        .table thead th:nth-child(3) { width: 8%; } /* Contrato */
-        .table thead th:nth-child(4) { width: 28%; } /* Processo */
-        .table thead th:nth-child(5) { width: 7%; } /* Ação */
+        /* Larguras específicas apenas para a tabela de seleção de contratos */
+        #tabelaSelecaoContratos {
+            table-layout: fixed;
+        }
+        
+        #tabelaSelecaoContratos thead th:nth-child(1) { width: 8%; }  /* Exercício */
+        #tabelaSelecaoContratos thead th:nth-child(2) { width: 42%; } /* Empresa */
+        #tabelaSelecaoContratos thead th:nth-child(3) { width: 12%; } /* Contrato */
+        #tabelaSelecaoContratos thead th:nth-child(4) { width: 28%; } /* Processo */
+        #tabelaSelecaoContratos thead th:nth-child(5) { width: 10%; } /* Ação */
 
         .table tbody td {
             padding: 8px;
@@ -448,14 +451,14 @@
                     Seleção de Contrato
                 </div>
                 <div class="groupbox-body">
-                    <table class="table">
+                    <table class="table" id="tabelaSelecaoContratos">
                         <thead>
                             <tr>
-                                <th style="width: 50px;">Exercício</th>
+                                <th>Exercício</th>
                                 <th>Empresa</th>
-                                <th style="width: 70px;">Contrato</th>
-                                <th style="width: 150px;">Processo</th>
-                                <th style="width: 100px; text-align: center;">Ação</th>
+                                <th>Contrato</th>
+                                <th>Processo</th>
+                                <th style="text-align: center;">Ação</th>
                             </tr>
                         </thead>
                         <tbody id="tabelaContratos">
