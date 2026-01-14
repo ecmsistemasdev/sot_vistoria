@@ -436,6 +436,89 @@
         .fieldset-competencia .form-row {
             margin-bottom: 0;
         }
+
+        /* ============================================
+           MODAL VISUALIZADOR PDF - RELATÓRIO
+           ============================================ */
+        .modal-relatorio-pdf {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            overflow: auto;
+        }
+        
+        .modal-relatorio-pdf-content {
+            position: relative;
+            background-color: #fff;
+            margin: 2% auto;
+            padding: 0;
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-relatorio-pdf-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-relatorio-pdf-header h5 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+        
+        .modal-relatorio-pdf-close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+            transition: opacity 0.3s;
+        }
+        
+        .modal-relatorio-pdf-close:hover {
+            opacity: 0.7;
+        }
+        
+        .modal-relatorio-pdf-body {
+            padding: 0;
+            height: calc(90vh - 60px);
+        }
+        
+        .modal-relatorio-pdf-body iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        @media (max-width: 768px) {
+            .modal-relatorio-pdf-content {
+                width: 95%;
+                height: 85vh;
+                margin: 5% auto;
+            }
+            
+            .modal-relatorio-pdf-body {
+                height: calc(85vh - 60px);
+            }
+        }
+
+        
     </style>
 </head>
 <body>
@@ -966,13 +1049,26 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="fecharModalRelatorioFiscalizacao()">Fechar</button>
-                <button class="btn btn-success" onclick="gerarPDFRelatorio()" style="display: none;">
-                    📄 Gerar PDF
+                <button id="btnVisualizarPDF" class="btn btn-success" onclick="visualizarPDFRelatorio()" style="display: none;">
+                    🖨️ Visualizar / Imprimir PDF
                 </button>
             </div>
         </div>
     </div>
 
+    <!-- Modal Visualizador de PDF do Relatório -->
+    <div id="modalRelatorioPdf" class="modal-relatorio-pdf">
+        <div class="modal-relatorio-pdf-content">
+            <div class="modal-relatorio-pdf-header">
+                <h5>📄 Relatório de Fiscalização - PDF</h5>
+                <button class="modal-relatorio-pdf-close" onclick="fecharModalRelatorioPdf()">&times;</button>
+            </div>
+            <div class="modal-relatorio-pdf-body">
+                <iframe id="iframeRelatorioPdf" src=""></iframe>
+            </div>
+        </div>
+    </div>
+    
     <!-- Modal de Nova/Edição Ocorrência -->
     <div id="modalFormOcorrencia" class="modal">
         <div class="modal-content" style="max-width: 800px;">
@@ -1726,6 +1822,113 @@
         function gerarPDFRelatorio() {
             alert('Funcionalidade de geração de PDF será implementada em breve!');
         }
+
+        // ============================================
+        // VISUALIZADOR PDF DO RELATÓRIO
+        // ============================================
+        
+        let dadosRelatorioAtual = null; // Armazena dados do último relatório gerado
+        
+        // Atualizar função gerarRelatorioFiscalizacao para armazenar dados
+        // Procure a função gerarRelatorioFiscalizacao e substitua por esta versão:
+        
+        async function gerarRelatorioFiscalizacao() {
+            const mes = document.getElementById('relatorioMes').value;
+            const ano = document.getElementById('relatorioAno').value;
+        
+            if (!contratoSelecionado) {
+                alert('Selecione um contrato primeiro!');
+                return;
+            }
+        
+            try {
+                const response = await fetch('/api/gestao-terceirizados/relatorio-fiscalizacao', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id_contrato: contratoSelecionado.ID_CONTRATO,
+                        mes: mes,
+                        ano: ano
+                    })
+                });
+        
+                const result = await response.json();
+        
+                if (result.success) {
+                    // ✅ ARMAZENAR DADOS PARA GERAÇÃO DE PDF
+                    dadosRelatorioAtual = {
+                        id_contrato: contratoSelecionado.ID_CONTRATO,
+                        mes: mes,
+                        ano: ano
+                    };
+                    
+                    preencherRelatorio(result.data);
+                    document.getElementById('conteudoRelatorio').style.display = 'block';
+                    
+                    // ✅ MOSTRAR BOTÃO DE VISUALIZAR PDF
+                    document.getElementById('btnVisualizarPDF').style.display = 'inline-block';
+                } else {
+                    alert('Erro ao gerar relatório: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao gerar relatório:', error);
+                alert('Erro ao gerar relatório');
+            }
+        }
+        
+        function visualizarPDFRelatorio() {
+            if (!dadosRelatorioAtual) {
+                alert('Gere o relatório primeiro!');
+                return;
+            }
+        
+            const modal = document.getElementById('modalRelatorioPdf');
+            const iframe = document.getElementById('iframeRelatorioPdf');
+            
+            // Construir URL com parâmetros
+            const params = new URLSearchParams({
+                id_contrato: dadosRelatorioAtual.id_contrato,
+                mes: dadosRelatorioAtual.mes,
+                ano: dadosRelatorioAtual.ano
+            });
+            
+            iframe.src = `/api/gestao-terceirizados/relatorio-fiscalizacao-pdf?${params.toString()}`;
+            modal.style.display = 'block';
+            
+            // Prevenir scroll do body quando modal está aberto
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function fecharModalRelatorioPdf() {
+            const modal = document.getElementById('modalRelatorioPdf');
+            const iframe = document.getElementById('iframeRelatorioPdf');
+            modal.style.display = 'none';
+            iframe.src = '';
+            
+            // Restaurar scroll do body
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Fechar modal ao clicar fora do conteúdo
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('modalRelatorioPdf');
+            if (event.target === modal) {
+                fecharModalRelatorioPdf();
+            }
+        });
+        
+        // Fechar modal com a tecla ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modalRelatorio = document.getElementById('modalRelatorioPdf');
+                if (modalRelatorio.style.display === 'block') {
+                    fecharModalRelatorioPdf();
+                }
+            }
+        });
+        
     </script>
 </body>
 </html>
