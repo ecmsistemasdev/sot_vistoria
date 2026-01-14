@@ -7792,10 +7792,14 @@
                                 html += `<div><strong title="${demanda.nm_motorista}">${nomeAbreviado}</strong></div>`;
                             }                            
                             
-                            
                             if (demanda.setor) {
                                 html += `<div>${demanda.setor}</div>`;
                             }
+                            
+                            if (demanda.destino) {
+                                html += `<div>${demanda.destino}</div>`;
+                            }
+                            
                         }
                         
                         html += '</div></td>';
@@ -10102,6 +10106,7 @@
 </body>
 
 </html>
+
 
 
 
