@@ -13748,6 +13748,13 @@ def gerar_html_relatorio_pdf_simples(data):
 
 
 # ============================================================
+# ROTAS COMPLETAS - RELATÓRIO DE RETENÇÃO CONTA VINCULADA
+# COPIAR E COLAR DIRETO NO app.py
+# ============================================================
+# ADICIONAR LOGO APÓS A ROTA /relatorio-fiscalizacao-impressao
+# ============================================================
+
+# ============================================================
 # ROTA 1 - GERAR DADOS DO RELATÓRIO DE RETENÇÃO
 # ============================================================
 @app.route('/api/gestao-terceirizados/relatorio-retencao', methods=['POST'])
@@ -13768,9 +13775,7 @@ def api_gerar_relatorio_retencao():
         
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         
-        # ============================================================
-        # 1. BUSCAR DADOS DO CABEÇALHO
-        # ============================================================
+        # Buscar dados do cabeçalho
         cursor.execute("""
             SELECT 
                 c.CONTRATO,
@@ -13805,36 +13810,27 @@ def api_gerar_relatorio_retencao():
             float(contrato['PC_INCIDENCIAS'] or 0)
         )
         
-        # ============================================================
-        # 2. BUSCAR POSTOS E CALCULAR VALORES
-        # ============================================================
+        # Calcular primeiro e último dia do mês
+        from calendar import monthrange
+        from datetime import datetime, date
         
-        # Primeiro e último dia do mês
-        from datetime import datetime, timedelta
+        ano_int = int(ano)
         meses = {
             'JANEIRO': 1, 'FEVEREIRO': 2, 'MARÇO': 3, 'ABRIL': 4,
             'MAIO': 5, 'JUNHO': 6, 'JULHO': 7, 'AGOSTO': 8,
             'SETEMBRO': 9, 'OUTUBRO': 10, 'NOVEMBRO': 11, 'DEZEMBRO': 12
         }
+        mes_numero = meses.get(mes.upper())
         
-        mes_num = meses.get(mes.upper())
-        if not mes_num:
-            return jsonify({
-                'success': False,
-                'error': 'Mês inválido'
-            })
+        if not mes_numero:
+            cursor.close()
+            return jsonify({'success': False, 'error': 'Mês inválido'}), 400
         
-        primeiro_dia = datetime(int(ano), mes_num, 1)
-        
-        # Último dia do mês
-        if mes_num == 12:
-            ultimo_dia = datetime(int(ano) + 1, 1, 1) - timedelta(days=1)
-        else:
-            ultimo_dia = datetime(int(ano), mes_num + 1, 1) - timedelta(days=1)
-        
+        primeiro_dia = datetime(ano_int, mes_numero, 1).date()
+        ultimo_dia = datetime(ano_int, mes_numero, monthrange(ano_int, mes_numero)[1]).date()
         total_dias_mes = ultimo_dia.day
         
-        # Query para buscar postos e motoristas
+        # Buscar postos e motoristas
         cursor.execute("""
             SELECT 
                 p.ID_POSTO,
@@ -13860,9 +13856,7 @@ def api_gerar_relatorio_retencao():
         
         motoristas = cursor.fetchall()
         
-        # ============================================================
-        # 3. PROCESSAR DADOS POR POSTO
-        # ============================================================
+        # Processar dados por posto
         postos_dict = {}
         observacoes = []
         
@@ -13873,6 +13867,12 @@ def api_gerar_relatorio_retencao():
             dt_fim = motorista['DT_FIM']
             vl_salario = float(motorista['VL_SALARIO'] or 0)
             vl_mensal = float(motorista['VL_MENSAL'] or 0)
+            
+            # MySQL já retorna como date, mas garantir que seja date
+            if not isinstance(dt_inicio, date):
+                dt_inicio = dt_inicio.date() if dt_inicio else None
+            if dt_fim and not isinstance(dt_fim, date):
+                dt_fim = dt_fim.date() if dt_fim else None
             
             # Verificar se trabalhou o mês completo
             trabalhou_mes_completo = (
@@ -13885,16 +13885,16 @@ def api_gerar_relatorio_retencao():
                 dias_trabalhados = total_dias_mes
                 eh_parcial = False
             else:
-                # Calcular dias trabalhados no período
-                inicio_periodo = max(dt_inicio, primeiro_dia.date())
-                fim_periodo = min(dt_fim if dt_fim else ultimo_dia.date(), ultimo_dia.date())
+                inicio_periodo = max(dt_inicio, primeiro_dia)
+                fim_periodo = min(dt_fim if dt_fim else ultimo_dia, ultimo_dia)
                 dias_trabalhados = (fim_periodo - inicio_periodo).days + 1
                 eh_parcial = True
             
-            # Calcular salário proporcional
+            # Calcular valores proporcionais
             if eh_parcial:
-                vl_salario_proporcional = (vl_salario / total_dias_mes) * dias_trabalhados
-                vl_mensal_proporcional = (vl_mensal / total_dias_mes) * dias_trabalhados
+                proporcao = dias_trabalhados / total_dias_mes
+                vl_salario_proporcional = vl_salario * proporcao
+                vl_mensal_proporcional = vl_mensal * proporcao
             else:
                 vl_salario_proporcional = vl_salario
                 vl_mensal_proporcional = vl_mensal
@@ -13906,7 +13906,7 @@ def api_gerar_relatorio_retencao():
             ret_incidencias = vl_salario_proporcional * float(contrato['PC_INCIDENCIAS']) / 100
             ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
             
-            # Criar chave do posto (separar completos de parciais)
+            # Criar chave do posto
             chave_posto = f"{posto}_{'' if trabalhou_mes_completo else 'parcial'}"
             
             if chave_posto not in postos_dict:
@@ -13918,13 +13918,13 @@ def api_gerar_relatorio_retencao():
                     'vl_salario': vl_salario,
                     'vl_mensal': vl_mensal,
                     'motoristas': [],
+                    'vl_salario_proporcional': vl_salario_proporcional,
+                    'vl_mensal_proporcional': vl_mensal_proporcional,
                     'ret_13': ret_13,
                     'ret_ferias': ret_ferias,
                     'ret_fgts': ret_fgts,
                     'ret_incidencias': ret_incidencias,
                     'ret_total': ret_total,
-                    'vl_salario_proporcional': vl_salario_proporcional,
-                    'vl_mensal_proporcional': vl_mensal_proporcional,
                     'dias_trabalhados': dias_trabalhados,
                     'dt_inicio': dt_inicio,
                     'dt_fim': dt_fim
@@ -13938,9 +13938,7 @@ def api_gerar_relatorio_retencao():
                 'dias_trabalhados': dias_trabalhados
             })
         
-        # ============================================================
-        # 4. GERAR OBSERVAÇÕES AUTOMÁTICAS
-        # ============================================================
+        # Gerar observações automáticas
         for chave, posto_data in postos_dict.items():
             if posto_data['eh_parcial']:
                 dt_inicio = posto_data['dt_inicio']
@@ -13950,7 +13948,7 @@ def api_gerar_relatorio_retencao():
                 nome_posto = posto_data['de_posto']
                 
                 # Caso 1: Apenas DT_INICIO (ativação)
-                if dt_fim is None or dt_fim >= ultimo_dia.date():
+                if dt_fim is None or dt_fim >= ultimo_dia:
                     obs = f"(*) Ativação de {qtd} posto(s) {nome_posto} a partir de {dt_inicio.strftime('%d/%m/%Y')} ({dias} dias)"
                     observacoes.append(obs)
                 # Caso 2: Ambas as datas (temporário)
@@ -13958,10 +13956,7 @@ def api_gerar_relatorio_retencao():
                     obs = f"(*) {qtd} posto(s) {nome_posto} temporário(s) de {dias} dias trabalhados"
                     observacoes.append(obs)
         
-        # ============================================================
-        # 5. PREPARAR DADOS PARA RETORNO
-        # ============================================================
-        
+        # Preparar dados para retorno
         # Quadro 1 - Por posto (com salário)
         quadro1 = []
         for chave, posto_data in postos_dict.items():
@@ -13993,9 +13988,7 @@ def api_gerar_relatorio_retencao():
                 'ret_total': ret_unitario * qtd_postos
             })
         
-        # ============================================================
-        # 6. RETORNAR JSON
-        # ============================================================
+        # Retornar JSON
         resultado = {
             'success': True,
             'data': {
@@ -14040,7 +14033,6 @@ def api_gerar_relatorio_retencao():
 def relatorio_retencao_impressao():
     """Página separada para impressão do relatório de retenção"""
     return render_template('rel_retencao_contavinculada.html')
-
 
 
 
