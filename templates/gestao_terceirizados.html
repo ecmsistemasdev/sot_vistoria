@@ -1922,73 +1922,71 @@
                 return;
             }
             
+            // Clonar conteúdo
             const conteudoClonado = conteudoRelatorio.cloneNode(true);
             
+            // Remover loading do clone
             const loadingClone = conteudoClonado.querySelector('#loadingOverlay');
             if (loadingClone) {
                 loadingClone.remove();
             }
             
-            const htmlConteudo = conteudoClonado.innerHTML;
-            
-            // ✅ Usar aspas SIMPLES no HTML interno
-            const htmlCompleto = 
-                '<!DOCTYPE html>' +
-                '<html lang="pt-BR">' +
-                '<head>' +
-                '<meta charset="UTF-8">' +
-                '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-                '<title>Relatório de Fiscalização</title>' +
-                '<style>' +
-                '@page { size: A4 portrait; margin: 10mm; }' +
-                '* { margin: 0; padding: 0; box-sizing: border-box; }' +
-                'body { font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; color: #333; background: #fff; padding: 10px; }' +
-                '.print-button { position: fixed; top: 10px; right: 10px; padding: 12px 24px; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; }' +
-                '.print-button:hover { background: #34495e; }' +
-                '@media print { .print-button { display: none !important; } body { padding: 0; } table { page-break-inside: avoid; } }' +
-                'table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }' +
-                'table, th, td { border: 1px solid #2c3e50; }' +
-                'th { background: #34495e; color: white; padding: 6px; text-align: center; font-weight: bold; }' +
-                'td { padding: 5px; }' +
-                'h3, h4 { margin: 10px 0 8px 0; color: #2c3e50; }' +
-                '.center { text-align: center; }' +
-                '.right { text-align: right; }' +
-                '.bold { font-weight: bold; }' +
-                '.bg-yellow { background-color: #ffffcc !important; }' +
-                '.bg-gray { background-color: #f0f0f0 !important; }' +
-                '.bg-pink { background-color: #ffccff !important; }' +
-                '.bg-red { background-color: #ffcccc !important; }' +
-                '.text-blue { color: #3498db; }' +
-                '.text-red { color: #e74c3c; }' +
-                '.text-green { color: #27ae60; }' +
-                '#conteudoRelatorio { display: block !important; }' +
-                'img { max-width: 100%; height: auto; }' +
-                '</style>' +
-                '</head>' +
-                '<body>' +
-                // ✅ ASPAS SIMPLES no onclick
-                "<button class='print-button' onclick='window.print()'>🖨️ Imprimir / Salvar PDF</button>" +
-                '<div id="conteudoRelatorio">' +
-                htmlConteudo +
-                '</div>' +
-                '<script>' +
-                "document.addEventListener('keydown', function(e) {" +
-                "  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {" +
-                '    e.preventDefault();' +
-                '    window.print();' +
-                '  }' +
-                '});' +
-                '</script>' +
-                '</body>' +
-                '</html>';
-            
+            // Abrir nova aba
             const novaAba = window.open('', '_blank');
-            if (novaAba) {
-                novaAba.document.write(htmlCompleto);
-                novaAba.document.close();
-            } else {
-                alert('Não foi possível abrir nova aba. Verifique se o bloqueador de pop-ups está ativo.');
+            if (!novaAba) {
+                alert('Bloqueador de pop-ups ativo!');
+                return;
             }
+            
+            // Escrever HTML por partes (SEM problemas de aspas)
+            novaAba.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
+            novaAba.document.write('<title>Relatório de Fiscalização</title>');
+            
+            // CSS
+            novaAba.document.write('<style>');
+            novaAba.document.write('@page { size: A4 portrait; margin: 10mm; }');
+            novaAba.document.write('body { font-family: Arial; font-size: 11px; padding: 10px; }');
+            novaAba.document.write('table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }');
+            novaAba.document.write('table, th, td { border: 1px solid #2c3e50; }');
+            novaAba.document.write('th { background: #34495e; color: white; padding: 6px; text-align: center; }');
+            novaAba.document.write('td { padding: 5px; }');
+            novaAba.document.write('.center { text-align: center; }');
+            novaAba.document.write('.right { text-align: right; }');
+            novaAba.document.write('.bold { font-weight: bold; }');
+            novaAba.document.write('.bg-yellow { background-color: #ffffcc !important; }');
+            novaAba.document.write('.bg-gray { background-color: #f0f0f0 !important; }');
+            novaAba.document.write('.bg-pink { background-color: #ffccff !important; }');
+            novaAba.document.write('.bg-red { background-color: #ffcccc !important; }');
+            novaAba.document.write('.text-blue { color: #3498db; }');
+            novaAba.document.write('.text-red { color: #e74c3c; }');
+            novaAba.document.write('.text-green { color: #27ae60; }');
+            novaAba.document.write('.print-button { position: fixed; top: 10px; right: 10px; padding: 12px 24px; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; }');
+            novaAba.document.write('.print-button:hover { background: #34495e; }');
+            novaAba.document.write('@media print { .print-button { display: none !important; } body { padding: 0; } table { page-break-inside: avoid; } }');
+            novaAba.document.write('</style>');
+            
+            // Body
+            novaAba.document.write('</head><body>');
+            
+            // Botão de impressão
+            novaAba.document.write('<button class="print-button" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>');
+            
+            // Conteúdo do relatório
+            novaAba.document.write('<div id="conteudoRelatorio">');
+            novaAba.document.write(conteudoClonado.innerHTML);
+            novaAba.document.write('</div>');
+            
+            // Script para Ctrl+P
+            novaAba.document.write('<script>');
+            novaAba.document.write('document.addEventListener("keydown", function(e) {');
+            novaAba.document.write('if ((e.ctrlKey || e.metaKey) && e.key === "p") {');
+            novaAba.document.write('e.preventDefault(); window.print();');
+            novaAba.document.write('}');
+            novaAba.document.write('});');
+            novaAba.document.write('</script>');
+            
+            novaAba.document.write('</body></html>');
+            novaAba.document.close();
         }
         
         function fecharModalRelatorioPdf() {
