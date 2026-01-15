@@ -1929,46 +1929,66 @@
                 loadingClone.remove();
             }
             
-            // ✅ Abrir nova aba e construir direto no DOM
+            const htmlConteudo = conteudoClonado.innerHTML;
+            
+            // ✅ Usar aspas SIMPLES no HTML interno
+            const htmlCompleto = 
+                '<!DOCTYPE html>' +
+                '<html lang="pt-BR">' +
+                '<head>' +
+                '<meta charset="UTF-8">' +
+                '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+                '<title>Relatório de Fiscalização</title>' +
+                '<style>' +
+                '@page { size: A4 portrait; margin: 10mm; }' +
+                '* { margin: 0; padding: 0; box-sizing: border-box; }' +
+                'body { font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; color: #333; background: #fff; padding: 10px; }' +
+                '.print-button { position: fixed; top: 10px; right: 10px; padding: 12px 24px; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; }' +
+                '.print-button:hover { background: #34495e; }' +
+                '@media print { .print-button { display: none !important; } body { padding: 0; } table { page-break-inside: avoid; } }' +
+                'table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }' +
+                'table, th, td { border: 1px solid #2c3e50; }' +
+                'th { background: #34495e; color: white; padding: 6px; text-align: center; font-weight: bold; }' +
+                'td { padding: 5px; }' +
+                'h3, h4 { margin: 10px 0 8px 0; color: #2c3e50; }' +
+                '.center { text-align: center; }' +
+                '.right { text-align: right; }' +
+                '.bold { font-weight: bold; }' +
+                '.bg-yellow { background-color: #ffffcc !important; }' +
+                '.bg-gray { background-color: #f0f0f0 !important; }' +
+                '.bg-pink { background-color: #ffccff !important; }' +
+                '.bg-red { background-color: #ffcccc !important; }' +
+                '.text-blue { color: #3498db; }' +
+                '.text-red { color: #e74c3c; }' +
+                '.text-green { color: #27ae60; }' +
+                '#conteudoRelatorio { display: block !important; }' +
+                'img { max-width: 100%; height: auto; }' +
+                '</style>' +
+                '</head>' +
+                '<body>' +
+                // ✅ ASPAS SIMPLES no onclick
+                "<button class='print-button' onclick='window.print()'>🖨️ Imprimir / Salvar PDF</button>" +
+                '<div id="conteudoRelatorio">' +
+                htmlConteudo +
+                '</div>' +
+                '<script>' +
+                "document.addEventListener('keydown', function(e) {" +
+                "  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {" +
+                '    e.preventDefault();' +
+                '    window.print();' +
+                '  }' +
+                '});' +
+                '</script>' +
+                '</body>' +
+                '</html>';
+            
             const novaAba = window.open('', '_blank');
-            if (!novaAba) {
-                alert('Não foi possível abrir nova aba. Verifique o bloqueador de pop-ups.');
-                return;
+            if (novaAba) {
+                novaAba.document.write(htmlCompleto);
+                novaAba.document.close();
+            } else {
+                alert('Não foi possível abrir nova aba. Verifique se o bloqueador de pop-ups está ativo.');
             }
-            
-            // ✅ Escrever estrutura básica
-            novaAba.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório</title>');
-            
-            // ✅ Escrever CSS
-            novaAba.document.write('<style>');
-            novaAba.document.write('@page { size: A4 portrait; margin: 10mm; }');
-            novaAba.document.write('body { font-family: Arial; font-size: 11px; padding: 10px; }');
-            novaAba.document.write('table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }');
-            novaAba.document.write('table, th, td { border: 1px solid #2c3e50; }');
-            novaAba.document.write('th { background: #34495e; color: white; padding: 6px; }');
-            novaAba.document.write('td { padding: 5px; }');
-            novaAba.document.write('.print-button { position: fixed; top: 10px; right: 10px; padding: 12px 24px; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }');
-            novaAba.document.write('@media print { .print-button { display: none; } }');
-            novaAba.document.write('</style>');
-            
-            // ✅ Escrever body
-            novaAba.document.write('</head><body>');
-            
-            // ✅ Criar botão via DOM (sem problemas de aspas)
-            novaAba.document.write('<button class="print-button" id="btnPrint">🖨️ Imprimir / Salvar PDF</button>');
-            
-            // ✅ Escrever conteúdo
-            novaAba.document.write('<div id="conteudoRelatorio">');
-            novaAba.document.write(conteudoClonado.innerHTML);
-            novaAba.document.write('</div>');
-            
-            // ✅ Adicionar evento ao botão
-            novaAba.document.write('<script>');
-            novaAba.document.write('document.getElementById("btnPrint").onclick = function() { window.print(); };');
-            novaAba.document.write('</script>');
-            
-            novaAba.document.write('</body></html>');
-            novaAba.document.close();
         }
         
         function fecharModalRelatorioPdf() {
