@@ -1898,14 +1898,209 @@
         let dadosRelatorioAtual = null; // Armazena dados do último relatório gerado
         
         
+        // function visualizarPDFRelatorio() {
+        //     const params = new URLSearchParams({
+        //         id_contrato: dadosRelatorioAtual.id_contrato,
+        //         mes: dadosRelatorioAtual.mes,
+        //         ano: dadosRelatorioAtual.ano
+        //     });
+        //     
+        //     window.open(`/api/gestao-terceirizados/relatorio-fiscalizacao-html?${params}`, '_blank');
+        // }
+
         function visualizarPDFRelatorio() {
-            const params = new URLSearchParams({
-                id_contrato: dadosRelatorioAtual.id_contrato,
-                mes: dadosRelatorioAtual.mes,
-                ano: dadosRelatorioAtual.ano
-            });
+            // ✅ Pegar o HTML do conteúdo do relatório
+            const conteudoRelatorio = document.getElementById('conteudoRelatorio');
             
-            window.open(`/api/gestao-terceirizados/relatorio-fiscalizacao-html?${params}`, '_blank');
+            if (!conteudoRelatorio) {
+                alert('Nenhum relatório gerado ainda!');
+                return;
+            }
+            
+            // ✅ Clonar o conteúdo (clone profundo)
+            const conteudoClonado = conteudoRelatorio.cloneNode(true);
+            
+            // ✅ Remover o loading se existir no clone
+            const loadingClone = conteudoClonado.querySelector('#loadingOverlay');
+            if (loadingClone) {
+                loadingClone.remove();
+            }
+            
+            // ✅ Pegar o HTML clonado
+            const htmlConteudo = conteudoClonado.innerHTML;
+            
+            // ✅ Criar documento HTML completo para impressão
+            const htmlCompleto = `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Relatório de Fiscalização</title>
+            <style>
+                /* ============================================
+                   ESTILOS PARA IMPRESSÃO - A4 RETRATO
+                   ============================================ */
+                
+                @page {
+                    size: A4 portrait;
+                    margin: 10mm;
+                }
+                
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: Arial, sans-serif;
+                    font-size: 11px;
+                    line-height: 1.4;
+                    color: #333;
+                    background-color: #fff;
+                    padding: 10px;
+                }
+                
+                /* Botão de impressão fixo */
+                .print-button {
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    padding: 12px 24px;
+                    background-color: #2c3e50;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: bold;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    z-index: 1000;
+                    transition: background-color 0.3s;
+                }
+                
+                .print-button:hover {
+                    background-color: #34495e;
+                }
+                
+                @media print {
+                    .print-button {
+                        display: none !important;
+                    }
+                    
+                    body {
+                        padding: 0;
+                    }
+                    
+                    /* Evitar quebra de página dentro de tabelas */
+                    table {
+                        page-break-inside: avoid;
+                    }
+                }
+                
+                /* Tabelas */
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 10px;
+                }
+                
+                table, th, td {
+                    border: 1px solid #2c3e50;
+                }
+                
+                th {
+                    background-color: #34495e;
+                    color: white;
+                    padding: 6px;
+                    text-align: center;
+                    font-weight: bold;
+                }
+                
+                td {
+                    padding: 5px;
+                }
+                
+                /* Cabeçalhos e títulos */
+                h3, h4 {
+                    margin: 10px 0 8px 0;
+                    color: #2c3e50;
+                }
+                
+                /* Classes de alinhamento */
+                .center { text-align: center; }
+                .right { text-align: right; }
+                .bold { font-weight: bold; }
+                
+                /* Cores de fundo */
+                .bg-yellow { background-color: #ffffcc !important; }
+                .bg-gray { background-color: #f0f0f0 !important; }
+                .bg-pink { background-color: #ffccff !important; }
+                .bg-red { background-color: #ffcccc !important; }
+                .bg-blue { background-color: #e3f2fd !important; }
+                
+                /* Cores de texto */
+                .text-blue { color: #3498db; }
+                .text-red { color: #e74c3c; }
+                .text-green { color: #27ae60; }
+                
+                /* Remover padding/margin do conteúdo */
+                #conteudoRelatorio {
+                    display: block !important;
+                }
+                
+                /* Imagens (logo) */
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                
+                /* Ajustar tabelas grandes */
+                @media print {
+                    /* Força quebra de página antes de seções importantes */
+                    .secao-faixas,
+                    .secao-localidades {
+                        page-break-before: auto;
+                    }
+                    
+                    /* Mantém linhas da tabela juntas */
+                    tr {
+                        page-break-inside: avoid;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            
+            <!-- Botão de Impressão (visível apenas na tela) -->
+            <button class="print-button" onclick="window.print()">
+                🖨️ Imprimir / Salvar PDF
+            </button>
+            
+            <!-- Conteúdo do Relatório -->
+            <div id="conteudoRelatorio">
+                ${htmlConteudo}
+            </div>
+            
+            <script>
+                // Atalho de teclado para impressão
+                document.addEventListener('keydown', function(e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                        e.preventDefault();
+                        window.print();
+                    }
+                });
+            </script>
+            
+        </body>
+        </html>
+            `;
+            
+            // ✅ Abrir em nova aba
+            const novaAba = window.open('', '_blank');
+            novaAba.document.write(htmlCompleto);
+            novaAba.document.close();
         }
         
         function fecharModalRelatorioPdf() {
