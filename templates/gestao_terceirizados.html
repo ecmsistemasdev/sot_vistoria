@@ -651,6 +651,9 @@
                     <button class="btn btn-primary" onclick="abrirModalRelatorioFiscalizacao()">
                         📊 Relatório de Fiscalização
                     </button>
+                    <button class="btn btn-info" onclick="abrirModalRelatorioRetencao()" style="margin-left: 10px;">
+                        💰 Relatório de Retenção Conta Vinculada
+                    </button>                    
                     <button class="btn btn-warning" onclick="abrirModalOcorrencias()">
                         📋 Registro de Ocorrências
                     </button>
@@ -1127,7 +1130,217 @@
             </div>
         </div>
     </div>
+    <!-- Fim Modal Relatório Fiscalização -->
 
+    <!-- ============================================ -->
+    <!-- MODAL - RELATÓRIO DE RETENÇÃO CONTA VINCULADA -->
+    <!-- ============================================ -->
+    <div id="modalRelatorioRetencao" class="modal">
+        <div class="modal-content" style="width: 95%; max-width: 1400px;">
+            <div class="modal-header">
+                <h2>💰 Relatório de Retenção em Conta Vinculada</h2>
+                <span class="close" onclick="fecharModalRelatorioRetencao()">&times;</span>
+            </div>
+            <div class="modal-body">
+                
+                <!-- Loading Overlay -->
+                <div id="loadingOverlayRetencao" class="loading-overlay">
+                    <div class="loading-content">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">
+                            Gerando relatório<span class="loading-dots"></span>
+                        </div>
+                        <div class="loading-subtext">
+                            Processando dados
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtros -->
+                <div class="form-row form-row-3">
+                    <div class="form-group">
+                        <label for="retencaoMes">Mês: *</label>
+                        <select id="retencaoMes" required>
+                            <option value="">Selecione...</option>
+                            <option value="JANEIRO">Janeiro</option>
+                            <option value="FEVEREIRO">Fevereiro</option>
+                            <option value="MARÇO">Março</option>
+                            <option value="ABRIL">Abril</option>
+                            <option value="MAIO">Maio</option>
+                            <option value="JUNHO">Junho</option>
+                            <option value="JULHO">Julho</option>
+                            <option value="AGOSTO">Agosto</option>
+                            <option value="SETEMBRO">Setembro</option>
+                            <option value="OUTUBRO">Outubro</option>
+                            <option value="NOVEMBRO">Novembro</option>
+                            <option value="DEZEMBRO">Dezembro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="retencaoAno">Ano: *</label>
+                        <select id="retencaoAno" required>
+                            <option value="">Selecione...</option>
+                            <!-- Será preenchido dinamicamente -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button type="button" class="btn btn-primary" onclick="gerarRelatorioRetencao()">
+                            Gerar Relatório
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Conteúdo do Relatório -->
+                <div id="conteudoRelatorioRetencao" style="display: none;">
+                    
+                    <!-- Cabeçalho -->
+                    <div style="border: 2px solid #2c3e50; margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr>
+                                <td rowspan="2" style="width: 120px; padding: 10px; border: 1px solid #2c3e50; text-align: center; vertical-align: middle;">
+                                    <img src="static/img/logo_tjronovo.jpg" alt="Logo TJRO" style="max-width: 100%; max-height: 100px;">
+                                </td>
+                                <td style="padding: 10px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 14px;">
+                                    TRIBUNAL DE JUSTIÇA DO ESTADO DE RONDÔNIA
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 13px;">
+                                    RELATÓRIO DE RETENÇÃO EM CONTA VINCULADA
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; width: 150px; background-color: #f0f0f0;">Contrato</td>
+                                <td id="retCabContrato" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">Protocolo</td>
+                                <td id="retCabProtocolo" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">Contratada</td>
+                                <td id="retCabContratada" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 10px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">Mês/ano de verificação</td>
+                                <td id="retCabMesAno" style="padding: 5px 10px; border: 1px solid #2c3e50;">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- QUADRO 1 -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="text-align: center; margin-bottom: 10px; color: #2c3e50;">
+                            QUADRO DEMONSTRATIVO DO VALOR A SER RETIDO EM CONTA VINCULADA POR POSTO
+                        </h4>
+                        <div style="text-align: center; margin-bottom: 10px; font-size: 11px;">
+                            (RAT => <span id="retIdRat">-</span>)
+                        </div>
+                        <div style="text-align: center; margin-bottom: 15px; font-weight: bold; font-size: 12px;">
+                            <span id="retPc13">0,00%</span>, 
+                            <span id="retPcFerias">0,00%</span>, 
+                            <span id="retPcFgts">0,00%</span>, 
+                            <span id="retPcIncidencias">0,00%</span>, 
+                            <span id="retPcTotal" style="color: #2c3e50;">0,00%</span>
+                        </div>
+                        
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <thead>
+                                <tr style="background-color: #34495e; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: left;">Posto de Trabalho</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor da remuneração do posto</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">13º salário</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Férias + 1/3 constitucional</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Multa sobre FGTS rescisão</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Incidência do submódulo 4.1</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor da retenção para conta vinculada</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaQuadro1">
+                                <!-- Preenchido dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- QUADRO 2 -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="text-align: center; margin-bottom: 15px; color: #2c3e50;">
+                            QUADRO DEMONSTRATIVO DOS VALORES A SEREM RETIDOS EM CONTA VINCULADA
+                        </h4>
+                        
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <thead>
+                                <tr style="background-color: #34495e; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: left;">Posto de Trabalho</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 100px;">Valor proposto por empregado (B)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 80px;">Qtd. de postos (C)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 80px;">Qtd. de funcionário por posto (D)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 80px;">Qtd. Total de funcionários (E)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor Mensal por posto (F) = (B x E)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor da retenção para conta vinculada por funcionário (G)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor Mensal das retenções da conta vinculada por posto H = (G X E)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaQuadro2">
+                                <!-- Preenchido dinamicamente -->
+                            </tbody>
+                            <tfoot style="background-color: #34495e; color: white; font-weight: bold;">
+                                <tr>
+                                    <td style="padding: 8px; border: 1px solid #2c3e50; text-align: right;" colspan="5">TOTAL</td>
+                                    <td id="retTotalF" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">R$ 0,00</td>
+                                    <td style="padding: 8px; border: 1px solid #2c3e50;"></td>
+                                    <td id="retTotalH" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">R$ 0,00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <!-- Observações -->
+                    <div style="margin-bottom: 20px;">
+                        <div id="retObservacoes" style="font-size: 11px; padding: 10px; border: 1px solid #2c3e50; min-height: 60px; white-space: pre-line;">
+                            
+                        </div>
+                    </div>
+                    
+                    <!-- Gestor e Unidade -->
+                    <div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; width: 180px; background-color: #f0f0f0;">
+                                    Gestor do Contrato:
+                                </td>
+                                <td id="retGestor" style="padding: 8px; border: 1px solid #2c3e50;">
+                                    -
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #2c3e50; font-weight: bold; background-color: #f0f0f0;">
+                                    Unidade:
+                                </td>
+                                <td id="retUnidade" style="padding: 8px; border: 1px solid #2c3e50;">
+                                    -
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Botão Visualizar/Imprimir -->
+                <div style="text-align: right; margin-top: 20px;">
+                    <button id="btnVisualizarPDFRetencao" class="btn btn-success" onclick="visualizarPDFRelatorioRetencao()" style="display: none;">
+                        🖨️ Abrir para Impressão
+                    </button>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
     <!-- Modal Visualizador de PDF do Relatório -->
     <div id="modalRelatorioPdf" class="modal-relatorio-pdf">
         <div class="modal-relatorio-pdf-content">
