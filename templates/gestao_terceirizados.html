@@ -1922,7 +1922,6 @@
                 return;
             }
             
-            // Clonar e remover loading
             const conteudoClonado = conteudoRelatorio.cloneNode(true);
             const loadingClone = conteudoClonado.querySelector('#loadingOverlay');
             if (loadingClone) loadingClone.remove();
@@ -1930,8 +1929,8 @@
             // Salvar no localStorage
             localStorage.setItem('relatorioHTML', conteudoClonado.innerHTML);
             
-            // Abrir arquivo separado
-            window.open('/rel_fiscalizacao.html', '_blank');
+            // Abrir via rota
+            window.open('/relatorio-fiscalizacao-impressao', '_blank');
         }
         
         function fecharModalRelatorioPdf() {
