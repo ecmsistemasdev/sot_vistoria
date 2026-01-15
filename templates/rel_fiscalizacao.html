@@ -7,7 +7,7 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 8mm 10mm;
         }
         
         * {
@@ -17,9 +17,11 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #fff;
-            padding: 15px;
+            padding: 5px;
+            font-size: 9px;
+            line-height: 1.2;
         }
         
         /* Botão de impressão */
@@ -27,13 +29,13 @@
             position: fixed;
             top: 10px;
             right: 10px;
-            padding: 12px 24px;
+            padding: 10px 20px;
             background-color: #2c3e50;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             z-index: 1000;
@@ -50,24 +52,117 @@
             
             body {
                 padding: 0;
+                font-size: 8.5px;
             }
             
-            /* ✅ BORDAS FINAS NA IMPRESSÃO */
+            /* Bordas finas na impressão */
             table, th, td {
                 border-width: 0.5pt !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
+            
+            /* Reduzir espaçamentos */
+            #conteudoRelatorio > div {
+                margin-bottom: 3mm !important;
+            }
+            
+            table {
+                margin-bottom: 2mm !important;
+            }
         }
         
-        /* Garantir que os estilos inline do modal sejam respeitados */
-        #conteudoRelatorio {
-            display: block !important;
-        }
-        
-        /* ✅ FORÇAR BORDAS FINAS SEMPRE */
+        /* Forçar bordas finas */
         table, th, td {
             border-width: 0.75px !important;
+        }
+        
+        /* Reduzir padding das células */
+        #conteudoRelatorio table td,
+        #conteudoRelatorio table th {
+            padding: 3px 4px !important;
+            line-height: 1.1 !important;
+        }
+        
+        /* Reduzir margem entre seções */
+        #conteudoRelatorio > div {
+            margin-bottom: 5px !important;
+        }
+        
+        /* Compactar cabeçalho */
+        #conteudoRelatorio > div:first-child {
+            margin-bottom: 5px !important;
+        }
+        
+        #conteudoRelatorio > div:first-child table {
+            font-size: 10px !important;
+        }
+        
+        #conteudoRelatorio > div:first-child table td {
+            padding: 3px 6px !important;
+        }
+        
+        /* Compactar logo */
+        #conteudoRelatorio img {
+            max-height: 70px !important;
+        }
+        
+        /* Reduzir altura das linhas */
+        #conteudoRelatorio tbody tr {
+            height: auto !important;
+        }
+        
+        /* Títulos mais compactos */
+        #conteudoRelatorio th {
+            padding: 4px 3px !important;
+            font-size: 9px !important;
+        }
+        
+        /* Tabela de ocorrências */
+        #conteudoRelatorio .ocorrencias-table {
+            font-size: 8.5px !important;
+        }
+        
+        /* Observações mais compactas */
+        #conteudoRelatorio #relObservacoes {
+            min-height: 40px !important;
+            padding: 5px !important;
+        }
+        
+        /* Garantir que cabe em 1 página */
+        #conteudoRelatorio {
+            display: block !important;
+            max-height: 277mm;
+            overflow: hidden;
+        }
+        
+        @media print {
+            /* Ajustes específicos para impressão */
+            #conteudoRelatorio table td {
+                padding: 2px 3px !important;
+            }
+            
+            #conteudoRelatorio th {
+                padding: 3px 2px !important;
+            }
+            
+            /* Logo ainda menor na impressão */
+            #conteudoRelatorio img {
+                max-height: 60px !important;
+            }
+            
+            /* Fonte menor na impressão */
+            body {
+                font-size: 8px;
+            }
+            
+            #conteudoRelatorio table {
+                font-size: 8px !important;
+            }
+            
+            #conteudoRelatorio th {
+                font-size: 8px !important;
+            }
         }
     </style>
 </head>
@@ -75,7 +170,7 @@
     
     <!-- Botão de Impressão -->
     <button class="print-button" onclick="window.print()">
-        🖨️ Imprimir / Salvar PDF
+        🖨️ Imprimir PDF
     </button>
     
     <!-- CONTEÚDO DO RELATÓRIO -->
@@ -97,8 +192,24 @@
             const htmlConteudo = localStorage.getItem('relatorioHTML');
             
             if (htmlConteudo) {
-                // Inserir o HTML exatamente como está
+                // Inserir o HTML
                 document.getElementById('conteudoRelatorio').innerHTML = htmlConteudo;
+                
+                // Aplicar classes para compactar
+                const divs = document.querySelectorAll('#conteudoRelatorio > div');
+                divs.forEach(function(div) {
+                    // Reduzir margin-bottom
+                    const style = div.getAttribute('style') || '';
+                    if (style.includes('margin-bottom')) {
+                        div.setAttribute('style', style.replace(/margin-bottom:\s*\d+px/g, 'margin-bottom: 5px'));
+                    }
+                });
+                
+                // Compactar tabelas de ocorrências (tfoot com tabela aninhada)
+                const nestedTables = document.querySelectorAll('#conteudoRelatorio tfoot table');
+                nestedTables.forEach(function(table) {
+                    table.style.fontSize = '8.5px';
+                });
                 
                 // Limpar localStorage
                 localStorage.removeItem('relatorioHTML');
