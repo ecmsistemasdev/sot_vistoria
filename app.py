@@ -12094,7 +12094,15 @@ Adicionar estas rotas ao arquivo app.py
 def gestao_terceirizados():
     return render_template('gestao_terceirizados.html')
 
-
+# ============================================================
+# ROTA - RELATÓRIO DE FISCALIZAÇÃO (IMPRESSÃO)
+# ============================================================
+@app.route('/relatorio-fiscalizacao-impressao')
+@login_required
+def relatorio_fiscalizacao_impressao():
+    """Página separada para impressão do relatório de fiscalização"""
+    return render_template('rel_fiscalizacao.html')
+		
 # ============================================================
 # API - LISTAR CONTRATOS
 # ============================================================
@@ -13739,4 +13747,5 @@ def gerar_html_relatorio_pdf_simples(data):
     return html
 
 if __name__ == '__main__':
+
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
