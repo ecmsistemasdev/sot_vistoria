@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="static/img/logo_sotweb.jpg">
-    <title>Relatório de Fiscalização Terceirizados</title>
+    <title>Relatório de Fiscalização</title>
     <style>
         @page {
             size: A4 portrait;
@@ -108,6 +108,11 @@
             max-height: 80px !important;
         }
         
+        /* ✅ REMOVER LINHA ENTRE LOGO E "CONTRATO" */
+        #conteudoRelatorio > div:first-child > div > table:nth-child(2) tr:first-child td {
+            border-top: none !important;
+        }
+        
         /* Reduzir altura das linhas */
         #conteudoRelatorio tbody tr {
             height: auto !important;
@@ -195,6 +200,19 @@
             if (htmlConteudo) {
                 // Inserir o HTML
                 document.getElementById('conteudoRelatorio').innerHTML = htmlConteudo;
+                
+                // ✅ ATUALIZAR TÍTULO DINAMICAMENTE
+                try {
+                    const mesAnoElement = document.getElementById('relCabMesAno');
+                    if (mesAnoElement) {
+                        const mesAno = mesAnoElement.textContent.trim();
+                        if (mesAno && mesAno !== '-') {
+                            document.title = 'Relatório de Fiscalização ' + mesAno;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Não foi possível atualizar o título:', e);
+                }
                 
                 // Aplicar classes para compactar
                 const divs = document.querySelectorAll('#conteudoRelatorio > div');
