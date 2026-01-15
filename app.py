@@ -13747,7 +13747,7 @@ def gerar_html_relatorio_pdf_simples(data):
     return html
 
 
- ============================================================
+# ============================================================
 # ROTA 1 - GERAR DADOS DO RELATÓRIO DE RETENÇÃO
 # ============================================================
 @app.route('/api/gestao-terceirizados/relatorio-retencao', methods=['POST'])
@@ -14047,4 +14047,5 @@ def relatorio_retencao_impressao():
 if __name__ == '__main__':
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
