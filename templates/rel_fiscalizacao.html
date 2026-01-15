@@ -17,15 +17,12 @@
         }
         
         body {
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-            line-height: 1.4;
-            color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #fff;
-            padding: 10px;
+            padding: 15px;
         }
         
-        /* Botão de impressão fixo */
+        /* Botão de impressão */
         .print-button {
             position: fixed;
             top: 10px;
@@ -54,82 +51,11 @@
             body {
                 padding: 0;
             }
-            
-            table {
-                page-break-inside: avoid;
-            }
         }
         
-        /* Tabelas */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-        
-        table, th, td {
-            border: 1px solid #2c3e50;
-        }
-        
-        th {
-            background-color: #34495e;
-            color: white;
-            padding: 6px;
-            text-align: center;
-            font-weight: bold;
-        }
-        
-        td {
-            padding: 5px;
-        }
-        
-        /* Títulos */
-        h3, h4 {
-            margin: 10px 0 8px 0;
-            color: #2c3e50;
-        }
-        
-        /* Classes utilitárias */
-        .center { text-align: center; }
-        .right { text-align: right; }
-        .bold { font-weight: bold; }
-        
-        /* Cores de fundo */
-        .bg-yellow { background-color: #ffffcc !important; }
-        .bg-gray { background-color: #f0f0f0 !important; }
-        .bg-pink { background-color: #ffccff !important; }
-        .bg-red { background-color: #ffcccc !important; }
-        .bg-blue { background-color: #e3f2fd !important; }
-        
-        /* Cores de texto */
-        .text-blue { color: #3498db; }
-        .text-red { color: #e74c3c; }
-        .text-green { color: #27ae60; }
-        
-        /* Logo */
-        .header-logo {
-            width: 100px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        
-        .header-logo img {
-            max-width: 90px;
-            max-height: 80px;
-        }
-        
-        .header-title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 12px;
-            padding: 8px;
-        }
-        
-        /* Info labels */
-        .info-label {
-            background-color: #f0f0f0;
-            font-weight: bold;
-            width: 180px;
+        /* Garantir que os estilos inline do modal sejam respeitados */
+        #conteudoRelatorio {
+            display: block !important;
         }
     </style>
 </head>
@@ -140,9 +66,9 @@
         🖨️ Imprimir / Salvar PDF
     </button>
     
-    <!-- CONTEÚDO SERÁ PREENCHIDO VIA JAVASCRIPT -->
+    <!-- CONTEÚDO DO RELATÓRIO -->
     <div id="conteudoRelatorio">
-        <!-- JavaScript vai preencher aqui -->
+        <!-- JavaScript vai inserir o HTML aqui -->
     </div>
     
     <script>
@@ -154,19 +80,19 @@
             }
         });
         
-        // Função para receber dados via URL params ou localStorage
+        // Carregar conteúdo do localStorage
         window.addEventListener('DOMContentLoaded', function() {
-            // Tentar pegar do localStorage
             const htmlConteudo = localStorage.getItem('relatorioHTML');
             
             if (htmlConteudo) {
+                // Inserir o HTML exatamente como está
                 document.getElementById('conteudoRelatorio').innerHTML = htmlConteudo;
-                // Limpar localStorage após usar
+                
+                // Limpar localStorage
                 localStorage.removeItem('relatorioHTML');
             } else {
-                // Se não tem conteúdo, mostrar mensagem
                 document.getElementById('conteudoRelatorio').innerHTML = 
-                    '<div style="padding: 50px; text-align: center; color: #999;">' +
+                    '<div style="padding: 50px; text-align: center; color: #999; font-family: Arial;">' +
                     '<h2>Nenhum relatório carregado</h2>' +
                     '<p>Por favor, gere o relatório na página principal.</p>' +
                     '</div>';
