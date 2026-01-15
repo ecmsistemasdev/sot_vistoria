@@ -51,11 +51,23 @@
             body {
                 padding: 0;
             }
+            
+            /* ✅ BORDAS FINAS NA IMPRESSÃO */
+            table, th, td {
+                border-width: 0.5pt !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
         
         /* Garantir que os estilos inline do modal sejam respeitados */
         #conteudoRelatorio {
             display: block !important;
+        }
+        
+        /* ✅ FORÇAR BORDAS FINAS SEMPRE */
+        table, th, td {
+            border-width: 0.75px !important;
         }
     </style>
 </head>
