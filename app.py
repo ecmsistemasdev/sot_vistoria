@@ -13746,6 +13746,305 @@ def gerar_html_relatorio_pdf_simples(data):
     
     return html
 
+
+ ============================================================
+# ROTA 1 - GERAR DADOS DO RELATÓRIO DE RETENÇÃO
+# ============================================================
+@app.route('/api/gestao-terceirizados/relatorio-retencao', methods=['POST'])
+@login_required
+def api_gerar_relatorio_retencao():
+    """Gera o relatório de retenção em conta vinculada"""
+    try:
+        data = request.get_json()
+        id_contrato = data.get('id_contrato')
+        mes = data.get('mes')
+        ano = data.get('ano')
+        
+        if not all([id_contrato, mes, ano]):
+            return jsonify({
+                'success': False,
+                'error': 'Parâmetros incompletos'
+            })
+        
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # ============================================================
+        # 1. BUSCAR DADOS DO CABEÇALHO
+        # ============================================================
+        cursor.execute("""
+            SELECT 
+                c.CONTRATO,
+                c.PROCESSO,
+                f.NM_FORNECEDOR,
+                c.SETOR_GESTOR,
+                c.NOME_GESTOR,
+                c.ID_RAT,
+                r.PC_13,
+                r.PC_FERIAS,
+                r.PC_MULTA_FGTS,
+                r.PC_INCIDENCIAS
+            FROM GESTAO_CONTRATOS_TERCEIRIZADOS c
+            LEFT JOIN CAD_FORNECEDOR f ON c.ID_FORNECEDOR = f.ID_FORNECEDOR
+            LEFT JOIN PARAMETRO_RETENCAO_CONTA_VINCULADA r ON c.ID_RAT = r.ID_RAT
+            WHERE c.ID_CONTRATO = %s
+        """, (id_contrato,))
+        
+        contrato = cursor.fetchone()
+        
+        if not contrato:
+            return jsonify({
+                'success': False,
+                'error': 'Contrato não encontrado'
+            })
+        
+        # Calcular percentual total
+        pc_total = (
+            float(contrato['PC_13'] or 0) +
+            float(contrato['PC_FERIAS'] or 0) +
+            float(contrato['PC_MULTA_FGTS'] or 0) +
+            float(contrato['PC_INCIDENCIAS'] or 0)
+        )
+        
+        # ============================================================
+        # 2. BUSCAR POSTOS E CALCULAR VALORES
+        # ============================================================
+        
+        # Primeiro e último dia do mês
+        from datetime import datetime, timedelta
+        meses = {
+            'JANEIRO': 1, 'FEVEREIRO': 2, 'MARÇO': 3, 'ABRIL': 4,
+            'MAIO': 5, 'JUNHO': 6, 'JULHO': 7, 'AGOSTO': 8,
+            'SETEMBRO': 9, 'OUTUBRO': 10, 'NOVEMBRO': 11, 'DEZEMBRO': 12
+        }
+        
+        mes_num = meses.get(mes.upper())
+        if not mes_num:
+            return jsonify({
+                'success': False,
+                'error': 'Mês inválido'
+            })
+        
+        primeiro_dia = datetime(int(ano), mes_num, 1)
+        
+        # Último dia do mês
+        if mes_num == 12:
+            ultimo_dia = datetime(int(ano) + 1, 1, 1) - timedelta(days=1)
+        else:
+            ultimo_dia = datetime(int(ano), mes_num + 1, 1) - timedelta(days=1)
+        
+        total_dias_mes = ultimo_dia.day
+        
+        # Query para buscar postos e motoristas
+        cursor.execute("""
+            SELECT 
+                p.ID_POSTO,
+                p.DE_POSTO,
+                m.ID_MOTORISTA,
+                m.NM_MOTORISTA,
+                mp.DT_INICIO,
+                mp.DT_FIM,
+                pv.VL_MENSAL,
+                pv.VL_SALARIO
+            FROM POSTO_TRABALHO p
+            INNER JOIN POSTO_TRABALHO_VINCULO pv_link ON p.ID_POSTO = pv_link.ID_POSTO
+            INNER JOIN CAD_MOTORISTA m ON pv_link.ID_MOTORISTA = m.ID_MOTORISTA
+            INNER JOIN CAD_MOTORISTA_PERIODOS mp ON m.ID_MOTORISTA = mp.ID_MOTORISTA
+            LEFT JOIN POSTO_TRABALHO_VALORES pv ON p.ID_POSTO = pv.ID_POSTO
+                AND pv.DT_INICIO <= %s
+                AND (pv.DT_FIM IS NULL OR pv.DT_FIM >= %s)
+            WHERE p.ID_CONTRATO = %s
+                AND mp.DT_INICIO <= %s
+                AND (mp.DT_FIM IS NULL OR mp.DT_FIM >= %s)
+            ORDER BY p.DE_POSTO, m.NM_MOTORISTA
+        """, (ultimo_dia, primeiro_dia, id_contrato, ultimo_dia, primeiro_dia))
+        
+        motoristas = cursor.fetchall()
+        
+        # ============================================================
+        # 3. PROCESSAR DADOS POR POSTO
+        # ============================================================
+        postos_dict = {}
+        observacoes = []
+        
+        for motorista in motoristas:
+            posto = motorista['DE_POSTO']
+            id_posto = motorista['ID_POSTO']
+            dt_inicio = motorista['DT_INICIO']
+            dt_fim = motorista['DT_FIM']
+            vl_salario = float(motorista['VL_SALARIO'] or 0)
+            vl_mensal = float(motorista['VL_MENSAL'] or 0)
+            
+            # Verificar se trabalhou o mês completo
+            trabalhou_mes_completo = (
+                dt_inicio <= primeiro_dia and
+                (dt_fim is None or dt_fim >= ultimo_dia)
+            )
+            
+            # Calcular dias trabalhados
+            if trabalhou_mes_completo:
+                dias_trabalhados = total_dias_mes
+                eh_parcial = False
+            else:
+                # Calcular dias trabalhados no período
+                inicio_periodo = max(dt_inicio, primeiro_dia.date())
+                fim_periodo = min(dt_fim if dt_fim else ultimo_dia.date(), ultimo_dia.date())
+                dias_trabalhados = (fim_periodo - inicio_periodo).days + 1
+                eh_parcial = True
+            
+            # Calcular salário proporcional
+            if eh_parcial:
+                vl_salario_proporcional = (vl_salario / total_dias_mes) * dias_trabalhados
+                vl_mensal_proporcional = (vl_mensal / total_dias_mes) * dias_trabalhados
+            else:
+                vl_salario_proporcional = vl_salario
+                vl_mensal_proporcional = vl_mensal
+            
+            # Calcular retenções
+            ret_13 = vl_salario_proporcional * float(contrato['PC_13']) / 100
+            ret_ferias = vl_salario_proporcional * float(contrato['PC_FERIAS']) / 100
+            ret_fgts = vl_salario_proporcional * float(contrato['PC_MULTA_FGTS']) / 100
+            ret_incidencias = vl_salario_proporcional * float(contrato['PC_INCIDENCIAS']) / 100
+            ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
+            
+            # Criar chave do posto (separar completos de parciais)
+            chave_posto = f"{posto}_{'' if trabalhou_mes_completo else 'parcial'}"
+            
+            if chave_posto not in postos_dict:
+                postos_dict[chave_posto] = {
+                    'de_posto': posto,
+                    'id_posto': id_posto,
+                    'eh_parcial': eh_parcial,
+                    'quantidade': 0,
+                    'vl_salario': vl_salario,
+                    'vl_mensal': vl_mensal,
+                    'motoristas': [],
+                    'ret_13': ret_13,
+                    'ret_ferias': ret_ferias,
+                    'ret_fgts': ret_fgts,
+                    'ret_incidencias': ret_incidencias,
+                    'ret_total': ret_total,
+                    'vl_salario_proporcional': vl_salario_proporcional,
+                    'vl_mensal_proporcional': vl_mensal_proporcional,
+                    'dias_trabalhados': dias_trabalhados,
+                    'dt_inicio': dt_inicio,
+                    'dt_fim': dt_fim
+                }
+            
+            postos_dict[chave_posto]['quantidade'] += 1
+            postos_dict[chave_posto]['motoristas'].append({
+                'nome': motorista['NM_MOTORISTA'],
+                'dt_inicio': dt_inicio,
+                'dt_fim': dt_fim,
+                'dias_trabalhados': dias_trabalhados
+            })
+        
+        # ============================================================
+        # 4. GERAR OBSERVAÇÕES AUTOMÁTICAS
+        # ============================================================
+        for chave, posto_data in postos_dict.items():
+            if posto_data['eh_parcial']:
+                dt_inicio = posto_data['dt_inicio']
+                dt_fim = posto_data['dt_fim']
+                dias = posto_data['dias_trabalhados']
+                qtd = posto_data['quantidade']
+                nome_posto = posto_data['de_posto']
+                
+                # Caso 1: Apenas DT_INICIO (ativação)
+                if dt_fim is None or dt_fim >= ultimo_dia.date():
+                    obs = f"(*) Ativação de {qtd} posto(s) {nome_posto} a partir de {dt_inicio.strftime('%d/%m/%Y')} ({dias} dias)"
+                    observacoes.append(obs)
+                # Caso 2: Ambas as datas (temporário)
+                else:
+                    obs = f"(*) {qtd} posto(s) {nome_posto} temporário(s) de {dias} dias trabalhados"
+                    observacoes.append(obs)
+        
+        # ============================================================
+        # 5. PREPARAR DADOS PARA RETORNO
+        # ============================================================
+        
+        # Quadro 1 - Por posto (com salário)
+        quadro1 = []
+        for chave, posto_data in postos_dict.items():
+            quadro1.append({
+                'de_posto': posto_data['de_posto'] + (' (*)' if posto_data['eh_parcial'] else ''),
+                'vl_salario': posto_data['vl_salario_proporcional'],
+                'ret_13': posto_data['ret_13'],
+                'ret_ferias': posto_data['ret_ferias'],
+                'ret_fgts': posto_data['ret_fgts'],
+                'ret_incidencias': posto_data['ret_incidencias'],
+                'ret_total': posto_data['ret_total']
+            })
+        
+        # Quadro 2 - Resumo por posto (com valor mensal)
+        quadro2 = []
+        for chave, posto_data in postos_dict.items():
+            qtd_postos = posto_data['quantidade']
+            vl_mensal = posto_data['vl_mensal_proporcional']
+            ret_unitario = posto_data['ret_total']
+            
+            quadro2.append({
+                'de_posto': posto_data['de_posto'] + (' (*)' if posto_data['eh_parcial'] else ''),
+                'vl_mensal': vl_mensal,
+                'qtd_postos': qtd_postos,
+                'qtd_por_posto': 1,
+                'qtd_total_func': qtd_postos,
+                'vl_mensal_total': vl_mensal * qtd_postos,
+                'ret_unitario': ret_unitario,
+                'ret_total': ret_unitario * qtd_postos
+            })
+        
+        # ============================================================
+        # 6. RETORNAR JSON
+        # ============================================================
+        resultado = {
+            'success': True,
+            'data': {
+                'cabecalho': {
+                    'contrato': contrato['CONTRATO'],
+                    'protocolo': contrato['PROCESSO'],
+                    'contratada': contrato['NM_FORNECEDOR'],
+                    'mes_ano': f"{mes}/{ano}",
+                    'gestor': contrato['NOME_GESTOR'],
+                    'unidade': contrato['SETOR_GESTOR'],
+                    'id_rat': contrato['ID_RAT'],
+                    'pc_13': float(contrato['PC_13']),
+                    'pc_ferias': float(contrato['PC_FERIAS']),
+                    'pc_fgts': float(contrato['PC_MULTA_FGTS']),
+                    'pc_incidencias': float(contrato['PC_INCIDENCIAS']),
+                    'pc_total': pc_total
+                },
+                'quadro1': quadro1,
+                'quadro2': quadro2,
+                'observacoes': observacoes
+            }
+        }
+        
+        cursor.close()
+        return jsonify(resultado)
+        
+    except Exception as e:
+        print(f"Erro ao gerar relatório de retenção: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
+# ============================================================
+# ROTA 2 - PÁGINA DE IMPRESSÃO
+# ============================================================
+@app.route('/relatorio-retencao-impressao')
+@login_required
+def relatorio_retencao_impressao():
+    """Página separada para impressão do relatório de retenção"""
+    return render_template('rel_retencao_contavinculada.html')
+
+
+
+
 if __name__ == '__main__':
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
