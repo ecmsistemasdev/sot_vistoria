@@ -2145,6 +2145,224 @@
             // Abrir via rota
             window.open('/relatorio-fiscalizacao-impressao', '_blank');
         }
+
+        // ============================================
+        // RELATÓRIO DE RETENÇÃO CONTA VINCULADA
+        // ============================================
+        
+        let dadosRelatorioRetencaoAtual = null;
+        
+        function abrirModalRelatorioRetencao() {
+            const modal = document.getElementById('modalRelatorioRetencao');
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Preencher anos dinamicamente (2024 até ano atual)
+            const selectAno = document.getElementById('retencaoAno');
+            if (selectAno.options.length <= 1) {
+                const anoAtual = new Date().getFullYear();
+                for (let ano = 2024; ano <= anoAtual; ano++) {
+                    const option = document.createElement('option');
+                    option.value = ano;
+                    option.textContent = ano;
+                    selectAno.appendChild(option);
+                }
+            }
+            
+            // Definir mês e ano atual
+            const mesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).toUpperCase();
+            const mesesMap = {
+                'JANEIRO': 'JANEIRO', 'FEVEREIRO': 'FEVEREIRO', 'MARÇO': 'MARÇO',
+                'ABRIL': 'ABRIL', 'MAIO': 'MAIO', 'JUNHO': 'JUNHO',
+                'JULHO': 'JULHO', 'AGOSTO': 'AGOSTO', 'SETEMBRO': 'SETEMBRO',
+                'OUTUBRO': 'OUTUBRO', 'NOVEMBRO': 'NOVEMBRO', 'DEZEMBRO': 'DEZEMBRO'
+            };
+            
+            document.getElementById('retencaoMes').value = mesesMap[mesAtual] || 'JANEIRO';
+            selectAno.value = anoAtual;
+        }
+        
+        function fecharModalRelatorioRetencao() {
+            const modal = document.getElementById('modalRelatorioRetencao');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        
+        async function gerarRelatorioRetencao() {
+            const mes = document.getElementById('retencaoMes').value;
+            const ano = document.getElementById('retencaoAno').value;
+            
+            if (!contratoSelecionado) {
+                alert('Selecione um contrato primeiro!');
+                return;
+            }
+            
+            if (!mes || !ano) {
+                alert('Selecione o mês e o ano!');
+                return;
+            }
+            
+            const conteudoRelatorio = document.getElementById('conteudoRelatorioRetencao');
+            const jaTemConteudo = conteudoRelatorio.style.display === 'block';
+            
+            try {
+                // Mostrar loading
+                const loadingOverlay = document.getElementById('loadingOverlayRetencao');
+                loadingOverlay.classList.add('active');
+                
+                if (jaTemConteudo) {
+                    conteudoRelatorio.classList.add('relatorio-blur');
+                }
+                
+                const response = await fetch('/api/gestao-terceirizados/relatorio-retencao', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_contrato: contratoSelecionado.ID_CONTRATO,
+                        mes: mes,
+                        ano: ano
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    dadosRelatorioRetencaoAtual = {
+                        id_contrato: contratoSelecionado.ID_CONTRATO,
+                        mes: mes,
+                        ano: ano
+                    };
+                    
+                    // Delay mínimo
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    conteudoRelatorio.classList.remove('relatorio-blur');
+                    preencherRelatorioRetencao(result.data);
+                    conteudoRelatorio.style.display = 'block';
+                    document.getElementById('btnVisualizarPDFRetencao').style.display = 'inline-block';
+                } else {
+                    alert('Erro ao gerar relatório: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao gerar relatório:', error);
+                alert('Erro ao gerar relatório');
+            } finally {
+                const loadingOverlay = document.getElementById('loadingOverlayRetencao');
+                loadingOverlay.classList.remove('active');
+                conteudoRelatorio.classList.remove('relatorio-blur');
+            }
+        }
+        
+        function preencherRelatorioRetencao(data) {
+            // Cabeçalho
+            document.getElementById('retCabContrato').textContent = data.cabecalho.contrato || '-';
+            document.getElementById('retCabProtocolo').textContent = data.cabecalho.protocolo || '-';
+            document.getElementById('retCabContratada').textContent = data.cabecalho.contratada || '-';
+            document.getElementById('retCabMesAno').textContent = data.cabecalho.mes_ano || '-';
+            
+            // RAT e Percentuais
+            document.getElementById('retIdRat').textContent = data.cabecalho.id_rat || '-';
+            document.getElementById('retPc13').textContent = data.cabecalho.pc_13.toFixed(2) + '%';
+            document.getElementById('retPcFerias').textContent = data.cabecalho.pc_ferias.toFixed(2) + '%';
+            document.getElementById('retPcFgts').textContent = data.cabecalho.pc_fgts.toFixed(2) + '%';
+            document.getElementById('retPcIncidencias').textContent = data.cabecalho.pc_incidencias.toFixed(2) + '%';
+            document.getElementById('retPcTotal').textContent = data.cabecalho.pc_total.toFixed(2) + '%';
+            
+            // Quadro 1
+            const tbody1 = document.getElementById('tabelaQuadro1');
+            tbody1.innerHTML = '';
+            
+            data.quadro1.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 6px; border: 1px solid #2c3e50;">${item.de_posto}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.vl_salario)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.ret_13)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.ret_ferias)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.ret_fgts)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.ret_incidencias)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; font-weight: bold;">${formatarMoedaBRL(item.ret_total)}</td>
+                `;
+                tbody1.appendChild(tr);
+            });
+            
+            // Quadro 2
+            const tbody2 = document.getElementById('tabelaQuadro2');
+            tbody2.innerHTML = '';
+            
+            let totalF = 0;
+            let totalH = 0;
+            
+            data.quadro2.forEach(item => {
+                totalF += item.vl_mensal_total;
+                totalH += item.ret_total;
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 6px; border: 1px solid #2c3e50;">${item.de_posto}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.vl_mensal)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${item.qtd_postos}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${item.qtd_por_posto}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${item.qtd_total_func}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.vl_mensal_total)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.ret_unitario)}</td>
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; font-weight: bold;">${formatarMoedaBRL(item.ret_total)}</td>
+                `;
+                tbody2.appendChild(tr);
+            });
+            
+            // Totais
+            document.getElementById('retTotalF').textContent = formatarMoedaBRL(totalF);
+            document.getElementById('retTotalH').textContent = formatarMoedaBRL(totalH);
+            
+            // Observações
+            const obsDiv = document.getElementById('retObservacoes');
+            if (data.observacoes && data.observacoes.length > 0) {
+                obsDiv.textContent = data.observacoes.join('\n');
+            } else {
+                obsDiv.innerHTML = '&nbsp;';
+            }
+            
+            // Gestor e Unidade
+            document.getElementById('retGestor').textContent = data.cabecalho.gestor || '-';
+            document.getElementById('retUnidade').textContent = data.cabecalho.unidade || '-';
+        }
+        
+        function visualizarPDFRelatorioRetencao() {
+            const conteudoRelatorio = document.getElementById('conteudoRelatorioRetencao');
+            
+            if (!conteudoRelatorio) {
+                alert('Nenhum relatório gerado ainda!');
+                return;
+            }
+            
+            const conteudoClonado = conteudoRelatorio.cloneNode(true);
+            const loadingClone = conteudoClonado.querySelector('#loadingOverlayRetencao');
+            if (loadingClone) loadingClone.remove();
+            
+            localStorage.setItem('relatorioHTML', conteudoClonado.innerHTML);
+            window.open('/relatorio-retencao-impressao', '_blank');
+        }
+        
+        // Fechar modal ao clicar fora
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('modalRelatorioRetencao');
+            if (event.target === modal) {
+                fecharModalRelatorioRetencao();
+            }
+        });
+        
+        // Fechar com ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('modalRelatorioRetencao');
+                if (modal && modal.style.display === 'block') {
+                    fecharModalRelatorioRetencao();
+                }
+            }
+        });
+
+
         
         function fecharModalRelatorioPdf() {
             const modal = document.getElementById('modalRelatorioPdf');
