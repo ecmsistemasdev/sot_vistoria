@@ -1922,71 +1922,16 @@
                 return;
             }
             
-            // Clonar conteúdo
+            // Clonar e remover loading
             const conteudoClonado = conteudoRelatorio.cloneNode(true);
-            
-            // Remover loading do clone
             const loadingClone = conteudoClonado.querySelector('#loadingOverlay');
-            if (loadingClone) {
-                loadingClone.remove();
-            }
+            if (loadingClone) loadingClone.remove();
             
-            // Abrir nova aba
-            const novaAba = window.open('', '_blank');
-            if (!novaAba) {
-                alert('Bloqueador de pop-ups ativo!');
-                return;
-            }
+            // Salvar no localStorage
+            localStorage.setItem('relatorioHTML', conteudoClonado.innerHTML);
             
-            // Escrever HTML por partes (SEM problemas de aspas)
-            novaAba.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
-            novaAba.document.write('<title>Relatório de Fiscalização</title>');
-            
-            // CSS
-            novaAba.document.write('<style>');
-            novaAba.document.write('@page { size: A4 portrait; margin: 10mm; }');
-            novaAba.document.write('body { font-family: Arial; font-size: 11px; padding: 10px; }');
-            novaAba.document.write('table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }');
-            novaAba.document.write('table, th, td { border: 1px solid #2c3e50; }');
-            novaAba.document.write('th { background: #34495e; color: white; padding: 6px; text-align: center; }');
-            novaAba.document.write('td { padding: 5px; }');
-            novaAba.document.write('.center { text-align: center; }');
-            novaAba.document.write('.right { text-align: right; }');
-            novaAba.document.write('.bold { font-weight: bold; }');
-            novaAba.document.write('.bg-yellow { background-color: #ffffcc !important; }');
-            novaAba.document.write('.bg-gray { background-color: #f0f0f0 !important; }');
-            novaAba.document.write('.bg-pink { background-color: #ffccff !important; }');
-            novaAba.document.write('.bg-red { background-color: #ffcccc !important; }');
-            novaAba.document.write('.text-blue { color: #3498db; }');
-            novaAba.document.write('.text-red { color: #e74c3c; }');
-            novaAba.document.write('.text-green { color: #27ae60; }');
-            novaAba.document.write('.print-button { position: fixed; top: 10px; right: 10px; padding: 12px 24px; background: #2c3e50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 1000; }');
-            novaAba.document.write('.print-button:hover { background: #34495e; }');
-            novaAba.document.write('@media print { .print-button { display: none !important; } body { padding: 0; } table { page-break-inside: avoid; } }');
-            novaAba.document.write('</style>');
-            
-            // Body
-            novaAba.document.write('</head><body>');
-            
-            // Botão de impressão
-            novaAba.document.write('<button class="print-button" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>');
-            
-            // Conteúdo do relatório
-            novaAba.document.write('<div id="conteudoRelatorio">');
-            novaAba.document.write(conteudoClonado.innerHTML);
-            novaAba.document.write('</div>');
-            
-            // Script para Ctrl+P
-            novaAba.document.write('<script>');
-            novaAba.document.write('document.addEventListener("keydown", function(e) {');
-            novaAba.document.write('if ((e.ctrlKey || e.metaKey) && e.key === "p") {');
-            novaAba.document.write('e.preventDefault(); window.print();');
-            novaAba.document.write('}');
-            novaAba.document.write('});');
-            novaAba.document.write('</' + 'script>');
-            
-            novaAba.document.write('</body></html>');
-            novaAba.document.close();
+            // Abrir arquivo separado
+            window.open('/rel_fiscalizacao.html', '_blank');
         }
         
         function fecharModalRelatorioPdf() {
