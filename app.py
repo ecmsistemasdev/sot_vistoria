@@ -13748,7 +13748,7 @@ def gerar_html_relatorio_pdf_simples(data):
 
 
 # ============================================================
-# ROTAS COMPLETAS - RELATÓRIO DE RETENÇÃO CONTA VINCULADA
+# ROTAS COMPLETAS CORRIGIDAS - PROTEÇÃO CONTRA NULL/NONE
 # COPIAR E COLAR DIRETO NO app.py
 # ============================================================
 # ADICIONAR LOGO APÓS A ROTA /relatorio-fiscalizacao-impressao
@@ -13797,18 +13797,26 @@ def api_gerar_relatorio_retencao():
         contrato = cursor.fetchone()
         
         if not contrato:
+            cursor.close()
             return jsonify({
                 'success': False,
                 'error': 'Contrato não encontrado'
             })
         
-        # Calcular percentual total
-        pc_total = (
-            float(contrato['PC_13'] or 0) +
-            float(contrato['PC_FERIAS'] or 0) +
-            float(contrato['PC_MULTA_FGTS'] or 0) +
-            float(contrato['PC_INCIDENCIAS'] or 0)
-        )
+        # Verificar se tem ID_RAT configurado
+        if not contrato['ID_RAT']:
+            cursor.close()
+            return jsonify({
+                'success': False,
+                'error': 'Contrato sem ID_RAT configurado. Configure os parâmetros de retenção primeiro.'
+            })
+        
+        # Calcular percentual total (com proteção contra None)
+        pc_13 = float(contrato['PC_13'] or 0)
+        pc_ferias = float(contrato['PC_FERIAS'] or 0)
+        pc_fgts = float(contrato['PC_MULTA_FGTS'] or 0)
+        pc_incidencias = float(contrato['PC_INCIDENCIAS'] or 0)
+        pc_total = pc_13 + pc_ferias + pc_fgts + pc_incidencias
         
         # Calcular primeiro e último dia do mês
         from calendar import monthrange
@@ -13856,6 +13864,13 @@ def api_gerar_relatorio_retencao():
         
         motoristas = cursor.fetchall()
         
+        if not motoristas:
+            cursor.close()
+            return jsonify({
+                'success': False,
+                'error': 'Nenhum motorista encontrado para o período selecionado'
+            })
+        
         # Processar dados por posto
         postos_dict = {}
         observacoes = []
@@ -13867,6 +13882,10 @@ def api_gerar_relatorio_retencao():
             dt_fim = motorista['DT_FIM']
             vl_salario = float(motorista['VL_SALARIO'] or 0)
             vl_mensal = float(motorista['VL_MENSAL'] or 0)
+            
+            # Verificar se tem valores configurados
+            if vl_salario == 0 or vl_mensal == 0:
+                continue
             
             # MySQL já retorna como date, mas garantir que seja date
             if not isinstance(dt_inicio, date):
@@ -13899,11 +13918,11 @@ def api_gerar_relatorio_retencao():
                 vl_salario_proporcional = vl_salario
                 vl_mensal_proporcional = vl_mensal
             
-            # Calcular retenções
-            ret_13 = vl_salario_proporcional * float(contrato['PC_13']) / 100
-            ret_ferias = vl_salario_proporcional * float(contrato['PC_FERIAS']) / 100
-            ret_fgts = vl_salario_proporcional * float(contrato['PC_MULTA_FGTS']) / 100
-            ret_incidencias = vl_salario_proporcional * float(contrato['PC_INCIDENCIAS']) / 100
+            # Calcular retenções (com proteção contra None)
+            ret_13 = vl_salario_proporcional * pc_13 / 100
+            ret_ferias = vl_salario_proporcional * pc_ferias / 100
+            ret_fgts = vl_salario_proporcional * pc_fgts / 100
+            ret_incidencias = vl_salario_proporcional * pc_incidencias / 100
             ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
             
             # Criar chave do posto
@@ -14000,10 +14019,10 @@ def api_gerar_relatorio_retencao():
                     'gestor': contrato['NOME_GESTOR'],
                     'unidade': contrato['SETOR_GESTOR'],
                     'id_rat': contrato['ID_RAT'],
-                    'pc_13': float(contrato['PC_13']),
-                    'pc_ferias': float(contrato['PC_FERIAS']),
-                    'pc_fgts': float(contrato['PC_MULTA_FGTS']),
-                    'pc_incidencias': float(contrato['PC_INCIDENCIAS']),
+                    'pc_13': pc_13,
+                    'pc_ferias': pc_ferias,
+                    'pc_fgts': pc_fgts,
+                    'pc_incidencias': pc_incidencias,
                     'pc_total': pc_total
                 },
                 'quadro1': quadro1,
@@ -14033,7 +14052,6 @@ def api_gerar_relatorio_retencao():
 def relatorio_retencao_impressao():
     """Página separada para impressão do relatório de retenção"""
     return render_template('rel_retencao_contavinculada.html')
-
 
 
 if __name__ == '__main__':
