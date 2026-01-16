@@ -2137,7 +2137,7 @@
             if (data.observacoes_parciais && data.observacoes_parciais.length > 0) {
                 let textoObservacoes = '';
                 data.observacoes_parciais.forEach(obs => {
-                    textoObservacoes += `${obs.posto} (*): ${obs.nome} - ${obs.dias} dias trabalhados - ${formatarMoedaBRL(obs.valor)}\\n`;
+                    textoObservacoes += `${obs.posto} (*): ${obs.nome} - ${obs.dias} dias trabalhados - ${formatarMoedaBRL(obs.valor)}\n`;
                 });
                 observacoesDiv.textContent = textoObservacoes;
             } else {
