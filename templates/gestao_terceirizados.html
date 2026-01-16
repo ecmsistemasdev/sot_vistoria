@@ -1288,6 +1288,7 @@
                         </h4>
                         
                         <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <!-- 
                             <thead>
                                 <tr style="background-color: #34495e; color: white;">
                                     <th style="padding: 8px; border: 1px solid #2c3e50; text-align: left;">Descrição (A)</th>
@@ -1299,15 +1300,31 @@
                                     <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor da retenção para conta vinculada por funcionário (G)</th>
                                     <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor Mensal das retenções da conta vinculada por posto H = (G X E)</th>
                                 </tr>
+                            </thead> 
+                            -->
+
+                            <thead>
+                                <tr style="background-color: #34495e; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 5%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Item</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: left; width: 19%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Descrição (A)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 13.5%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Valor proposto por empregado (B)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 6%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Qtd. de postos (C)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 6%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Qtd. de funcionário por posto (D)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 6%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Qtd. Total de funcionários (E)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 13.5%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Valor Mensal por posto (F) = (B x E)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 13.5%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Valor da retenção para conta vinculada por funcionário (G)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 13.5%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Valor Mensal das retenções da conta vinculada por posto H = (G X E)</th>
+                                </tr>
                             </thead>
+                            
                             <tbody id="tabelaQuadro2">
                                 <!-- Preenchido dinamicamente -->
                             </tbody>
                             <tfoot style="background-color: #34495e; color: white; font-weight: bold;">
                                 <tr>
-                                    <td style="padding: 8px; border: 1px solid #2c3e50; text-align: right;" colspan="4">TOTAL</td>
+                                    <td style="padding: 8px; border: 1px solid #2c3e50; text-align: right;" colspan="5">TOTAL</td>
                                     <td id="retTotalE" style="padding: 8px; border: 1px solid #2c3e50; text-align: center;">0</td>
-                                    <td id="retTotalF" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;"></td>
+                                    <td id="retTotalF" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">R$ 0,00</td>
                                     <td style="padding: 8px; border: 1px solid #2c3e50;"></td>
                                     <td id="retTotalH" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">R$ 0,00</td>
                                 </tr>
@@ -2311,6 +2328,7 @@
             
             let totalF = 0;
             let totalH = 0;
+            let itemNumero2 = 1; // Contador para o número do item
             
             data.quadro2.forEach(item => {
                 totalF += item.vl_mensal_total;
@@ -2318,6 +2336,7 @@
                 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${itemNumero2}</td>
                     <td style="padding: 6px; border: 1px solid #2c3e50;">${item.de_posto}</td>
                     <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.vl_mensal)}</td>
                     <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${item.qtd_postos}</td>
@@ -2328,6 +2347,7 @@
                     <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; font-weight: bold;">${formatarMoedaBRL(item.ret_total)}</td>
                 `;
                 tbody2.appendChild(tr);
+                itemNumero2++; // Incrementar o contador
             });
             
             // Totais - Agora com coluna E também
