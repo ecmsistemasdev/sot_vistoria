@@ -73,9 +73,29 @@
             }
         }
         
-        /* Forçar bordas finas */
-        table, th, td {
-            border-width: 0.75px !important;
+        /* Forçar bordas finas e uniformes */
+        table {
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
+            border: 1px solid #2c3e50 !important;
+        }
+
+        table th, 
+        table td {
+            border-right: 1px solid #2c3e50 !important;
+            border-bottom: 1px solid #2c3e50 !important;
+        }
+
+        /* Primeira linha precisa de borda superior */
+        table tr:first-child th,
+        table tr:first-child td {
+            border-top: 1px solid #2c3e50 !important;
+        }
+
+        /* Primeira coluna precisa de borda esquerda */
+        table th:first-child,
+        table td:first-child {
+            border-left: 1px solid #2c3e50 !important;
         }
         
         /* Ajustar padding das células */
@@ -85,6 +105,18 @@
             line-height: 1.3 !important;
         }
         
+        /* Garantir borda direita em todas as células */
+        #conteudoRelatorio table td:last-child,
+        #conteudoRelatorio table th:last-child {
+            border-right: 1px solid #2c3e50 !important;
+        }
+
+        /* Garantir borda em todas as células */
+        #conteudoRelatorio table td,
+        #conteudoRelatorio table th {
+            border: 1px solid #2c3e50 !important;
+        }
+
         /* Ajustar margem entre seções */
         #conteudoRelatorio > div {
             margin-bottom: 8px !important;
