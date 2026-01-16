@@ -14000,10 +14000,11 @@ def api_gerar_relatorio_retencao():
                     'ret_incidencias': arredondar(ret_incidencias),
                     'ret_total': arredondar(ret_total)
                 })
-                
-                # ✅ Para o Quadro 2: multiplicar ANTES de arredondar
-                ret_total_multiplicado = ret_total_sem_arredondar * qtd
-                
+            
+                # Arredondar ANTES de multiplicar
+                ret_total_arredondado = ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_total_multiplicado = ret_total_arredondado * qtd  # ✅ Multiplicar o JÁ arredondado
+
                 quadro2.append({
                     'de_posto': de_posto,
                     'vl_mensal': arredondar(vl_mensal),
@@ -14011,9 +14012,13 @@ def api_gerar_relatorio_retencao():
                     'qtd_por_posto': 1,
                     'qtd_total_func': qtd,
                     'vl_mensal_total': arredondar(vl_mensal * qtd),
-                    'ret_unitario': arredondar(ret_total),
-                    'ret_total': arredondar(ret_total_multiplicado)  # ✅ Arredondar depois de multiplicar
+                    'ret_unitario': arredondar(ret_total_arredondado),  # ✅ Usar o arredondado
+                    'ret_total': arredondar(ret_total_multiplicado)
                 })
+            
+            
+            
+            
             
             # Motoristas parciais
             for mot_parcial in posto['motoristas_parcial']:
