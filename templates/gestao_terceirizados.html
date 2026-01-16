@@ -2476,43 +2476,106 @@
             aplicarDestaquesOcorrencias();
         });
         
+        // Função para aplicar destaques nas células da tabela de ocorrências
         function aplicarDestaquesOcorrencias() {
-            // Selecionar especificamente a tabela de ocorrências do relatório
+            console.log('Iniciando aplicação de destaques...');
+            
+            // 1. Processar linhas do tbody (postos de trabalho)
             const tbody = document.getElementById('tabelaOcorrenciasRelatorio');
             
-            if (!tbody) return;
-            
-            const linhas = tbody.querySelectorAll('tr');
-            
-            linhas.forEach(function(linha) {
-                const celulas = linha.querySelectorAll('td');
+            if (tbody) {
+                const linhasTbody = tbody.querySelectorAll('tr');
+                console.log('Linhas no tbody:', linhasTbody.length);
                 
-                if (celulas.length === 0) return;
-                
-                const primeiraColuna = celulas[0].textContent.trim();
-                
-                // Identificar linhas que NÃO devem ter destaque
-                const ehLinhaTolerancia = primeiraColuna.includes('Tolerância');
-                const ehLinhaExcesso = primeiraColuna.includes('Excesso');
-                const ehLinhaMultiplicador = primeiraColuna.includes('Multiplicador');
-                
-                // Se não for linha de controle, então precisa destacar
-                const ehLinhaParaDestacar = !ehLinhaTolerancia && !ehLinhaExcesso && !ehLinhaMultiplicador;
-                
-                if (ehLinhaParaDestacar) {
-                    // A primeira coluna é o nome do posto (índice 0)
-                    // A segunda coluna está vazia (índice 1)
-                    // As colunas 01-10 vão do índice 2 ao 11
+                linhasTbody.forEach(function(linha) {
+                    const celulas = linha.querySelectorAll('td');
+                    if (celulas.length === 0) return;
+                    
+                    // Percorrer as colunas 01-10 (índices 2 a 11)
                     for (let i = 2; i <= 11 && i < celulas.length; i++) {
                         const valorTexto = celulas[i].textContent.trim();
                         const valor = parseInt(valorTexto);
                         
                         if (!isNaN(valor) && valor > 0) {
                             celulas[i].classList.add('celula-destacada');
+                            celulas[i].style.backgroundColor = '#FFB6C1';
+                            celulas[i].style.fontWeight = 'bold';
                         }
                     }
+                });
+            }
+            
+            // 2. Processar linhas do tfoot (Total, Número Corrigido, etc)
+            const tfoot = tbody ? tbody.closest('table').querySelector('tfoot') : null;
+            
+            if (tfoot) {
+                console.log('Processando tfoot...');
+                const linhasTfoot = tfoot.querySelectorAll('tr');
+                
+                linhasTfoot.forEach(function(linha) {
+                    const celulas = linha.querySelectorAll('td');
+                    if (celulas.length === 0) return;
+                    
+                    const primeiraColuna = celulas[0].textContent.trim();
+                    console.log('Linha tfoot:', primeiraColuna);
+                    
+                    // Verificar se é linha Total (+) ou Número Corrigido (=)
+                    const ehLinhaTotal = primeiraColuna.includes('Total (+)');
+                    const ehLinhaNumeroCorrigido = primeiraColuna.includes('Número Corrigido (=)');
+                    
+                    if (ehLinhaTotal || ehLinhaNumeroCorrigido) {
+                        console.log('Aplicando destaque na linha:', primeiraColuna);
+                        
+                        // Percorrer todas as células da linha (exceto a primeira que é o label)
+                        for (let i = 1; i < celulas.length; i++) {
+                            const valorTexto = celulas[i].textContent.trim();
+                            const valor = parseInt(valorTexto);
+                            
+                            if (!isNaN(valor) && valor > 0) {
+                                console.log('Destacando célula - Valor:', valor);
+                                celulas[i].classList.add('celula-destacada');
+                                celulas[i].style.backgroundColor = '#FFB6C1';
+                                celulas[i].style.fontWeight = 'bold';
+                            }
+                        }
+                    }
+                });
+            } else {
+                console.log('tfoot não encontrado, tentando buscar na tabela inteira...');
+                
+                // 3. Se não tem tfoot, procurar em toda a tabela
+                const tabela = tbody ? tbody.closest('table') : document.querySelector('table');
+                if (tabela) {
+                    const todasLinhas = tabela.querySelectorAll('tr');
+                    
+                    todasLinhas.forEach(function(linha) {
+                        const celulas = linha.querySelectorAll('td');
+                        if (celulas.length === 0) return;
+                        
+                        const primeiraColuna = celulas[0].textContent.trim();
+                        
+                        const ehLinhaTotal = primeiraColuna.includes('Total (+)');
+                        const ehLinhaNumeroCorrigido = primeiraColuna.includes('Número Corrigido (=)');
+                        
+                        if (ehLinhaTotal || ehLinhaNumeroCorrigido) {
+                            console.log('Aplicando destaque na linha (busca geral):', primeiraColuna);
+                            
+                            for (let i = 1; i < celulas.length; i++) {
+                                const valorTexto = celulas[i].textContent.trim();
+                                const valor = parseInt(valorTexto);
+                                
+                                if (!isNaN(valor) && valor > 0) {
+                                    celulas[i].classList.add('celula-destacada');
+                                    celulas[i].style.backgroundColor = '#FFB6C1';
+                                    celulas[i].style.fontWeight = 'bold';
+                                }
+                            }
+                        }
+                    });
                 }
-            });
+            }
+            
+            console.log('Destaques aplicados!');
         }
         
     </script>
