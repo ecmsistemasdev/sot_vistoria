@@ -124,11 +124,6 @@
         .table tbody tr:hover {
             background-color: #f8f9fa;
         }
-
-        .celula-destacada {
-            background-color: #FFB6C1;
-            font-weight: bold;
-        }
         
         .btn {
             padding: 6px 12px;
@@ -585,6 +580,11 @@
             100% { transform: rotate(360deg); }
         }
 
+        .celula-destacada {
+            background-color: #FFB6C1 !important;
+            font-weight: bold !important;
+        }
+        
     </style>
 </head>
 <body>
@@ -2467,33 +2467,40 @@
         });
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Selecionar todas as linhas da tabela de ocorrências
             const tabela = document.querySelector('table');
-            const linhas = tabela.querySelectorAll('tbody tr');
+            if (!tabela) return;
             
-            linhas.forEach(function(linha) {
-                const primeiraColuna = linha.querySelector('td:first-child');
+            const linhas = tabela.querySelectorAll('tr');
+            
+            linhas.forEach(function(linha, indice) {
+                const celulas = linha.querySelectorAll('td');
                 
-                if (!primeiraColuna) return;
+                if (celulas.length === 0) return;
                 
-                const textoLinha = primeiraColuna.textContent.trim();
+                const primeiraColuna = celulas[0].textContent.trim();
                 
-                // Verificar se é uma linha que precisa de destaque
-                const linhasParaDestacar = [
-                    'Motorista CNH B',
-                    'Motorista CNH D',
-                    'Total (+)',
-                    'Número Corrigido (=)'
-                ];
+                // Identificar as linhas que precisam de destaque:
+                // - Linhas de postos: são as que vêm ANTES da linha "Total (+)"
+                // - Linha "Total (+)"
+                // - Linha "Número Corrigido (=)"
                 
-                if (linhasParaDestacar.some(texto => textoLinha.includes(texto))) {
-                    // Percorrer as colunas de 01 a 10 (índices 1 a 10)
-                    const celulas = linha.querySelectorAll('td');
-                    
+                const ehLinhaTotal = primeiraColuna.includes('Total (+)');
+                const ehLinhaNumeroCorrigido = primeiraColuna.includes('Número Corrigido (=)');
+                const ehLinhaTolerancia = primeiraColuna.includes('Tolerância');
+                const ehLinhaExcesso = primeiraColuna.includes('Excesso');
+                const ehLinhaMultiplicador = primeiraColuna.includes('Multiplicador');
+                
+                // Se NÃO for linha de controle (Tolerância, Excesso, Multiplicador),
+                // então é linha de posto de trabalho OU Total OU Número Corrigido
+                const ehLinhaParaDestacar = !ehLinhaTolerancia && !ehLinhaExcesso && !ehLinhaMultiplicador;
+                
+                if (ehLinhaParaDestacar) {
+                    // Percorrer as colunas de 01 a 10 (índices 1 a 10 do array de células)
                     for (let i = 1; i <= 10 && i < celulas.length; i++) {
-                        const valor = parseInt(celulas[i].textContent.trim());
+                        const valorTexto = celulas[i].textContent.trim();
+                        const valor = parseInt(valorTexto);
                         
-                        if (valor > 0) {
+                        if (!isNaN(valor) && valor > 0) {
                             celulas[i].classList.add('celula-destacada');
                         }
                     }
