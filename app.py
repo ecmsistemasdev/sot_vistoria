@@ -13875,9 +13875,8 @@ def api_gerar_relatorio_retencao():
                 'error': 'Nenhum motorista encontrado para o período selecionado'
             })
         
-# Processar dados por posto
-        postos_dict = {}
-        observacoes = []
+        # Processar dados - Separar por posto e tipo (completo/parcial)
+        postos_processados = {}
         
         for motorista in motoristas:
             posto = motorista['DE_POSTO']
@@ -13908,141 +13907,124 @@ def api_gerar_relatorio_retencao():
             # Calcular dias trabalhados
             if trabalhou_mes_completo:
                 dias_trabalhados = total_dias_mes
-                eh_parcial = False
             else:
                 inicio_periodo = max(dt_inicio, primeiro_dia)
                 fim_periodo = min(dt_fim if dt_fim else ultimo_dia, ultimo_dia)
                 dias_trabalhados = (fim_periodo - inicio_periodo).days + 1
-                eh_parcial = True
             
-            # ✅ CORREÇÃO: Seguir a mesma lógica do relatório de fiscalização
-            # Para parciais: valor proporcional aos dias trabalhados
-            # Para completos: valor integral
-            if eh_parcial:
-                vl_salario_proporcional = (vl_salario / total_dias_mes) * dias_trabalhados
-                vl_mensal_proporcional = (vl_mensal / total_dias_mes) * dias_trabalhados
-            else:
-                vl_salario_proporcional = vl_salario
-                vl_mensal_proporcional = vl_mensal
-            
-            # Calcular retenções (com proteção contra None)
-            ret_13 = vl_salario_proporcional * pc_13 / 100
-            ret_ferias = vl_salario_proporcional * pc_ferias / 100
-            ret_fgts = vl_salario_proporcional * pc_fgts / 100
-            ret_incidencias = vl_salario_proporcional * pc_incidencias / 100
-            ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
-            
-            # ✅ CHAVE ÚNICA POR MOTORISTA (não agrupar por posto)
-            chave_motorista = f"{id_posto}_{id_motorista}_{eh_parcial}"
-            
-            if chave_motorista not in postos_dict:
-                postos_dict[chave_motorista] = {
+            # Inicializar estrutura do posto se não existir
+            if id_posto not in postos_processados:
+                postos_processados[id_posto] = {
                     'de_posto': posto,
-                    'id_posto': id_posto,
+                    'vl_salario': vl_salario,
+                    'vl_mensal': vl_mensal,
+                    'motoristas_completo': [],
+                    'motoristas_parcial': []
+                }
+            
+            # Adicionar motorista na categoria correta
+            if trabalhou_mes_completo:
+                postos_processados[id_posto]['motoristas_completo'].append({
                     'id_motorista': id_motorista,
                     'nm_motorista': nm_motorista,
-                    'eh_parcial': eh_parcial,
-                    'vl_salario': vl_salario,  # Valor integral
-                    'vl_mensal': vl_mensal,    # Valor integral
-                    'vl_salario_proporcional': vl_salario_proporcional,
-                    'vl_mensal_proporcional': vl_mensal_proporcional,
+                    'dias_trabalhados': dias_trabalhados
+                })
+            else:
+                postos_processados[id_posto]['motoristas_parcial'].append({
+                    'id_motorista': id_motorista,
+                    'nm_motorista': nm_motorista,
+                    'dias_trabalhados': dias_trabalhados,
+                    'dt_inicio': dt_inicio,
+                    'dt_fim': dt_fim
+                })
+        
+        # Montar os quadros seguindo a mesma lógica do relatório de fiscalização
+        quadro1 = []
+        quadro2 = []
+        observacoes = []
+        
+        for id_posto, posto_data in postos_processados.items():
+            vl_salario = posto_data['vl_salario']
+            vl_mensal = posto_data['vl_mensal']
+            de_posto = posto_data['de_posto']
+            
+            # Processar motoristas que trabalharam o mês completo
+            if posto_data['motoristas_completo']:
+                qtd = len(posto_data['motoristas_completo'])
+                
+                # Calcular retenções com valor integral
+                ret_13 = vl_salario * pc_13 / 100
+                ret_ferias = vl_salario * pc_ferias / 100
+                ret_fgts = vl_salario * pc_fgts / 100
+                ret_incidencias = vl_salario * pc_incidencias / 100
+                ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
+                
+                # Quadro 1 - Uma linha por tipo de posto
+                quadro1.append({
+                    'de_posto': de_posto,
+                    'vl_salario': vl_salario,
                     'ret_13': ret_13,
                     'ret_ferias': ret_ferias,
                     'ret_fgts': ret_fgts,
                     'ret_incidencias': ret_incidencias,
-                    'ret_total': ret_total,
-                    'dias_trabalhados': dias_trabalhados,
-                    'dt_inicio': dt_inicio,
-                    'dt_fim': dt_fim
-                }
-        
-        # ✅ AGRUPAR POR POSTO PARA EXIBIÇÃO
-        # Separar motoristas completos e parciais
-        postos_agrupados = {}
-        
-        for chave, dados in postos_dict.items():
-            posto_nome = dados['de_posto']
-            eh_parcial = dados['eh_parcial']
-            
-            if posto_nome not in postos_agrupados:
-                postos_agrupados[posto_nome] = {
-                    'completos': [],
-                    'parciais': []
-                }
-            
-            if eh_parcial:
-                postos_agrupados[posto_nome]['parciais'].append(dados)
-            else:
-                postos_agrupados[posto_nome]['completos'].append(dados)
-        
-        # Gerar observações automáticas para parciais
-        for posto_nome, grupos in postos_agrupados.items():
-            for parcial in grupos['parciais']:
-                dias = parcial['dias_trabalhados']
-                nome_mot = parcial['nm_motorista']
-                obs = f"{posto_nome} (*): {nome_mot} - {dias} dias trabalhados - R$ {parcial['vl_mensal_proporcional']:.2f}"
-                observacoes.append(obs)
-        
-        # Preparar dados para retorno
-        # Quadro 1 - Por posto (com salário) - UMA LINHA POR GRUPO
-        quadro1 = []
-        for posto_nome, grupos in postos_agrupados.items():
-            # Motoristas completos (agrupados em uma linha)
-            if grupos['completos']:
-                dados = grupos['completos'][0]  # Pegar dados do primeiro (todos iguais)
-                quadro1.append({
-                    'de_posto': posto_nome,
-                    'vl_salario': dados['vl_salario_proporcional'],
-                    'ret_13': dados['ret_13'],
-                    'ret_ferias': dados['ret_ferias'],
-                    'ret_fgts': dados['ret_fgts'],
-                    'ret_incidencias': dados['ret_incidencias'],
-                    'ret_total': dados['ret_total']
+                    'ret_total': ret_total
                 })
-            
-            # Motoristas parciais (uma linha para cada)
-            for dados in grupos['parciais']:
-                quadro1.append({
-                    'de_posto': posto_nome + ' (*)',
-                    'vl_salario': dados['vl_salario_proporcional'],
-                    'ret_13': dados['ret_13'],
-                    'ret_ferias': dados['ret_ferias'],
-                    'ret_fgts': dados['ret_fgts'],
-                    'ret_incidencias': dados['ret_incidencias'],
-                    'ret_total': dados['ret_total']
-                })
-        
-        # Quadro 2 - Resumo por posto (com valor mensal)
-        quadro2 = []
-        for posto_nome, grupos in postos_agrupados.items():
-            # Motoristas completos (agrupados)
-            if grupos['completos']:
-                qtd = len(grupos['completos'])
-                dados = grupos['completos'][0]
                 
+                # Quadro 2
                 quadro2.append({
-                    'de_posto': posto_nome,
-                    'vl_mensal': dados['vl_mensal'],  # Valor integral
+                    'de_posto': de_posto,
+                    'vl_mensal': vl_mensal,
                     'qtd_postos': qtd,
                     'qtd_por_posto': 1,
                     'qtd_total_func': qtd,
-                    'vl_mensal_total': dados['vl_mensal'] * qtd,
-                    'ret_unitario': dados['ret_total'],
-                    'ret_total': dados['ret_total'] * qtd
+                    'vl_mensal_total': vl_mensal * qtd,
+                    'ret_unitario': ret_total,
+                    'ret_total': ret_total * qtd
                 })
             
-            # Motoristas parciais (uma linha para cada)
-            for dados in grupos['parciais']:
+            # Processar motoristas que trabalharam parcialmente
+            for mot_parcial in posto_data['motoristas_parcial']:
+                dias_trab = mot_parcial['dias_trabalhados']
+                nome_mot = mot_parcial['nm_motorista']
+                
+                # ✅ SEGUIR A MESMA LÓGICA DO FISCALIZAÇÃO (linha 12861)
+                # Calcular valores proporcionais
+                vl_salario_proporcional = (vl_salario / 30) * dias_trab
+                vl_mensal_proporcional = (vl_mensal / 30) * dias_trab
+                
+                # Calcular retenções com valor proporcional
+                ret_13 = vl_salario_proporcional * pc_13 / 100
+                ret_ferias = vl_salario_proporcional * pc_ferias / 100
+                ret_fgts = vl_salario_proporcional * pc_fgts / 100
+                ret_incidencias = vl_salario_proporcional * pc_incidencias / 100
+                ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
+                
+                # Quadro 1 - Uma linha por motorista parcial
+                quadro1.append({
+                    'de_posto': de_posto + ' (*)',
+                    'vl_salario': vl_salario_proporcional,
+                    'ret_13': ret_13,
+                    'ret_ferias': ret_ferias,
+                    'ret_fgts': ret_fgts,
+                    'ret_incidencias': ret_incidencias,
+                    'ret_total': ret_total
+                })
+                
+                # Quadro 2 - Uma linha por motorista parcial
                 quadro2.append({
-                    'de_posto': posto_nome + ' (*)',
-                    'vl_mensal': dados['vl_mensal_proporcional'],
+                    'de_posto': de_posto + ' (*)',
+                    'vl_mensal': vl_mensal_proporcional,
                     'qtd_postos': 1,
                     'qtd_por_posto': 1,
                     'qtd_total_func': 1,
-                    'vl_mensal_total': dados['vl_mensal_proporcional'],
-                    'ret_unitario': dados['ret_total'],
-                    'ret_total': dados['ret_total']
+                    'vl_mensal_total': vl_mensal_proporcional,
+                    'ret_unitario': ret_total,
+                    'ret_total': ret_total
                 })
+                
+                # Observação
+                obs = f"{de_posto} (*): {nome_mot} - {dias_trab} dias trabalhados - R$ {vl_mensal_proporcional:.2f}"
+                observacoes.append(obs)
         
         # Retornar JSON
         resultado = {
@@ -14094,6 +14076,7 @@ def relatorio_retencao_impressao():
 if __name__ == '__main__':
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
