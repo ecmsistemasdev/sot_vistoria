@@ -1291,7 +1291,8 @@
                             </tbody>
                             <tfoot style="background-color: #34495e; color: white; font-weight: bold;">
                                 <tr>
-                                    <td style="padding: 8px; border: 1px solid #2c3e50; text-align: right;" colspan="5">TOTAL</td>
+                                    <td style="padding: 8px; border: 1px solid #2c3e50; text-align: right;" colspan="4">TOTAL</td>
+                                    <td id="retTotalE" style="padding: 8px; border: 1px solid #2c3e50; text-align: center;">0</td>
                                     <td id="retTotalF" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">R$ 0,00</td>
                                     <td style="padding: 8px; border: 1px solid #2c3e50;"></td>
                                     <td id="retTotalH" style="padding: 8px; border: 1px solid #2c3e50; text-align: right;">R$ 0,00</td>
@@ -2311,14 +2312,44 @@
                 tbody2.appendChild(tr);
             });
             
-            // Totais
+            // Totais - Agora com coluna E também
+            let totalE = 0;
+            data.quadro2.forEach(item => {
+                totalE += item.qtd_total_func;
+            });
+
+            document.getElementById('retTotalE').textContent = totalE; // Nova somatória coluna E
             document.getElementById('retTotalF').textContent = formatarMoedaBRL(totalF);
             document.getElementById('retTotalH').textContent = formatarMoedaBRL(totalH);
-            
-            // Observações
+
+            // Observações - Com formatação melhorada para postos temporários
             const obsDiv = document.getElementById('retObservacoes');
             if (data.observacoes && data.observacoes.length > 0) {
-                obsDiv.textContent = data.observacoes.join('\n');
+                const observacoesFormatadas = data.observacoes.map(obs => {
+                    // Verifica se é uma observação de posto temporário
+                    const regexPostoTemp = /(\d+)\s+posto\(s\)\s+(.+?)\s+temporário\(s\)\s+de\s+(\d+)\s+dias?\s+trabalhados?/i;
+                    const match = obs.match(regexPostoTemp);
+                    
+                    if (match) {
+                        const qtdPostos = parseInt(match[1]);
+                        const dePosto = match[2].trim();
+                        const qtdDias = parseInt(match[3]);
+                        
+                        // Formatar conforme as regras
+                        const postoTexto = qtdPostos === 1 ? 'posto temporário' : 'postos temporários';
+                        const diaTexto = qtdDias === 1 ? 'dia trabalhado' : 'dias trabalhados';
+                        
+                        if (qtdPostos === 1) {
+                            return `(*) 1 ${postoTexto} de ${dePosto}, ref. a ${qtdDias} ${diaTexto}`;
+                        } else {
+                            return `(*) ${qtdPostos} ${postoTexto} de ${dePosto}, ref. a ${qtdDias} ${diaTexto}`;
+                        }
+                    }
+                    
+                    return obs; // Retorna observação original se não for posto temporário
+                });
+                
+                obsDiv.textContent = observacoesFormatadas.join('\n');
             } else {
                 obsDiv.innerHTML = '&nbsp;';
             }
