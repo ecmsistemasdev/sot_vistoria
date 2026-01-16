@@ -73,7 +73,7 @@
             }
         }
         
-        /* Forçar bordas finas e uniformes */
+        /* Forçar bordas finas e uniformes - PADRÃO rel_fiscalizacao */
         table {
             border-collapse: separate !important;
             border-spacing: 0 !important;
@@ -135,14 +135,14 @@
             padding: 4px 7px !important;
         }
         
-        /* REMOVER LINHA ENTRE LOGO E "CONTRATO" */
-        #conteudoRelatorio > div:first-child > div > table:nth-child(2) tr:first-child td {
-            border-top: none !important;
-        }
-        
         /* Ajustar logo */
         #conteudoRelatorio img {
             max-height: 80px !important;
+        }
+        
+        /* REMOVER LINHA ENTRE LOGO E "CONTRATO" */
+        #conteudoRelatorio > div:first-child > div > table:nth-child(2) tr:first-child td {
+            border-top: none !important;
         }
         
         /* Reduzir altura das linhas */
@@ -207,17 +207,23 @@
 
         /* Tabela 1 (RAT) - usando seletores mais específicos */
         #conteudoRelatorio div:nth-child(2) table thead th:nth-child(1) { 
-            width: 24% !important; /* Dobro do tamanho - Posto de Trabalho */
+            width: 5% !important; /* Item */
             white-space: normal !important;
             word-wrap: break-word !important;
         }
 
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(2),
+        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(2) { 
+            width: 19% !important; /* Descrição - Posto de Trabalho */
+            white-space: normal !important;
+            word-wrap: break-word !important;
+        }
+
         #conteudoRelatorio div:nth-child(2) table thead th:nth-child(3),
         #conteudoRelatorio div:nth-child(2) table thead th:nth-child(4),
         #conteudoRelatorio div:nth-child(2) table thead th:nth-child(5),
         #conteudoRelatorio div:nth-child(2) table thead th:nth-child(6),
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(7) {
+        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(7),
+        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(8) {
             width: 12.67% !important; /* Redistribuir igualmente: (100-24)/6 */
             white-space: normal !important;
             word-wrap: break-word !important;
