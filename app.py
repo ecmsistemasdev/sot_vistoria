@@ -13765,6 +13765,8 @@ def gerar_html_relatorio_pdf_simples(data):
 def api_gerar_relatorio_retencao():
     """Gera o relatório de retenção em conta vinculada"""
     try:
+        from decimal import Decimal, ROUND_HALF_UP
+        
         data = request.get_json()
         id_contrato = data.get('id_contrato')
         mes = data.get('mes')
@@ -13815,11 +13817,11 @@ def api_gerar_relatorio_retencao():
                 'error': 'Contrato sem ID_RAT configurado. Configure os parâmetros de retenção primeiro.'
             })
         
-        # Calcular percentual total (com proteção contra None)
-        pc_13 = float(contrato['PC_13'] or 0)
-        pc_ferias = float(contrato['PC_FERIAS'] or 0)
-        pc_fgts = float(contrato['PC_MULTA_FGTS'] or 0)
-        pc_incidencias = float(contrato['PC_INCIDENCIAS'] or 0)
+        # Calcular percentual total usando Decimal
+        pc_13 = Decimal(str(contrato['PC_13'] or 0))
+        pc_ferias = Decimal(str(contrato['PC_FERIAS'] or 0))
+        pc_fgts = Decimal(str(contrato['PC_MULTA_FGTS'] or 0))
+        pc_incidencias = Decimal(str(contrato['PC_INCIDENCIAS'] or 0))
         pc_total = pc_13 + pc_ferias + pc_fgts + pc_incidencias
         
         # Calcular primeiro e último dia do mês
@@ -13842,8 +13844,7 @@ def api_gerar_relatorio_retencao():
         ultimo_dia = datetime(ano_int, mes_numero, monthrange(ano_int, mes_numero)[1]).date()
         total_dias_mes = ultimo_dia.day
         
-        # ✅ BUSCAR POSTOS COM MOTORISTAS E SEUS PERÍODOS (AGRUPADOS)
-        # Seguir mesma lógica do relatório de fiscalização
+        # Buscar postos com valores
         cursor.execute("""
             SELECT 
                 p.ID_POSTO,
@@ -13873,8 +13874,8 @@ def api_gerar_relatorio_retencao():
         for posto in postos:
             id_posto = posto['ID_POSTO']
             de_posto = posto['DE_POSTO']
-            vl_salario = float(posto['VL_SALARIO'] or 0)
-            vl_mensal = float(posto['VL_MENSAL'] or 0)
+            vl_salario = Decimal(str(posto['VL_SALARIO'] or 0))
+            vl_mensal = Decimal(str(posto['VL_MENSAL'] or 0))
             
             if vl_salario == 0 or vl_mensal == 0:
                 continue
@@ -13897,7 +13898,7 @@ def api_gerar_relatorio_retencao():
             for mot in motoristas_ids:
                 id_motorista = mot['ID_MOTORISTA']
                 
-                # ✅ Buscar TODOS os períodos do motorista no mês
+                # Buscar TODOS os períodos do motorista no mês
                 cursor.execute("""
                     SELECT DT_INICIO, DT_FIM
                     FROM CAD_MOTORISTA_PERIODOS
@@ -13910,7 +13911,6 @@ def api_gerar_relatorio_retencao():
                 periodos = cursor.fetchall()
                 
                 if periodos:
-                    # Verificar se tem período que cobre o mês completo
                     tem_mes_completo = False
                     for periodo in periodos:
                         dt_inicio = periodo['DT_INICIO']
@@ -13926,18 +13926,16 @@ def api_gerar_relatorio_retencao():
                             'dias_trabalhados': total_dias_mes
                         })
                     else:
-                        # ✅ SOMAR dias de TODOS os períodos (igual fiscalização)
+                        # Somar dias de todos os períodos
                         total_dias = 0
                         
                         for periodo in periodos:
                             dt_inicio = periodo['DT_INICIO']
                             dt_fim = periodo['DT_FIM']
                             
-                            # Ajustar para os limites do mês
                             inicio_calculo = max(dt_inicio, primeiro_dia)
                             fim_calculo = min(dt_fim if dt_fim else ultimo_dia, ultimo_dia)
                             
-                            # Calcular dias deste período
                             dias_periodo = (fim_calculo - inicio_calculo).days + 1
                             total_dias += dias_periodo
                         
@@ -13952,7 +13950,6 @@ def api_gerar_relatorio_retencao():
                             'dias_trabalhados': total_dias
                         })
             
-            # Adicionar ao resultado
             postos_processados.append({
                 'id_posto': id_posto,
                 'de_posto': de_posto,
@@ -13961,6 +13958,10 @@ def api_gerar_relatorio_retencao():
                 'motoristas_completo': motoristas_completo,
                 'motoristas_parcial': motoristas_parcial
             })
+        
+        # Função auxiliar para arredondar
+        def arredondar(valor):
+            return float(valor.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
         
         # Montar os quadros
         quadro1 = []
@@ -13972,77 +13973,79 @@ def api_gerar_relatorio_retencao():
             vl_mensal = posto['vl_mensal']
             de_posto = posto['de_posto']
             
-            # Motoristas que trabalharam o mês completo
+            # Motoristas mês completo
             if posto['motoristas_completo']:
                 qtd = len(posto['motoristas_completo'])
                 
-                # Calcular retenções com valor integral
-                ret_13 = vl_salario * pc_13 / 100
-                ret_ferias = vl_salario * pc_ferias / 100
-                ret_fgts = vl_salario * pc_fgts / 100
-                ret_incidencias = vl_salario * pc_incidencias / 100
+                # Calcular retenções com Decimal
+                ret_13 = vl_salario * pc_13 / Decimal('100')
+                ret_ferias = vl_salario * pc_ferias / Decimal('100')
+                ret_fgts = vl_salario * pc_fgts / Decimal('100')
+                ret_incidencias = vl_salario * pc_incidencias / Decimal('100')
                 ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
                 
                 quadro1.append({
                     'de_posto': de_posto,
-                    'vl_salario': vl_salario,
-                    'ret_13': ret_13,
-                    'ret_ferias': ret_ferias,
-                    'ret_fgts': ret_fgts,
-                    'ret_incidencias': ret_incidencias,
-                    'ret_total': ret_total
+                    'vl_salario': arredondar(vl_salario),
+                    'ret_13': arredondar(ret_13),
+                    'ret_ferias': arredondar(ret_ferias),
+                    'ret_fgts': arredondar(ret_fgts),
+                    'ret_incidencias': arredondar(ret_incidencias),
+                    'ret_total': arredondar(ret_total)
                 })
+                
+                # ✅ CORREÇÃO: Multiplicar ret_total unitário (já arredondado) pela quantidade
+                ret_total_arredondado = ret_total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 
                 quadro2.append({
                     'de_posto': de_posto,
-                    'vl_mensal': vl_mensal,
+                    'vl_mensal': arredondar(vl_mensal),
                     'qtd_postos': qtd,
                     'qtd_por_posto': 1,
                     'qtd_total_func': qtd,
-                    'vl_mensal_total': vl_mensal * qtd,
-                    'ret_unitario': ret_total,
-                    'ret_total': ret_total * qtd
+                    'vl_mensal_total': arredondar(vl_mensal * qtd),
+                    'ret_unitario': arredondar(ret_total),
+                    'ret_total': arredondar(ret_total_arredondado * qtd)  # ✅ Multiplicar valor arredondado
                 })
             
-            # ✅ Motoristas parciais - UMA LINHA POR MOTORISTA (com dias somados)
+            # Motoristas parciais
             for mot_parcial in posto['motoristas_parcial']:
                 dias_trab = mot_parcial['dias_trabalhados']
                 nome_mot = mot_parcial['nome_motorista']
                 
-                # Calcular valores proporcionais (divisão por 30)
-                vl_salario_proporcional = (vl_salario / 30) * dias_trab
-                vl_mensal_proporcional = (vl_mensal / 30) * dias_trab
+                # Calcular proporcionais com Decimal
+                vl_salario_proporcional = (vl_salario / Decimal('30')) * Decimal(str(dias_trab))
+                vl_mensal_proporcional = (vl_mensal / Decimal('30')) * Decimal(str(dias_trab))
                 
                 # Calcular retenções
-                ret_13 = vl_salario_proporcional * pc_13 / 100
-                ret_ferias = vl_salario_proporcional * pc_ferias / 100
-                ret_fgts = vl_salario_proporcional * pc_fgts / 100
-                ret_incidencias = vl_salario_proporcional * pc_incidencias / 100
+                ret_13 = vl_salario_proporcional * pc_13 / Decimal('100')
+                ret_ferias = vl_salario_proporcional * pc_ferias / Decimal('100')
+                ret_fgts = vl_salario_proporcional * pc_fgts / Decimal('100')
+                ret_incidencias = vl_salario_proporcional * pc_incidencias / Decimal('100')
                 ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
                 
                 quadro1.append({
                     'de_posto': de_posto + ' (*)',
-                    'vl_salario': vl_salario_proporcional,
-                    'ret_13': ret_13,
-                    'ret_ferias': ret_ferias,
-                    'ret_fgts': ret_fgts,
-                    'ret_incidencias': ret_incidencias,
-                    'ret_total': ret_total
+                    'vl_salario': arredondar(vl_salario_proporcional),
+                    'ret_13': arredondar(ret_13),
+                    'ret_ferias': arredondar(ret_ferias),
+                    'ret_fgts': arredondar(ret_fgts),
+                    'ret_incidencias': arredondar(ret_incidencias),
+                    'ret_total': arredondar(ret_total)
                 })
                 
                 quadro2.append({
                     'de_posto': de_posto + ' (*)',
-                    'vl_mensal': vl_mensal_proporcional,
+                    'vl_mensal': arredondar(vl_mensal_proporcional),
                     'qtd_postos': 1,
                     'qtd_por_posto': 1,
                     'qtd_total_func': 1,
-                    'vl_mensal_total': vl_mensal_proporcional,
-                    'ret_unitario': ret_total,
-                    'ret_total': ret_total
+                    'vl_mensal_total': arredondar(vl_mensal_proporcional),
+                    'ret_unitario': arredondar(ret_total),
+                    'ret_total': arredondar(ret_total)
                 })
                 
-                # Observação
-                obs = f"{de_posto} (*): {nome_mot} - {dias_trab} dias trabalhados - R$ {vl_mensal_proporcional:.2f}"
+                obs = f"{de_posto} (*): {nome_mot} - {dias_trab} dias trabalhados - R$ {arredondar(vl_mensal_proporcional):.2f}"
                 observacoes.append(obs)
         
         # Retornar JSON
@@ -14057,11 +14060,11 @@ def api_gerar_relatorio_retencao():
                     'gestor': contrato['NOME_GESTOR'],
                     'unidade': contrato['SETOR_GESTOR'],
                     'id_rat': contrato['ID_RAT'],
-                    'pc_13': pc_13,
-                    'pc_ferias': pc_ferias,
-                    'pc_fgts': pc_fgts,
-                    'pc_incidencias': pc_incidencias,
-                    'pc_total': pc_total
+                    'pc_13': float(pc_13),
+                    'pc_ferias': float(pc_ferias),
+                    'pc_fgts': float(pc_fgts),
+                    'pc_incidencias': float(pc_incidencias),
+                    'pc_total': float(pc_total)
                 },
                 'quadro1': quadro1,
                 'quadro2': quadro2,
@@ -14094,6 +14097,7 @@ def relatorio_retencao_impressao():
 if __name__ == '__main__':
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
