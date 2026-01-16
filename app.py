@@ -13842,115 +13842,139 @@ def api_gerar_relatorio_retencao():
         ultimo_dia = datetime(ano_int, mes_numero, monthrange(ano_int, mes_numero)[1]).date()
         total_dias_mes = ultimo_dia.day
         
-        # Buscar postos e motoristas
+        # ✅ BUSCAR POSTOS COM MOTORISTAS E SEUS PERÍODOS (AGRUPADOS)
+        # Seguir mesma lógica do relatório de fiscalização
         cursor.execute("""
             SELECT 
                 p.ID_POSTO,
                 p.DE_POSTO,
-                m.ID_MOTORISTA,
-                m.NM_MOTORISTA,
-                mp.DT_INICIO,
-                mp.DT_FIM,
                 pv.VL_MENSAL,
                 pv.VL_SALARIO
             FROM POSTO_TRABALHO p
-            INNER JOIN POSTO_TRABALHO_VINCULO pv_link ON p.ID_POSTO = pv_link.ID_POSTO
-            INNER JOIN CAD_MOTORISTA m ON pv_link.ID_MOTORISTA = m.ID_MOTORISTA
-            INNER JOIN CAD_MOTORISTA_PERIODOS mp ON m.ID_MOTORISTA = mp.ID_MOTORISTA
             LEFT JOIN POSTO_TRABALHO_VALORES pv ON p.ID_POSTO = pv.ID_POSTO
                 AND pv.DT_INICIO <= %s
                 AND (pv.DT_FIM IS NULL OR pv.DT_FIM >= %s)
             WHERE p.ID_CONTRATO = %s
-                AND mp.DT_INICIO <= %s
-                AND (mp.DT_FIM IS NULL OR mp.DT_FIM >= %s)
-            ORDER BY p.DE_POSTO, m.NM_MOTORISTA
-        """, (ultimo_dia, primeiro_dia, id_contrato, ultimo_dia, primeiro_dia))
+            ORDER BY p.DE_POSTO
+        """, (ultimo_dia, primeiro_dia, id_contrato))
         
-        motoristas = cursor.fetchall()
+        postos = cursor.fetchall()
         
-        if not motoristas:
+        if not postos:
             cursor.close()
             return jsonify({
                 'success': False,
-                'error': 'Nenhum motorista encontrado para o período selecionado'
+                'error': 'Nenhum posto encontrado'
             })
         
-        # Processar dados - Separar por posto e tipo (completo/parcial)
-        postos_processados = {}
+        # Processar cada posto
+        postos_processados = []
         
-        for motorista in motoristas:
-            posto = motorista['DE_POSTO']
-            id_posto = motorista['ID_POSTO']
-            id_motorista = motorista['ID_MOTORISTA']
-            nm_motorista = motorista['NM_MOTORISTA']
-            dt_inicio = motorista['DT_INICIO']
-            dt_fim = motorista['DT_FIM']
-            vl_salario = float(motorista['VL_SALARIO'] or 0)
-            vl_mensal = float(motorista['VL_MENSAL'] or 0)
+        for posto in postos:
+            id_posto = posto['ID_POSTO']
+            de_posto = posto['DE_POSTO']
+            vl_salario = float(posto['VL_SALARIO'] or 0)
+            vl_mensal = float(posto['VL_MENSAL'] or 0)
             
-            # Verificar se tem valores configurados
             if vl_salario == 0 or vl_mensal == 0:
                 continue
             
-            # MySQL já retorna como date, mas garantir que seja date
-            if not isinstance(dt_inicio, date):
-                dt_inicio = dt_inicio.date() if dt_inicio else None
-            if dt_fim and not isinstance(dt_fim, date):
-                dt_fim = dt_fim.date() if dt_fim else None
+            # Buscar motoristas do posto
+            cursor.execute("""
+                SELECT DISTINCT v.ID_MOTORISTA
+                FROM POSTO_TRABALHO_VINCULO v
+                INNER JOIN CAD_MOTORISTA_PERIODOS p ON v.ID_MOTORISTA = p.ID_MOTORISTA
+                WHERE v.ID_POSTO = %s
+                AND p.DT_INICIO <= %s
+                AND (p.DT_FIM IS NULL OR p.DT_FIM >= %s)
+            """, (id_posto, ultimo_dia, primeiro_dia))
             
-            # Verificar se trabalhou o mês completo
-            trabalhou_mes_completo = (
-                dt_inicio <= primeiro_dia and
-                (dt_fim is None or dt_fim >= ultimo_dia)
-            )
+            motoristas_ids = cursor.fetchall()
             
-            # Calcular dias trabalhados
-            if trabalhou_mes_completo:
-                dias_trabalhados = total_dias_mes
-            else:
-                inicio_periodo = max(dt_inicio, primeiro_dia)
-                fim_periodo = min(dt_fim if dt_fim else ultimo_dia, ultimo_dia)
-                dias_trabalhados = (fim_periodo - inicio_periodo).days + 1
+            motoristas_completo = []
+            motoristas_parcial = []
             
-            # Inicializar estrutura do posto se não existir
-            if id_posto not in postos_processados:
-                postos_processados[id_posto] = {
-                    'de_posto': posto,
-                    'vl_salario': vl_salario,
-                    'vl_mensal': vl_mensal,
-                    'motoristas_completo': [],
-                    'motoristas_parcial': []
-                }
+            for mot in motoristas_ids:
+                id_motorista = mot['ID_MOTORISTA']
+                
+                # ✅ Buscar TODOS os períodos do motorista no mês
+                cursor.execute("""
+                    SELECT DT_INICIO, DT_FIM
+                    FROM CAD_MOTORISTA_PERIODOS
+                    WHERE ID_MOTORISTA = %s
+                    AND DT_INICIO <= %s
+                    AND (DT_FIM IS NULL OR DT_FIM >= %s)
+                    ORDER BY DT_INICIO
+                """, (id_motorista, ultimo_dia, primeiro_dia))
+                
+                periodos = cursor.fetchall()
+                
+                if periodos:
+                    # Verificar se tem período que cobre o mês completo
+                    tem_mes_completo = False
+                    for periodo in periodos:
+                        dt_inicio = periodo['DT_INICIO']
+                        dt_fim = periodo['DT_FIM']
+                        
+                        if dt_inicio <= primeiro_dia and (dt_fim is None or dt_fim >= ultimo_dia):
+                            tem_mes_completo = True
+                            break
+                    
+                    if tem_mes_completo:
+                        motoristas_completo.append({
+                            'id_motorista': id_motorista,
+                            'dias_trabalhados': total_dias_mes
+                        })
+                    else:
+                        # ✅ SOMAR dias de TODOS os períodos (igual fiscalização)
+                        total_dias = 0
+                        
+                        for periodo in periodos:
+                            dt_inicio = periodo['DT_INICIO']
+                            dt_fim = periodo['DT_FIM']
+                            
+                            # Ajustar para os limites do mês
+                            inicio_calculo = max(dt_inicio, primeiro_dia)
+                            fim_calculo = min(dt_fim if dt_fim else ultimo_dia, ultimo_dia)
+                            
+                            # Calcular dias deste período
+                            dias_periodo = (fim_calculo - inicio_calculo).days + 1
+                            total_dias += dias_periodo
+                        
+                        # Buscar nome do motorista
+                        cursor.execute("SELECT NM_MOTORISTA FROM CAD_MOTORISTA WHERE ID_MOTORISTA = %s", (id_motorista,))
+                        nome_result = cursor.fetchone()
+                        nome_motorista = nome_result['NM_MOTORISTA'] if nome_result else 'Não identificado'
+                        
+                        motoristas_parcial.append({
+                            'id_motorista': id_motorista,
+                            'nome_motorista': nome_motorista,
+                            'dias_trabalhados': total_dias
+                        })
             
-            # Adicionar motorista na categoria correta
-            if trabalhou_mes_completo:
-                postos_processados[id_posto]['motoristas_completo'].append({
-                    'id_motorista': id_motorista,
-                    'nm_motorista': nm_motorista,
-                    'dias_trabalhados': dias_trabalhados
-                })
-            else:
-                postos_processados[id_posto]['motoristas_parcial'].append({
-                    'id_motorista': id_motorista,
-                    'nm_motorista': nm_motorista,
-                    'dias_trabalhados': dias_trabalhados,
-                    'dt_inicio': dt_inicio,
-                    'dt_fim': dt_fim
-                })
+            # Adicionar ao resultado
+            postos_processados.append({
+                'id_posto': id_posto,
+                'de_posto': de_posto,
+                'vl_salario': vl_salario,
+                'vl_mensal': vl_mensal,
+                'motoristas_completo': motoristas_completo,
+                'motoristas_parcial': motoristas_parcial
+            })
         
-        # Montar os quadros seguindo a mesma lógica do relatório de fiscalização
+        # Montar os quadros
         quadro1 = []
         quadro2 = []
         observacoes = []
         
-        for id_posto, posto_data in postos_processados.items():
-            vl_salario = posto_data['vl_salario']
-            vl_mensal = posto_data['vl_mensal']
-            de_posto = posto_data['de_posto']
+        for posto in postos_processados:
+            vl_salario = posto['vl_salario']
+            vl_mensal = posto['vl_mensal']
+            de_posto = posto['de_posto']
             
-            # Processar motoristas que trabalharam o mês completo
-            if posto_data['motoristas_completo']:
-                qtd = len(posto_data['motoristas_completo'])
+            # Motoristas que trabalharam o mês completo
+            if posto['motoristas_completo']:
+                qtd = len(posto['motoristas_completo'])
                 
                 # Calcular retenções com valor integral
                 ret_13 = vl_salario * pc_13 / 100
@@ -13959,7 +13983,6 @@ def api_gerar_relatorio_retencao():
                 ret_incidencias = vl_salario * pc_incidencias / 100
                 ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
                 
-                # Quadro 1 - Uma linha por tipo de posto
                 quadro1.append({
                     'de_posto': de_posto,
                     'vl_salario': vl_salario,
@@ -13970,7 +13993,6 @@ def api_gerar_relatorio_retencao():
                     'ret_total': ret_total
                 })
                 
-                # Quadro 2
                 quadro2.append({
                     'de_posto': de_posto,
                     'vl_mensal': vl_mensal,
@@ -13982,24 +14004,22 @@ def api_gerar_relatorio_retencao():
                     'ret_total': ret_total * qtd
                 })
             
-            # Processar motoristas que trabalharam parcialmente
-            for mot_parcial in posto_data['motoristas_parcial']:
+            # ✅ Motoristas parciais - UMA LINHA POR MOTORISTA (com dias somados)
+            for mot_parcial in posto['motoristas_parcial']:
                 dias_trab = mot_parcial['dias_trabalhados']
-                nome_mot = mot_parcial['nm_motorista']
+                nome_mot = mot_parcial['nome_motorista']
                 
-                # ✅ SEGUIR A MESMA LÓGICA DO FISCALIZAÇÃO (linha 12861)
-                # Calcular valores proporcionais
+                # Calcular valores proporcionais (divisão por 30)
                 vl_salario_proporcional = (vl_salario / 30) * dias_trab
                 vl_mensal_proporcional = (vl_mensal / 30) * dias_trab
                 
-                # Calcular retenções com valor proporcional
+                # Calcular retenções
                 ret_13 = vl_salario_proporcional * pc_13 / 100
                 ret_ferias = vl_salario_proporcional * pc_ferias / 100
                 ret_fgts = vl_salario_proporcional * pc_fgts / 100
                 ret_incidencias = vl_salario_proporcional * pc_incidencias / 100
                 ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
                 
-                # Quadro 1 - Uma linha por motorista parcial
                 quadro1.append({
                     'de_posto': de_posto + ' (*)',
                     'vl_salario': vl_salario_proporcional,
@@ -14010,7 +14030,6 @@ def api_gerar_relatorio_retencao():
                     'ret_total': ret_total
                 })
                 
-                # Quadro 2 - Uma linha por motorista parcial
                 quadro2.append({
                     'de_posto': de_posto + ' (*)',
                     'vl_mensal': vl_mensal_proporcional,
@@ -14062,7 +14081,6 @@ def api_gerar_relatorio_retencao():
             'error': str(e)
         })
 
-
 # ============================================================
 # ROTA 2 - PÁGINA DE IMPRESSÃO
 # ============================================================
@@ -14076,6 +14094,7 @@ def relatorio_retencao_impressao():
 if __name__ == '__main__':
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
