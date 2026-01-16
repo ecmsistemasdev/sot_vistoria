@@ -2467,36 +2467,37 @@
         });
 
         document.addEventListener('DOMContentLoaded', function() {
-            const tabela = document.querySelector('table');
-            if (!tabela) return;
+            aplicarDestaquesOcorrencias();
+        });
+        
+        function aplicarDestaquesOcorrencias() {
+            // Selecionar especificamente a tabela de ocorrências do relatório
+            const tbody = document.getElementById('tabelaOcorrenciasRelatorio');
             
-            const linhas = tabela.querySelectorAll('tr');
+            if (!tbody) return;
             
-            linhas.forEach(function(linha, indice) {
+            const linhas = tbody.querySelectorAll('tr');
+            
+            linhas.forEach(function(linha) {
                 const celulas = linha.querySelectorAll('td');
                 
                 if (celulas.length === 0) return;
                 
                 const primeiraColuna = celulas[0].textContent.trim();
                 
-                // Identificar as linhas que precisam de destaque:
-                // - Linhas de postos: são as que vêm ANTES da linha "Total (+)"
-                // - Linha "Total (+)"
-                // - Linha "Número Corrigido (=)"
-                
-                const ehLinhaTotal = primeiraColuna.includes('Total (+)');
-                const ehLinhaNumeroCorrigido = primeiraColuna.includes('Número Corrigido (=)');
+                // Identificar linhas que NÃO devem ter destaque
                 const ehLinhaTolerancia = primeiraColuna.includes('Tolerância');
                 const ehLinhaExcesso = primeiraColuna.includes('Excesso');
                 const ehLinhaMultiplicador = primeiraColuna.includes('Multiplicador');
                 
-                // Se NÃO for linha de controle (Tolerância, Excesso, Multiplicador),
-                // então é linha de posto de trabalho OU Total OU Número Corrigido
+                // Se não for linha de controle, então precisa destacar
                 const ehLinhaParaDestacar = !ehLinhaTolerancia && !ehLinhaExcesso && !ehLinhaMultiplicador;
                 
                 if (ehLinhaParaDestacar) {
-                    // Percorrer as colunas de 01 a 10 (índices 1 a 10 do array de células)
-                    for (let i = 1; i <= 10 && i < celulas.length; i++) {
+                    // A primeira coluna é o nome do posto (índice 0)
+                    // A segunda coluna está vazia (índice 1)
+                    // As colunas 01-10 vão do índice 2 ao 11
+                    for (let i = 2; i <= 11 && i < celulas.length; i++) {
                         const valorTexto = celulas[i].textContent.trim();
                         const valor = parseInt(valorTexto);
                         
@@ -2506,7 +2507,7 @@
                     }
                 }
             });
-        });
+        }
         
     </script>
     
