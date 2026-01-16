@@ -13977,12 +13977,19 @@ def api_gerar_relatorio_retencao():
             if posto['motoristas_completo']:
                 qtd = len(posto['motoristas_completo'])
                 
-                # Calcular retenções com Decimal
-                ret_13 = vl_salario * pc_13 / Decimal('100')
-                ret_ferias = vl_salario * pc_ferias / Decimal('100')
-                ret_fgts = vl_salario * pc_fgts / Decimal('100')
-                ret_incidencias = vl_salario * pc_incidencias / Decimal('100')
-                ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
+                # ✅ CORREÇÃO: Calcular sem arredondar, depois somar, depois arredondar o total
+                ret_13_sem_arredondar = vl_salario * pc_13 / Decimal('100')
+                ret_ferias_sem_arredondar = vl_salario * pc_ferias / Decimal('100')
+                ret_fgts_sem_arredondar = vl_salario * pc_fgts / Decimal('100')
+                ret_incidencias_sem_arredondar = vl_salario * pc_incidencias / Decimal('100')
+                ret_total_sem_arredondar = ret_13_sem_arredondar + ret_ferias_sem_arredondar + ret_fgts_sem_arredondar + ret_incidencias_sem_arredondar
+                
+                # Arredondar apenas para exibição no Quadro 1
+                ret_13 = ret_13_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_ferias = ret_ferias_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_fgts = ret_fgts_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_incidencias = ret_incidencias_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_total = ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 
                 quadro1.append({
                     'de_posto': de_posto,
@@ -13994,8 +14001,8 @@ def api_gerar_relatorio_retencao():
                     'ret_total': arredondar(ret_total)
                 })
                 
-                # ✅ CORREÇÃO: Multiplicar ret_total unitário (já arredondado) pela quantidade
-                ret_total_arredondado = ret_total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                # ✅ Para o Quadro 2: multiplicar ANTES de arredondar
+                ret_total_multiplicado = ret_total_sem_arredondar * qtd
                 
                 quadro2.append({
                     'de_posto': de_posto,
@@ -14005,7 +14012,7 @@ def api_gerar_relatorio_retencao():
                     'qtd_total_func': qtd,
                     'vl_mensal_total': arredondar(vl_mensal * qtd),
                     'ret_unitario': arredondar(ret_total),
-                    'ret_total': arredondar(ret_total_arredondado * qtd)  # ✅ Multiplicar valor arredondado
+                    'ret_total': arredondar(ret_total_multiplicado)  # ✅ Arredondar depois de multiplicar
                 })
             
             # Motoristas parciais
@@ -14017,12 +14024,19 @@ def api_gerar_relatorio_retencao():
                 vl_salario_proporcional = (vl_salario / Decimal('30')) * Decimal(str(dias_trab))
                 vl_mensal_proporcional = (vl_mensal / Decimal('30')) * Decimal(str(dias_trab))
                 
-                # Calcular retenções
-                ret_13 = vl_salario_proporcional * pc_13 / Decimal('100')
-                ret_ferias = vl_salario_proporcional * pc_ferias / Decimal('100')
-                ret_fgts = vl_salario_proporcional * pc_fgts / Decimal('100')
-                ret_incidencias = vl_salario_proporcional * pc_incidencias / Decimal('100')
-                ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
+                # ✅ Calcular sem arredondar, somar, depois arredondar
+                ret_13_sem_arredondar = vl_salario_proporcional * pc_13 / Decimal('100')
+                ret_ferias_sem_arredondar = vl_salario_proporcional * pc_ferias / Decimal('100')
+                ret_fgts_sem_arredondar = vl_salario_proporcional * pc_fgts / Decimal('100')
+                ret_incidencias_sem_arredondar = vl_salario_proporcional * pc_incidencias / Decimal('100')
+                ret_total_sem_arredondar = ret_13_sem_arredondar + ret_ferias_sem_arredondar + ret_fgts_sem_arredondar + ret_incidencias_sem_arredondar
+                
+                # Arredondar para exibição
+                ret_13 = ret_13_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_ferias = ret_ferias_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_fgts = ret_fgts_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_incidencias = ret_incidencias_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_total = ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 
                 quadro1.append({
                     'de_posto': de_posto + ' (*)',
