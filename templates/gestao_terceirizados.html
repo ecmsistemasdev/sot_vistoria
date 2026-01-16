@@ -125,6 +125,11 @@
             background-color: #f8f9fa;
         }
 
+        .celula-destacada {
+            background-color: #FFB6C1;
+            font-weight: bold;
+        }
+        
         .btn {
             padding: 6px 12px;
             border: none;
@@ -2459,6 +2464,41 @@
                     fecharModalRelatorioPdf();
                 }
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Selecionar todas as linhas da tabela de ocorrências
+            const tabela = document.querySelector('table');
+            const linhas = tabela.querySelectorAll('tbody tr');
+            
+            linhas.forEach(function(linha) {
+                const primeiraColuna = linha.querySelector('td:first-child');
+                
+                if (!primeiraColuna) return;
+                
+                const textoLinha = primeiraColuna.textContent.trim();
+                
+                // Verificar se é uma linha que precisa de destaque
+                const linhasParaDestacar = [
+                    'Motorista CNH B',
+                    'Motorista CNH D',
+                    'Total (+)',
+                    'Número Corrigido (=)'
+                ];
+                
+                if (linhasParaDestacar.some(texto => textoLinha.includes(texto))) {
+                    // Percorrer as colunas de 01 a 10 (índices 1 a 10)
+                    const celulas = linha.querySelectorAll('td');
+                    
+                    for (let i = 1; i <= 10 && i < celulas.length; i++) {
+                        const valor = parseInt(celulas[i].textContent.trim());
+                        
+                        if (valor > 0) {
+                            celulas[i].classList.add('celula-destacada');
+                        }
+                    }
+                }
+            });
         });
         
     </script>
