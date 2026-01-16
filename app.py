@@ -13929,8 +13929,8 @@ def api_gerar_relatorio_retencao():
             ret_incidencias = vl_salario_proporcional * pc_incidencias / 100
             ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
             
-            # Criar chave do posto
-            chave_posto = f"{posto}_{'' if trabalhou_mes_completo else 'parcial'}"
+			# Criar chave do posto considerando se é parcial ou não
+            chave_posto = f"{posto}_{eh_parcial}_{dias_trabalhados}"
             
             if chave_posto not in postos_dict:
                 postos_dict[chave_posto] = {
@@ -13938,29 +13938,38 @@ def api_gerar_relatorio_retencao():
                     'id_posto': id_posto,
                     'eh_parcial': eh_parcial,
                     'quantidade': 0,
-                    'vl_salario': vl_salario,
-                    'vl_mensal': vl_mensal,
+                    'vl_salario': vl_salario,  # Valor integral (sem proporção)
+                    'vl_mensal': vl_mensal,    # Valor integral (sem proporção)
                     'motoristas': [],
-                    'vl_salario_proporcional': vl_salario_proporcional,
-                    'vl_mensal_proporcional': vl_mensal_proporcional,
-                    'ret_13': ret_13,
-                    'ret_ferias': ret_ferias,
-                    'ret_fgts': ret_fgts,
-                    'ret_incidencias': ret_incidencias,
-                    'ret_total': ret_total,
+                    'vl_salario_proporcional_total': 0,  # Soma dos proporcionais
+                    'vl_mensal_proporcional_total': 0,   # Soma dos proporcionais
+                    'ret_13_total': 0,
+                    'ret_ferias_total': 0,
+                    'ret_fgts_total': 0,
+                    'ret_incidencias_total': 0,
+                    'ret_total_total': 0,
                     'dias_trabalhados': dias_trabalhados,
                     'dt_inicio': dt_inicio,
                     'dt_fim': dt_fim
                 }
             
+            # Somar os valores proporcionais de cada motorista
             postos_dict[chave_posto]['quantidade'] += 1
+            postos_dict[chave_posto]['vl_salario_proporcional_total'] += vl_salario_proporcional
+            postos_dict[chave_posto]['vl_mensal_proporcional_total'] += vl_mensal_proporcional
+            postos_dict[chave_posto]['ret_13_total'] += ret_13
+            postos_dict[chave_posto]['ret_ferias_total'] += ret_ferias
+            postos_dict[chave_posto]['ret_fgts_total'] += ret_fgts
+            postos_dict[chave_posto]['ret_incidencias_total'] += ret_incidencias
+            postos_dict[chave_posto]['ret_total_total'] += ret_total
+            
             postos_dict[chave_posto]['motoristas'].append({
                 'nome': motorista['NM_MOTORISTA'],
                 'dt_inicio': dt_inicio,
                 'dt_fim': dt_fim,
                 'dias_trabalhados': dias_trabalhados
             })
-        
+
         # Gerar observações automáticas
         for chave, posto_data in postos_dict.items():
             if posto_data['eh_parcial']:
@@ -13979,36 +13988,44 @@ def api_gerar_relatorio_retencao():
                     obs = f"(*) {qtd} posto(s) {nome_posto} temporário(s) de {dias} dias trabalhados"
                     observacoes.append(obs)
         
-        # Preparar dados para retorno
+		# Preparar dados para retorno
         # Quadro 1 - Por posto (com salário)
         quadro1 = []
         for chave, posto_data in postos_dict.items():
+            # ✅ CORREÇÃO: Dividir o total pela quantidade para obter o valor UNITÁRIO
+            vl_salario_unitario = posto_data['vl_salario_proporcional_total'] / posto_data['quantidade']
+            ret_13_unitario = posto_data['ret_13_total'] / posto_data['quantidade']
+            ret_ferias_unitario = posto_data['ret_ferias_total'] / posto_data['quantidade']
+            ret_fgts_unitario = posto_data['ret_fgts_total'] / posto_data['quantidade']
+            ret_incidencias_unitario = posto_data['ret_incidencias_total'] / posto_data['quantidade']
+            ret_total_unitario = posto_data['ret_total_total'] / posto_data['quantidade']
+            
             quadro1.append({
                 'de_posto': posto_data['de_posto'] + (' (*)' if posto_data['eh_parcial'] else ''),
-                'vl_salario': posto_data['vl_salario_proporcional'],
-                'ret_13': posto_data['ret_13'],
-                'ret_ferias': posto_data['ret_ferias'],
-                'ret_fgts': posto_data['ret_fgts'],
-                'ret_incidencias': posto_data['ret_incidencias'],
-                'ret_total': posto_data['ret_total']
+                'vl_salario': vl_salario_unitario,
+                'ret_13': ret_13_unitario,
+                'ret_ferias': ret_ferias_unitario,
+                'ret_fgts': ret_fgts_unitario,
+                'ret_incidencias': ret_incidencias_unitario,
+                'ret_total': ret_total_unitario
             })
         
         # Quadro 2 - Resumo por posto (com valor mensal)
         quadro2 = []
         for chave, posto_data in postos_dict.items():
             qtd_postos = posto_data['quantidade']
-            vl_mensal = posto_data['vl_mensal_proporcional']
-            ret_unitario = posto_data['ret_total']
+            vl_mensal_unitario = posto_data['vl_mensal_proporcional_total'] / qtd_postos
+            ret_unitario = posto_data['ret_total_total'] / qtd_postos
             
             quadro2.append({
                 'de_posto': posto_data['de_posto'] + (' (*)' if posto_data['eh_parcial'] else ''),
-                'vl_mensal': vl_mensal,
+                'vl_mensal': vl_mensal_unitario,
                 'qtd_postos': qtd_postos,
                 'qtd_por_posto': 1,
                 'qtd_total_func': qtd_postos,
-                'vl_mensal_total': vl_mensal * qtd_postos,
+                'vl_mensal_total': posto_data['vl_mensal_proporcional_total'],
                 'ret_unitario': ret_unitario,
-                'ret_total': ret_unitario * qtd_postos
+                'ret_total': posto_data['ret_total_total']
             })
         
         # Retornar JSON
@@ -14061,6 +14078,7 @@ def relatorio_retencao_impressao():
 if __name__ == '__main__':
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
 
