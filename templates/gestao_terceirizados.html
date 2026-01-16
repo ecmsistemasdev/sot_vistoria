@@ -2189,11 +2189,11 @@
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
             
-            // Preencher anos dinamicamente (2024 até ano atual)
+            // Preencher anos dinamicamente (2025 até ano atual)
             const selectAno = document.getElementById('retencaoAno');
             if (selectAno.options.length <= 1) {
                 const anoAtual = new Date().getFullYear();
-                for (let ano = 2024; ano <= anoAtual; ano++) {
+                for (let ano = 2025; ano <= anoAtual; ano++) {
                     const option = document.createElement('option');
                     option.value = ano;
                     option.textContent = ano;
