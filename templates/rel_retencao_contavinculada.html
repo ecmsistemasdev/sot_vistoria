@@ -141,7 +141,7 @@
         }
         
         /* REMOVER LINHA ENTRE LOGO E "CONTRATO" */
-        #conteudoRelatorio > div:first-child > div > table:nth-child(2) tr:first-child td {
+        #conteudoRelatorio > div:first-child > table:nth-child(2) tr:first-child td {
             border-top: none !important;
         }
         
@@ -196,61 +196,6 @@
             #conteudoRelatorio th {
                 font-size: 9px !important;
             }
-        }
-
-        /* ===== AJUSTES DE LARGURA DAS COLUNAS ===== */
-
-        /* Forçar table-layout fixed em todas as tabelas */
-        #conteudoRelatorio table {
-            table-layout: fixed !important;
-        }
-
-        /* Tabela 1 (RAT) - usando seletores mais específicos */
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(1) { 
-            width: 5% !important; /* Item */
-            white-space: normal !important;
-            word-wrap: break-word !important;
-        }
-
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(2) { 
-            width: 19% !important; /* Descrição - Posto de Trabalho */
-            white-space: normal !important;
-            word-wrap: break-word !important;
-        }
-
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(3),
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(4),
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(5),
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(6),
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(7),
-        #conteudoRelatorio div:nth-child(2) table thead th:nth-child(8) {
-            width: 12.67% !important; /* Redistribuir igualmente: (100-24)/6 */
-            white-space: normal !important;
-            word-wrap: break-word !important;
-        }
-
-        /* Tabela 2 (Quadro Demonstrativo) */
-        #conteudoRelatorio div:nth-child(3) table thead th:nth-child(1) { 
-            width: 24% !important; /* Mesma largura da tabela acima */
-            white-space: normal !important;
-            word-wrap: break-word !important;
-        }
-
-        #conteudoRelatorio div:nth-child(3) table thead th:nth-child(3),
-        #conteudoRelatorio div:nth-child(3) table thead th:nth-child(4),
-        #conteudoRelatorio div:nth-child(3) table thead th:nth-child(5) {
-            width: 6% !important; /* Colunas (C), (D) e (E) - reduzidas */
-            white-space: normal !important;
-            word-wrap: break-word !important;
-        }
-
-        #conteudoRelatorio div:nth-child(3) table thead th:nth-child(2),
-        #conteudoRelatorio div:nth-child(3) table thead th:nth-child(6),
-        #conteudoRelatorio div:nth-child(3) table thead th:nth-child(7),
-        #conteudoRelatorio div:nth-child(3) table thead th:nth-child(8) {
-            width: 13.5% !important; /* Distribuir espaço restante: (100-24-18)/4 */
-            white-space: normal !important;
-            word-wrap: break-word !important;
         }
 
         /* Permitir quebra de linha nos cabeçalhos */
