@@ -1951,6 +1951,12 @@
                     };
                     
                     preencherRelatorio(result.data);
+
+                    // ✅ ADICIONAR AQUI - Logo após preencher o relatório
+                    setTimeout(function() {
+                        aplicarDestaquesOcorrencias();
+                    }, 100);
+                    
                     document.getElementById('conteudoRelatorio').style.display = 'block';
                     document.getElementById('btnVisualizarPDF').style.display = 'inline-block';
                 } else {
