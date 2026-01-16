@@ -2505,28 +2505,26 @@
                 });
             }
             
-            // 2. Processar linhas do tfoot (Total, Número Corrigido, etc)
-            const tfoot = tbody ? tbody.closest('table').querySelector('tfoot') : null;
+            // 2. Processar APENAS as linhas Total (+) e Número Corrigido (=)
+            const tabela = tbody ? tbody.closest('table') : document.querySelector('table');
             
-            if (tfoot) {
-                console.log('Processando tfoot...');
-                const linhasTfoot = tfoot.querySelectorAll('tr');
+            if (tabela) {
+                const todasLinhas = tabela.querySelectorAll('tr');
                 
-                linhasTfoot.forEach(function(linha) {
+                todasLinhas.forEach(function(linha) {
                     const celulas = linha.querySelectorAll('td');
                     if (celulas.length === 0) return;
                     
                     const primeiraColuna = celulas[0].textContent.trim();
-                    console.log('Linha tfoot:', primeiraColuna);
                     
-                    // Verificar se é linha Total (+) ou Número Corrigido (=)
-                    const ehLinhaTotal = primeiraColuna.includes('Total (+)');
-                    const ehLinhaNumeroCorrigido = primeiraColuna.includes('Número Corrigido (=)');
+                    // ✅ APENAS estas duas linhas devem receber destaque
+                    const ehLinhaTotal = primeiraColuna === 'Total (+)';
+                    const ehLinhaNumeroCorrigido = primeiraColuna === 'Número Corrigido (=)';
                     
                     if (ehLinhaTotal || ehLinhaNumeroCorrigido) {
                         console.log('Aplicando destaque na linha:', primeiraColuna);
                         
-                        // Percorrer todas as células da linha (exceto a primeira que é o label)
+                        // Percorrer todas as células (exceto a primeira que é o label)
                         for (let i = 1; i < celulas.length; i++) {
                             const valorTexto = celulas[i].textContent.trim();
                             const valor = parseInt(valorTexto);
@@ -2540,39 +2538,6 @@
                         }
                     }
                 });
-            } else {
-                console.log('tfoot não encontrado, tentando buscar na tabela inteira...');
-                
-                // 3. Se não tem tfoot, procurar em toda a tabela
-                const tabela = tbody ? tbody.closest('table') : document.querySelector('table');
-                if (tabela) {
-                    const todasLinhas = tabela.querySelectorAll('tr');
-                    
-                    todasLinhas.forEach(function(linha) {
-                        const celulas = linha.querySelectorAll('td');
-                        if (celulas.length === 0) return;
-                        
-                        const primeiraColuna = celulas[0].textContent.trim();
-                        
-                        const ehLinhaTotal = primeiraColuna.includes('Total (+)');
-                        const ehLinhaNumeroCorrigido = primeiraColuna.includes('Número Corrigido (=)');
-                        
-                        if (ehLinhaTotal || ehLinhaNumeroCorrigido) {
-                            console.log('Aplicando destaque na linha (busca geral):', primeiraColuna);
-                            
-                            for (let i = 1; i < celulas.length; i++) {
-                                const valorTexto = celulas[i].textContent.trim();
-                                const valor = parseInt(valorTexto);
-                                
-                                if (!isNaN(valor) && valor > 0) {
-                                    celulas[i].classList.add('celula-destacada');
-                                    celulas[i].style.backgroundColor = '#FFB6C1';
-                                    celulas[i].style.fontWeight = 'bold';
-                                }
-                            }
-                        }
-                    });
-                }
             }
             
             console.log('Destaques aplicados!');
