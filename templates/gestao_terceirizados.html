@@ -1235,30 +1235,41 @@
                     
                     <!-- QUADRO 1 -->
                     <div style="margin-bottom: 20px;">
-                        <h4 style="text-align: center; margin-bottom: 10px; color: #2c3e50;">
-                            QUADRO DEMONSTRATIVO DO VALOR A SER RETIDO EM CONTA VINCULADA POR POSTO
-                        </h4>
-                        <div style="text-align: center; margin-bottom: 10px; font-size: 11px;">
-                            (RAT => <span id="retIdRat">-</span>)
-                        </div>
-                        <div style="text-align: center; margin-bottom: 15px; font-weight: bold; font-size: 12px;">
-                            <span id="retPc13">0,00%</span>, 
-                            <span id="retPcFerias">0,00%</span>, 
-                            <span id="retPcFgts">0,00%</span>, 
-                            <span id="retPcIncidencias">0,00%</span>, 
-                            <span id="retPcTotal" style="color: #2c3e50;">0,00%</span>
-                        </div>
-                        
-                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed;">
                             <thead>
                                 <tr style="background-color: #34495e; color: white;">
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: left;">Posto de Trabalho</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor da remuneração do posto</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">13º salário</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Férias + 1/3 constitucional</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Multa sobre FGTS rescisão</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Incidência do submódulo 4.1</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor da retenção para conta vinculada</th>
+                                    <th colspan="7" style="padding: 8px; border: 1px solid #2c3e50; text-align: center; font-size: 12px;">
+                                        QUADRO DEMONSTRATIVO DO VALOR A SER RETIDO EM CONTA VINCULADA POR POSTO
+                                        <br><span style="font-size: 10px; font-weight: normal;">(RAT => <span id="retIdRat">-</span>)</span>
+                                    </th>
+                                </tr>
+                                <tr style="background-color: #ecf0f1;">
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; font-weight: bold;" colspan="2"></th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 10px;">
+                                        <span id="retPc13">0,00%</span>
+                                    </th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 10px;">
+                                        <span id="retPcFerias">0,00%</span>
+                                    </th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 10px;">
+                                        <span id="retPcFgts">0,00%</span>
+                                    </th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 10px;">
+                                        <span id="retPcIncidencias">0,00%</span>
+                                    </th>
+                                    <th style="padding: 6px; border: 1px solid #2c3e50; text-align: center; font-weight: bold; font-size: 10px;">
+                                        <span id="retPcTotal">0,00%</span>
+                                    </th>
+                                </tr>
+                                <tr style="background-color: #34495e; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 5%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Item</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: left; width: 19%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Descrição (A)</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 12.67%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Valor da remuneração do posto</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 12.67%; white-space: normal; word-wrap: break-word; vertical-align: middle;">13º salário</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 12.67%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Férias + 1/3 constitucional</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 12.67%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Multa sobre FGTS e indenização compens/ aviso prévio indenizado e aviso prévio trabalhado</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 12.67%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Incidência do submódulo 2.2 sobre férias, 1/3 constitucional de férias e 13º salário</th>
+                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 12.67%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Valor da retenção para conta vinculada por funcionário</th>
                                 </tr>
                             </thead>
                             <tbody id="tabelaQuadro1">
@@ -2273,9 +2284,12 @@
             const tbody1 = document.getElementById('tabelaQuadro1');
             tbody1.innerHTML = '';
             
+            let itemNumero = 1; // Contador para o número do item
+            
             data.quadro1.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
+                    <td style="padding: 6px; border: 1px solid #2c3e50; text-align: center;">${itemNumero}</td>
                     <td style="padding: 6px; border: 1px solid #2c3e50;">${item.de_posto}</td>
                     <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.vl_salario)}</td>
                     <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right;">${formatarMoedaBRL(item.ret_13)}</td>
@@ -2285,6 +2299,7 @@
                     <td style="padding: 6px; border: 1px solid #2c3e50; text-align: right; font-weight: bold;">${formatarMoedaBRL(item.ret_total)}</td>
                 `;
                 tbody1.appendChild(tr);
+                itemNumero++; // Incrementar o contador
             });
             
             // Quadro 2
