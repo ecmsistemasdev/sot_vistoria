@@ -12118,13 +12118,14 @@ def api_listar_contratos_terceirizados():
         query = """
             SELECT 
                 gct.ID_CONTRATO,
-                gct.EXERCICIO,
-                gct.PROCESSO,
+                gce.EXERCICIO,
+                gce.PROCESSO,
                 gct.CONTRATO,
                 cf.NM_FORNECEDOR
             FROM GESTAO_CONTRATOS_TERCEIRIZADOS gct
             LEFT JOIN CAD_FORNECEDOR cf ON cf.ID_FORNECEDOR = gct.ID_FORNECEDOR
-            ORDER BY gct.EXERCICIO DESC, cf.NM_FORNECEDOR
+            JOIN GESTAO_CONTRATOS_EXERCICIOS gce ON gce.ID_CONTRATO = gct.ID_CONTRATO
+            ORDER BY gce.EXERCICIO DESC, cf.NM_FORNECEDOR
         """
         
         cursor.execute(query)
@@ -12159,8 +12160,8 @@ def api_obter_contrato_terceirizado(id_contrato):
             SELECT 
                 gct.ID_CONTRATO,
                 gct.ID_FORNECEDOR,
-                gct.EXERCICIO,
-                gct.PROCESSO,
+                gce.EXERCICIO,
+                gce.PROCESSO,
                 gct.ATA_PREGAO,
                 gct.CONTRATO,
                 gct.SETOR_GESTOR,
@@ -12174,6 +12175,7 @@ def api_obter_contrato_terceirizado(id_contrato):
                 cf.NM_FORNECEDOR
             FROM GESTAO_CONTRATOS_TERCEIRIZADOS gct
             LEFT JOIN CAD_FORNECEDOR cf ON cf.ID_FORNECEDOR = gct.ID_FORNECEDOR
+			JOIN GESTAO_CONTRATOS_EXERCICIOS gce ON gce.ID_CONTRATO = gct.ID_CONTRATO
             WHERE gct.ID_CONTRATO = %s
         """
         
@@ -12566,12 +12568,13 @@ def api_relatorio_fiscalizacao():
         query_contrato = """
             SELECT 
                 c.CONTRATO,
-                c.PROCESSO,
+                g.PROCESSO,
                 c.NOME_GESTOR,
                 c.SETOR_GESTOR,
                 f.NM_FORNECEDOR
             FROM GESTAO_CONTRATOS_TERCEIRIZADOS c
             LEFT JOIN CAD_FORNECEDOR f ON c.ID_FORNECEDOR = f.ID_FORNECEDOR
+			JOIN GESTAO_CONTRATOS_EXERCICIOS g ON g.ID_CONTRATO = c.ID_CONTRATO
             WHERE c.ID_CONTRATO = %s
         """
         cursor.execute(query_contrato, (id_contrato,))
@@ -13779,7 +13782,7 @@ def api_gerar_relatorio_retencao():
         cursor.execute("""
             SELECT 
                 c.CONTRATO,
-                c.PROCESSO,
+                g.PROCESSO,
                 f.NM_FORNECEDOR,
                 c.SETOR_GESTOR,
                 c.NOME_GESTOR,
@@ -13790,6 +13793,7 @@ def api_gerar_relatorio_retencao():
                 r.PC_INCIDENCIAS
             FROM GESTAO_CONTRATOS_TERCEIRIZADOS c
             LEFT JOIN CAD_FORNECEDOR f ON c.ID_FORNECEDOR = f.ID_FORNECEDOR
+			LEFT JOIN GESTAO_CONTRATOS_EXERCICIOS g ON g.ID_CONTRATO = c.ID_CONTRATO
             LEFT JOIN PARAMETRO_RETENCAO_CONTA_VINCULADA r ON c.ID_RAT = r.ID_RAT
             WHERE c.ID_CONTRATO = %s
         """, (id_contrato,))
@@ -14057,5 +14061,6 @@ def relatorio_retencao_impressao():
 if __name__ == '__main__':
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 
 
