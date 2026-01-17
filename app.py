@@ -13975,6 +13975,7 @@ def api_gerar_relatorio_retencao():
             
             # Motoristas mês completo
             if posto['motoristas_completo']:
+
                 qtd = len(posto['motoristas_completo'])
                 
                 # ✅ CORREÇÃO: Calcular sem arredondar, depois somar, depois arredondar o total
@@ -13982,15 +13983,25 @@ def api_gerar_relatorio_retencao():
                 ret_ferias_sem_arredondar = vl_salario * pc_ferias / Decimal('100')
                 ret_fgts_sem_arredondar = vl_salario * pc_fgts / Decimal('100')
                 ret_incidencias_sem_arredondar = vl_salario * pc_incidencias / Decimal('100')
-                ret_total_sem_arredondar = ret_13_sem_arredondar + ret_ferias_sem_arredondar + ret_fgts_sem_arredondar + ret_incidencias_sem_arredondar
+                # ret_total_sem_arredondar = ret_13_sem_arredondar + ret_ferias_sem_arredondar + ret_fgts_sem_arredondar + ret_incidencias_sem_arredondar
                 
                 # Arredondar apenas para exibição no Quadro 1
                 ret_13 = ret_13_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 ret_ferias = ret_ferias_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 ret_fgts = ret_fgts_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 ret_incidencias = ret_incidencias_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                ret_total = ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
+                # ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 
+                # print("MOTORISTA MES COMPLETO")
+                # print(f"POSTO: {de_posto}")        
+                # print(f"📡 13º: SEM ARRED: {ret_13_sem_arredondar} - COM ARRED: {ret_13}")        
+                # print(f"📡 Ferias: SEM ARRED: {ret_ferias_sem_arredondar} - COM ARRED: {ret_ferias}")
+                # print(f"📡 FGTS: SEM ARRED: {ret_fgts_sem_arredondar} - COM ARRED: {ret_fgts}")
+                # print(f"📡 Incidencia: SEM ARRED: {ret_incidencias_sem_arredondar} - COM ARRED: {ret_incidencias}")
+                # print(f"📡 Total: SEM ARRED: {ret_total}")
+
+
                 quadro1.append({
                     'de_posto': de_posto,
                     'vl_salario': arredondar(vl_salario),
@@ -14002,8 +14013,8 @@ def api_gerar_relatorio_retencao():
                 })
             
                 # Arredondar ANTES de multiplicar
-                ret_total_arredondado = ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                ret_total_multiplicado = ret_total_arredondado * qtd  # ✅ Multiplicar o JÁ arredondado
+                # ret_total_arredondado = ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_total_multiplicado = ret_total * qtd  # ✅ Multiplicar o JÁ arredondado
 
                 quadro2.append({
                     'de_posto': de_posto,
@@ -14012,14 +14023,10 @@ def api_gerar_relatorio_retencao():
                     'qtd_por_posto': 1,
                     'qtd_total_func': qtd,
                     'vl_mensal_total': arredondar(vl_mensal * qtd),
-                    'ret_unitario': arredondar(ret_total_arredondado),  # ✅ Usar o arredondado
+                    'ret_unitario': arredondar(ret_total),  # ✅ Usar o arredondado
                     'ret_total': arredondar(ret_total_multiplicado)
                 })
-            
-            
-            
-            
-            
+                        
             # Motoristas parciais
             for mot_parcial in posto['motoristas_parcial']:
                 dias_trab = mot_parcial['dias_trabalhados']
@@ -14034,15 +14041,26 @@ def api_gerar_relatorio_retencao():
                 ret_ferias_sem_arredondar = vl_salario_proporcional * pc_ferias / Decimal('100')
                 ret_fgts_sem_arredondar = vl_salario_proporcional * pc_fgts / Decimal('100')
                 ret_incidencias_sem_arredondar = vl_salario_proporcional * pc_incidencias / Decimal('100')
-                ret_total_sem_arredondar = ret_13_sem_arredondar + ret_ferias_sem_arredondar + ret_fgts_sem_arredondar + ret_incidencias_sem_arredondar
+                # ret_total_sem_arredondar = ret_13_sem_arredondar + ret_ferias_sem_arredondar + ret_fgts_sem_arredondar + ret_incidencias_sem_arredondar
                 
                 # Arredondar para exibição
                 ret_13 = ret_13_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 ret_ferias = ret_ferias_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 ret_fgts = ret_fgts_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 ret_incidencias = ret_incidencias_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                ret_total = ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                ret_total = ret_13 + ret_ferias + ret_fgts + ret_incidencias
+                # ret_total = ret_total_sem_arredondar.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 
+
+                # print("MOTORISTA MES PARCIAL")
+                # print(f"POSTO: {de_posto}")        
+                # print(f"📡 13º: SEM ARRED: {ret_13_sem_arredondar} - COM ARRED: {ret_13}")        
+                # print(f"📡 Ferias: SEM ARRED: {ret_ferias_sem_arredondar} - COM ARRED: {ret_ferias}")
+                # print(f"📡 FGTS: SEM ARRED: {ret_fgts_sem_arredondar} - COM ARRED: {ret_fgts}")
+                # print(f"📡 Incidencia: SEM ARRED: {ret_incidencias_sem_arredondar} - COM ARRED: {ret_incidencias}")
+                # print(f"📡 Total: SEM ARRED: {ret_total_sem_arredondar} - COM ARRED: {ret_total}")
+
+
                 quadro1.append({
                     'de_posto': de_posto + ' (*)',
                     'vl_salario': arredondar(vl_salario_proporcional),
@@ -14114,13 +14132,5 @@ def relatorio_retencao_impressao():
 
 
 if __name__ == '__main__':
-
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-
-
-
-
-
-
-
 
