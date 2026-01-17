@@ -210,7 +210,9 @@
             max-width: 1200px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             max-height: 90vh;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .modal-header {
@@ -221,6 +223,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .modal-header h2 {
@@ -243,14 +246,20 @@
         .modal-body {
             padding: 20px;
             position: relative;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .modal-footer {
-            padding: 15px 20px;
-            border-top: 1px solid #ecf0f1;
+            padding: 6px 20px;
+            border-top: 1px solid #dee2e6;
             display: flex;
             justify-content: flex-end;
             gap: 10px;
+            background-color: #f8f9fa;
+            flex-shrink: 0;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
         }
 
         .form-group {
@@ -587,7 +596,7 @@
 
         #relPercentualReceber {
             background-color: #FFB6C1 !important;
-            color: #00008B !important;
+            color: #4135b3 !important;
             font-weight: bold !important;
         }
     </style>
@@ -704,11 +713,12 @@
                 <span class="close" onclick="fecharModalOcorrencias()">&times;</span>
             </div>
             <div class="modal-body">
-                <!-- Filtro de Mês/Ano -->
-                <div class="form-row form-row-3">
+                <!-- Filtros e Ações -->
+                <div class="form-row form-row-3" style="margin-bottom: 20px;">
                     <div class="form-group">
-                        <label for="filtroMes">Mês:</label>
-                        <select id="filtroMes" onchange="carregarOcorrencias()">
+                        <label for="filtroMes">Filtrar por Mês:</label>
+                        <select id="filtroMes" onchange="filtrarOcorrencias()">
+                            <option value="">Todos</option>
                             <option value="01">Janeiro</option>
                             <option value="02">Fevereiro</option>
                             <option value="03">Março</option>
@@ -724,8 +734,9 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="filtroAno">Ano:</label>
-                        <select id="filtroAno" class="input-ano" onchange="carregarOcorrencias()">
+                        <label for="filtroAno">Filtrar por Ano:</label>
+                        <select id="filtroAno" class="input-ano" onchange="filtrarOcorrencias()">
+                            <option value="">Todos</option>
                             <!-- Será preenchido dinamicamente -->
                         </select>
                     </div>
@@ -738,32 +749,26 @@
                 </div>
 
                 <!-- Tabela de Ocorrências -->
-                <div class="groupbox">
-                    <div class="groupbox-header">
-                        Ocorrências Registradas
-                    </div>
-                    <div class="groupbox-body">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 120px;">Competência</th>
-                                    <th style="width: 100px;">Data</th>
-                                    <th style="width: 200px;">Motorista</th>
-                                    <th>Imperfeição</th>
-                                    <th>Especificação</th>
-                                    <th style="width: 120px; text-align: center;">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelaOcorrenciasLista">
-                                <tr>
-                                    <td colspan="6" class="text-center" style="padding: 30px; color: #999;">
-                                        Nenhuma ocorrência encontrada
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <table class="table" style="margin-top: 10px;">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">Competência</th>
+                            <th style="width: 100px;">Data</th>
+                            <th style="width: 200px;">Motorista</th>
+                            <th>Imperfeição</th>
+                            <th>Especificação</th>
+                            <th style="width: 120px; text-align: center;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaOcorrenciasLista">
+                        <tr>
+                            <td colspan="6" class="text-center" style="padding: 30px; color: #999;">
+                                <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                                Carregando ocorrências...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="fecharModalOcorrencias()">Fechar</button>
@@ -814,9 +819,7 @@
                     </div>
                     <div class="form-group">
                         <label for="relatorioAno">Ano:</label>
-                        <select id="relatorioAno" class="input-ano">
-                            <!-- Será preenchido dinamicamente -->
-                        </select>
+                        <input type="text" id="relatorioAno" class="input-ano" readonly style="background-color: #e9ecef; cursor: not-allowed;">
                     </div>
                     <div class="form-group">
                         <label>&nbsp;</label>
@@ -1129,8 +1132,6 @@
                     </div>
                 </div>
             </div>
-
-
             
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="fecharModalRelatorioFiscalizacao()">Fechar</button>
@@ -1146,11 +1147,12 @@
     <!-- MODAL - RELATÓRIO DE RETENÇÃO CONTA VINCULADA -->
     <!-- ============================================ -->
     <div id="modalRelatorioRetencao" class="modal">
-        <div class="modal-content" style="width: 95%; max-width: 1400px;">
+        <div class="modal-content" style="width: 95%; max-width: 1400px; display: flex; flex-direction: column; overflow: hidden;">
             <div class="modal-header">
                 <h2>💰 Relatório de Retenção em Conta Vinculada</h2>
                 <span class="close" onclick="fecharModalRelatorioRetencao()">&times;</span>
             </div>
+    
             <div class="modal-body">
                 
                 <!-- Loading Overlay -->
@@ -1185,16 +1187,11 @@
                             <option value="NOVEMBRO">Novembro</option>
                             <option value="DEZEMBRO">Dezembro</option>
                         </select>
-                    </div>
-                    
+                    </div>                    
                     <div class="form-group">
                         <label for="retencaoAno">Ano: *</label>
-                        <select id="retencaoAno" required>
-                            <option value="">Selecione...</option>
-                            <!-- Será preenchido dinamicamente -->
-                        </select>
+                        <input type="text" id="retencaoAno" class="input-ano" readonly required style="background-color: #e9ecef; cursor: not-allowed;">
                     </div>
-                    
                     <div class="form-group" style="display: flex; align-items: flex-end;">
                         <button type="button" class="btn btn-primary" onclick="gerarRelatorioRetencao()">
                             Gerar Relatório
@@ -1298,21 +1295,6 @@
                         </h4>
                         
                         <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                            <!-- 
-                            <thead>
-                                <tr style="background-color: #34495e; color: white;">
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: left;">Descrição (A)</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 100px;">Valor proposto por empregado (B)</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 80px;">Qtd. de postos (C)</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 80px;">Qtd. de funcionário por posto (D)</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 80px;">Qtd. Total de funcionários (E)</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor Mensal por posto (F) = (B x E)</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor da retenção para conta vinculada por funcionário (G)</th>
-                                    <th style="padding: 8px; border: 1px solid #2c3e50; text-align: right; width: 120px;">Valor Mensal das retenções da conta vinculada por posto H = (G X E)</th>
-                                </tr>
-                            </thead> 
-                            -->
-
                             <thead>
                                 <tr style="background-color: #34495e; color: white;">
                                     <th style="padding: 8px; border: 1px solid #2c3e50; text-align: center; width: 5%; white-space: normal; word-wrap: break-word; vertical-align: middle;">Item</th>
@@ -1371,14 +1353,14 @@
                         </table>
                     </div>
                 </div>
-                
-                <!-- Botão Visualizar/Imprimir -->
-                <div style="text-align: right; margin-top: 20px;">
-                    <button id="btnVisualizarPDFRetencao" class="btn btn-success" onclick="visualizarPDFRelatorioRetencao()" style="display: none;">
-                        🖨️ Abrir para Impressão
-                    </button>
-                </div>
-                
+            </div>    
+
+            <!-- Botão Visualizar/Imprimir -->                
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="fecharModalRelatorioRetencao()">Fechar</button>
+                <button id="btnVisualizarPDFRetencao" class="btn btn-success" onclick="visualizarPDFRelatorioRetencao()" style="display: none;">
+                    🖨️ Visualizar / Imprimir PDF
+                </button>
             </div>
         </div>
     </div>
@@ -1398,13 +1380,14 @@
     
     <!-- Modal de Nova/Edição Ocorrência -->
     <div id="modalFormOcorrencia" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content" style="max-width: 800px; display: flex; flex-direction: column; overflow: hidden; max-height: 90vh;">
             <div class="modal-header">
                 <h2 id="tituloFormOcorrencia">Nova Ocorrência</h2>
                 <span class="close" onclick="fecharModalFormOcorrencia()">&times;</span>
             </div>
-            <form id="formOcorrencia">
-                <div class="modal-body">
+            
+            <form id="formOcorrencia" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                <div class="modal-body" style="flex: 1; overflow-y: auto;">
                     <input type="hidden" id="idOcorrencia" name="id_ocorrencia">
                     <input type="hidden" id="idContratoOcorrencia" name="id_contrato">
 
@@ -1429,18 +1412,18 @@
                                 <label for="mesCompetencia">Mês: *</label>
                                 <select id="mesCompetencia" name="mes_competencia" required>
                                     <option value="">Selecione...</option>
-                                    <option value="Janeiro">Janeiro</option>
-                                    <option value="Fevereiro">Fevereiro</option>
-                                    <option value="Março">Março</option>
-                                    <option value="Abril">Abril</option>
-                                    <option value="Maio">Maio</option>
-                                    <option value="Junho">Junho</option>
-                                    <option value="Julho">Julho</option>
-                                    <option value="Agosto">Agosto</option>
-                                    <option value="Setembro">Setembro</option>
-                                    <option value="Outubro">Outubro</option>
-                                    <option value="Novembro">Novembro</option>
-                                    <option value="Dezembro">Dezembro</option>
+                                    <option value="01">Janeiro</option>
+                                    <option value="02">Fevereiro</option>
+                                    <option value="03">Março</option>
+                                    <option value="04">Abril</option>
+                                    <option value="05">Maio</option>
+                                    <option value="06">Junho</option>
+                                    <option value="07">Julho</option>
+                                    <option value="08">Agosto</option>
+                                    <option value="09">Setembro</option>
+                                    <option value="10">Outubro</option>
+                                    <option value="11">Novembro</option>
+                                    <option value="12">Dezembro</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -1464,6 +1447,7 @@
                         <textarea id="especificacao" name="especificacao" rows="4"></textarea>
                     </div>
                 </div>
+                
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="fecharModalFormOcorrencia()">Cancelar</button>
                     <button type="submit" class="btn btn-success">Salvar</button>
@@ -1565,6 +1549,36 @@
                     document.getElementById('infoContrato').textContent = contratoSelecionado.CONTRATO || '-';
                     document.getElementById('infoProcesso').textContent = contratoSelecionado.PROCESSO || '-';
 
+                    // ===================================================================
+                    // ✅ NOVO: Preencher automaticamente o ano nos formulários de relatório
+                    // ===================================================================
+                    const exercicio = contratoSelecionado.EXERCICIO;
+                    
+                    // Preencher no Relatório de Fiscalização
+                    const inputRelatorioAno = document.getElementById('relatorioAno');
+                    if (inputRelatorioAno) {
+                        inputRelatorioAno.value = exercicio;
+                    }
+                    
+                    // Preencher no Relatório de Retenção
+                    const inputRetencaoAno = document.getElementById('retencaoAno');
+                    if (inputRetencaoAno) {
+                        inputRetencaoAno.value = exercicio;
+                    }
+                    
+                    // Preencher no Filtro de Ocorrências (se o campo existir e for input)
+                    const filtroAno = document.getElementById('filtroAno');
+                    if (filtroAno) {
+                        // Verificar se é um input ou select
+                        if (filtroAno.tagName === 'INPUT') {
+                            filtroAno.value = exercicio;
+                        } else if (filtroAno.tagName === 'SELECT') {
+                            // Se ainda for select, selecionar a opção correspondente
+                            filtroAno.value = exercicio;
+                        }
+                    }
+                    // ===================================================================
+
                     // Trocar seções
                     document.getElementById('contratoSection').style.display = 'none';
                     document.getElementById('vinculosSection').style.display = 'block';
@@ -1620,78 +1634,206 @@
                 return;
             }
 
+            // Abrir modal
             document.getElementById('modalOcorrencias').classList.add('active');
-            await carregarOcorrencias();
+            
+            // Preencher filtro de anos baseado no exercício do contrato
+            preencherFiltroAnos();
+            
+            // Limpar filtros (mostrar todos)
+            document.getElementById('filtroMes').value = '';
+            document.getElementById('filtroAno').value = '';
+            
+            // Carregar todas as ocorrências do contrato
+            await carregarTodasOcorrencias();
+        }
+
+        function preencherFiltroAnos() {
+            const selectAno = document.getElementById('filtroAno');
+            
+            // Limpar opções existentes (exceto "Todos")
+            selectAno.innerHTML = '<option value="">Todos</option>';
+            
+            // Adicionar anos de 2025 até o ano atual
+            const anoAtual = new Date().getFullYear();
+            for (let ano = 2025; ano <= anoAtual; ano++) {
+                const option = document.createElement('option');
+                option.value = ano;
+                option.textContent = ano;
+                selectAno.appendChild(option);
+            }
+        }
+
+        // Variável global para armazenar todas as ocorrências
+        let todasOcorrencias = [];
+
+        async function carregarTodasOcorrencias() {
+            if (!contratoSelecionado) return;
+
+            const tbody = document.getElementById('tabelaOcorrenciasLista');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center" style="padding: 30px; color: #999;">
+                        <div class="loading-spinner" style="margin: 0 auto 10px;"></div>
+                        Carregando ocorrências...
+                    </td>
+                </tr>
+            `;
+
+            try {
+                // Buscar TODAS as ocorrências do contrato (sem filtro de mês/ano)
+                const response = await fetch(`/api/gestao-terceirizados/ocorrencias/${contratoSelecionado.ID_CONTRATO}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    todasOcorrencias = result.data || [];
+                    renderizarOcorrencias(todasOcorrencias);
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 30px; color: #999;">Erro ao carregar ocorrências</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar ocorrências:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 30px; color: #999;">Erro ao carregar ocorrências</td></tr>';
+            }
+        }
+
+        function filtrarOcorrencias() {
+            const mesSelecionado = document.getElementById('filtroMes').value;
+            const anoSelecionado = document.getElementById('filtroAno').value;
+            
+            let ocorrenciasFiltradas = todasOcorrencias;
+            
+            // Filtrar por mês se selecionado
+            if (mesSelecionado) {
+                ocorrenciasFiltradas = ocorrenciasFiltradas.filter(oc => oc.MES === mesSelecionado);
+            }
+            
+            // Filtrar por ano se selecionado
+            if (anoSelecionado) {
+                ocorrenciasFiltradas = ocorrenciasFiltradas.filter(oc => oc.ANO === parseInt(anoSelecionado));
+            }
+            
+            renderizarOcorrencias(ocorrenciasFiltradas);
+        }
+
+        function renderizarOcorrencias(ocorrencias) {
+            const tbody = document.getElementById('tabelaOcorrenciasLista');
+            tbody.innerHTML = '';
+
+            if (ocorrencias.length > 0) {
+                ocorrencias.forEach(ocorrencia => {
+                    const tr = document.createElement('tr');
+                    
+                    // Formatar data corretamente
+                    let dataFormatada = '-';
+                    if (ocorrencia.DATA_OCORRENCIA) {
+                        let dataStr = String(ocorrencia.DATA_OCORRENCIA);
+                        if (dataStr.includes('T')) {
+                            dataStr = dataStr.split('T')[0];
+                        } else if (dataStr.includes(' ')) {
+                            dataStr = dataStr.split(' ')[0];
+                        }
+                        const partesData = dataStr.split('-');
+                        if (partesData.length === 3) {
+                            dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+                        }
+                    }
+                    
+                    // Formatar competência
+                    const competencia = ocorrencia.MES && ocorrencia.ANO 
+                        ? `${ocorrencia.MES}/${ocorrencia.ANO}` 
+                        : '-';
+                    
+                    tr.innerHTML = `
+                        <td>${competencia}</td>
+                        <td>${dataFormatada}</td>
+                        <td>${ocorrencia.NM_MOTORISTA || '-'}</td>
+                        <td>${ocorrencia.DESCRICAO}</td>
+                        <td>${ocorrencia.ESPECIFICACAO || '-'}</td>
+                        <td class="text-center">
+                            <button class="btn btn-warning btn-sm" onclick="editarOcorrencia(${ocorrencia.ID_OCORRENCIA})">
+                                Editar
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="excluirOcorrencia(${ocorrencia.ID_OCORRENCIA})">
+                                Excluir
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 30px; color: #999;">Nenhuma ocorrência encontrada</td></tr>';
+            }
         }
 
         function fecharModalOcorrencias() {
             document.getElementById('modalOcorrencias').classList.remove('active');
         }
 
-        async function carregarOcorrencias() {
-            if (!contratoSelecionado) return;
+        // async function carregarOcorrencias() {
+        //     if (!contratoSelecionado) return;
 
-            const mes = document.getElementById('filtroMes').value;
-            const ano = document.getElementById('filtroAno').value;
+        //     const mes = document.getElementById('filtroMes').value;
+        //     const ano = document.getElementById('filtroAno').value;
 
-            try {
-                const response = await fetch(`/api/gestao-terceirizados/ocorrencias/${contratoSelecionado.ID_CONTRATO}?mes=${mes}&ano=${ano}`);
-                const result = await response.json();
+        //     try {
+        //         const response = await fetch(`/api/gestao-terceirizados/ocorrencias/${contratoSelecionado.ID_CONTRATO}?mes=${mes}&ano=${ano}`);
+        //         const result = await response.json();
 
-                const tbody = document.getElementById('tabelaOcorrenciasLista');
-                tbody.innerHTML = '';
+        //         const tbody = document.getElementById('tabelaOcorrenciasLista');
+        //         tbody.innerHTML = '';
 
-                if (result.success && result.data.length > 0) {
-                    result.data.forEach(ocorrencia => {
-                        const tr = document.createElement('tr');
-                        // Formatar data corretamente
-                        let dataFormatada = '-';
-                        if (ocorrencia.DATA_OCORRENCIA) {
-                            // Converter para string caso venha como Date object
-                            let dataStr = String(ocorrencia.DATA_OCORRENCIA);
-                            // Pegar apenas a parte da data (YYYY-MM-DD) caso tenha hora
-                            if (dataStr.includes('T')) {
-                                dataStr = dataStr.split('T')[0];
-                            } else if (dataStr.includes(' ')) {
-                                dataStr = dataStr.split(' ')[0];
-                            }
-                            // Dividir a data
-                            const partesData = dataStr.split('-');
-                            if (partesData.length === 3) {
-                                dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
-                            }
-                        }
+        //         if (result.success && result.data.length > 0) {
+        //             result.data.forEach(ocorrencia => {
+        //                 const tr = document.createElement('tr');
+        //                 // Formatar data corretamente
+        //                 let dataFormatada = '-';
+        //                 if (ocorrencia.DATA_OCORRENCIA) {
+        //                     // Converter para string caso venha como Date object
+        //                     let dataStr = String(ocorrencia.DATA_OCORRENCIA);
+        //                     // Pegar apenas a parte da data (YYYY-MM-DD) caso tenha hora
+        //                     if (dataStr.includes('T')) {
+        //                         dataStr = dataStr.split('T')[0];
+        //                     } else if (dataStr.includes(' ')) {
+        //                         dataStr = dataStr.split(' ')[0];
+        //                     }
+        //                     // Dividir a data
+        //                     const partesData = dataStr.split('-');
+        //                     if (partesData.length === 3) {
+        //                         dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+        //                     }
+        //                 }
                         
-                        // Formatar competência
-                        const competencia = ocorrencia.MES && ocorrencia.ANO 
-                            ? `${ocorrencia.MES}/${ocorrencia.ANO}` 
-                            : '-';
+        //                 // Formatar competência
+        //                 const competencia = ocorrencia.MES && ocorrencia.ANO 
+        //                     ? `${ocorrencia.MES}/${ocorrencia.ANO}` 
+        //                     : '-';
                         
-                        tr.innerHTML = `
-                            <td>${competencia}</td>
-                            <td>${dataFormatada}</td>
-                            <td>${ocorrencia.NM_MOTORISTA || '-'}</td>
-                            <td>${ocorrencia.DESCRICAO}</td>
-                            <td>${ocorrencia.ESPECIFICACAO || '-'}</td>
-                            <td class="text-center">
-                                <button class="btn btn-warning btn-sm" onclick="editarOcorrencia(${ocorrencia.ID_OCORRENCIA})">
-                                    Editar
-                                </button>
-                                <button class="btn btn-danger btn-sm" onclick="excluirOcorrencia(${ocorrencia.ID_OCORRENCIA})">
-                                    Excluir
-                                </button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 30px; color: #999;">Nenhuma ocorrência encontrada</td></tr>';
-                }
-            } catch (error) {
-                console.error('Erro ao carregar ocorrências:', error);
-                alert('Erro ao carregar ocorrências');
-            }
-        }
+        //                 tr.innerHTML = `
+        //                     <td>${competencia}</td>
+        //                     <td>${dataFormatada}</td>
+        //                     <td>${ocorrencia.NM_MOTORISTA || '-'}</td>
+        //                     <td>${ocorrencia.DESCRICAO}</td>
+        //                     <td>${ocorrencia.ESPECIFICACAO || '-'}</td>
+        //                     <td class="text-center">
+        //                         <button class="btn btn-warning btn-sm" onclick="editarOcorrencia(${ocorrencia.ID_OCORRENCIA})">
+        //                             Editar
+        //                         </button>
+        //                         <button class="btn btn-danger btn-sm" onclick="excluirOcorrencia(${ocorrencia.ID_OCORRENCIA})">
+        //                             Excluir
+        //                         </button>
+        //                     </td>
+        //                 `;
+        //                 tbody.appendChild(tr);
+        //             });
+        //         } else {
+        //             tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding: 30px; color: #999;">Nenhuma ocorrência encontrada</td></tr>';
+        //         }
+        //     } catch (error) {
+        //         console.error('Erro ao carregar ocorrências:', error);
+        //         alert('Erro ao carregar ocorrências');
+        //     }
+        // }
 
         async function abrirModalNovaOcorrencia() {
             document.getElementById('tituloFormOcorrencia').textContent = 'Nova Ocorrência';
@@ -1809,7 +1951,7 @@
                 if (result.success) {
                     alert(formData.id_ocorrencia ? 'Ocorrência atualizada com sucesso!' : 'Ocorrência cadastrada com sucesso!');
                     fecharModalFormOcorrencia();
-                    await carregarOcorrencias();
+                    await carregarTodasOcorrencias();
                 } else {
                     alert('Erro ao salvar ocorrência: ' + result.error);
                 }
@@ -1867,7 +2009,7 @@
 
                 if (result.success) {
                     alert('Ocorrência excluída com sucesso!');
-                    await carregarOcorrencias();
+                    await carregarTodasOcorrencias();
                 } else {
                     alert('Erro ao excluir ocorrência: ' + result.error);
                 }
@@ -1887,38 +2029,24 @@
                 return;
             }
 
-            // Preencher anos
-            preencherAnosRelatorio();
-
-            // Definir mês e ano atual
+            // Definir mês atual
             const dataAtual = new Date();
             const mesAtual = dataAtual.getMonth(); // 0-11
-            const anoAtual = dataAtual.getFullYear();
 
             document.getElementById('relatorioMes').selectedIndex = mesAtual;
-            document.getElementById('relatorioAno').value = anoAtual;
+            
+            // O ano já foi preenchido automaticamente quando selecionou o contrato
+            // Não precisa fazer nada com o campo relatorioAno
 
             // Limpar conteúdo anterior
             document.getElementById('conteudoRelatorio').style.display = 'none';
+            document.getElementById('btnVisualizarPDF').style.display = 'none';
 
             document.getElementById('modalRelatorioFiscalizacao').classList.add('active');
         }
 
         function fecharModalRelatorioFiscalizacao() {
             document.getElementById('modalRelatorioFiscalizacao').classList.remove('active');
-        }
-
-        function preencherAnosRelatorio() {
-            const selectAno = document.getElementById('relatorioAno');
-            selectAno.innerHTML = '';
-
-            const anoAtual = new Date().getFullYear();
-            for (let ano = 2025; ano <= anoAtual; ano++) {
-                const option = document.createElement('option');
-                option.value = ano;
-                option.textContent = ano;
-                selectAno.appendChild(option);
-            }
         }
 
         async function gerarRelatorioFiscalizacao() {
