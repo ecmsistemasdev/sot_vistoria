@@ -12117,15 +12117,19 @@ def api_listar_contratos_terceirizados():
         
         query = """
             SELECT 
-                gct.ID_CONTRATO,
-                gce.EXERCICIO,
-                gce.PROCESSO,
-                gct.CONTRATO,
-                cf.NM_FORNECEDOR
-            FROM GESTAO_CONTRATOS_TERCEIRIZADOS gct
-            LEFT JOIN CAD_FORNECEDOR cf ON cf.ID_FORNECEDOR = gct.ID_FORNECEDOR
-            JOIN GESTAO_CONTRATOS_EXERCICIOS gce ON gce.ID_CONTRATO = gct.ID_CONTRATO
-            ORDER BY gce.EXERCICIO DESC, cf.NM_FORNECEDOR
+                c.ID_CONTRATO,
+                c.CONTRATO,
+                c.ID_FORNECEDOR,
+                f.NM_FORNECEDOR,
+                g.EXERCICIO,
+                g.PROCESSO,
+                g.EMPENHO,
+                c.NOME_GESTOR,
+                c.SETOR_GESTOR
+            FROM GESTAO_CONTRATOS_TERCEIRIZADOS c
+            LEFT JOIN CAD_FORNECEDOR f ON c.ID_FORNECEDOR = f.ID_FORNECEDOR
+            LEFT JOIN GESTAO_CONTRATOS_EXERCICIOS g ON g.ID_CONTRATO = c.ID_CONTRATO
+            ORDER BY g.EXERCICIO DESC, f.NM_FORNECEDOR
         """
         
         cursor.execute(query)
@@ -12571,13 +12575,14 @@ def api_relatorio_fiscalizacao():
                 g.PROCESSO,
                 c.NOME_GESTOR,
                 c.SETOR_GESTOR,
-                f.NM_FORNECEDOR
+                f.NM_FORNECEDOR,
+                g.EXERCICIO
             FROM GESTAO_CONTRATOS_TERCEIRIZADOS c
             LEFT JOIN CAD_FORNECEDOR f ON c.ID_FORNECEDOR = f.ID_FORNECEDOR
-			JOIN GESTAO_CONTRATOS_EXERCICIOS g ON g.ID_CONTRATO = c.ID_CONTRATO
-            WHERE c.ID_CONTRATO = %s
+            JOIN GESTAO_CONTRATOS_EXERCICIOS g ON g.ID_CONTRATO = c.ID_CONTRATO
+            WHERE c.ID_CONTRATO = %s AND g.EXERCICIO = %s
         """
-        cursor.execute(query_contrato, (id_contrato,))
+        cursor.execute(query_contrato, (id_contrato, ano))
         contrato = cursor.fetchone()
         
         if not contrato:
@@ -13792,13 +13797,14 @@ def api_gerar_relatorio_retencao():
                 r.PC_13,
                 r.PC_FERIAS,
                 r.PC_MULTA_FGTS,
-                r.PC_INCIDENCIAS
+                r.PC_INCIDENCIAS,
+                g.EXERCICIO
             FROM GESTAO_CONTRATOS_TERCEIRIZADOS c
             LEFT JOIN CAD_FORNECEDOR f ON c.ID_FORNECEDOR = f.ID_FORNECEDOR
-			LEFT JOIN GESTAO_CONTRATOS_EXERCICIOS g ON g.ID_CONTRATO = c.ID_CONTRATO
+            LEFT JOIN GESTAO_CONTRATOS_EXERCICIOS g ON g.ID_CONTRATO = c.ID_CONTRATO
             LEFT JOIN PARAMETRO_RETENCAO_CONTA_VINCULADA r ON c.ID_RAT = r.ID_RAT
-            WHERE c.ID_CONTRATO = %s
-        """, (id_contrato,))
+            WHERE c.ID_CONTRATO = %s AND g.EXERCICIO = %s
+        """, (id_contrato, ano))
         
         contrato = cursor.fetchone()
         
