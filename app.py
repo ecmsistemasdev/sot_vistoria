@@ -12832,7 +12832,9 @@ def api_relatorio_fiscalizacao():
         for posto in resultado_postos:
             vl_mensal = posto['vl_mensal']
             
+            # ================================================
             # Motoristas mês completo
+            # ================================================
             if posto['qtd_motoristas_completo'] > 0:
                 qtd = posto['qtd_motoristas_completo']
                 valor_ref_mensal = vl_mensal
@@ -12854,40 +12856,92 @@ def api_relatorio_fiscalizacao():
                 valor_referencia_total += valor_ref_total
                 valor_devido_total += valor_dev_total
             
-            # Motoristas mês parcial
+            # ================================================
+            # Motoristas mês parcial - ✅ COM AGRUPAMENTO
+            # ================================================
             if posto['qtd_motoristas_parcial'] > 0:
+                # Agrupar motoristas parciais deste posto por dias trabalhados
+                motoristas_por_dias = {}
+                
                 for mot_parcial in posto['motoristas_parcial']:
                     dias_trab = mot_parcial['dias_trabalhados']
                     
-                    # Valor proporcional
+                    if dias_trab not in motoristas_por_dias:
+                        motoristas_por_dias[dias_trab] = []
+                    
+                    motoristas_por_dias[dias_trab].append(mot_parcial)
+                
+                # Processar cada grupo de dias
+                for dias_trab, lista_motoristas in motoristas_por_dias.items():
+                    qtd_motoristas_grupo = len(lista_motoristas)
+                    
+                    # Calcular valor proporcional por motorista
                     valor_ref_mensal = vl_mensal
-                    valor_ref_total = valor_ref_mensal  # Mantém valor total
+                    valor_dev_mensal_unitario = (vl_mensal / 30) * dias_trab
+                    valor_dev_mensal_unitario = valor_dev_mensal_unitario * (percentual_receber / 100)
                     
-                    valor_dev_mensal = (vl_mensal / 30) * dias_trab
-                    valor_dev_mensal = valor_dev_mensal * (percentual_receber / 100)
-                    valor_dev_total = valor_dev_mensal
+                    # Calcular valores totais do grupo
+                    valor_ref_total = valor_ref_mensal * qtd_motoristas_grupo
+                    valor_dev_total = valor_dev_mensal_unitario * qtd_motoristas_grupo
                     
+                    # Adicionar linha para este grupo
                     localidades.append({
                         'nome': posto['nome_posto'],
                         'tem_asterisco': True,
-                        'qtd_posto': 1,
+                        'qtd_posto': qtd_motoristas_grupo,
                         'dias_trabalhados': dias_trab,
                         'valor_ref_mensal': valor_ref_mensal,
                         'valor_ref_total': valor_ref_total,
-                        'valor_dev_mensal': valor_dev_mensal,
+                        'valor_dev_mensal': valor_dev_mensal_unitario,
                         'valor_dev_total': valor_dev_total
                     })
                     
-                    # ✅ NOVA FUNCIONALIDADE: Adicionar à observação
-                    observacoes_parciais.append({
-                        'posto': posto['nome_posto'],
-                        'nome': mot_parcial['nome_motorista'],
-                        'dias': dias_trab,
-                        'valor': valor_dev_total
-                    })
+                    # Adicionar observações individuais
+                    for mot_parcial in lista_motoristas:
+                        observacoes_parciais.append({
+                            'posto': posto['nome_posto'],
+                            'nome': mot_parcial['nome_motorista'],
+                            'dias': dias_trab,
+                            'valor': valor_dev_mensal_unitario
+                        })
                     
                     valor_referencia_total += valor_ref_total
                     valor_devido_total += valor_dev_total
+            
+            # # Motoristas mês parcial
+            # if posto['qtd_motoristas_parcial'] > 0:
+            #     for mot_parcial in posto['motoristas_parcial']:
+            #         dias_trab = mot_parcial['dias_trabalhados']
+                    
+            #         # Valor proporcional
+            #         valor_ref_mensal = vl_mensal
+            #         valor_ref_total = valor_ref_mensal  # Mantém valor total
+                    
+            #         valor_dev_mensal = (vl_mensal / 30) * dias_trab
+            #         valor_dev_mensal = valor_dev_mensal * (percentual_receber / 100)
+            #         valor_dev_total = valor_dev_mensal
+                    
+            #         localidades.append({
+            #             'nome': posto['nome_posto'],
+            #             'tem_asterisco': True,
+            #             'qtd_posto': 1,
+            #             'dias_trabalhados': dias_trab,
+            #             'valor_ref_mensal': valor_ref_mensal,
+            #             'valor_ref_total': valor_ref_total,
+            #             'valor_dev_mensal': valor_dev_mensal,
+            #             'valor_dev_total': valor_dev_total
+            #         })
+                    
+            #         # ✅ NOVA FUNCIONALIDADE: Adicionar à observação
+            #         observacoes_parciais.append({
+            #             'posto': posto['nome_posto'],
+            #             'nome': mot_parcial['nome_motorista'],
+            #             'dias': dias_trab,
+            #             'valor': valor_dev_total
+            #         })
+                    
+            #         valor_referencia_total += valor_ref_total
+            #         valor_devido_total += valor_dev_total
         
         # ===================================
         # 9. CALCULAR VALOR DA GLOSA
